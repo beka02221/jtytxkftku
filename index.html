@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Игра "Три в ряд" + Колесо фортуны (Telegram)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <style>
+    /* Подключаем моноширинный шрифт (пример — Courier Prime) */
+    @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+
+    /* Базовые стили */
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: #46257D; 
+      font-family: 'Courier Prime', monospace;
+      color: #39FF14;
+    }
+
+    /* Центровщик для гибкого расположения */
+    .centered {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Блок, где показываем короткую "заставку" при загрузке */
+    #loadingScreen {
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #4F308F, #46257D);
+      text-align: center;
+      box-sizing: border-box;
+      padding: 40px 20px;
+    }
+    #loadingScreen h2 {
+      color: #39FF14;
+      text-shadow: 0 0 4px #00FF00;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+
+    /* Главное меню */
+    #mainMenu {
+      min-height: 100vh;
+      width: 100%;
+      display: none;
+      box-sizing: border-box;
+      background: linear-gradient(135deg, #4F308F, #46257D);
+      text-align: center;
+      padding: 40px 20px;
+    }
+    #mainMenu h2 {
+      margin-bottom: 10px;
+      color: #39FF14;
+      text-shadow: 0 0 4px #00FF00;
+      font-size: 20px;
+    }
+    #mainMenu p {
+      margin: 8px 0;
+      font-size: 15px;
+      color: #ADFF2F;
+    }
+    #mainMenu button {
+      display: block;
+      margin: 10px auto;
+      padding: 12px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 2px solid #39FF14;
+      background: #1E3C87;
+      color: #ffffff;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 300px;
+      transition: all 0.2s ease-in-out;
+      text-transform: uppercase;
+    }
+    #mainMenu button:hover {
+      background: #2F53B2;
+      transform: scale(1.05);
+    }
+    /* Кнопка колеса фортуны (когда недоступна) */
+    #openFortuneModalBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Игровой экран */
+    #gameContainer {
+      min-height: 100vh;
+      width: 100%;
+      display: none;
+      position: relative;
+      background: #46257D;
+      box-sizing: border-box;
+      padding: 10px 0;
+    }
+    #gameCanvas {
+      display: block;
+      background-color: #3C266C;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(57,255,20,0.4);
+      max-width: 100%;
+      height: auto;
+    }
+    #backToMenuBtn {
+      position: absolute;
+      top: 300px;
+      left: 10px;
+      z-index: 999;
+      padding: 10px 16px;
+      cursor: pointer;
+      background: #1E3C87;
+      border: 2px solid #39FF14;
+      color: #ffffff;
+      font-size: 12px;
+      text-transform: uppercase;
+      border-radius: 6px;
+      transition: all 0.2s ease-in-out;
+    }
+    #backToMenuBtn:hover {
+      background: #2F53B2;
+      transform: scale(1.05);
+    }
+
+    /* Раздел "Таблица лидеров" */
+    #leaderboardContainer, 
+    #storeContainer, 
+    #infoContainer {
+      min-height: 100vh;
+      width: 100%;
+      display: none;
+      box-sizing: border-box;
+      background: linear-gradient(135deg, #4F308F, #46257D);
+      text-align: center;
+      padding: 40px 20px;
+    }
+    #leaderboardContainer h2,
+    #storeContainer h2,
+    #infoContainer h2 {
+      margin-top: 0;
+      color: #39FF14;
+      text-shadow: 0 0 4px #00FF00;
+      font-size: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 600px;
+    }
+    th, td {
+      border: 1px solid #39FF14;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 14px;
+      color: #ADFF2F;
+      background: #5B3E9E;
+    }
+    th {
+      background: #6F4CBE;
+      color: #ffffff;
+    }
+
+    /* Модальные окна */
+    .modalOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .modalContent {
+      background: #4F308F;
+      padding: 20px;
+      border: 2px solid #39FF14;
+      border-radius: 8px;
+      text-align: center;
+      position: relative;
+      max-width: 400px;
+      width: 80%;
+      color: #39FF14;
+      font-size: 14px;
+      box-shadow: 0 0 12px rgba(57,255,20,0.4);
+    }
+    .modalContent h2 {
+      margin-top: 0;
+      font-size: 16px;
+      text-shadow: 0 0 4px #00FF00;
+    }
+    .closeBtn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .modalContent button {
+      background: #1E3C87;
+      color: #ffffff;
+      border: 2px solid #39FF14;
+      cursor: pointer;
+      padding: 10px 16px;
+      font-size: 12px;
+      text-transform: uppercase;
+      border-radius: 6px;
+      transition: all 0.2s ease-in-out;
+    }
+    .modalContent button:hover {
+      background: #2F53B2;
+      transform: scale(1.05);
+    }
+
+    /* Окно Победы */
+    #winModal .modalContent {
+      background: linear-gradient(135deg, #6233AE, #5E2B95);
+      color: #39FF14;
+      animation: flash 1.5s infinite alternate;
+    }
+    @keyframes flash {
+      0% { box-shadow: 0 0 20px rgba(57,255,20,0.6); }
+      100% { box-shadow: 0 0 0 rgba(57,255,20,0); }
+    }
+
+    /* Окно Проигрыша */
+    #loseModal .modalContent {
+      background: #2F1A4F;
+      color: #39FF14;
+    }
+
+    /* Окно колеса фортуны */
+    #fortuneModal .modalContent {
+      background: linear-gradient(135deg, #472874, #46257D);
+      color: #39FF14;
+      border: 3px dashed #39FF14;
+    }
+    .wheelContainer {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      margin: 0 auto;
+    }
+    #fortuneWheel {
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      border: 4px solid #39FF14;
+      position: relative;
+      overflow: hidden;
+      transform: rotate(0deg);
+      transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
+      box-shadow: 0 0 15px #39FF14, inset 0 0 15px #39FF14;
+      background: radial-gradient(circle, #46257D 20%, #2F1A4F 80%);
+    }
+    .section {
+      width: 50%;
+      height: 50%;
+      position: absolute;
+      transform-origin: 100% 100%;
+      border: 1px dashed #39FF14;
+    }
+    .pointer {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-bottom: 30px solid #39FF14;
+      z-index: 10;
+      filter: drop-shadow(0 0 5px #39FF14);
+    }
+    #spinResultMsg {
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    #spinWheelBtn {
+      margin-top: 15px;
+      background: #1E3C87;
+      font-size: 12px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      color: #ffffff;
+      border: 2px solid #39FF14;
+      transition: all 0.2s ease-in-out;
+    }
+    #spinWheelBtn:hover {
+      background: #2F53B2;
+      transform: scale(1.05);
+    }
+
+    /* Адаптивность */
+    @media (max-width: 480px) {
+      #mainMenu h2,
+      #leaderboardContainer h2,
+      #storeContainer h2,
+      #infoContainer h2 {
+        font-size: 16px;
+      }
+      #mainMenu button,
+      .modalContent button {
+        font-size: 12px;
+        padding: 10px 16px;
+      }
+      #gameCanvas {
+        max-width: 90%;
+      }
+      .wheelContainer {
+        width: 260px;
+        height: 260px;
+      }
+      #fortuneWheel {
+        width: 260px;
+        height: 260px;
+      }
+      .pointer {
+        top: -24px;
+        border-left: 16px solid transparent;
+        border-right: 16px solid transparent;
+        border-bottom: 24px solid #39FF14;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Экран загрузки / «автовход» -->
+  <div id="loadingScreen">
+    <h2>Подключаемся к игре...</h2>
+    <p style="font-size:14px;color:#adff2f;">
+      Ожидание авторизации через Telegram...
+    </p>
+  </div>
+
+  <!-- Главное меню -->
+  <div id="mainMenu">
+    <h2>Добро пожаловать в "Три в ряд"!</h2>
+    <p id="userDisplay"></p>
+    <p id="coinsDisplay"></p>
+    <p id="ticketsDisplay"></p>
+    <button id="openFortuneModalBtn">Крутить колесо фортуны</button>
+    <button id="startGameBtn">Начать игру</button>
+    <button id="leaderboardBtn">Таблица лидеров</button>
+    <button id="storeBtn">Магазин улучшений</button>
+    <button id="infoBtn">Информация</button>
+    <button id="logoutBtn">Выйти</button>
+  </div>
+
+  <!-- Игровой экран -->
+  <div id="gameContainer">
+    <button id="backToMenuBtn">Выйти в меню</button>
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- Таблица лидеров -->
+  <div id="leaderboardContainer">
+    <h2>Таблица лидеров</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Пользователь</th>
+          <th>Монет</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardBody"></tbody>
+    </table>
+    <br />
+    <button id="leaderboardBackBtn">Назад</button>
+  </div>
+
+  <!-- Магазин -->
+  <div id="storeContainer">
+    <h2>Магазин улучшений</h2>
+    <p>Здесь можно приобрести различные бонусы.</p>
+    <ul style="list-style: none; padding: 0; margin-bottom:20px;">
+      <li>- Дополнительные очки</li>
+      <li>- Сокращение времени перетасовки</li>
+      <li>- Специальные фигурки с особыми эффектами</li>
+    </ul>
+    <button id="storeBackBtn">Назад</button>
+  </div>
+
+  <!-- Информация -->
+  <div id="infoContainer">
+    <h2>Информация об игре "Три в ряд"</h2>
+    <p>
+      Цель: составлять ряды из трёх и более одинаковых фигур, набирая как можно больше очков.<br>
+      Меняйте местами соседние фигуры. Если ходов нет — поле перетасуется.<br>
+      Игра длится 2 минуты. Чем длиннее цепочки, тем выше результат!
+    </p>
+    <button id="infoBackBtn">Назад</button>
+  </div>
+
+  <!-- Модальное окно Победы (необязательно) -->
+  <div id="winModal" class="modalOverlay">
+    <div class="modalContent">
+      <span class="closeBtn" id="winModalClose">&times;</span>
+      <h2>Поздравляем, вы выиграли!</h2>
+      <p>Отличный результат!</p>
+      <button id="takePrizeBtn">Забрать приз</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно Проигрыша (когда время вышло) -->
+  <div id="loseModal" class="modalOverlay">
+    <div class="modalContent">
+      <span class="closeBtn" id="loseModalClose">&times;</span>
+      <h2>Время вышло!</h2>
+      <p>Игра окончена. Попробуйте ещё раз!</p>
+      <button id="tryAgainBtn">Ок</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно Колеса фортуны -->
+  <div id="fortuneModal" class="modalOverlay">
+    <div class="modalContent">
+      <span class="closeBtn" id="fortuneCloseBtn">&times;</span>
+      <h2>Колесо Фортуны (1 раз в 24 часа)</h2>
+      <div class="wheelContainer">
+        <div class="pointer"></div>
+        <div id="fortuneWheel">
+          <!-- Пять «секторов» -->
+          <div class="section"></div>
+          <div class="section"></div>
+          <div class="section"></div>
+          <div class="section"></div>
+          <div class="section"></div>
+        </div>
+      </div>
+      <br>
+      <button id="spinWheelBtn">Крутить колесо</button>
+      <p id="spinResultMsg"></p>
+    </div>
+  </div>
+
+  <!-- Подключение Firebase и логика приложения -->
+  <script type="module">
+    // === ИМПОРТ FIREBASE ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js";
+    import { 
+      getDatabase, 
+      ref, 
+      get, 
+      set, 
+      update
+    } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js";
+
+    // === КОНФИГУРАЦИЯ FIREBASE (замените на свою!) ===
+    const firebaseConfig = {
+      apiKey: "ВАШ_API_KEY",
+      authDomain: "xxx.firebaseapp.com",
+      databaseURL: "https://xxx-default-rtdb.firebaseio.com",
+      projectId: "xxx",
+      storageBucket: "xxx.appspot.com",
+      messagingSenderId: "xxx",
+      appId: "xxx",
+      measurementId: "xxx"
+    };
+    // Инициализация Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // DOM-элементы
+    const loadingScreen        = document.getElementById("loadingScreen");
+    const mainMenu             = document.getElementById("mainMenu");
+    const gameContainer        = document.getElementById("gameContainer");
+    const leaderboardContainer = document.getElementById("leaderboardContainer");
+    const storeContainer       = document.getElementById("storeContainer");
+    const infoContainer        = document.getElementById("infoContainer");
+
+    const userDisplay          = document.getElementById("userDisplay");
+    const coinsDisplay         = document.getElementById("coinsDisplay");
+    const ticketsDisplay       = document.getElementById("ticketsDisplay");
+    const leaderboardBody      = document.getElementById("leaderboardBody");
+
+    // Кнопки
+    const openFortuneModalBtn  = document.getElementById("openFortuneModalBtn");
+    const startGameBtn         = document.getElementById("startGameBtn");
+    const leaderboardBtn       = document.getElementById("leaderboardBtn");
+    const storeBtn             = document.getElementById("storeBtn");
+    const infoBtn              = document.getElementById("infoBtn");
+    const logoutBtn            = document.getElementById("logoutBtn");
+
+    const leaderboardBackBtn   = document.getElementById("leaderboardBackBtn");
+    const storeBackBtn         = document.getElementById("storeBackBtn");
+    const infoBackBtn          = document.getElementById("infoBackBtn");
+
+    const backToMenuBtn        = document.getElementById("backToMenuBtn");
+
+    // Модалки
+    const winModal             = document.getElementById("winModal");
+    const loseModal            = document.getElementById("loseModal");
+    const fortuneModal         = document.getElementById("fortuneModal");
+
+    // Кнопки внутри модалок
+    const winModalClose        = document.getElementById("winModalClose");
+    const loseModalClose       = document.getElementById("loseModalClose");
+    const fortuneCloseBtn      = document.getElementById("fortuneCloseBtn");
+    const takePrizeBtn         = document.getElementById("takePrizeBtn");
+    const tryAgainBtn          = document.getElementById("tryAgainBtn");
+    const spinWheelBtn         = document.getElementById("spinWheelBtn");
+    const spinResultMsg        = document.getElementById("spinResultMsg");
+
+    // Канва
+    const gameCanvas           = document.getElementById("gameCanvas");
+    let ctx                    = null;
+
+    // Глобальные переменные игрока
+    let currentUsername        = null;
+    let currentCoins           = 0;
+    let currentTickets         = 0;
+    let lastSpinTime           = 0;  // timestamp (мс) последнего вращения
+
+    // Логика игры «Три в Ряд»
+    let isGameRunning   = false;
+    let animationId;
+    const boardSize     = 8;
+    let board           = [];
+    let cellSize        = 80;
+    let selectedCell    = null;
+    let scoreThisSession= 0;
+    let comboCount      = 0;
+    const GAME_TIME_LIMIT  = 2 * 60 * 1000; // 2 минуты
+    let gameStartTime   = 0;
+    const POINTS_PER_PIECE = 2;
+
+    // Набор фигур
+    const shapes = [
+      { shape: "circle",   color: "#FF6B6B" },
+      { shape: "square",   color: "#4ECDC4" },
+      { shape: "triangle", color: "#FFD93D" },
+      { shape: "hexagon",  color: "#FF9F1C" },
+      { shape: "star",     color: "#9B5DE5" }
+    ];
+
+    // Частицы (для взрывов)
+    let particles = [];
+
+    // ====== АВТОЗАПУСК: получаем данные из Telegram WebApp ======
+    window.addEventListener("load", async () => {
+      let tgUser = null;
+
+      // Проверяем, действительно ли открыто внутри Telegram
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+        tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+      }
+
+      // Если нет данных о юзере — выводим ошибку и стоп
+      if (!tgUser) {
+        loadingScreen.innerHTML = `
+          <h2>Ошибка!</h2>
+          <p>Пожалуйста, запустите эту игру через Telegram WebApp.</p>
+        `;
+        return;
+      }
+
+      // Если у юзера есть публичный username
+      if (tgUser.username) {
+        currentUsername = "@" + tgUser.username.toLowerCase();
+      } else {
+        // Иначе используем его id
+        currentUsername = "@user" + tgUser.id;
+      }
+
+      // Загружаем данные пользователя из БД
+      await loadUserDataAndGoToMainMenu();
+    });
+
+    async function loadUserDataAndGoToMainMenu() {
+      const userRef = ref(db, "users/" + currentUsername);
+      const snapshot = await get(userRef);
+      let coinsVal = 0;
+      let ticketsVal = 0;
+      let spinVal = 0;
+
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        coinsVal   = data.coins || 0;
+        ticketsVal = data.tickets || 0;
+        spinVal    = data.lastSpinTime || 0;
+      } else {
+        // Создаём запись нового пользователя
+        await set(userRef, { coins: 0, tickets: 0, lastSpinTime: 0 });
+      }
+
+      currentCoins   = coinsVal;
+      currentTickets = ticketsVal;
+      lastSpinTime   = spinVal;
+
+      // Отображаем главное меню
+      loadingScreen.style.display = "none";
+      displayMainMenu();
+    }
+
+    // ========== ГЛАВНОЕ МЕНЮ ==========
+    function displayMainMenu() {
+      mainMenu.style.display = "block";
+      gameContainer.style.display = "none";
+      leaderboardContainer.style.display = "none";
+      storeContainer.style.display = "none";
+      infoContainer.style.display = "none";
+
+      userDisplay.textContent    = `Игрок: ${currentUsername}`;
+      coinsDisplay.textContent   = `Монет: ${currentCoins}`;
+      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
+
+      // Проверяем, прошло ли 24 часа после последнего вращения колеса
+      const now = Date.now();
+      const diff = now - lastSpinTime; 
+      const hours = diff / (1000 * 60 * 60);
+      if (hours >= 24) {
+        openFortuneModalBtn.disabled = false;
+        openFortuneModalBtn.style.opacity = "1";
+      } else {
+        openFortuneModalBtn.disabled = true;
+        openFortuneModalBtn.style.opacity = "0.5";
+      }
+    }
+
+    // Кнопки в меню
+    openFortuneModalBtn.addEventListener("click", () => {
+      openModal(fortuneModal);
+      spinResultMsg.textContent = "";
+    });
+    spinWheelBtn.addEventListener("click", spinWheel);
+
+    startGameBtn.addEventListener("click", () => {
+      mainMenu.style.display = "none";
+      startGame();
+    });
+
+    leaderboardBtn.addEventListener("click", () => {
+      mainMenu.style.display = "none";
+      leaderboardContainer.style.display = "block";
+      loadLeaderboard();
+    });
+    storeBtn.addEventListener("click", () => {
+      mainMenu.style.display = "none";
+      storeContainer.style.display = "block";
+    });
+    infoBtn.addEventListener("click", () => {
+      mainMenu.style.display = "none";
+      infoContainer.style.display = "block";
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      // В Telegram WebApp нет «логаута» как такового, но вы можете
+      // либо обнулить данные в БД, либо скрыть игру. 
+      // Для примера просто перезагрузим страницу:
+      location.reload();
+    });
+
+    // Кнопки назад
+    leaderboardBackBtn.addEventListener("click", () => {
+      leaderboardContainer.style.display = "none";
+      displayMainMenu();
+    });
+    storeBackBtn.addEventListener("click", () => {
+      storeContainer.style.display = "none";
+      displayMainMenu();
+    });
+    infoBackBtn.addEventListener("click", () => {
+      infoContainer.style.display = "none";
+      displayMainMenu();
+    });
+    backToMenuBtn.addEventListener("click", endGameAndReturn);
+
+    // ========== ЗАГРУЗКА ТАБЛИЦЫ ЛИДЕРОВ ==========
+    async function loadLeaderboard() {
+      leaderboardBody.innerHTML = "";
+      const usersRef = ref(db, "users/");
+      const snapshot = await get(usersRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const usersArray = Object.keys(data).map(key => {
+          return { username: key, coins: data[key].coins || 0 };
+        });
+        // Сортируем по монетам (убывание)
+        usersArray.sort((a, b) => b.coins - a.coins);
+
+        usersArray.forEach(user => {
+          const tr = document.createElement("tr");
+          const tdName = document.createElement("td");
+          const tdCoins = document.createElement("td");
+          tdName.textContent = user.username;
+          tdCoins.textContent = user.coins;
+          tr.appendChild(tdName);
+          tr.appendChild(tdCoins);
+          leaderboardBody.appendChild(tr);
+        });
+      }
+    }
+
+    // ========== ИГРА «ТРИ В РЯД» ==========
+    function startGame() {
+      gameContainer.style.display = "block";
+      ctx = gameCanvas.getContext("2d");
+      resizeCanvas();
+
+      initBoard();
+      scoreThisSession = 0;
+      comboCount = 0;
+      selectedCell = null;
+
+      gameStartTime = Date.now();
+      removeAllMatches(true); // убрать стартовые возможные совпадения
+      isGameRunning = true;
+
+      gameCanvas.addEventListener("mousedown", onCanvasClick);
+      gameCanvas.addEventListener("touchstart", onCanvasTouch, { passive: false });
+
+      updateGame();
+    }
+    function resizeCanvas() {
+      const maxWidth = window.innerWidth;
+      const maxHeight = window.innerHeight - 100; 
+      const possibleCellSizeWidth  = Math.floor(maxWidth  / boardSize);
+      const possibleCellSizeHeight = Math.floor(maxHeight / boardSize);
+      cellSize = Math.min(80, possibleCellSizeWidth, possibleCellSizeHeight);
+
+      gameCanvas.width  = boardSize * cellSize;
+      gameCanvas.height = boardSize * cellSize;
+    }
+    window.addEventListener("resize", () => {
+      if (isGameRunning) resizeCanvas();
+    });
+
+    function initBoard() {
+      board = [];
+      for (let r = 0; r < boardSize; r++) {
+        const row = [];
+        for (let c = 0; c < boardSize; c++) {
+          const piece = getRandomPiece();
+          piece.x = c;
+          piece.y = r;
+          piece.scale = 1;
+          piece.alpha = 1;
+          piece.removing = false;
+          piece.falling  = false;
+          row.push(piece);
+        }
+        board.push(row);
+      }
+    }
+    function getRandomPiece() {
+      const idx = Math.floor(Math.random() * shapes.length);
+      const { shape, color } = shapes[idx];
+      return { shape, color };
+    }
+
+    function updateGame() {
+      if (!isGameRunning) return;
+      const now = Date.now();
+      const elapsed = now - gameStartTime;
+      if (elapsed > GAME_TIME_LIMIT) {
+        // Время вышло
+        openLoseModal();
+        gameOverActions();
+        return;
+      }
+      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+      updateAnimations();
+      drawBoard();
+      drawParticles();
+      drawHUD(elapsed);
+
+      animationId = requestAnimationFrame(updateGame);
+    }
+
+    function drawHUD(elapsed) {
+      ctx.fillStyle = "#000";
+      ctx.font = "18px Arial";
+      ctx.fillText(`Очки: ${scoreThisSession}`, 10, 20);
+
+      const secsLeft = Math.floor((GAME_TIME_LIMIT - elapsed) / 1000);
+      const min = Math.floor(secsLeft / 60);
+      const sec = secsLeft % 60;
+      ctx.fillText(`Время: ${min}:${sec < 10 ? "0"+sec : sec}`, 10, 40);
+
+      if (comboCount > 1) {
+        ctx.fillStyle = "red";
+        ctx.fillText(`Комбо x${comboCount}`, 10, 60);
+      }
+    }
+
+    function updateAnimations() {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          const piece = board[r][c];
+          if (!piece) continue;
+          if (piece.removing) {
+            piece.scale -= 0.1;
+            piece.alpha -= 0.1;
+            if (piece.scale <= 0 || piece.alpha <= 0) {
+              board[r][c] = null;
+            }
+          }
+          if (piece.falling !== false) {
+            const targetRow = piece.falling;
+            const diff = targetRow - piece.y;
+            const speed = 0.2;
+            if (Math.abs(diff) < 0.01) {
+              piece.y = targetRow;
+              piece.falling = false;
+            } else {
+              piece.y += diff * speed;
+            }
+          }
+        }
+      }
+    }
+
+    function drawBoard() {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          drawCell(r, c);
+        }
+      }
+      if (selectedCell) {
+        const { r, c } = selectedCell;
+        ctx.strokeStyle = "#FFD700";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+      }
+    }
+    function drawCell(r, c) {
+      const piece = board[r][c];
+      const px = c * cellSize;
+      const py = r * cellSize;
+      ctx.strokeStyle = "rgba(150, 150, 150, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, cellSize, cellSize);
+
+      if (!piece) return;
+
+      const drawX = piece.x * cellSize;
+      const drawY = piece.y * cellSize;
+
+      ctx.save();
+      ctx.translate(drawX + cellSize/2, drawY + cellSize/2);
+      ctx.scale(piece.scale, piece.scale);
+      ctx.globalAlpha = piece.alpha;
+      ctx.translate(-cellSize/2, -cellSize/2);
+
+      ctx.fillStyle = piece.color;
+      switch (piece.shape) {
+        case "circle":
+          ctx.beginPath();
+          ctx.arc(cellSize/2, cellSize/2, cellSize*0.35, 0, 2*Math.PI);
+          ctx.fill();
+          break;
+        case "square":
+          ctx.fillRect(cellSize*0.15, cellSize*0.15, cellSize*0.7, cellSize*0.7);
+          break;
+        case "triangle":
+          ctx.beginPath();
+          ctx.moveTo(cellSize/2, cellSize*0.1);
+          ctx.lineTo(cellSize*0.1, cellSize*0.9);
+          ctx.lineTo(cellSize*0.9, cellSize*0.9);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        case "hexagon":
+          drawHexagon(cellSize, cellSize);
+          break;
+        case "star":
+          drawStar(cellSize, cellSize);
+          break;
+      }
+      ctx.restore();
+    }
+    function drawHexagon(w, h) {
+      const radius = w * 0.35;
+      const cx = w / 2;
+      const cy = h / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const px = cx + radius * Math.cos(angle);
+        const py = cy + radius * Math.sin(angle);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+    function drawStar(w, h) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const spikes = 5;
+      const outerRadius = w * 0.35;
+      const innerRadius = outerRadius * 0.5;
+      let rot = Math.PI / 2 * 3;
+      const step = Math.PI / spikes;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerRadius);
+      for (let i = 0; i < spikes; i++) {
+        let xPos = cx + Math.cos(rot) * outerRadius;
+        let yPos = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(xPos, yPos);
+        rot += step;
+
+        xPos = cx + Math.cos(rot) * innerRadius;
+        yPos = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(xPos, yPos);
+        rot += step;
+      }
+      ctx.lineTo(cx, cy - outerRadius);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function onCanvasClick(e) {
+      const rect = gameCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      handleClick(x, y);
+    }
+    function onCanvasTouch(e) {
+      e.preventDefault();
+      const rect = gameCanvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      handleClick(x, y);
+    }
+
+    function handleClick(x, y) {
+      if (!isGameRunning) return;
+      const c = Math.floor(x / cellSize);
+      const r = Math.floor(y / cellSize);
+      if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) return;
+
+      if (!selectedCell) {
+        selectedCell = { r, c };
+      } else {
+        const { r: r1, c: c1 } = selectedCell;
+        if (isNeighbor(r1, c1, r, c)) {
+          swapPieces(r1, c1, r, c);
+          const matched = findMatches();
+          if (!matched.length) {
+            // Нет совпадений — откат
+            swapPieces(r1, c1, r, c);
+          } else {
+            removeAllMatches(false);
+          }
+        }
+        selectedCell = null;
+      }
+    }
+    function isNeighbor(r1, c1, r2, c2) {
+      return (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1);
+    }
+    function swapPieces(r1, c1, r2, c2) {
+      const temp = board[r1][c1];
+      board[r1][c1] = board[r2][c2];
+      board[r2][c2] = temp;
+      if (board[r1][c1]) {
+        board[r1][c1].x = c1;
+        board[r1][c1].y = r1;
+      }
+      if (board[r2][c2]) {
+        board[r2][c2].x = c2;
+        board[r2][c2].y = r2;
+      }
+    }
+
+    function findMatches() {
+      const toRemove = [];
+      // Горизонтали
+      for (let r = 0; r < boardSize; r++) {
+        let matchLen = 1;
+        for (let c = 1; c < boardSize; c++) {
+          const curr = board[r][c];
+          const prev = board[r][c-1];
+          if (curr && prev && sameType(curr, prev)) {
+            matchLen++;
+          } else {
+            if (matchLen >= 3) {
+              for (let k = 0; k < matchLen; k++) {
+                toRemove.push({ r, c: c-1-k });
+              }
+            }
+            matchLen = 1;
+          }
+        }
+        if (matchLen >= 3) {
+          for (let k = 0; k < matchLen; k++) {
+            toRemove.push({ r, c: boardSize-1-k });
+          }
+        }
+      }
+      // Вертикали
+      for (let c = 0; c < boardSize; c++) {
+        let matchLen = 1;
+        for (let r = 1; r < boardSize; r++) {
+          const curr = board[r][c];
+          const prev = board[r-1][c];
+          if (curr && prev && sameType(curr, prev)) {
+            matchLen++;
+          } else {
+            if (matchLen >= 3) {
+              for (let k = 0; k < matchLen; k++) {
+                toRemove.push({ r: r-1-k, c });
+              }
+            }
+            matchLen = 1;
+          }
+        }
+        if (matchLen >= 3) {
+          for (let k = 0; k < matchLen; k++) {
+            toRemove.push({ r: boardSize-1-k, c });
+          }
+        }
+      }
+      return toRemove;
+    }
+    function sameType(a, b) {
+      return a.shape === b.shape && a.color === b.color;
+    }
+    function removeAllMatches(forceImmediate) {
+      const matches = findMatches();
+      if (!matches.length) {
+        comboCount = 0;
+        // Если нет ходов — перетасуем
+        if (!hasAnyMoves()) {
+          shuffleBoard();
+        }
+        return;
+      }
+      comboCount = comboCount === 0 ? 1 : comboCount + 1;
+      const points = matches.length * POINTS_PER_PIECE * comboCount;
+      scoreThisSession += points;
+
+      if (forceImmediate) {
+        for (let m of matches) {
+          board[m.r][m.c] = null;
+        }
+        makePiecesFall();
+        removeAllMatches(true);
+        return;
+      }
+
+      // Анимация исчезновения
+      for (let m of matches) {
+        const piece = board[m.r][m.c];
+        if (piece) {
+          piece.removing = true;
+          spawnParticles(piece, m.r, m.c);
+        }
+      }
+      setTimeout(() => {
+        makePiecesFall();
+        setTimeout(() => {
+          removeAllMatches(false);
+        }, 300);
+      }, 300);
+    }
+    function hasAnyMoves() {
+      // Проверяем, остались ли потенциальные ходы
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          if (c+1 < boardSize) {
+            swapPieces(r, c, r, c+1);
+            if (findMatches().length) {
+              swapPieces(r, c, r, c+1);
+              return true;
+            }
+            swapPieces(r, c, r, c+1);
+          }
+          if (r+1 < boardSize) {
+            swapPieces(r, c, r+1, c);
+            if (findMatches().length) {
+              swapPieces(r, c, r+1, c);
+              return true;
+            }
+            swapPieces(r, c, r+1, c);
+          }
+        }
+      }
+      return false;
+    }
+    function shuffleBoard() {
+      // Делает полную перетасовку
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          if (board[r][c]) {
+            board[r][c].removing = true;
+          }
+        }
+      }
+      setTimeout(() => {
+        let allPieces = [];
+        for (let r = 0; r < boardSize; r++) {
+          for (let c = 0; c < boardSize; c++) {
+            if (board[r][c]) {
+              allPieces.push(board[r][c]);
+            }
+            board[r][c] = null;
+          }
+        }
+        // Перемешиваем
+        for (let i = allPieces.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
+        }
+        let idx = 0;
+        for (let r = 0; r < boardSize; r++) {
+          for (let c = 0; c < boardSize; c++) {
+            if (idx < allPieces.length) {
+              let p = allPieces[idx++];
+              p.removing = false;
+              p.scale = 0.1;
+              p.alpha = 0.1;
+              p.x = c;
+              p.y = r;
+              board[r][c] = p;
+            } else {
+              const np = getRandomPiece();
+              np.x = c;
+              np.y = r;
+              np.scale = 0.1;
+              np.alpha = 0.1;
+              board[r][c] = np;
+            }
+          }
+        }
+        setTimeout(() => {
+          for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+              const p = board[r][c];
+              if (p) {
+                p.removing = false;
+              }
+            }
+          }
+        }, 200);
+      }, 300);
+    }
+
+    // Частицы
+    function spawnParticles(piece, r, c) {
+      const px = c * cellSize + cellSize/2;
+      const py = r * cellSize + cellSize/2;
+      for (let i = 0; i < 10; i++) {
+        particles.push({
+          x: px, y: py,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          alpha: 1,
+          color: piece.color
+        });
+      }
+    }
+    function drawParticles() {
+      for (let p of particles) {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.restore();
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+      }
+      particles = particles.filter(p => p.alpha > 0);
+    }
+
+    // Окончание игры
+    function gameOverActions() {
+      isGameRunning = false;
+      cancelAnimationFrame(animationId);
+      gameCanvas.removeEventListener("mousedown", onCanvasClick);
+      gameCanvas.removeEventListener("touchstart", onCanvasTouch);
+
+      // Начисляем монеты за очки
+      currentCoins += scoreThisSession;
+      updateUserInDB();
+    }
+    function endGameAndReturn() {
+      if (isGameRunning) {
+        isGameRunning = false;
+        cancelAnimationFrame(animationId);
+        gameCanvas.removeEventListener("mousedown", onCanvasClick);
+        gameCanvas.removeEventListener("touchstart", onCanvasTouch);
+        currentCoins += scoreThisSession;
+        updateUserInDB();
+      }
+      gameContainer.style.display = "none";
+      displayMainMenu();
+    }
+
+    // Обновление БД
+    async function updateUserInDB() {
+      if (!currentUsername) return;
+      const userRef = ref(db, `users/${currentUsername}`);
+      await update(userRef, {
+        coins: currentCoins,
+        tickets: currentTickets,
+        lastSpinTime
+      });
+      coinsDisplay.textContent   = `Монет: ${currentCoins}`;
+      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
+    }
+
+    // ========== МОДАЛЬНЫЕ ОКНА ==========
+    function openModal(modal) {
+      modal.style.display = "flex";
+    }
+    function closeModal(modal) {
+      modal.style.display = "none";
+    }
+
+    function openLoseModal() { openModal(loseModal); }
+
+    // Закрытие «Проигрыш»
+    loseModalClose.addEventListener("click", () => closeModal(loseModal));
+    tryAgainBtn.addEventListener("click", () => {
+      closeModal(loseModal);
+      endGameAndReturn();
+    });
+
+    // Закрытие «Победа» (если нужно)
+    if (winModalClose) {
+      winModalClose.addEventListener("click", () => closeModal(winModal));
+    }
+    if (takePrizeBtn) {
+      takePrizeBtn.addEventListener("click", () => {
+        closeModal(winModal);
+        endGameAndReturn();
+      });
+    }
+
+    // Колесо фортуны
+    fortuneCloseBtn.addEventListener("click", () => {
+      closeModal(fortuneModal);
+    });
+    // 5 «секторов» => билеты [1..5]
+    const ticketsMap = [1, 2, 3, 4, 5];
+    let isSpinning = false;
+
+    async function spinWheel() {
+      if (isSpinning) return;
+      isSpinning = true;
+      spinResultMsg.textContent = "";
+
+      // Сразу фиксируем время спина (чтобы нельзя было повторить)
+      lastSpinTime = Date.now();
+      await updateUserInDB();
+
+      // Вращение
+      const wheel = document.getElementById("fortuneWheel");
+      const randomAngle = 360 * 5 + Math.floor(Math.random() * 360); 
+      wheel.style.transition = "transform 4s cubic-bezier(0.33, 1, 0.68, 1)";
+      wheel.style.transform = `rotate(${randomAngle}deg)`;
+
+      setTimeout(() => {
+        // Определяем сектор
+        const normalized = randomAngle % 360;
+        const sectorCount = 5;
+        const sectorAngle = 360 / sectorCount; 
+        const sectorIndex = Math.floor(normalized / sectorAngle);
+        const index = (sectorCount - sectorIndex) % sectorCount;
+        const wonTickets = ticketsMap[index];
+
+        spinResultMsg.textContent = `Вы выиграли ${wonTickets} билет(ов)!`;
+        currentTickets += wonTickets;
+        updateUserInDB();
+
+        setTimeout(() => {
+          // Сбросим угол
+          wheel.style.transition = "none";
+          wheel.style.transform = "rotate(0deg)";
+          isSpinning = false;
+          // Закроем окно
+          closeModal(fortuneModal);
+        }, 600);
+      }, 4200);
+    }
+
+  </script>
+</body>
+</html>
