@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Игра "Три в ряд" + Модальные окна + Новое колесо фортуны</title>
+  <title>Игра "Три в ряд" + Магазин + Колесо фортуны</title>
   <meta name="viewport" content="width=device-width, user-scalable=no" />
   <!-- Подключаем Telegram Web App JS -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -18,19 +18,12 @@
       font-family: 'Courier Prime', monospace;
       color: #39FF14;
     }
-    .centered {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
 
-    /* УДАЛЁН блок #loginScreen, т.к. мы больше не спрашиваем username вручную */
-
-    /* --- ГЛАВНОЕ МЕНЮ --- */
+    /* Главное меню */
     #mainMenu {
       min-height: 100vh;
       width: 100%;
-      display: none;
+      display: none; /* скрываем, пока не загрузим пользователя */
       box-sizing: border-box;
       background: linear-gradient(135deg, #4F308F, #46257D);
       text-align: center;
@@ -68,7 +61,7 @@
       transform: scale(1.05);
     }
 
-    /* --- ЭКРАНЫ: Таблица лидеров, Магазин, Инфо --- */
+    /* Таблица лидеров, Магазин, Инфо */
     #leaderboardContainer,
     #storeContainer,
     #infoContainer {
@@ -107,30 +100,23 @@
       color: #ffffff;
     }
 
-    /* --- ИГРОВОЙ ЭКРАН --- */
+    /* Игровой экран — центрируем контент */
     #gameContainer {
       min-height: 100vh;
       width: 100%;
       display: none;
-      position: relative;
-      background: #46257D;
       box-sizing: border-box;
-      padding: 10px 0;
-    }
-    #gameCanvas {
-      display: block;
-      background-color: #3C266C;
-      margin: 0 auto;
-      box-shadow: 0 0 10px rgba(57,255,20,0.4);
-      max-width: 100%;
-      height: auto;
+      background: #46257D;
+      /* Flex-раскладка для центрирования */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 20px;
+      padding-bottom: 20px;
     }
     #backToMenuBtn {
-      position: absolute;
-      top: 310px;
-      left: 10px;
-      z-index: 999;
-      padding: 10px 16px;
+      margin-bottom: 10px;
       cursor: pointer;
       background: #1E3C87;
       border: 2px solid #39FF14;
@@ -139,13 +125,42 @@
       text-transform: uppercase;
       border-radius: 6px;
       transition: all 0.2s ease-in-out;
+      padding: 10px 16px;
     }
     #backToMenuBtn:hover {
       background: #2F53B2;
       transform: scale(1.05);
     }
+    #gameCanvas {
+      /* канвас теперь по центру */
+      background-color: #3C266C;
+      box-shadow: 0 0 10px rgba(57,255,20,0.4);
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto; /* горизонтальный центр */
+    }
+    /* Панель внизу для использования предметов */
+    #itemPanel {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    #itemPanel button {
+      background: #FF7F50;
+      border: 2px solid #FFD700;
+      color: #FFF;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      transition: 0.2s;
+    }
+    #itemPanel button:hover {
+      transform: scale(1.05);
+      background: #FFA07A;
+    }
 
-    /* --- МОДАЛЬНЫЕ ОКНА --- */
+    /* Модальные окна */
     .modalOverlay {
       position: fixed;
       top: 0; left: 0;
@@ -199,7 +214,7 @@
       transform: scale(1.05);
     }
 
-    /* --- ОКНО «ПОБЕДА» --- */
+    /* Окно «Победа» */
     #winModal .modalContent {
       background: linear-gradient(135deg, #6233AE, #5E2B95);
       color: #39FF14;
@@ -210,13 +225,13 @@
       100% { box-shadow: 0 0 0 rgba(57,255,20,0); }
     }
 
-    /* --- ОКНО «ПРОИГРЫШ» --- */
+    /* Окно «Проигрыш» */
     #loseModal .modalContent {
       background: #2F1A4F;
       color: #39FF14;
     }
 
-    /* --- ОКНО «КОЛЕСО ФОРТУНЫ» --- */
+    /* Окно «Колесо фортуны» */
     #fortuneModal .modalContent {
       background: linear-gradient(135deg, #472874, #46257D);
       color: #39FF14;
@@ -315,18 +330,14 @@
   </style>
 </head>
 <body>
-  <!-- 
-    Удалён блок #loginScreen, т.к. логин теперь происходит автоматически 
-    через Telegram Web App.
-  -->
-
   <!-- Главное меню -->
   <div id="mainMenu">
     <h2>Добро пожаловать в "Три в ряд"!</h2>
     <p id="userDisplay"></p>
     <p id="coinsDisplay"></p>
     <p id="ticketsDisplay"></p>
-    <!-- Кнопка для открытия колеса фортуны (раз в 24 часа) -->
+
+    <!-- Кнопка или таймер колеса фортуны -->
     <button id="openFortuneModalBtn">Крутить колесо фортуны</button>
 
     <button id="startGameBtn">Начать игру</button>
@@ -340,6 +351,19 @@
   <div id="gameContainer">
     <button id="backToMenuBtn">Выйти в меню</button>
     <canvas id="gameCanvas"></canvas>
+
+    <!-- Панель предметов внизу (если user их купил) -->
+    <div id="itemPanel">
+      <!-- Появляются кнопки при наличии предметов -->
+      <!-- +20 сек -->
+      <button id="useExtraTimeBtn" style="display:none">
+        +20 секунд (<span id="extraTimeCount">0</span>)
+      </button>
+      <!-- Бомба -->
+      <button id="useBombBtn" style="display:none">
+        Бомба (<span id="bombCount">0</span>)
+      </button>
+    </div>
   </div>
 
   <!-- Таблица лидеров -->
@@ -361,12 +385,21 @@
   <!-- Магазин -->
   <div id="storeContainer">
     <h2>Магазин улучшений</h2>
-    <p>Здесь можно приобрести различные бонусы (пример).</p>
-    <ul>
-      <li>Бонусные очки</li>
-      <li>Сокращение времени перетасовки</li>
-      <li>Специальные фигуры</li>
-    </ul>
+    <p>Здесь можно приобрести различные бонусы за монеты.</p>
+    
+    <div style="margin-top:20px;">
+      <h3>+20 секунд к таймеру</h3>
+      <p>Цена: <b>50</b> монет</p>
+      <button id="buyExtraTimeBtn">Купить</button>
+    </div>
+
+    <div style="margin-top:20px;">
+      <h3>Бомба (3×3)</h3>
+      <p>Цена: <b>100</b> монет</p>
+      <button id="buyBombBtn">Купить</button>
+    </div>
+
+    <br/>
     <button id="storeBackBtn">Назад</button>
   </div>
 
@@ -375,14 +408,14 @@
     <h2>Информация об игре "Три в ряд"</h2>
     <p>
       Цель игры: составлять ряды из трёх и более одинаковых фигур, набирая как можно больше очков.<br>
-      Если возможных ходов нет — поле перетасовывается.<br>
-      Игра длится 2 минуты. Чем больше соберёте подряд, тем больше очков получите.
+      Если ходов нет — поле перетасовывается. Игра длится 2 минуты (можно купить +20 секунд).<br>
+      «Бомба» убирает фигуры в радиусе 3×3 от выбранной ячейки.
     </p>
     <button id="infoBackBtn">Назад</button>
   </div>
 
   <!-- =================== МОДАЛЬНЫЕ ОКНА =================== -->
-  <!-- Окно "Победа" -->
+  <!-- Окно "Победа" (если нужно) -->
   <div id="winModal" class="modalOverlay">
     <div class="modalContent">
       <span class="closeBtn" id="winModalClose">&times;</span>
@@ -424,7 +457,7 @@
     </div>
   </div>
 
-  <!-- Подключение Firebase и логика приложения -->
+  <!-- Подключение Firebase и основная логика -->
   <script type="module">
     // === ИМПОРТ FIREBASE ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js";
@@ -438,79 +471,98 @@
 
     // === КОНФИГУРАЦИЯ FIREBASE ===
     const firebaseConfig = {
-  apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-  authDomain: "test-with-likes.firebaseapp.com",
-  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-  projectId: "test-with-likes",
-  storageBucket: "test-with-likes.appspot.com",
-  messagingSenderId: "764738820142",
-  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-  measurementId: "G-WJNF0HSN9P"
-};
-
+      apiKey: "AIzaSyB...",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
     // Инициализация Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Получаем объект Telegram WebApp
+    // Telegram WebApp
     const tg = window.Telegram.WebApp;
-    // Раскрываем WebApp (по желанию, чтобы занимал всё пространство)
-    tg.expand();
+    tg.expand(); // Разворачиваем
 
     // DOM-элементы
     const mainMenu = document.getElementById("mainMenu");
     const userDisplay = document.getElementById("userDisplay");
     const coinsDisplay = document.getElementById("coinsDisplay");
     const ticketsDisplay = document.getElementById("ticketsDisplay");
+    const openFortuneModalBtn = document.getElementById("openFortuneModalBtn");
+    const startGameBtn = document.getElementById("startGameBtn");
+    const leaderboardBtn = document.getElementById("leaderboardBtn");
+    const storeBtn = document.getElementById("storeBtn");
+    const infoBtn = document.getElementById("infoBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
+    // Модалки
+    const fortuneModal = document.getElementById("fortuneModal");
+    const fortuneCloseBtn = document.getElementById("fortuneCloseBtn");
+    const spinWheelBtn = document.getElementById("spinWheelBtn");
+    const spinResultMsg = document.getElementById("spinResultMsg");
+
+    const winModal = document.getElementById("winModal");
+    const winModalClose = document.getElementById("winModalClose");
+    const takePrizeBtn = document.getElementById("takePrizeBtn");
+    const loseModal = document.getElementById("loseModal");
+    const loseModalClose = document.getElementById("loseModalClose");
+    const tryAgainBtn = document.getElementById("tryAgainBtn");
+
+    // Лидерборд
     const leaderboardContainer = document.getElementById("leaderboardContainer");
     const leaderboardBody = document.getElementById("leaderboardBody");
     const leaderboardBackBtn = document.getElementById("leaderboardBackBtn");
 
+    // Магазин
     const storeContainer = document.getElementById("storeContainer");
     const storeBackBtn = document.getElementById("storeBackBtn");
+    const buyExtraTimeBtn = document.getElementById("buyExtraTimeBtn");
+    const buyBombBtn = document.getElementById("buyBombBtn");
 
+    // Инфо
     const infoContainer = document.getElementById("infoContainer");
     const infoBackBtn = document.getElementById("infoBackBtn");
 
+    // Игра
     const gameContainer = document.getElementById("gameContainer");
-    const gameCanvas = document.getElementById("gameCanvas");
     const backToMenuBtn = document.getElementById("backToMenuBtn");
+    const gameCanvas = document.getElementById("gameCanvas");
+    let ctx;
 
-    // Кнопки в главном меню
-    const openFortuneModalBtn = document.getElementById("openFortuneModalBtn");
-    const spinWheelBtn = document.getElementById("spinWheelBtn");
-    const startGameBtn = document.getElementById("startGameBtn");
-    const storeBtn = document.getElementById("storeBtn");
-    const infoBtn = document.getElementById("infoBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const leaderboardBtn = document.getElementById("leaderboardBtn");
+    // Панель предметов в игре
+    const itemPanel = document.getElementById("itemPanel");
+    const useExtraTimeBtn = document.getElementById("useExtraTimeBtn");
+    const extraTimeCountSpan = document.getElementById("extraTimeCount");
+    const useBombBtn = document.getElementById("useBombBtn");
+    const bombCountSpan = document.getElementById("bombCount");
 
-    // Модалки
-    const winModal = document.getElementById("winModal");
-    const loseModal = document.getElementById("loseModal");
-    const fortuneModal = document.getElementById("fortuneModal");
-    // Кнопки внутри модалок
-    const winModalClose = document.getElementById("winModalClose");
-    const loseModalClose = document.getElementById("loseModalClose");
-    const takePrizeBtn = document.getElementById("takePrizeBtn");
-    const tryAgainBtn = document.getElementById("tryAgainBtn");
-    const fortuneCloseBtn = document.getElementById("fortuneCloseBtn");
-    const spinResultMsg = document.getElementById("spinResultMsg");
-
-    // Глобальные переменные пользователя
+    // Глобальные переменные
     let currentUsername = null;
     let currentCoins = 0;
     let currentTickets = 0;
-    let lastSpinTime = 0; 
+    let lastSpinTime = 0;
+    let inventory = {
+      extraTime: 0,  // количество "+20 сек"
+      bombs: 0       // количество "бомб"
+    };
 
     // Игра "Три в ряд"
-    let ctx;
     let isGameRunning = false;
     let animationId;
     const boardSize = 8;
     let board = [];
     let cellSize = 80;
+    let selectedCell = null;
+    let scoreThisSession = 0;
+    let comboCount = 0;
+    let gameStartTime = 0;
+    const BASE_GAME_TIME_LIMIT = 2 * 60 * 1000; // 2 минуты
+    let currentGameTimeLimit = BASE_GAME_TIME_LIMIT; // можно увеличить покупкой
 
     const shapes = [
       { shape: "circle", color: "#FF6B6B" },
@@ -519,103 +571,100 @@
       { shape: "hexagon", color: "#FF9F1C" },
       { shape: "star", color: "#9B5DE5" }
     ];
-    let selectedCell = null;
-    let scoreThisSession = 0;
-    let comboCount = 0;
-    const GAME_TIME_LIMIT = 2 * 60 * 1000; 
-    let gameStartTime = 0;
-
     let particles = [];
     const POINTS_PER_PIECE = 2;
 
-    // === При загрузке страницы — берём данные о пользователе из Telegram WebApp ===
+    // Инициализация
     window.addEventListener("DOMContentLoaded", async () => {
-      // Данные внутри Telegram
       const initDataUnsafe = tg.initDataUnsafe;
       const user = initDataUnsafe?.user;
-
       if (!user) {
-        // Если по каким-то причинам Телеграм не дал user — выйти или показать ошибку
-        alert("Не удалось получить данные пользователя из Telegram.");
+        alert("Не удалось получить данные пользователя из Telegram WebApp.");
         return;
       }
-
-      // Если у пользователя есть username, берём его, иначе используем id
       let telegramUsername = user.username
         ? "@" + user.username.toLowerCase()
-        : "@id" + user.id; 
+        : "@id" + user.id;
 
-      // «Автовход» (как раньше autoLogin(username))
+      // Автовход
       autoLogin(telegramUsername);
     });
 
-    // Функция автоматического входа
     async function autoLogin(username) {
       const userRef = ref(db, `users/${username}`);
       const snapshot = await get(userRef);
-      let coinsVal = 0;
-      let ticketsVal = 0;
-      let spinVal = 0;
-      if (snapshot.exists()) {
-        coinsVal = snapshot.val().coins || 0;
-        ticketsVal = snapshot.val().tickets || 0;
-        spinVal = snapshot.val().lastSpinTime || 0;
+      if (!snapshot.exists()) {
+        // Создадим запись впервые
+        await set(userRef, {
+          coins: 0,
+          tickets: 0,
+          lastSpinTime: 0,
+          inventory: { extraTime: 0, bombs: 0 }
+        });
+        currentCoins = 0;
+        currentTickets = 0;
+        lastSpinTime = 0;
+        inventory = { extraTime: 0, bombs: 0 };
       } else {
-        // Если такого пользователя нет — создадим
-        await set(userRef, { coins: 0, tickets: 0, lastSpinTime: 0 });
+        const data = snapshot.val();
+        currentCoins = data.coins || 0;
+        currentTickets = data.tickets || 0;
+        lastSpinTime = data.lastSpinTime || 0;
+        inventory = data.inventory || { extraTime: 0, bombs: 0 };
       }
-      lastSpinTime = spinVal;
-      displayMainMenu(username, coinsVal, ticketsVal);
+      currentUsername = username;
+      displayMainMenu();
     }
 
-    function displayMainMenu(username, coinsVal, ticketsVal) {
-      currentUsername = username;
-      currentCoins = coinsVal;
-      currentTickets = ticketsVal;
-
-      // Показываем главное меню
+    // Отображение главного меню
+    function displayMainMenu() {
       mainMenu.style.display = "block";
       gameContainer.style.display = "none";
       leaderboardContainer.style.display = "none";
       storeContainer.style.display = "none";
       infoContainer.style.display = "none";
 
-      userDisplay.textContent = `Игрок: ${username}`;
-      coinsDisplay.textContent = `Монет: ${coinsVal}`;
-      ticketsDisplay.textContent = `Билетов: ${ticketsVal}`;
+      userDisplay.textContent = `Игрок: ${currentUsername}`;
+      coinsDisplay.textContent = `Монет: ${currentCoins}`;
+      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
 
-      // Проверяем, прошло ли 24 часа после последнего вращения колеса
+      // Проверяем, прошло ли 24 часа
+      updateFortuneButton();
+    }
+
+    // Обновляем надпись/доступ колеса фортуны
+    function updateFortuneButton() {
       const now = Date.now();
-      const diff = now - lastSpinTime;
+      const diff = now - lastSpinTime; 
       const hours = diff / (1000 * 60 * 60);
       if (hours >= 24) {
+        // Кнопка разблокирована
         openFortuneModalBtn.disabled = false;
         openFortuneModalBtn.style.opacity = "1";
+        openFortuneModalBtn.textContent = "Крутить колесо фортуны";
       } else {
         openFortuneModalBtn.disabled = true;
         openFortuneModalBtn.style.opacity = "0.5";
+        // Покажем, через сколько часов/минут
+        const hoursLeft = 24 - hours;
+        const h = Math.floor(hoursLeft);
+        const m = Math.floor((hoursLeft - h) * 60);
+        openFortuneModalBtn.textContent = `Колесо (через ${h}ч ${m}м)`;
       }
     }
 
-    // === Обработчики кнопок главного меню ===
+    // Кнопки главного меню
     openFortuneModalBtn.addEventListener("click", () => {
-      openModal(fortuneModal);
-      spinResultMsg.textContent = "";
+      // Если не заблокировано (disabled = false)
+      if (!openFortuneModalBtn.disabled) {
+        openModal(fortuneModal);
+        spinResultMsg.textContent = "";
+      }
     });
-    spinWheelBtn.addEventListener("click", spinWheel);
 
     startGameBtn.addEventListener("click", () => {
       mainMenu.style.display = "none";
       startGame();
-    });
-
-    logoutBtn.addEventListener("click", () => {
-      // В WebApp в принципе нет «разлогина», но можем просто сбросить локальные переменные
-      currentUsername = null;
-      currentCoins = 0;
-      currentTickets = 0;
-      mainMenu.style.display = "none";
-      alert("Вы вышли из аккаунта (данные в local переменных сброшены).");
     });
 
     leaderboardBtn.addEventListener("click", () => {
@@ -623,28 +672,65 @@
       leaderboardContainer.style.display = "block";
       loadLeaderboard();
     });
+
     storeBtn.addEventListener("click", () => {
       mainMenu.style.display = "none";
       storeContainer.style.display = "block";
     });
+
     infoBtn.addEventListener("click", () => {
       mainMenu.style.display = "none";
       infoContainer.style.display = "block";
     });
-    leaderboardBackBtn.addEventListener("click", () => {
-      leaderboardContainer.style.display = "none";
-      displayMainMenu(currentUsername, currentCoins, currentTickets);
-    });
-    storeBackBtn.addEventListener("click", () => {
-      storeContainer.style.display = "none";
-      displayMainMenu(currentUsername, currentCoins, currentTickets);
-    });
-    infoBackBtn.addEventListener("click", () => {
-      infoContainer.style.display = "none";
-      displayMainMenu(currentUsername, currentCoins, currentTickets);
+
+    logoutBtn.addEventListener("click", () => {
+      currentUsername = null;
+      currentCoins = 0;
+      currentTickets = 0;
+      inventory = { extraTime: 0, bombs: 0 };
+      mainMenu.style.display = "none";
+      alert("Вы вышли из аккаунта (локальные переменные сброшены). Откройте WebApp заново.");
     });
 
-    // === Таблица лидеров ===
+    // Магазин
+    storeBackBtn.addEventListener("click", () => {
+      storeContainer.style.display = "none";
+      displayMainMenu();
+    });
+    buyExtraTimeBtn.addEventListener("click", async () => {
+      const cost = 50;
+      if (currentCoins >= cost) {
+        currentCoins -= cost;
+        inventory.extraTime = (inventory.extraTime || 0) + 1;
+        await updateUserInDB();
+        alert("Куплено +20 секунд!");
+      } else {
+        alert("Недостаточно монет!");
+      }
+    });
+    buyBombBtn.addEventListener("click", async () => {
+      const cost = 100;
+      if (currentCoins >= cost) {
+        currentCoins -= cost;
+        inventory.bombs = (inventory.bombs || 0) + 1;
+        await updateUserInDB();
+        alert("Куплена Бомба!");
+      } else {
+        alert("Недостаточно монет!");
+      }
+    });
+
+    // Инфо
+    infoBackBtn.addEventListener("click", () => {
+      infoContainer.style.display = "none";
+      displayMainMenu();
+    });
+
+    // Лидерборд
+    leaderboardBackBtn.addEventListener("click", () => {
+      leaderboardContainer.style.display = "none";
+      displayMainMenu();
+    });
     async function loadLeaderboard() {
       leaderboardBody.innerHTML = "";
       const usersRef = ref(db, "users/");
@@ -654,7 +740,6 @@
         const usersArray = Object.keys(data).map(key => {
           return { username: key, coins: data[key].coins || 0 };
         });
-        // Сортируем по убыванию монет
         usersArray.sort((a, b) => b.coins - a.coins);
         usersArray.forEach(user => {
           const tr = document.createElement("tr");
@@ -669,7 +754,7 @@
       }
     }
 
-    // === Игра "Три в ряд" ===
+    // Игра
     backToMenuBtn.addEventListener("click", () => {
       endGameAndReturn();
     });
@@ -684,19 +769,84 @@
       comboCount = 0;
       selectedCell = null;
 
+      // Сбрасываем время игры к базовому + возможно что-то добавим во время
+      currentGameTimeLimit = BASE_GAME_TIME_LIMIT;
       gameStartTime = Date.now();
+
       removeAllMatches(true);
       isGameRunning = true;
 
       gameCanvas.addEventListener("mousedown", onCanvasClick);
       gameCanvas.addEventListener("touchstart", onCanvasTouch, { passive: false });
 
+      // Отобразим, сколько у нас товаров
+      refreshItemPanel();
+
       updateGame();
+    }
+
+    function refreshItemPanel() {
+      // extraTime
+      if (inventory.extraTime > 0) {
+        useExtraTimeBtn.style.display = "inline-block";
+        extraTimeCountSpan.textContent = inventory.extraTime;
+      } else {
+        useExtraTimeBtn.style.display = "none";
+      }
+      // bombs
+      if (inventory.bombs > 0) {
+        useBombBtn.style.display = "inline-block";
+        bombCountSpan.textContent = inventory.bombs;
+      } else {
+        useBombBtn.style.display = "none";
+      }
+    }
+
+    // Кнопки использования предметов
+    useExtraTimeBtn.addEventListener("click", async () => {
+      if (!isGameRunning) return;
+      if (inventory.extraTime > 0) {
+        inventory.extraTime--;
+        currentGameTimeLimit += 20_000; // +20 секунд
+        await updateUserInDB();
+        alert("Добавлено +20 секунд к таймеру!");
+        refreshItemPanel();
+      }
+    });
+    useBombBtn.addEventListener("click", async () => {
+      if (!isGameRunning) return;
+      if (inventory.bombs > 0 && selectedCell) {
+        inventory.bombs--;
+        await updateUserInDB();
+        // Применяем бомбу к окрестности 3x3 вокруг выбранной ячейки
+        const { r, c } = selectedCell;
+        bombArea(r, c);
+        selectedCell = null;
+        removeAllMatches(false);
+        alert("Бомба активирована!");
+        refreshItemPanel();
+      } else {
+        alert("Для бомбы сначала выберите ячейку на поле!");
+      }
+    });
+
+    function bombArea(r, c) {
+      // Уничтожим все фигуры в области [r-1..r+1][c-1..c+1]
+      for (let rr = r-1; rr <= r+1; rr++) {
+        for (let cc = c-1; cc <= c+1; cc++) {
+          if (rr >= 0 && rr < boardSize && cc >= 0 && cc < boardSize) {
+            if (board[rr][cc]) {
+              board[rr][cc].removing = true;
+              spawnParticles(board[rr][cc], rr, cc);
+            }
+          }
+        }
+      }
     }
 
     function resizeCanvas() {
       const maxWidth = window.innerWidth;
-      const maxHeight = window.innerHeight - 100; 
+      const maxHeight = window.innerHeight - 200; // небольшой запас для кнопок
       const possibleCellSizeWidth = Math.floor(maxWidth / boardSize);
       const possibleCellSizeHeight = Math.floor(maxHeight / boardSize);
       cellSize = Math.min(80, possibleCellSizeWidth, possibleCellSizeHeight);
@@ -737,12 +887,13 @@
       if (!isGameRunning) return;
       const now = Date.now();
       const elapsed = now - gameStartTime;
-      if (elapsed > GAME_TIME_LIMIT) {
+      if (elapsed > currentGameTimeLimit) {
         openLoseModal();
         gameOverActions();
         return;
       }
       ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
       updateAnimations();
       drawBoard();
       drawParticles();
@@ -756,7 +907,8 @@
       ctx.font = "18px Arial";
       ctx.fillText(`Очки: ${scoreThisSession}`, 10, 20);
 
-      const secsLeft = Math.floor((GAME_TIME_LIMIT - elapsed) / 1000);
+      const timeLeft = currentGameTimeLimit - elapsed;
+      const secsLeft = Math.floor(timeLeft / 1000);
       const min = Math.floor(secsLeft / 60);
       const sec = secsLeft % 60;
       ctx.fillText(`Время: ${min}:${sec < 10 ? "0"+sec : sec}`, 10, 40);
@@ -800,6 +952,7 @@
           drawCell(r, c);
         }
       }
+      // Подсветка выбранной ячейки
       if (selectedCell) {
         const { r, c } = selectedCell;
         ctx.strokeStyle = "#FFD700";
@@ -807,7 +960,6 @@
         ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
       }
     }
-
     function drawCell(r, c) {
       const piece = board[r][c];
       const px = c * cellSize;
@@ -924,6 +1076,7 @@
           swapPieces(r1, c1, r, c);
           const matched = findMatches();
           if (!matched.length) {
+            // нет совпадений — отменяем
             swapPieces(r1, c1, r, c);
           } else {
             removeAllMatches(false);
@@ -1004,10 +1157,12 @@
     function sameType(a, b) {
       return a.shape === b.shape && a.color === b.color;
     }
+
     function removeAllMatches(forceImmediate) {
       const matches = findMatches();
       if (!matches.length) {
         comboCount = 0;
+        // Проверяем, есть ли вообще ходы
         if (!hasAnyMoves()) {
           shuffleBoard();
         }
@@ -1041,30 +1196,6 @@
       }, 300);
     }
 
-    function makePiecesFall() {
-      for (let c = 0; c < boardSize; c++) {
-        let writeRow = boardSize - 1;
-        for (let r = boardSize - 1; r >= 0; r--) {
-          if (board[r][c]) {
-            if (r !== writeRow) {
-              board[r][c].falling = writeRow;
-            }
-            board[writeRow][c] = board[r][c];
-            writeRow--;
-          }
-        }
-        for (let r = writeRow; r >= 0; r--) {
-          const newPiece = getRandomPiece();
-          newPiece.x = c;
-          newPiece.y = r - boardSize;
-          newPiece.falling = r;
-          newPiece.scale = 1;
-          newPiece.alpha = 1;
-          board[r][c] = newPiece;
-        }
-      }
-    }
-
     function hasAnyMoves() {
       for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
@@ -1087,6 +1218,30 @@
         }
       }
       return false;
+    }
+
+    function makePiecesFall() {
+      for (let c = 0; c < boardSize; c++) {
+        let writeRow = boardSize - 1;
+        for (let r = boardSize - 1; r >= 0; r--) {
+          if (board[r][c]) {
+            if (r !== writeRow) {
+              board[r][c].falling = writeRow;
+            }
+            board[writeRow][c] = board[r][c];
+            writeRow--;
+          }
+        }
+        for (let r = writeRow; r >= 0; r--) {
+          const newPiece = getRandomPiece();
+          newPiece.x = c;
+          newPiece.y = r - boardSize;
+          newPiece.falling = r;
+          newPiece.scale = 1;
+          newPiece.alpha = 1;
+          board[r][c] = newPiece;
+        }
+      }
     }
 
     function shuffleBoard() {
@@ -1177,14 +1332,14 @@
       particles = particles.filter(p => p.alpha > 0);
     }
 
-    // Окончание игры
+    // Конец игры
     function gameOverActions() {
       isGameRunning = false;
       cancelAnimationFrame(animationId);
       gameCanvas.removeEventListener("mousedown", onCanvasClick);
       gameCanvas.removeEventListener("touchstart", onCanvasTouch);
 
-      // Начисляем монеты
+      // Начислим монеты
       currentCoins += scoreThisSession;
       updateUserInDB();
     }
@@ -1198,20 +1353,7 @@
         updateUserInDB();
       }
       gameContainer.style.display = "none";
-      displayMainMenu(currentUsername, currentCoins, currentTickets);
-    }
-
-    // Обновление данных в БД
-    async function updateUserInDB() {
-      if (!currentUsername) return;
-      const userRef = ref(db, `users/${currentUsername}`);
-      await update(userRef, {
-        coins: currentCoins,
-        tickets: currentTickets,
-        lastSpinTime
-      });
-      coinsDisplay.textContent = `Монет: ${currentCoins}`;
-      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
+      displayMainMenu();
     }
 
     // Модальные окна
@@ -1221,44 +1363,41 @@
     function closeModal(modal) {
       modal.style.display = "none";
     }
-    function openWinModal() {
-      openModal(winModal);
-    }
     function openLoseModal() {
       openModal(loseModal);
     }
+
     if (winModalClose) {
       winModalClose.addEventListener("click", () => closeModal(winModal));
     }
-    loseModalClose.addEventListener("click", () => closeModal(loseModal));
-
     if (takePrizeBtn) {
       takePrizeBtn.addEventListener("click", () => {
         closeModal(winModal);
         endGameAndReturn();
       });
     }
+    loseModalClose.addEventListener("click", () => closeModal(loseModal));
     tryAgainBtn.addEventListener("click", () => {
       closeModal(loseModal);
       endGameAndReturn();
     });
-
-    // Колесо фортуны
     fortuneCloseBtn.addEventListener("click", () => {
       closeModal(fortuneModal);
     });
-    // 5 секторов => билеты [1,2,3,4,5]
-    const ticketsMap = [1, 2, 3, 4, 5];
+
+    // Колесо Фортуны
+    const ticketsMap = [1, 2, 3, 4, 5]; // пример
     let isSpinning = false;
+    spinWheelBtn.addEventListener("click", spinWheel);
 
     async function spinWheel() {
       if (isSpinning) return;
       isSpinning = true;
       spinResultMsg.textContent = "";
 
-      // Ставим время вращения сразу (чтобы блокировать повтор на 24 часа)
+      // Фиксируем время
       lastSpinTime = Date.now();
-      await updateUserInDB();
+      await updateUserInDB(); // сразу блокируем повтор
 
       const wheel = document.getElementById("fortuneWheel");
       const randomAngle = 360 * 5 + Math.floor(Math.random() * 360); 
@@ -1270,7 +1409,7 @@
         const sectorCount = 5;
         const sectorAngle = 360 / sectorCount;
         const sector = Math.floor(normalizedAngle / sectorAngle);
-        const wonTickets = ticketsMap[(sectorCount - sector + 0) % sectorCount];
+        const wonTickets = ticketsMap[(sectorCount - sector) % sectorCount];
 
         spinResultMsg.textContent = `Вы выиграли ${wonTickets} билет(ов)!`;
         currentTickets += wonTickets;
@@ -1280,12 +1419,29 @@
           wheel.style.transition = "none";
           wheel.style.transform = "rotate(0deg)";
           isSpinning = false;
-
           closeModal(fortuneModal);
+          // Обновим главную кнопку (чтобы показал таймер)
+          updateFortuneButton();
         }, 600);
       }, 4200);
+    }
+
+    // Сохранение в БД
+    async function updateUserInDB() {
+      if (!currentUsername) return;
+      const userRef = ref(db, `users/${currentUsername}`);
+      await update(userRef, {
+        coins: currentCoins,
+        tickets: currentTickets,
+        lastSpinTime,
+        inventory
+      });
+      // Обновим текст
+      coinsDisplay.textContent = `Монет: ${currentCoins}`;
+      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
     }
   </script>
 </body>
 </html>
+
 
