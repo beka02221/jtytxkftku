@@ -100,14 +100,15 @@
       color: #ffffff;
     }
 
-    /* Игровой экран — центрируем контент */
+    /* Игровой экран */
     #gameContainer {
       min-height: 100vh;
       width: 100%;
       display: none;
       box-sizing: border-box;
       background: #46257D;
-      /* Flex-раскладка для центрирования */
+
+      /* Flex-раскладка для удобного центрирования */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -115,6 +116,8 @@
       padding-top: 20px;
       padding-bottom: 20px;
     }
+
+    /* Кнопка назад из игры */
     #backToMenuBtn {
       margin-bottom: 10px;
       cursor: pointer;
@@ -131,19 +134,39 @@
       background: #2F53B2;
       transform: scale(1.05);
     }
+
+    /* Верхняя панель (очки и время) */
+    #topPanel {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 50px;
+      margin-bottom: 10px;
+    }
+    #scoreDisplay, #timeDisplay {
+      font-size: 16px;
+      text-shadow: 0 0 4px #00FF00;
+    }
+
+    /* Сам canvas */
     #gameCanvas {
-      /* канвас теперь по центру */
       background-color: #3C266C;
       box-shadow: 0 0 10px rgba(57,255,20,0.4);
+
+      /* Чтобы по центру на мобильном */
+      display: block;
+      margin: 0 auto;
       max-width: 100%;
       height: auto;
-      margin: 0 auto; /* горизонтальный центр */
     }
+
     /* Панель внизу для использования предметов */
     #itemPanel {
       margin-top: 20px;
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center; 
     }
     #itemPanel button {
       background: #FF7F50;
@@ -160,7 +183,27 @@
       background: #FFA07A;
     }
 
-    /* Модальные окна */
+    /* "Призраки" для Drag&Drop бомб */
+    .drag-ghost {
+      position: fixed;
+      z-index: 9999;
+      width: 40px;
+      height: 40px;
+      pointer-events: none;
+      display: none;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 40px;
+      font-weight: bold;
+      font-size: 16px;
+      background-color: rgba(255,0,0,0.8);
+      color: #FFF;
+    }
+    #lineBombGhost {
+      background-color: rgba(255,165,0,0.8);
+    }
+
+    /* Модальные окна общего вида (для сообщений) */
     .modalOverlay {
       position: fixed;
       top: 0; left: 0;
@@ -171,6 +214,8 @@
       justify-content: center;
       align-items: center;
       z-index: 2000;
+      padding: 20px;
+      box-sizing: border-box;
     }
     .modalContent {
       background: #4F308F;
@@ -180,7 +225,7 @@
       text-align: center;
       position: relative;
       max-width: 400px;
-      width: 80%;
+      width: 100%;
       color: #39FF14;
       font-size: 14px;
       box-shadow: 0 0 12px rgba(57,255,20,0.4);
@@ -214,7 +259,7 @@
       transform: scale(1.05);
     }
 
-    /* Окно «Победа» */
+    /* Отдельные модалки Победа / Проигрыш / Колесо */
     #winModal .modalContent {
       background: linear-gradient(135deg, #6233AE, #5E2B95);
       color: #39FF14;
@@ -224,8 +269,6 @@
       0% { box-shadow: 0 0 20px rgba(57,255,20,0.6); }
       100% { box-shadow: 0 0 0 rgba(57,255,20,0); }
     }
-
-    /* Окно «Проигрыш» */
     #loseModal .modalContent {
       background: #2F1A4F;
       color: #39FF14;
@@ -296,6 +339,13 @@
       transform: scale(1.05);
     }
 
+    /* Модальное окно для сообщений (замена alert) */
+    #messageModal .modalContent {
+      background: #3E1F66;
+      color: #ADFF2F;
+      border: 2px solid #39FF14;
+    }
+
     /* Адаптивность */
     @media (max-width: 480px) {
       #mainMenu h2,
@@ -308,9 +358,6 @@
       .modalContent button {
         font-size: 12px;
         padding: 10px 16px;
-      }
-      #gameCanvas {
-        max-width: 90%;
       }
       .wheelContainer {
         width: 260px;
@@ -325,6 +372,10 @@
         border-left: 16px solid transparent;
         border-right: 16px solid transparent;
         border-bottom: 24px solid #39FF14;
+      }
+      #topPanel {
+        flex-direction: column;
+        gap: 10px;
       }
     }
   </style>
@@ -350,21 +401,39 @@
   <!-- Игровой экран -->
   <div id="gameContainer">
     <button id="backToMenuBtn">Выйти в меню</button>
+
+    <!-- Верхняя панель с очками и временем -->
+    <div id="topPanel">
+      <div id="scoreDisplay">Очки: 0</div>
+      <div id="timeDisplay">Время: 2:00</div>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
 
     <!-- Панель предметов внизу (если user их купил) -->
     <div id="itemPanel">
-      <!-- Появляются кнопки при наличии предметов -->
       <!-- +20 сек -->
       <button id="useExtraTimeBtn" style="display:none">
         +20 секунд (<span id="extraTimeCount">0</span>)
       </button>
-      <!-- Бомба -->
-      <button id="useBombBtn" style="display:none">
+      <!-- Бомба (3x3) - теперь drag&drop -->
+      <button id="bombDragBtn" style="display:none">
         Бомба (<span id="bombCount">0</span>)
+      </button>
+      <!-- «Линейная бомба» -->
+      <button id="lineBombDragBtn" style="display:none">
+        Лин. бомба (<span id="lineBombCount">0</span>)
+      </button>
+      <!-- Подсказка -->
+      <button id="useHintBtn" style="display:none">
+        Подсказка (<span id="hintCount">0</span>)
       </button>
     </div>
   </div>
+
+  <!-- "Призрак" для бомбы и линейной бомбы -->
+  <div id="bombGhost" class="drag-ghost">B</div>
+  <div id="lineBombGhost" class="drag-ghost">L</div>
 
   <!-- Таблица лидеров -->
   <div id="leaderboardContainer">
@@ -399,6 +468,18 @@
       <button id="buyBombBtn">Купить</button>
     </div>
 
+    <div style="margin-top:20px;">
+      <h3>Линейная бомба</h3>
+      <p>Цена: <b>120</b> монет</p>
+      <button id="buyLineBombBtn">Купить</button>
+    </div>
+
+    <div style="margin-top:20px;">
+      <h3>Подсказка (разовый бонус)</h3>
+      <p>Цена: <b>60</b> монет</p>
+      <button id="buyHintBtn">Купить</button>
+    </div>
+
     <br/>
     <button id="storeBackBtn">Назад</button>
   </div>
@@ -409,12 +490,24 @@
     <p>
       Цель игры: составлять ряды из трёх и более одинаковых фигур, набирая как можно больше очков.<br>
       Если ходов нет — поле перетасовывается. Игра длится 2 минуты (можно купить +20 секунд).<br>
-      «Бомба» убирает фигуры в радиусе 3×3 от выбранной ячейки.
+      «Бомба» убирает фигуры в радиусе 3×3 от выбранной ячейки.<br>
+      «Линейная бомба» убирает целый ряд.<br>
+      «Подсказка» подсвечивает один возможный ход.
     </p>
     <button id="infoBackBtn">Назад</button>
   </div>
 
   <!-- =================== МОДАЛЬНЫЕ ОКНА =================== -->
+  <!-- Окно для кратких сообщений (замена alert) -->
+  <div id="messageModal" class="modalOverlay">
+    <div class="modalContent">
+      <span class="closeBtn" id="messageModalClose">&times;</span>
+      <h2 id="messageModalTitle">Сообщение</h2>
+      <p id="messageModalText"></p>
+      <button id="messageModalOkBtn">OK</button>
+    </div>
+  </div>
+
   <!-- Окно "Победа" (если нужно) -->
   <div id="winModal" class="modalOverlay">
     <div class="modalContent">
@@ -523,6 +616,8 @@
     const storeBackBtn = document.getElementById("storeBackBtn");
     const buyExtraTimeBtn = document.getElementById("buyExtraTimeBtn");
     const buyBombBtn = document.getElementById("buyBombBtn");
+    const buyLineBombBtn = document.getElementById("buyLineBombBtn");
+    const buyHintBtn = document.getElementById("buyHintBtn");
 
     // Инфо
     const infoContainer = document.getElementById("infoContainer");
@@ -534,12 +629,31 @@
     const gameCanvas = document.getElementById("gameCanvas");
     let ctx;
 
-    // Панель предметов в игре
+    // Верхняя панель
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const timeDisplay = document.getElementById("timeDisplay");
+
+    // Панель предметов
     const itemPanel = document.getElementById("itemPanel");
     const useExtraTimeBtn = document.getElementById("useExtraTimeBtn");
     const extraTimeCountSpan = document.getElementById("extraTimeCount");
-    const useBombBtn = document.getElementById("useBombBtn");
+    const bombDragBtn = document.getElementById("bombDragBtn");
     const bombCountSpan = document.getElementById("bombCount");
+    const lineBombDragBtn = document.getElementById("lineBombDragBtn");
+    const lineBombCountSpan = document.getElementById("lineBombCount");
+    const useHintBtn = document.getElementById("useHintBtn");
+    const hintCountSpan = document.getElementById("hintCount");
+
+    // "Призраки" для Drag&Drop
+    const bombGhost = document.getElementById("bombGhost");
+    const lineBombGhost = document.getElementById("lineBombGhost");
+
+    // Модальное окно для сообщений
+    const messageModal = document.getElementById("messageModal");
+    const messageModalClose = document.getElementById("messageModalClose");
+    const messageModalOkBtn = document.getElementById("messageModalOkBtn");
+    const messageModalTitle = document.getElementById("messageModalTitle");
+    const messageModalText = document.getElementById("messageModalText");
 
     // Глобальные переменные
     let currentUsername = null;
@@ -547,8 +661,10 @@
     let currentTickets = 0;
     let lastSpinTime = 0;
     let inventory = {
-      extraTime: 0,  // количество "+20 сек"
-      bombs: 0       // количество "бомб"
+      extraTime: 0,
+      bombs: 0,
+      lineBombs: 0,
+      hints: 0
     };
 
     // Игра "Три в ряд"
@@ -562,7 +678,7 @@
     let comboCount = 0;
     let gameStartTime = 0;
     const BASE_GAME_TIME_LIMIT = 2 * 60 * 1000; // 2 минуты
-    let currentGameTimeLimit = BASE_GAME_TIME_LIMIT; // можно увеличить покупкой
+    let currentGameTimeLimit = BASE_GAME_TIME_LIMIT;
 
     const shapes = [
       { shape: "circle", color: "#FF6B6B" },
@@ -574,12 +690,20 @@
     let particles = [];
     const POINTS_PER_PIECE = 2;
 
+    // Drag&Drop состояния
+    let draggingBomb = false;
+    let draggingLineBomb = false;
+
+    // Подсветка подсказки
+    let hintCells = null;
+    let hintTimer = null;
+
     // Инициализация
     window.addEventListener("DOMContentLoaded", async () => {
       const initDataUnsafe = tg.initDataUnsafe;
       const user = initDataUnsafe?.user;
       if (!user) {
-        alert("Не удалось получить данные пользователя из Telegram WebApp.");
+        showMessageModal("Ошибка", "Не удалось получить данные пользователя из Telegram WebApp.");
         return;
       }
       let telegramUsername = user.username
@@ -587,7 +711,7 @@
         : "@id" + user.id;
 
       // Автовход
-      autoLogin(telegramUsername);
+      await autoLogin(telegramUsername);
     });
 
     async function autoLogin(username) {
@@ -599,22 +723,34 @@
           coins: 0,
           tickets: 0,
           lastSpinTime: 0,
-          inventory: { extraTime: 0, bombs: 0 }
+          inventory: { extraTime: 0, bombs: 0, lineBombs: 0, hints: 0 }
         });
         currentCoins = 0;
         currentTickets = 0;
         lastSpinTime = 0;
-        inventory = { extraTime: 0, bombs: 0 };
+        inventory = { extraTime: 0, bombs: 0, lineBombs: 0, hints: 0 };
       } else {
         const data = snapshot.val();
         currentCoins = data.coins || 0;
         currentTickets = data.tickets || 0;
         lastSpinTime = data.lastSpinTime || 0;
-        inventory = data.inventory || { extraTime: 0, bombs: 0 };
+        inventory = data.inventory || { extraTime: 0, bombs: 0, lineBombs: 0, hints: 0 };
       }
       currentUsername = username;
       displayMainMenu();
     }
+
+    // Универсальное модальное сообщение (замена alert)
+    function showMessageModal(title, text) {
+      messageModalTitle.textContent = title;
+      messageModalText.textContent = text;
+      messageModal.style.display = "flex";
+    }
+    function closeMessageModal() {
+      messageModal.style.display = "none";
+    }
+    messageModalClose.addEventListener("click", closeMessageModal);
+    messageModalOkBtn.addEventListener("click", closeMessageModal);
 
     // Отображение главного меню
     function displayMainMenu() {
@@ -655,7 +791,6 @@
 
     // Кнопки главного меню
     openFortuneModalBtn.addEventListener("click", () => {
-      // Если не заблокировано (disabled = false)
       if (!openFortuneModalBtn.disabled) {
         openModal(fortuneModal);
         spinResultMsg.textContent = "";
@@ -687,9 +822,9 @@
       currentUsername = null;
       currentCoins = 0;
       currentTickets = 0;
-      inventory = { extraTime: 0, bombs: 0 };
+      inventory = { extraTime: 0, bombs: 0, lineBombs: 0, hints: 0 };
       mainMenu.style.display = "none";
-      alert("Вы вышли из аккаунта (локальные переменные сброшены). Откройте WebApp заново.");
+      showMessageModal("Выход", "Вы вышли из аккаунта. Перезапустите WebApp для повторного входа.");
     });
 
     // Магазин
@@ -703,9 +838,9 @@
         currentCoins -= cost;
         inventory.extraTime = (inventory.extraTime || 0) + 1;
         await updateUserInDB();
-        alert("Куплено +20 секунд!");
+        showMessageModal("Покупка", "Куплено +20 секунд!");
       } else {
-        alert("Недостаточно монет!");
+        showMessageModal("Ошибка", "Недостаточно монет!");
       }
     });
     buyBombBtn.addEventListener("click", async () => {
@@ -714,9 +849,31 @@
         currentCoins -= cost;
         inventory.bombs = (inventory.bombs || 0) + 1;
         await updateUserInDB();
-        alert("Куплена Бомба!");
+        showMessageModal("Покупка", "Куплена Бомба (3x3)!");
       } else {
-        alert("Недостаточно монет!");
+        showMessageModal("Ошибка", "Недостаточно монет!");
+      }
+    });
+    buyLineBombBtn.addEventListener("click", async () => {
+      const cost = 120;
+      if (currentCoins >= cost) {
+        currentCoins -= cost;
+        inventory.lineBombs = (inventory.lineBombs || 0) + 1;
+        await updateUserInDB();
+        showMessageModal("Покупка", "Куплена Линейная бомба!");
+      } else {
+        showMessageModal("Ошибка", "Недостаточно монет!");
+      }
+    });
+    buyHintBtn.addEventListener("click", async () => {
+      const cost = 60;
+      if (currentCoins >= cost) {
+        currentCoins -= cost;
+        inventory.hints = (inventory.hints || 0) + 1;
+        await updateUserInDB();
+        showMessageModal("Покупка", "Куплена Подсказка!");
+      } else {
+        showMessageModal("Ошибка", "Недостаточно монет!");
       }
     });
 
@@ -769,20 +926,32 @@
       comboCount = 0;
       selectedCell = null;
 
-      // Сбрасываем время игры к базовому + возможно что-то добавим во время
-      currentGameTimeLimit = BASE_GAME_TIME_LIMIT;
+      currentGameTimeLimit = BASE_GAME_TIME_LIMIT; 
       gameStartTime = Date.now();
 
       removeAllMatches(true);
       isGameRunning = true;
 
       gameCanvas.addEventListener("mousedown", onCanvasClick);
-      gameCanvas.addEventListener("touchstart", onCanvasTouch, { passive: false });
+      gameCanvas.addEventListener("mouseup", onCanvasMouseUp);
 
-      // Отобразим, сколько у нас товаров
+      // Для тач-устройств
+      gameCanvas.addEventListener("touchstart", onCanvasTouchStart, {passive: true});
+      gameCanvas.addEventListener("touchend", onCanvasTouchEnd);
+
+      // События Drag&Drop по бомбам
+      bombDragBtn.addEventListener("mousedown", startDraggingBomb);
+      bombDragBtn.addEventListener("touchstart", startDraggingBombTouch, {passive: true});
+
+      lineBombDragBtn.addEventListener("mousedown", startDraggingLineBomb);
+      lineBombDragBtn.addEventListener("touchstart", startDraggingLineBombTouch, {passive: true});
+
+      // Кнопки использования
       refreshItemPanel();
 
-      updateGame();
+      // Начинаем отрисовку
+      animationLoop();
+      updateTopPanel();
     }
 
     function refreshItemPanel() {
@@ -793,45 +962,183 @@
       } else {
         useExtraTimeBtn.style.display = "none";
       }
-      // bombs
+      // бомбы
       if (inventory.bombs > 0) {
-        useBombBtn.style.display = "inline-block";
+        bombDragBtn.style.display = "inline-block";
         bombCountSpan.textContent = inventory.bombs;
       } else {
-        useBombBtn.style.display = "none";
+        bombDragBtn.style.display = "none";
+      }
+      // линейная бомба
+      if (inventory.lineBombs > 0) {
+        lineBombDragBtn.style.display = "inline-block";
+        lineBombCountSpan.textContent = inventory.lineBombs;
+      } else {
+        lineBombDragBtn.style.display = "none";
+      }
+      // подсказка
+      if (inventory.hints > 0) {
+        useHintBtn.style.display = "inline-block";
+        hintCountSpan.textContent = inventory.hints;
+      } else {
+        useHintBtn.style.display = "none";
       }
     }
 
-    // Кнопки использования предметов
     useExtraTimeBtn.addEventListener("click", async () => {
       if (!isGameRunning) return;
       if (inventory.extraTime > 0) {
         inventory.extraTime--;
-        currentGameTimeLimit += 20_000; // +20 секунд
+        currentGameTimeLimit += 20000; // +20 секунд
         await updateUserInDB();
-        alert("Добавлено +20 секунд к таймеру!");
+        showMessageModal("Бонус", "Добавлено +20 секунд к таймеру!");
         refreshItemPanel();
-      }
-    });
-    useBombBtn.addEventListener("click", async () => {
-      if (!isGameRunning) return;
-      if (inventory.bombs > 0 && selectedCell) {
-        inventory.bombs--;
-        await updateUserInDB();
-        // Применяем бомбу к окрестности 3x3 вокруг выбранной ячейки
-        const { r, c } = selectedCell;
-        bombArea(r, c);
-        selectedCell = null;
-        removeAllMatches(false);
-        alert("Бомба активирована!");
-        refreshItemPanel();
-      } else {
-        alert("Для бомбы сначала выберите ячейку на поле!");
       }
     });
 
+    // Подсказка
+    useHintBtn.addEventListener("click", async () => {
+      if (!isGameRunning) return;
+      if (inventory.hints > 0) {
+        inventory.hints--;
+        await updateUserInDB();
+        refreshItemPanel();
+        showHintMove();
+      }
+    });
+
+    function showHintMove() {
+      // Ищем любой ход
+      const move = findAnyMove();
+      if (!move) {
+        showMessageModal("Подсказка", "Нет доступных ходов (поле будет перетасовано).");
+        return;
+      }
+      // Подсветим эти клетки (два соседних)
+      hintCells = move; // [{r,c}, {r,c}]
+      if (hintTimer) clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        hintCells = null;
+      }, 2000);
+    }
+
+    function findAnyMove() {
+      // Перебираем все клетки, пробуем swaps, ищем совпадения
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          // swap справа
+          if (c+1 < boardSize) {
+            swapPieces(r, c, r, c+1);
+            if (findMatches().length) {
+              swapPieces(r, c, r, c+1);
+              return [{r, c}, {r, c:c+1}];
+            }
+            swapPieces(r, c, r, c+1);
+          }
+          // swap вниз
+          if (r+1 < boardSize) {
+            swapPieces(r, c, r+1, c);
+            if (findMatches().length) {
+              swapPieces(r, c, r+1, c);
+              return [{r, c}, {r:r+1, c}];
+            }
+            swapPieces(r, c, r+1, c);
+          }
+        }
+      }
+      return null;
+    }
+
+    // Drag бомбы
+    function startDraggingBomb(e) {
+      if (!isGameRunning) return;
+      if (inventory.bombs <= 0) return;
+      draggingBomb = true;
+      bombGhost.style.display = "block";
+      moveGhost(bombGhost, e.clientX, e.clientY);
+      document.addEventListener("mousemove", onBombDragging);
+      document.addEventListener("mouseup", stopBombDragging);
+    }
+    function onBombDragging(e) {
+      moveGhost(bombGhost, e.clientX, e.clientY);
+    }
+    function stopBombDragging(e) {
+      draggingBomb = false;
+      bombGhost.style.display = "none";
+      document.removeEventListener("mousemove", onBombDragging);
+      document.removeEventListener("mouseup", stopBombDragging);
+
+      // Проверим, не бросили ли мы на canvas
+      const rect = gameCanvas.getBoundingClientRect();
+      if (
+        e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom
+      ) {
+        // коорды на холсте
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        let c = Math.floor(x / cellSize);
+        let r = Math.floor(y / cellSize);
+        if (r >= 0 && r < boardSize && c >= 0 && c < boardSize) {
+          useBomb(r, c);
+        }
+      }
+    }
+    // Touch
+    function startDraggingBombTouch(e) {
+      if (!isGameRunning) return;
+      if (inventory.bombs <= 0) return;
+      draggingBomb = true;
+      bombGhost.style.display = "block";
+      const touch = e.touches[0];
+      moveGhost(bombGhost, touch.clientX, touch.clientY);
+      document.addEventListener("touchmove", onBombDraggingTouch, {passive: false});
+      document.addEventListener("touchend", stopBombDraggingTouch);
+    }
+    function onBombDraggingTouch(e) {
+      const touch = e.touches[0];
+      moveGhost(bombGhost, touch.clientX, touch.clientY);
+    }
+    function stopBombDraggingTouch(e) {
+      draggingBomb = false;
+      bombGhost.style.display = "none";
+      document.removeEventListener("touchmove", onBombDraggingTouch);
+      document.removeEventListener("touchend", stopBombDraggingTouch);
+
+      // touchend обычно последний палец оторвался
+      // берем последний touch для коорд - на touchend он пуст
+      // поэтому добавим проверку changedTouches
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const rect = gameCanvas.getBoundingClientRect();
+        if (
+          touch.clientX >= rect.left && touch.clientX <= rect.right &&
+          touch.clientY >= rect.top && touch.clientY <= rect.bottom
+        ) {
+          const x = touch.clientX - rect.left;
+          const y = touch.clientY - rect.top;
+          let c = Math.floor(x / cellSize);
+          let r = Math.floor(y / cellSize);
+          if (r >= 0 && r < boardSize && c >= 0 && c < boardSize) {
+            useBomb(r, c);
+          }
+        }
+      }
+    }
+
+    function useBomb(r, c) {
+      if (!isGameRunning) return;
+      if (inventory.bombs <= 0) return;
+      inventory.bombs--;
+      updateUserInDB();
+      refreshItemPanel();
+
+      bombArea(r, c);
+      // Заполнение пустых ячеек без падения
+      refillEmptyCells();
+    }
+
     function bombArea(r, c) {
-      // Уничтожим все фигуры в области [r-1..r+1][c-1..c+1]
       for (let rr = r-1; rr <= r+1; rr++) {
         for (let cc = c-1; cc <= c+1; cc++) {
           if (rr >= 0 && rr < boardSize && cc >= 0 && cc < boardSize) {
@@ -842,228 +1149,172 @@
           }
         }
       }
-    }
-
-    function resizeCanvas() {
-      const maxWidth = window.innerWidth;
-      const maxHeight = window.innerHeight - 200; // небольшой запас для кнопок
-      const possibleCellSizeWidth = Math.floor(maxWidth / boardSize);
-      const possibleCellSizeHeight = Math.floor(maxHeight / boardSize);
-      cellSize = Math.min(80, possibleCellSizeWidth, possibleCellSizeHeight);
-
-      gameCanvas.width = boardSize * cellSize;
-      gameCanvas.height = boardSize * cellSize;
-    }
-    window.addEventListener("resize", () => {
-      if (isGameRunning) {
-        resizeCanvas();
-      }
-    });
-
-    function initBoard() {
-      board = [];
-      for (let r = 0; r < boardSize; r++) {
-        const row = [];
-        for (let c = 0; c < boardSize; c++) {
-          const piece = getRandomPiece();
-          piece.x = c;
-          piece.y = r;
-          piece.scale = 1;
-          piece.alpha = 1;
-          piece.removing = false;
-          piece.falling = false;
-          row.push(piece);
+      setTimeout(() => {
+        for (let rr = r-1; rr <= r+1; rr++) {
+          for (let cc = c-1; cc <= c+1; cc++) {
+            if (rr >= 0 && rr < boardSize && cc >= 0 && cc < boardSize) {
+              if (board[rr][cc] && board[rr][cc].removing) {
+                board[rr][cc] = null;
+                scoreThisSession += POINTS_PER_PIECE; 
+              }
+            }
+          }
         }
-        board.push(row);
-      }
-    }
-    function getRandomPiece() {
-      const idx = Math.floor(Math.random() * shapes.length);
-      const { shape, color } = shapes[idx];
-      return { shape, color };
+      }, 200);
     }
 
-    function updateGame() {
+    // Drag линейная бомба
+    function startDraggingLineBomb(e) {
       if (!isGameRunning) return;
-      const now = Date.now();
-      const elapsed = now - gameStartTime;
-      if (elapsed > currentGameTimeLimit) {
-        openLoseModal();
-        gameOverActions();
-        return;
-      }
-      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-
-      updateAnimations();
-      drawBoard();
-      drawParticles();
-      drawHUD(elapsed);
-
-      animationId = requestAnimationFrame(updateGame);
+      if (inventory.lineBombs <= 0) return;
+      draggingLineBomb = true;
+      lineBombGhost.style.display = "block";
+      moveGhost(lineBombGhost, e.clientX, e.clientY);
+      document.addEventListener("mousemove", onLineBombDragging);
+      document.addEventListener("mouseup", stopLineBombDragging);
     }
+    function onLineBombDragging(e) {
+      moveGhost(lineBombGhost, e.clientX, e.clientY);
+    }
+    function stopLineBombDragging(e) {
+      draggingLineBomb = false;
+      lineBombGhost.style.display = "none";
+      document.removeEventListener("mousemove", onLineBombDragging);
+      document.removeEventListener("mouseup", stopLineBombDragging);
 
-    function drawHUD(elapsed) {
-      ctx.fillStyle = "#000";
-      ctx.font = "18px Arial";
-      ctx.fillText(`Очки: ${scoreThisSession}`, 10, 20);
-
-      const timeLeft = currentGameTimeLimit - elapsed;
-      const secsLeft = Math.floor(timeLeft / 1000);
-      const min = Math.floor(secsLeft / 60);
-      const sec = secsLeft % 60;
-      ctx.fillText(`Время: ${min}:${sec < 10 ? "0"+sec : sec}`, 10, 40);
-
-      if (comboCount > 1) {
-        ctx.fillStyle = "red";
-        ctx.fillText(`Комбо x${comboCount}`, 10, 60);
+      // Проверка на canvas
+      const rect = gameCanvas.getBoundingClientRect();
+      if (
+        e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom
+      ) {
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        let c = Math.floor(x / cellSize);
+        let r = Math.floor(y / cellSize);
+        if (r >= 0 && r < boardSize && c >= 0 && c < boardSize) {
+          useLineBomb(r);
+        }
       }
     }
+    // Touch
+    function startDraggingLineBombTouch(e) {
+      if (!isGameRunning) return;
+      if (inventory.lineBombs <= 0) return;
+      draggingLineBomb = true;
+      lineBombGhost.style.display = "block";
+      const touch = e.touches[0];
+      moveGhost(lineBombGhost, touch.clientX, touch.clientY);
+      document.addEventListener("touchmove", onLineBombDraggingTouch, {passive: false});
+      document.addEventListener("touchend", stopLineBombDraggingTouch);
+    }
+    function onLineBombDraggingTouch(e) {
+      const touch = e.touches[0];
+      moveGhost(lineBombGhost, touch.clientX, touch.clientY);
+    }
+    function stopLineBombDraggingTouch(e) {
+      draggingLineBomb = false;
+      lineBombGhost.style.display = "none";
+      document.removeEventListener("touchmove", onLineBombDraggingTouch);
+      document.removeEventListener("touchend", stopLineBombDraggingTouch);
 
-    function updateAnimations() {
-      for (let r = 0; r < boardSize; r++) {
-        for (let c = 0; c < boardSize; c++) {
-          const piece = board[r][c];
-          if (!piece) continue;
-          if (piece.removing) {
-            piece.scale -= 0.1;
-            piece.alpha -= 0.1;
-            if (piece.scale <= 0 || piece.alpha <= 0) {
-              board[r][c] = null;
-            }
-          }
-          if (piece.falling !== false) {
-            const targetRow = piece.falling;
-            const diff = targetRow - piece.y;
-            const speed = 0.2;
-            if (Math.abs(diff) < 0.01) {
-              piece.y = targetRow;
-              piece.falling = false;
-            } else {
-              piece.y += diff * speed;
-            }
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const rect = gameCanvas.getBoundingClientRect();
+        if (
+          touch.clientX >= rect.left && touch.clientX <= rect.right &&
+          touch.clientY >= rect.top && touch.clientY <= rect.bottom
+        ) {
+          const x = touch.clientX - rect.left;
+          const y = touch.clientY - rect.top;
+          let c = Math.floor(x / cellSize);
+          let r = Math.floor(y / cellSize);
+          if (r >= 0 && r < boardSize && c >= 0 && c < boardSize) {
+            useLineBomb(r);
           }
         }
       }
     }
 
-    function drawBoard() {
-      for (let r = 0; r < boardSize; r++) {
-        for (let c = 0; c < boardSize; c++) {
-          drawCell(r, c);
+    function useLineBomb(r) {
+      if (!isGameRunning) return;
+      if (inventory.lineBombs <= 0) return;
+      inventory.lineBombs--;
+      updateUserInDB();
+      refreshItemPanel();
+
+      // Убираем весь ряд r
+      for (let cc = 0; cc < boardSize; cc++) {
+        if (board[r][cc]) {
+          board[r][cc].removing = true;
+          spawnParticles(board[r][cc], r, cc);
         }
       }
-      // Подсветка выбранной ячейки
-      if (selectedCell) {
-        const { r, c } = selectedCell;
-        ctx.strokeStyle = "#FFD700";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
-      }
+      setTimeout(() => {
+        for (let cc = 0; cc < boardSize; cc++) {
+          if (board[r][cc] && board[r][cc].removing) {
+            board[r][cc] = null;
+            scoreThisSession += POINTS_PER_PIECE;
+          }
+        }
+        refillEmptyCells();
+      }, 300);
     }
-    function drawCell(r, c) {
-      const piece = board[r][c];
-      const px = c * cellSize;
-      const py = r * cellSize;
-      ctx.strokeStyle = "rgba(150, 150, 150, 0.3)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(px, py, cellSize, cellSize);
 
-      if (!piece) return;
-
-      const drawX = piece.x * cellSize;
-      const drawY = piece.y * cellSize;
-
-      ctx.save();
-      ctx.translate(drawX + cellSize/2, drawY + cellSize/2);
-      ctx.scale(piece.scale, piece.scale);
-      ctx.globalAlpha = piece.alpha;
-      ctx.translate(-cellSize/2, -cellSize/2);
-
-      ctx.fillStyle = piece.color;
-      switch (piece.shape) {
-        case "circle":
-          ctx.beginPath();
-          ctx.arc(cellSize/2, cellSize/2, cellSize*0.35, 0, 2*Math.PI);
-          ctx.fill();
-          break;
-        case "square":
-          ctx.fillRect(cellSize*0.15, cellSize*0.15, cellSize*0.7, cellSize*0.7);
-          break;
-        case "triangle":
-          ctx.beginPath();
-          ctx.moveTo(cellSize/2, cellSize*0.1);
-          ctx.lineTo(cellSize*0.1, cellSize*0.9);
-          ctx.lineTo(cellSize*0.9, cellSize*0.9);
-          ctx.closePath();
-          ctx.fill();
-          break;
-        case "hexagon":
-          drawHexagon(cellSize, cellSize);
-          break;
-        case "star":
-          drawStar(cellSize, cellSize);
-          break;
-      }
-      ctx.restore();
+    function moveGhost(ghostEl, x, y) {
+      ghostEl.style.left = (x - 20) + "px";
+      ghostEl.style.top = (y - 20) + "px";
     }
-    function drawHexagon(w, h) {
-      const radius = w * 0.35;
-      const cx = w / 2;
-      const cy = h / 2;
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i - Math.PI / 6;
-        const px = cx + radius * Math.cos(angle);
-        const py = cy + radius * Math.sin(angle);
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.fill();
-    }
-    function drawStar(w, h) {
-      const cx = w / 2;
-      const cy = h / 2;
-      const spikes = 5;
-      const outerRadius = w * 0.35;
-      const innerRadius = outerRadius * 0.5;
-      let rot = Math.PI / 2 * 3;
-      let step = Math.PI / spikes;
 
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - outerRadius);
-      for (let i = 0; i < spikes; i++) {
-        let xPos = cx + Math.cos(rot) * outerRadius;
-        let yPos = cy + Math.sin(rot) * outerRadius;
-        ctx.lineTo(xPos, yPos);
-        rot += step;
-
-        xPos = cx + Math.cos(rot) * innerRadius;
-        yPos = cy + Math.sin(rot) * innerRadius;
-        ctx.lineTo(xPos, yPos);
-        rot += step;
-      }
-      ctx.lineTo(cx, cy - outerRadius);
-      ctx.closePath();
-      ctx.fill();
+    // Заполняем пустые ячейки без падения (просто сразу генерируем новые)
+    function refillEmptyCells() {
+      // Ждём чуть (0.3с) после анимации удаления
+      setTimeout(() => {
+        for (let r = 0; r < boardSize; r++) {
+          for (let c = 0; c < boardSize; c++) {
+            if (!board[r][c]) {
+              const newPiece = getRandomPiece();
+              newPiece.x = c;
+              newPiece.y = r;
+              newPiece.scale = 1;
+              newPiece.alpha = 1;
+              newPiece.removing = false;
+              board[r][c] = newPiece;
+            }
+          }
+        }
+      }, 300);
     }
 
     function onCanvasClick(e) {
+      if (!isGameRunning) return;
+      // Если мы в режиме перетаскивания бомбы — ничего не делать
+      if (draggingBomb || draggingLineBomb) return;
+
       const rect = gameCanvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      handleClick(x, y);
+      handleClickOnBoard(x, y);
     }
-    function onCanvasTouch(e) {
-      e.preventDefault();
-      const rect = gameCanvas.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      const y = e.touches[0].clientY - rect.top;
-      handleClick(x, y);
+    function onCanvasMouseUp(e) {
+      // если нужно — ничего, пока не используется
     }
 
-    function handleClick(x, y) {
+    function onCanvasTouchStart(e) {
+      // Не делаем preventDefault, чтобы не ломать клики
       if (!isGameRunning) return;
+      if (draggingBomb || draggingLineBomb) return;
+      const rect = gameCanvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      handleClickOnBoard(x, y);
+    }
+    function onCanvasTouchEnd(e) {
+      // ничего
+    }
+
+    function handleClickOnBoard(x, y) {
       const c = Math.floor(x / cellSize);
       const r = Math.floor(y / cellSize);
       if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) return;
@@ -1076,8 +1327,7 @@
           swapPieces(r1, c1, r, c);
           const matched = findMatches();
           if (!matched.length) {
-            // нет совпадений — отменяем
-            swapPieces(r1, c1, r, c);
+            swapPieces(r1, c1, r, c); // отмена
           } else {
             removeAllMatches(false);
           }
@@ -1162,7 +1412,6 @@
       const matches = findMatches();
       if (!matches.length) {
         comboCount = 0;
-        // Проверяем, есть ли вообще ходы
         if (!hasAnyMoves()) {
           shuffleBoard();
         }
@@ -1176,11 +1425,10 @@
         for (let m of matches) {
           board[m.r][m.c] = null;
         }
-        makePiecesFall();
+        refillEmptyCells();
         removeAllMatches(true);
         return;
       }
-
       for (let m of matches) {
         const piece = board[m.r][m.c];
         if (piece) {
@@ -1189,7 +1437,12 @@
         }
       }
       setTimeout(() => {
-        makePiecesFall();
+        for (let m of matches) {
+          if (board[m.r][m.c] && board[m.r][m.c].removing) {
+            board[m.r][m.c] = null;
+          }
+        }
+        refillEmptyCells();
         setTimeout(() => {
           removeAllMatches(false);
         }, 300);
@@ -1218,30 +1471,6 @@
         }
       }
       return false;
-    }
-
-    function makePiecesFall() {
-      for (let c = 0; c < boardSize; c++) {
-        let writeRow = boardSize - 1;
-        for (let r = boardSize - 1; r >= 0; r--) {
-          if (board[r][c]) {
-            if (r !== writeRow) {
-              board[r][c].falling = writeRow;
-            }
-            board[writeRow][c] = board[r][c];
-            writeRow--;
-          }
-        }
-        for (let r = writeRow; r >= 0; r--) {
-          const newPiece = getRandomPiece();
-          newPiece.x = c;
-          newPiece.y = r - boardSize;
-          newPiece.falling = r;
-          newPiece.scale = 1;
-          newPiece.alpha = 1;
-          board[r][c] = newPiece;
-        }
-      }
     }
 
     function shuffleBoard() {
@@ -1273,8 +1502,8 @@
             if (idx < allPieces.length) {
               let p = allPieces[idx++];
               p.removing = false;
-              p.scale = 0.1;
-              p.alpha = 0.1;
+              p.scale = 1;
+              p.alpha = 1;
               p.x = c;
               p.y = r;
               board[r][c] = p;
@@ -1282,23 +1511,187 @@
               const np = getRandomPiece();
               np.x = c;
               np.y = r;
-              np.scale = 0.1;
-              np.alpha = 0.1;
               board[r][c] = np;
             }
           }
         }
-        setTimeout(() => {
-          for (let r = 0; r < boardSize; r++) {
-            for (let c = 0; c < boardSize; c++) {
-              const p = board[r][c];
-              if (p) {
-                p.removing = false;
-              }
+      }, 300);
+    }
+
+    function resizeCanvas() {
+      const maxWidth = window.innerWidth * 0.95;
+      const maxHeight = (window.innerHeight - 200); // запас под кнопки/панели
+      const possibleCellSizeWidth = Math.floor(maxWidth / boardSize);
+      const possibleCellSizeHeight = Math.floor(maxHeight / boardSize);
+      cellSize = Math.min(80, possibleCellSizeWidth, possibleCellSizeHeight);
+      if (cellSize < 30) cellSize = 30; // минимальный размер
+
+      gameCanvas.width = boardSize * cellSize;
+      gameCanvas.height = boardSize * cellSize;
+    }
+    window.addEventListener("resize", () => {
+      if (isGameRunning) {
+        resizeCanvas();
+      }
+    });
+
+    function initBoard() {
+      board = [];
+      for (let r = 0; r < boardSize; r++) {
+        const row = [];
+        for (let c = 0; c < boardSize; c++) {
+          const piece = getRandomPiece();
+          piece.x = c;
+          piece.y = r;
+          piece.scale = 1;
+          piece.alpha = 1;
+          piece.removing = false;
+          row.push(piece);
+        }
+        board.push(row);
+      }
+    }
+    function getRandomPiece() {
+      const idx = Math.floor(Math.random() * shapes.length);
+      const { shape, color } = shapes[idx];
+      return { shape, color };
+    }
+
+    // Анимация
+    function animationLoop() {
+      if (!isGameRunning) return;
+      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+      updateAnimations();
+      drawBoard();
+      drawParticles();
+
+      animationId = requestAnimationFrame(animationLoop);
+      updateTopPanel();
+    }
+    function updateAnimations() {
+      // здесь можно было бы делать анимации "падения" и т.п.
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          const piece = board[r][c];
+          if (!piece) continue;
+          if (piece.removing) {
+            piece.scale -= 0.1;
+            piece.alpha -= 0.1;
+            if (piece.scale <= 0 || piece.alpha <= 0) {
+              board[r][c] = null;
             }
           }
-        }, 200);
-      }, 300);
+        }
+      }
+    }
+    function drawBoard() {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          drawCell(r, c);
+        }
+      }
+      // Подсветка выбранной ячейки
+      if (selectedCell) {
+        const { r, c } = selectedCell;
+        ctx.strokeStyle = "#FFD700";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+      }
+      // Подсветка подсказки (двух ячеек)
+      if (hintCells) {
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 3;
+        hintCells.forEach(cell => {
+          ctx.strokeRect(cell.c * cellSize, cell.r * cellSize, cellSize, cellSize);
+        });
+      }
+    }
+    function drawCell(r, c) {
+      const piece = board[r][c];
+      const px = c * cellSize;
+      const py = r * cellSize;
+      // фоновая сетка
+      ctx.strokeStyle = "rgba(150, 150, 150, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, cellSize, cellSize);
+
+      if (!piece) return;
+
+      ctx.save();
+      ctx.translate(px + cellSize/2, py + cellSize/2);
+      ctx.scale(piece.scale, piece.scale);
+      ctx.globalAlpha = piece.alpha;
+      ctx.translate(-cellSize/2, -cellSize/2);
+
+      ctx.fillStyle = piece.color;
+      switch (piece.shape) {
+        case "circle":
+          ctx.beginPath();
+          ctx.arc(cellSize/2, cellSize/2, cellSize*0.35, 0, 2*Math.PI);
+          ctx.fill();
+          break;
+        case "square":
+          ctx.fillRect(cellSize*0.15, cellSize*0.15, cellSize*0.7, cellSize*0.7);
+          break;
+        case "triangle":
+          ctx.beginPath();
+          ctx.moveTo(cellSize/2, cellSize*0.1);
+          ctx.lineTo(cellSize*0.1, cellSize*0.9);
+          ctx.lineTo(cellSize*0.9, cellSize*0.9);
+          ctx.closePath();
+          ctx.fill();
+          break;
+        case "hexagon":
+          drawHexagon(cellSize, cellSize, ctx);
+          break;
+        case "star":
+          drawStar(cellSize, cellSize, ctx);
+          break;
+      }
+      ctx.restore();
+    }
+
+    function drawHexagon(w, h, ctx) {
+      const radius = w * 0.35;
+      const cx = w / 2;
+      const cy = h / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const px = cx + radius * Math.cos(angle);
+        const py = cy + radius * Math.sin(angle);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+    function drawStar(w, h, ctx) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const spikes = 5;
+      const outerRadius = w * 0.35;
+      const innerRadius = outerRadius * 0.5;
+      let rot = Math.PI / 2 * 3;
+      let step = Math.PI / spikes;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerRadius);
+      for (let i = 0; i < spikes; i++) {
+        let xPos = cx + Math.cos(rot) * outerRadius;
+        let yPos = cy + Math.sin(rot) * outerRadius;
+        ctx.lineTo(xPos, yPos);
+        rot += step;
+
+        xPos = cx + Math.cos(rot) * innerRadius;
+        yPos = cy + Math.sin(rot) * innerRadius;
+        ctx.lineTo(xPos, yPos);
+        rot += step;
+      }
+      ctx.lineTo(cx, cy - outerRadius);
+      ctx.closePath();
+      ctx.fill();
     }
 
     // Частицы
@@ -1332,12 +1725,39 @@
       particles = particles.filter(p => p.alpha > 0);
     }
 
+    // Обновляем верхнюю панель (очки/время)
+    function updateTopPanel() {
+      // время
+      if (!isGameRunning) return;
+      const now = Date.now();
+      const elapsed = now - gameStartTime;
+      const timeLeft = currentGameTimeLimit - elapsed;
+      if (timeLeft <= 0) {
+        openLoseModal();
+        gameOverActions();
+        return;
+      }
+      const secsLeft = Math.floor(timeLeft / 1000);
+      const min = Math.floor(secsLeft / 60);
+      const sec = secsLeft % 60;
+      timeDisplay.textContent = `Время: ${min}:${sec < 10 ? "0"+sec : sec}`;
+      // очки
+      scoreDisplay.textContent = `Очки: ${scoreThisSession}`;
+    }
+
     // Конец игры
     function gameOverActions() {
       isGameRunning = false;
       cancelAnimationFrame(animationId);
       gameCanvas.removeEventListener("mousedown", onCanvasClick);
-      gameCanvas.removeEventListener("touchstart", onCanvasTouch);
+      gameCanvas.removeEventListener("mouseup", onCanvasMouseUp);
+      gameCanvas.removeEventListener("touchstart", onCanvasTouchStart);
+      gameCanvas.removeEventListener("touchend", onCanvasTouchEnd);
+
+      bombDragBtn.removeEventListener("mousedown", startDraggingBomb);
+      bombDragBtn.removeEventListener("touchstart", startDraggingBombTouch);
+      lineBombDragBtn.removeEventListener("mousedown", startDraggingLineBomb);
+      lineBombDragBtn.removeEventListener("touchstart", startDraggingLineBombTouch);
 
       // Начислим монеты
       currentCoins += scoreThisSession;
@@ -1345,18 +1765,13 @@
     }
     function endGameAndReturn() {
       if (isGameRunning) {
-        isGameRunning = false;
-        cancelAnimationFrame(animationId);
-        gameCanvas.removeEventListener("mousedown", onCanvasClick);
-        gameCanvas.removeEventListener("touchstart", onCanvasTouch);
-        currentCoins += scoreThisSession;
-        updateUserInDB();
+        gameOverActions();
       }
       gameContainer.style.display = "none";
       displayMainMenu();
     }
 
-    // Модальные окна
+    // Окна Победы / Проигрыша / ...
     function openModal(modal) {
       modal.style.display = "flex";
     }
@@ -1386,7 +1801,7 @@
     });
 
     // Колесо Фортуны
-    const ticketsMap = [1, 2, 3, 4, 5]; // пример
+    const ticketsMap = [1, 2, 3, 4, 5];
     let isSpinning = false;
     spinWheelBtn.addEventListener("click", spinWheel);
 
@@ -1443,5 +1858,3 @@
   </script>
 </body>
 </html>
-
-
