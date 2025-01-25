@@ -6,437 +6,425 @@
   <meta name="viewport" content="width=device-width, user-scalable=no" />
   <!-- Подключаем Telegram Web App JS -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
 
-    html, body {
+  <style>
+    * {
       margin: 0;
       padding: 0;
-      overflow-x: hidden; 
-      overflow-y: auto;
-      background: #46257D; 
-      font-family: 'Courier Prime', monospace;
-      color: #39FF14;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      overflow-x: hidden;
+      user-select: none; /* чтобы на мобильных проще было перетаскивать */
     }
 
-    /* Главное меню */
-    #mainMenu {
-      min-height: 100vh;
-      width: 100%;
-      display: none; /* скрываем, пока не загрузим пользователя */
-      box-sizing: border-box;
-      background: linear-gradient(135deg, #4F308F, #46257D);
-      text-align: center;
-      padding: 40px 20px;
+    /* Верхняя панель (Top Bar) */
+    #topBar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: #ffffff;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 10px;
+      z-index: 10;
     }
-    #mainMenu h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      color: #39FF14;
-      text-shadow: 0 0 4px #00FF00;
-      font-size: 20px;
+    #topBar .top-left {
+      font-weight: bold;
     }
-    #mainMenu p {
-      margin: 8px 0;
+    #topBar .top-right {
+      display: flex;
+      gap: 15px;
       font-size: 14px;
-      color: #ADFF2F;
     }
-    #mainMenu button {
-      display: block;
-      margin: 10px auto;
-      padding: 12px 24px;
-      font-size: 14px;
+
+    /* Нижняя панель (Bottom Navigation) */
+    #bottomNav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #ffffff;
+      border-top: 1px solid #ccc;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 10;
+    }
+    #bottomNav button {
+      background: none;
+      border: none;
       cursor: pointer;
-      border: 2px solid #39FF14;
-      background: #1E3C87; 
-      color: #ffffff;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 300px;
-      transition: all 0.2s ease-in-out;
-      text-transform: uppercase;
-    }
-    #mainMenu button:hover {
-      background: #2F53B2;
-      transform: scale(1.05);
-    }
-
-    /* Таблица лидеров, Магазин, Инфо */
-    #leaderboardContainer,
-    #storeContainer,
-    #infoContainer {
-      min-height: 100vh;
-      width: 100%;
-      display: none;
-      box-sizing: border-box;
-      background: linear-gradient(135deg, #4F308F, #46257D);
-      text-align: center;
-      padding: 40px 20px;
-    }
-    #leaderboardContainer h2,
-    #storeContainer h2,
-    #infoContainer h2 {
-      margin-top: 0;
-      color: #39FF14;
-      text-shadow: 0 0 4px #00FF00;
-      font-size: 20px;
-    }
-    table {
-      border-collapse: collapse;
-      margin: 20px auto;
-      width: 90%;
-      max-width: 600px;
-    }
-    th, td {
-      border: 1px solid #39FF14;
-      padding: 10px 12px;
-      text-align: left;
       font-size: 14px;
-      color: #ADFF2F;
-      background: #5B3E9E;
-    }
-    th {
-      background: #6F4CBE;
-      color: #ffffff;
-    }
-
-    /* Игровой экран */
-    #gameContainer {
-      min-height: 100vh;
-      width: 100%;
-      display: none;
-      box-sizing: border-box;
-      background: #46257D;
-
-      /* Flex-раскладка для удобного центрирования */
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      padding-top: 20px;
-      padding-bottom: 20px;
+    }
+    #bottomNav button img {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 2px;
     }
 
-    /* Кнопка назад из игры */
-    #backToMenuBtn {
-      margin-bottom: 10px;
-      cursor: pointer;
-      background: #1E3C87;
-      border: 2px solid #39FF14;
-      color: #ffffff;
-      font-size: 12px;
-      text-transform: uppercase;
-      border-radius: 6px;
-      transition: all 0.2s ease-in-out;
-      padding: 10px 16px;
+    /* Общие стили контейнеров-экранов */
+    .screen {
+      position: absolute;
+      top: 50px;    /* после верхней панели */
+      bottom: 60px; /* до нижней панели */
+      left: 0;
+      right: 0;
+      overflow-y: auto;
+      background: #f0f0f0;
+      padding: 20px;
+      transition: transform 0.4s ease;
+      /* По умолчанию скрыто */
+      transform: translateX(100%); 
     }
-    #backToMenuBtn:hover {
-      background: #2F53B2;
-      transform: scale(1.05);
+    .screen.active {
+      transform: translateX(0);
+    }
+    .screen.slideOutLeft {
+      transform: translateX(-100%);
+    }
+    .screen.slideOutRight {
+      transform: translateX(100%);
     }
 
-    /* Верхняя панель (очки и время) */
-    #topPanel {
+    /* Главный экран (Home) */
+    #homeScreen {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      gap: 50px;
+      justify-content: center;
+      text-align: center;
+    }
+    #homeScreen h2 {
+      margin-bottom: 20px;
+    }
+    #homeScreen .center-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    #homeScreen button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #homeScreen button:hover {
+      background: #45a049;
+    }
+
+    /* Магазин (Boosts) */
+    #boostsScreen h2 {
       margin-bottom: 10px;
     }
-    #scoreDisplay, #timeDisplay {
-      font-size: 16px;
-      text-shadow: 0 0 4px #00FF00;
+    #boostsScreen div {
+      margin-bottom: 20px;
+    }
+    #boostsScreen button {
+      margin-top: 5px;
+      padding: 8px 16px;
+      background: #4caf50;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
+    #boostsScreen button:hover {
+      background: #45a049;
     }
 
-    /* Сам canvas */
-    #gameCanvas {
-      background-color: #3C266C;
-      box-shadow: 0 0 10px rgba(57,255,20,0.4);
+    /* Таблица лидеров */
+    #leaderboardScreen table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    #leaderboardScreen th, #leaderboardScreen td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    #leaderboardScreen th {
+      background: #eee;
+    }
+    #leaderboardScreen button {
+      margin-top: 20px;
+      padding: 8px 16px;
+      background: #4caf50;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
 
-      /* Чтобы по центру на мобильном */
+    /* Экран Info */
+    #infoScreen {
+      padding: 20px;
+    }
+    #infoScreen h2 {
+      margin-bottom: 10px;
+    }
+    #infoScreen p {
+      margin-bottom: 20px;
+    }
+    #infoScreen button {
+      padding: 8px 16px;
+      background: #4caf50;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    /* Экран игры */
+    #gameContainer {
+      position: absolute;
+      top: 50px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: none; /* По умолчанию скрыт */
+      background: #eaeaea;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden; /* чтобы канва не скроллить */
+      z-index: 20; /* выше всего, т.к. во время игры нижняя панель скрыта */
+    }
+    #topPanel {
+      width: 100%;
+      height: 40px;
+      background: #ddd;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+    #timeDisplay, #scoreDisplay {
+      font-weight: bold;
+    }
+    #gameCanvas {
+      background: #fff;
       display: block;
       margin: 0 auto;
-      max-width: 100%;
-      height: auto;
     }
-
-    /* Панель внизу для использования предметов */
-    #itemPanel {
-      margin-top: 20px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center; 
-    }
-    #itemPanel button {
-      background: #FF7F50;
-      border: 2px solid #FFD700;
-      color: #FFF;
+    #backToMenuBtn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      z-index: 5;
+      padding: 6px 12px;
+      background: #f44336;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
       cursor: pointer;
-      padding: 8px 16px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      transition: 0.2s;
     }
-    #itemPanel button:hover {
-      transform: scale(1.05);
-      background: #FFA07A;
-    }
-
-    /* "Призраки" для Drag&Drop бомб */
-    .drag-ghost {
-      position: fixed;
-      z-index: 9999;
-      width: 40px;
-      height: 40px;
-      pointer-events: none;
-      display: none;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 40px;
-      font-weight: bold;
-      font-size: 16px;
-      background-color: rgba(255,0,0,0.8);
-      color: #FFF;
-    }
-    #lineBombGhost {
-      background-color: rgba(255,165,0,0.8);
-    }
-
-    /* Модальные окна общего вида (для сообщений) */
-    .modalOverlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.7);
-      display: none;
+    #itemPanel {
+      display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 2000;
-      padding: 20px;
-      box-sizing: border-box;
+      gap: 8px;
+      padding: 10px;
+      background: #ddd;
+    }
+    #itemPanel button {
+      padding: 6px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      background: #4caf50;
+      color: #fff;
+      border-radius: 4px;
+    }
+
+    /* Призраки для бомб Drag&Drop */
+    .drag-ghost {
+      position: fixed;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 0, 0, 0.7);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      pointer-events: none; 
+      z-index: 9999;
+      font-weight: bold;
+    }
+
+    /* Модальные окна */
+    .modalOverlay {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
     }
     .modalContent {
-      background: #4F308F;
+      background: #fff;
       padding: 20px;
-      border: 2px solid #39FF14;
-      border-radius: 8px;
-      text-align: center;
+      border-radius: 6px;
       position: relative;
-      max-width: 400px;
-      width: 100%;
-      color: #39FF14;
-      font-size: 14px;
-      box-shadow: 0 0 12px rgba(57,255,20,0.4);
-    }
-    .modalContent h2 {
-      margin-top: 0;
-      font-size: 16px;
-      text-shadow: 0 0 4px #00FF00;
+      max-width: 300px;
+      width: 80%;
+      margin: auto;
+      text-align: center;
     }
     .closeBtn {
       position: absolute;
       top: 10px;
       right: 15px;
       cursor: pointer;
+      font-size: 18px;
       font-weight: bold;
-      font-size: 16px;
-    }
-    .modalContent button {
-      background: #1E3C87;
-      color: #ffffff;
-      border: 2px solid #39FF14;
-      cursor: pointer;
-      padding: 10px 16px;
-      font-size: 12px;
-      text-transform: uppercase;
-      border-radius: 6px;
-      transition: all 0.2s ease-in-out;
-    }
-    .modalContent button:hover {
-      background: #2F53B2;
-      transform: scale(1.05);
-    }
-
-    /* Отдельные модалки Победа / Проигрыш / Колесо */
-    #winModal .modalContent {
-      background: linear-gradient(135deg, #6233AE, #5E2B95);
-      color: #39FF14;
-      animation: flash 1.5s infinite alternate;
-    }
-    @keyframes flash {
-      0% { box-shadow: 0 0 20px rgba(57,255,20,0.6); }
-      100% { box-shadow: 0 0 0 rgba(57,255,20,0); }
-    }
-    #loseModal .modalContent {
-      background: #2F1A4F;
-      color: #39FF14;
-    }
-
-    /* Окно «Колесо фортуны» */
-    #fortuneModal .modalContent {
-      background: linear-gradient(135deg, #472874, #46257D);
-      color: #39FF14;
-      border: 3px dashed #39FF14;
     }
     .wheelContainer {
       position: relative;
-      width: 320px;
-      height: 320px;
+      width: 200px;
+      height: 200px;
       margin: 0 auto;
-    }
-    #fortuneWheel {
-      width: 320px;
-      height: 320px;
+      border: 2px solid #aaa;
       border-radius: 50%;
-      border: 4px solid #39FF14;
-      position: relative;
       overflow: hidden;
-      transform: rotate(0deg);
-      transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
-      box-shadow: 0 0 15px #39FF14, inset 0 0 15px #39FF14;
-      background: radial-gradient(circle, #46257D 20%, #2F1A4F 80%);
-    }
-    .section {
-      width: 50%;
-      height: 50%;
-      position: absolute;
-      transform-origin: 100% 100%;
-      border: 1px dashed #39FF14;
     }
     .pointer {
       position: absolute;
-      top: -30px;
+      top: 0;
       left: 50%;
+      width: 2px;
+      height: 20px;
+      background: red;
       transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 20px solid transparent;
-      border-right: 20px solid transparent;
-      border-bottom: 30px solid #39FF14;
-      z-index: 10;
-      filter: drop-shadow(0 0 5px #39FF14);
+      z-index: 2;
     }
-    #spinResultMsg {
-      margin-top: 10px;
-      font-weight: bold;
-      font-size: 14px;
+    #fortuneWheel {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: conic-gradient(#f66 0deg, #6f6 72deg, #66f 144deg, #ff6 216deg, #6ff 288deg, #f66 360deg);
+      transition: none; /* при прокрутке ставим динамически */
     }
-    #spinWheelBtn {
+
+    /* Пример для «секторов» (необязательно каждый класс .section отрисовывать — можно через градиент) */
+    .section {
+      display: none;
+    }
+
+    /* Кнопка "OK" в сообщениях */
+    #messageModalOkBtn {
       margin-top: 15px;
-      background: #1E3C87;
-      font-size: 12px;
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-transform: uppercase;
-      color: #ffffff;
-      border: 2px solid #39FF14;
-      transition: all 0.2s ease-in-out;
-    }
-    #spinWheelBtn:hover {
-      background: #2F53B2;
-      transform: scale(1.05);
-    }
-
-    /* Модальное окно для сообщений (замена alert) */
-    #messageModal .modalContent {
-      background: #3E1F66;
-      color: #ADFF2F;
-      border: 2px solid #39FF14;
-    }
-
-    /* Адаптивность */
-    @media (max-width: 480px) {
-      #mainMenu h2,
-      #leaderboardContainer h2,
-      #storeContainer h2,
-      #infoContainer h2 {
-        font-size: 16px;
-      }
-      #mainMenu button,
-      .modalContent button {
-        font-size: 12px;
-        padding: 10px 16px;
-      }
-      .wheelContainer {
-        width: 260px;
-        height: 260px;
-      }
-      #fortuneWheel {
-        width: 260px;
-        height: 260px;
-      }
-      .pointer {
-        top: -24px;
-        border-left: 16px solid transparent;
-        border-right: 16px solid transparent;
-        border-bottom: 24px solid #39FF14;
-      }
-      #topPanel {
-        flex-direction: column;
-        gap: 10px;
-      }
+      padding: 8px 16px;
+      background: #4caf50;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <!-- Главное меню -->
-  <div id="mainMenu">
-    <h2>Добро пожаловать в "Три в ряд"!</h2>
-    <p id="userDisplay"></p>
-    <p id="coinsDisplay"></p>
-    <p id="ticketsDisplay"></p>
 
-    <!-- Кнопка или таймер колеса фортуны -->
-    <button id="openFortuneModalBtn">Крутить колесо фортуны</button>
+  <!-- Звуки (загрузите свои файлы или укажите пути) -->
+  <audio id="selectSound" src="select.mp3" preload="auto"></audio>
+  <audio id="matchSound" src="match.mp3" preload="auto"></audio>
 
-    <button id="startGameBtn">Начать игру</button>
-    <button id="leaderboardBtn">Таблица лидеров</button>
-    <button id="storeBtn">Магазин улучшений</button>
-    <button id="infoBtn">Информация</button>
-    <button id="logoutBtn">Выйти</button>
-  </div>
-
-  <!-- Игровой экран -->
-  <div id="gameContainer">
-    <button id="backToMenuBtn">Выйти в меню</button>
-
-    <!-- Верхняя панель с очками и временем -->
-    <div id="topPanel">
-      <div id="scoreDisplay">Очки: 0</div>
-      <div id="timeDisplay">Время: 2:00</div>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <!-- Панель предметов внизу (если user их купил) -->
-    <div id="itemPanel">
-      <!-- +20 сек -->
-      <button id="useExtraTimeBtn" style="display:none">
-        +20 секунд (<span id="extraTimeCount">0</span>)
-      </button>
-      <!-- Бомба (3x3) - теперь drag&drop -->
-      <button id="bombDragBtn" style="display:none">
-        Бомба (<span id="bombCount">0</span>)
-      </button>
-      <!-- «Линейная бомба» -->
-      <button id="lineBombDragBtn" style="display:none">
-        Лин. бомба (<span id="lineBombCount">0</span>)
-      </button>
-      <!-- Подсказка -->
-      <button id="useHintBtn" style="display:none">
-        Подсказка (<span id="hintCount">0</span>)
-      </button>
+  <!-- Верхняя панель -->
+  <div id="topBar">
+    <div class="top-left" id="topBarUsername">Username</div>
+    <div class="top-right">
+      <div id="topBarTickets">Tickets: 0</div>
+      <div id="topBarCoins">Coins: 0</div>
     </div>
   </div>
 
-  <!-- "Призрак" для бомбы и линейной бомбы -->
-  <div id="bombGhost" class="drag-ghost">B</div>
-  <div id="lineBombGhost" class="drag-ghost">L</div>
+  <!-- Нижняя панель навигации -->
+  <div id="bottomNav">
+    <button id="navHome">
+      <img src="https://cdn-icons-png.flaticon.com/512/25/25694.png" alt="Home" />
+      Home
+    </button>
+    <button id="navBoosts">
+      <img src="https://cdn-icons-png.flaticon.com/512/992/992659.png" alt="Boosts" />
+      Boosts
+    </button>
+    <button id="navLeaderboard">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828817.png" alt="Leader" />
+      Leaderboard
+    </button>
+    <button id="navInfo">
+      <img src="https://cdn-icons-png.flaticon.com/512/565/565547.png" alt="Info" />
+      Info
+    </button>
+  </div>
 
-  <!-- Таблица лидеров -->
-  <div id="leaderboardContainer">
+  <!-- ========== ЭКРАНЫ (с анимацией переключения) ========== -->
+
+  <!-- Home Screen -->
+  <div id="homeScreen" class="screen active">
+    <h2>Добро пожаловать!</h2>
+    <div class="center-buttons">
+      <button id="openFortuneModalBtn">Wheel of Fortune</button>
+      <button id="startGameBtn">Play to Earn</button>
+      <button id="logoutBtn" style="background:#f44336">Выйти</button>
+    </div>
+  </div>
+
+  <!-- Boosts Screen (Магазин) -->
+  <div id="boostsScreen" class="screen">
+    <h2>Магазин улучшений</h2>
+    <p>Здесь можно приобрести различные бонусы за монеты.</p>
+    
+    <div>
+      <h3>+20 секунд к таймеру</h3>
+      <p>Цена: <b>50</b> монет</p>
+      <button id="buyExtraTimeBtn">Купить</button>
+    </div>
+
+    <div>
+      <h3>Бомба (3×3)</h3>
+      <p>Цена: <b>100</b> монет</p>
+      <button id="buyBombBtn">Купить</button>
+    </div>
+
+    <div>
+      <h3>Линейная бомба</h3>
+      <p>Цена: <b>120</b> монет</p>
+      <button id="buyLineBombBtn">Купить</button>
+    </div>
+
+    <div>
+      <h3>Подсказка (разовый бонус)</h3>
+      <p>Цена: <b>60</b> монет</p>
+      <button id="buyHintBtn">Купить</button>
+    </div>
+
+  </div>
+
+  <!-- Leaderboard Screen -->
+  <div id="leaderboardScreen" class="screen">
     <h2>Таблица лидеров</h2>
     <table>
       <thead>
@@ -447,55 +435,56 @@
       </thead>
       <tbody id="leaderboardBody"></tbody>
     </table>
-    <br />
-    <button id="leaderboardBackBtn">Назад</button>
   </div>
 
-  <!-- Магазин -->
-  <div id="storeContainer">
-    <h2>Магазин улучшений</h2>
-    <p>Здесь можно приобрести различные бонусы за монеты.</p>
-    
-    <div style="margin-top:20px;">
-      <h3>+20 секунд к таймеру</h3>
-      <p>Цена: <b>50</b> монет</p>
-      <button id="buyExtraTimeBtn">Купить</button>
-    </div>
-
-    <div style="margin-top:20px;">
-      <h3>Бомба (3×3)</h3>
-      <p>Цена: <b>100</b> монет</p>
-      <button id="buyBombBtn">Купить</button>
-    </div>
-
-    <div style="margin-top:20px;">
-      <h3>Линейная бомба</h3>
-      <p>Цена: <b>120</b> монет</p>
-      <button id="buyLineBombBtn">Купить</button>
-    </div>
-
-    <div style="margin-top:20px;">
-      <h3>Подсказка (разовый бонус)</h3>
-      <p>Цена: <b>60</b> монет</p>
-      <button id="buyHintBtn">Купить</button>
-    </div>
-
-    <br/>
-    <button id="storeBackBtn">Назад</button>
-  </div>
-
-  <!-- Информация -->
-  <div id="infoContainer">
+  <!-- Info Screen -->
+  <div id="infoScreen" class="screen">
     <h2>Информация об игре "Три в ряд"</h2>
     <p>
       Цель игры: составлять ряды из трёх и более одинаковых фигур, набирая как можно больше очков.<br>
       Если ходов нет — поле перетасовывается. Игра длится 2 минуты (можно купить +20 секунд).<br>
       «Бомба» убирает фигуры в радиусе 3×3 от выбранной ячейки.<br>
       «Линейная бомба» убирает целый ряд.<br>
-      «Подсказка» подсвечивает один возможный ход.
+      «Подсказка» подсвечивает один возможный ход.<br><br>
+
+      <b>Управление:</b><br>
+      - Тап по фигуре и тап по соседней фигуре для swap<br>
+      - Или перетаскивание (drag) выбранной фигуры в соседнюю клетку (при отпускании проверка на три в ряд).
     </p>
-    <button id="infoBackBtn">Назад</button>
   </div>
+
+  <!-- ========== ЭКРАН ИГРЫ (отдельно, без нижней панели) ========== -->
+  <div id="gameContainer">
+    <button id="backToMenuBtn">Выйти</button>
+
+    <!-- Верхняя панель с очками и временем внутри игры -->
+    <div id="topPanel">
+      <div id="scoreDisplay">Очки: 0</div>
+      <div id="timeDisplay">Время: 2:00</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Панель предметов внизу (если user их купил) -->
+    <div id="itemPanel">
+      <button id="useExtraTimeBtn" style="display:none">
+        +20 секунд (<span id="extraTimeCount">0</span>)
+      </button>
+      <button id="bombDragBtn" style="display:none">
+        Бомба (<span id="bombCount">0</span>)
+      </button>
+      <button id="lineBombDragBtn" style="display:none">
+        Лин. бомба (<span id="lineBombCount">0</span>)
+      </button>
+      <button id="useHintBtn" style="display:none">
+        Подсказка (<span id="hintCount">0</span>)
+      </button>
+    </div>
+  </div>
+
+  <!-- "Призраки" для бомбы и линейной бомбы -->
+  <div id="bombGhost" class="drag-ghost">B</div>
+  <div id="lineBombGhost" class="drag-ghost">L</div>
 
   <!-- =================== МОДАЛЬНЫЕ ОКНА =================== -->
   <!-- Окно для кратких сообщений (замена alert) -->
@@ -536,7 +525,7 @@
       <div class="wheelContainer">
         <div class="pointer"></div>
         <div id="fortuneWheel">
-          <!-- 5 «секторов» (пример) -->
+          <!-- 5 «секторов» (пример, но мы делаем через градиент) -->
           <div class="section"></div>
           <div class="section"></div>
           <div class="section"></div>
@@ -550,15 +539,15 @@
     </div>
   </div>
 
-  <!-- Подключение Firebase и основная логика -->
+  <!-- =================== Подключение Firebase и основная логика =================== -->
   <script type="module">
     // === ИМПОРТ FIREBASE ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js";
-    import { 
-      getDatabase, 
-      ref, 
-      get, 
-      set, 
+    import {
+      getDatabase,
+      ref,
+      get,
+      set,
       update
     } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js";
 
@@ -581,59 +570,48 @@
     const tg = window.Telegram.WebApp;
     tg.expand(); // Разворачиваем
 
-    // DOM-элементы
-    const mainMenu = document.getElementById("mainMenu");
-    const userDisplay = document.getElementById("userDisplay");
-    const coinsDisplay = document.getElementById("coinsDisplay");
-    const ticketsDisplay = document.getElementById("ticketsDisplay");
+    // ---------- ЭЛЕМЕНТЫ DOM ----------
+    // Верхняя панель
+    const topBarUsername = document.getElementById("topBarUsername");
+    const topBarTickets = document.getElementById("topBarTickets");
+    const topBarCoins = document.getElementById("topBarCoins");
+
+    // Нижняя навигация
+    const bottomNav = document.getElementById("bottomNav");
+    const navHome = document.getElementById("navHome");
+    const navBoosts = document.getElementById("navBoosts");
+    const navLeaderboard = document.getElementById("navLeaderboard");
+    const navInfo = document.getElementById("navInfo");
+
+    // Экраны
+    const homeScreen = document.getElementById("homeScreen");
+    const boostsScreen = document.getElementById("boostsScreen");
+    const leaderboardScreen = document.getElementById("leaderboardScreen");
+    const infoScreen = document.getElementById("infoScreen");
+
+    // Кнопки на Home
     const openFortuneModalBtn = document.getElementById("openFortuneModalBtn");
     const startGameBtn = document.getElementById("startGameBtn");
-    const leaderboardBtn = document.getElementById("leaderboardBtn");
-    const storeBtn = document.getElementById("storeBtn");
-    const infoBtn = document.getElementById("infoBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    // Модалки
-    const fortuneModal = document.getElementById("fortuneModal");
-    const fortuneCloseBtn = document.getElementById("fortuneCloseBtn");
-    const spinWheelBtn = document.getElementById("spinWheelBtn");
-    const spinResultMsg = document.getElementById("spinResultMsg");
-
-    const winModal = document.getElementById("winModal");
-    const winModalClose = document.getElementById("winModalClose");
-    const takePrizeBtn = document.getElementById("takePrizeBtn");
-    const loseModal = document.getElementById("loseModal");
-    const loseModalClose = document.getElementById("loseModalClose");
-    const tryAgainBtn = document.getElementById("tryAgainBtn");
-
-    // Лидерборд
-    const leaderboardContainer = document.getElementById("leaderboardContainer");
-    const leaderboardBody = document.getElementById("leaderboardBody");
-    const leaderboardBackBtn = document.getElementById("leaderboardBackBtn");
-
     // Магазин
-    const storeContainer = document.getElementById("storeContainer");
-    const storeBackBtn = document.getElementById("storeBackBtn");
     const buyExtraTimeBtn = document.getElementById("buyExtraTimeBtn");
     const buyBombBtn = document.getElementById("buyBombBtn");
     const buyLineBombBtn = document.getElementById("buyLineBombBtn");
     const buyHintBtn = document.getElementById("buyHintBtn");
 
-    // Инфо
-    const infoContainer = document.getElementById("infoContainer");
-    const infoBackBtn = document.getElementById("infoBackBtn");
+    // Лидерборд
+    const leaderboardBody = document.getElementById("leaderboardBody");
+
+    // Инфо (ничего особого)
 
     // Игра
     const gameContainer = document.getElementById("gameContainer");
     const backToMenuBtn = document.getElementById("backToMenuBtn");
     const gameCanvas = document.getElementById("gameCanvas");
     let ctx;
-
-    // Верхняя панель
     const scoreDisplay = document.getElementById("scoreDisplay");
     const timeDisplay = document.getElementById("timeDisplay");
-
-    // Панель предметов
     const itemPanel = document.getElementById("itemPanel");
     const useExtraTimeBtn = document.getElementById("useExtraTimeBtn");
     const extraTimeCountSpan = document.getElementById("extraTimeCount");
@@ -644,18 +622,29 @@
     const useHintBtn = document.getElementById("useHintBtn");
     const hintCountSpan = document.getElementById("hintCount");
 
-    // "Призраки" для Drag&Drop
+    // Drag ghosts
     const bombGhost = document.getElementById("bombGhost");
     const lineBombGhost = document.getElementById("lineBombGhost");
 
-    // Модальное окно для сообщений
+    // Модалки
     const messageModal = document.getElementById("messageModal");
     const messageModalClose = document.getElementById("messageModalClose");
     const messageModalOkBtn = document.getElementById("messageModalOkBtn");
     const messageModalTitle = document.getElementById("messageModalTitle");
     const messageModalText = document.getElementById("messageModalText");
 
-    // Глобальные переменные
+    const fortuneModal = document.getElementById("fortuneModal");
+    const fortuneCloseBtn = document.getElementById("fortuneCloseBtn");
+    const spinWheelBtn = document.getElementById("spinWheelBtn");
+    const spinResultMsg = document.getElementById("spinResultMsg");
+    const winModal = document.getElementById("winModal");
+    const winModalClose = document.getElementById("winModalClose");
+    const takePrizeBtn = document.getElementById("takePrizeBtn");
+    const loseModal = document.getElementById("loseModal");
+    const loseModalClose = document.getElementById("loseModalClose");
+    const tryAgainBtn = document.getElementById("tryAgainBtn");
+
+    // ---------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
     let currentUsername = null;
     let currentCoins = 0;
     let currentTickets = 0;
@@ -690,15 +679,25 @@
     let particles = [];
     const POINTS_PER_PIECE = 2;
 
-    // Drag&Drop состояния
+    // Drag&Drop состояний для бомб
     let draggingBomb = false;
     let draggingLineBomb = false;
 
-    // Подсветка подсказки
+    // Подсказка
     let hintCells = null;
     let hintTimer = null;
 
-    // Инициализация
+    // Для drag самих фигур
+    let isDraggingPiece = false;
+    let dragStart = null;    // {r, c, startX, startY}
+    let dragCurrent = null;  // текущие координаты мыши
+    const SELECT_THRESHOLD = 10; // порог в пикселях, после которого считаем, что пошел drag
+
+    // Звуки
+    const selectSound = document.getElementById("selectSound");
+    const matchSound = document.getElementById("matchSound");
+
+    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     window.addEventListener("DOMContentLoaded", async () => {
       const initDataUnsafe = tg.initDataUnsafe;
       const user = initDataUnsafe?.user;
@@ -737,10 +736,41 @@
         inventory = data.inventory || { extraTime: 0, bombs: 0, lineBombs: 0, hints: 0 };
       }
       currentUsername = username;
-      displayMainMenu();
+
+      // Отобразим в топ-баре
+      topBarUsername.textContent = currentUsername;
+      topBarCoins.textContent = `Coins: ${currentCoins}`;
+      topBarTickets.textContent = `Tickets: ${currentTickets}`;
+
+      // Обновим кнопку колеса
+      updateFortuneButton();
+      // Загрузим лидеров
+      loadLeaderboard();
     }
 
-    // Универсальное модальное сообщение (замена alert)
+    // ---------- ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ (АНИМАЦИЯ) ----------
+    let currentScreenId = "homeScreen"; // по умолчанию Home
+
+    function showScreen(screenId) {
+      if (screenId === currentScreenId) return;
+
+      const currentScreenEl = document.getElementById(currentScreenId);
+      const nextScreenEl = document.getElementById(screenId);
+
+      // Просто делаем "active" для нового и убираем для старого
+      currentScreenEl.classList.remove("active");
+      nextScreenEl.classList.add("active");
+
+      currentScreenId = screenId;
+    }
+
+    // Навигация нижней панели
+    navHome.addEventListener("click", () => showScreen("homeScreen"));
+    navBoosts.addEventListener("click", () => showScreen("boostsScreen"));
+    navLeaderboard.addEventListener("click", () => showScreen("leaderboardScreen"));
+    navInfo.addEventListener("click", () => showScreen("infoScreen"));
+
+    // ---------- УНИВЕРСАЛЬНОЕ МОДАЛЬНОЕ СООБЩЕНИЕ ----------
     function showMessageModal(title, text) {
       messageModalTitle.textContent = title;
       messageModalText.textContent = text;
@@ -752,86 +782,22 @@
     messageModalClose.addEventListener("click", closeMessageModal);
     messageModalOkBtn.addEventListener("click", closeMessageModal);
 
-    // Отображение главного меню
-    function displayMainMenu() {
-      mainMenu.style.display = "block";
-      gameContainer.style.display = "none";
-      leaderboardContainer.style.display = "none";
-      storeContainer.style.display = "none";
-      infoContainer.style.display = "none";
-
-      userDisplay.textContent = `Игрок: ${currentUsername}`;
-      coinsDisplay.textContent = `Монет: ${currentCoins}`;
-      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
-
-      // Проверяем, прошло ли 24 часа
-      updateFortuneButton();
-    }
-
-    // Обновляем надпись/доступ колеса фортуны
-    function updateFortuneButton() {
-      const now = Date.now();
-      const diff = now - lastSpinTime; 
-      const hours = diff / (1000 * 60 * 60);
-      if (hours >= 24) {
-        // Кнопка разблокирована
-        openFortuneModalBtn.disabled = false;
-        openFortuneModalBtn.style.opacity = "1";
-        openFortuneModalBtn.textContent = "Крутить колесо фортуны";
-      } else {
-        openFortuneModalBtn.disabled = true;
-        openFortuneModalBtn.style.opacity = "0.5";
-        // Покажем, через сколько часов/минут
-        const hoursLeft = 24 - hours;
-        const h = Math.floor(hoursLeft);
-        const m = Math.floor((hoursLeft - h) * 60);
-        openFortuneModalBtn.textContent = `Колесо (через ${h}ч ${m}м)`;
-      }
-    }
-
-    // Кнопки главного меню
+    // ---------- КНОПКИ НА HOME ЭКРАНЕ ----------
     openFortuneModalBtn.addEventListener("click", () => {
       if (!openFortuneModalBtn.disabled) {
         openModal(fortuneModal);
         spinResultMsg.textContent = "";
       }
     });
-
-    startGameBtn.addEventListener("click", () => {
-      mainMenu.style.display = "none";
-      startGame();
-    });
-
-    leaderboardBtn.addEventListener("click", () => {
-      mainMenu.style.display = "none";
-      leaderboardContainer.style.display = "block";
-      loadLeaderboard();
-    });
-
-    storeBtn.addEventListener("click", () => {
-      mainMenu.style.display = "none";
-      storeContainer.style.display = "block";
-    });
-
-    infoBtn.addEventListener("click", () => {
-      mainMenu.style.display = "none";
-      infoContainer.style.display = "block";
-    });
-
     logoutBtn.addEventListener("click", () => {
       currentUsername = null;
       currentCoins = 0;
       currentTickets = 0;
       inventory = { extraTime: 0, bombs: 0, lineBombs: 0, hints: 0 };
-      mainMenu.style.display = "none";
       showMessageModal("Выход", "Вы вышли из аккаунта. Перезапустите WebApp для повторного входа.");
     });
 
-    // Магазин
-    storeBackBtn.addEventListener("click", () => {
-      storeContainer.style.display = "none";
-      displayMainMenu();
-    });
+    // ---------- МАГАЗИН ----------
     buyExtraTimeBtn.addEventListener("click", async () => {
       const cost = 50;
       if (currentCoins >= cost) {
@@ -839,6 +805,7 @@
         inventory.extraTime = (inventory.extraTime || 0) + 1;
         await updateUserInDB();
         showMessageModal("Покупка", "Куплено +20 секунд!");
+        updateTopBar();
       } else {
         showMessageModal("Ошибка", "Недостаточно монет!");
       }
@@ -850,6 +817,7 @@
         inventory.bombs = (inventory.bombs || 0) + 1;
         await updateUserInDB();
         showMessageModal("Покупка", "Куплена Бомба (3x3)!");
+        updateTopBar();
       } else {
         showMessageModal("Ошибка", "Недостаточно монет!");
       }
@@ -861,6 +829,7 @@
         inventory.lineBombs = (inventory.lineBombs || 0) + 1;
         await updateUserInDB();
         showMessageModal("Покупка", "Куплена Линейная бомба!");
+        updateTopBar();
       } else {
         showMessageModal("Ошибка", "Недостаточно монет!");
       }
@@ -872,22 +841,13 @@
         inventory.hints = (inventory.hints || 0) + 1;
         await updateUserInDB();
         showMessageModal("Покупка", "Куплена Подсказка!");
+        updateTopBar();
       } else {
         showMessageModal("Ошибка", "Недостаточно монет!");
       }
     });
 
-    // Инфо
-    infoBackBtn.addEventListener("click", () => {
-      infoContainer.style.display = "none";
-      displayMainMenu();
-    });
-
-    // Лидерборд
-    leaderboardBackBtn.addEventListener("click", () => {
-      leaderboardContainer.style.display = "none";
-      displayMainMenu();
-    });
+    // ---------- ЛИДЕРБОРД ----------
     async function loadLeaderboard() {
       leaderboardBody.innerHTML = "";
       const usersRef = ref(db, "users/");
@@ -911,13 +871,20 @@
       }
     }
 
-    // Игра
+    // ---------- ИГРА "ТРИ В РЯД" ----------
+    startGameBtn.addEventListener("click", () => {
+      startGame();
+    });
     backToMenuBtn.addEventListener("click", () => {
       endGameAndReturn();
     });
 
     function startGame() {
-      gameContainer.style.display = "block";
+      // Скрываем нижнюю панель
+      bottomNav.style.display = "none";
+      // Показываем контейнер игры
+      gameContainer.style.display = "flex";
+
       ctx = gameCanvas.getContext("2d");
       resizeCanvas();
 
@@ -926,57 +893,53 @@
       comboCount = 0;
       selectedCell = null;
 
-      currentGameTimeLimit = BASE_GAME_TIME_LIMIT; 
+      currentGameTimeLimit = BASE_GAME_TIME_LIMIT;
       gameStartTime = Date.now();
 
       removeAllMatches(true);
       isGameRunning = true;
 
-      gameCanvas.addEventListener("mousedown", onCanvasClick);
+      // События мыши (drag)
+      gameCanvas.addEventListener("mousedown", onCanvasMouseDown);
+      gameCanvas.addEventListener("mousemove", onCanvasMouseMove);
       gameCanvas.addEventListener("mouseup", onCanvasMouseUp);
 
-      // Для тач-устройств
-      gameCanvas.addEventListener("touchstart", onCanvasTouchStart, {passive: true});
-      gameCanvas.addEventListener("touchend", onCanvasTouchEnd);
+      // События touch (drag)
+      gameCanvas.addEventListener("touchstart", onCanvasTouchStart, {passive: false});
+      gameCanvas.addEventListener("touchmove", onCanvasTouchMove, {passive: false});
+      gameCanvas.addEventListener("touchend", onCanvasTouchEnd, {passive: false});
 
-      // События Drag&Drop по бомбам
+      // События Drag&Drop для бомб
       bombDragBtn.addEventListener("mousedown", startDraggingBomb);
       bombDragBtn.addEventListener("touchstart", startDraggingBombTouch, {passive: true});
-
       lineBombDragBtn.addEventListener("mousedown", startDraggingLineBomb);
       lineBombDragBtn.addEventListener("touchstart", startDraggingLineBombTouch, {passive: true});
 
-      // Кнопки использования
       refreshItemPanel();
 
-      // Начинаем отрисовку
       animationLoop();
       updateTopPanel();
     }
 
     function refreshItemPanel() {
-      // extraTime
       if (inventory.extraTime > 0) {
         useExtraTimeBtn.style.display = "inline-block";
         extraTimeCountSpan.textContent = inventory.extraTime;
       } else {
         useExtraTimeBtn.style.display = "none";
       }
-      // бомбы
       if (inventory.bombs > 0) {
         bombDragBtn.style.display = "inline-block";
         bombCountSpan.textContent = inventory.bombs;
       } else {
         bombDragBtn.style.display = "none";
       }
-      // линейная бомба
       if (inventory.lineBombs > 0) {
         lineBombDragBtn.style.display = "inline-block";
         lineBombCountSpan.textContent = inventory.lineBombs;
       } else {
         lineBombDragBtn.style.display = "none";
       }
-      // подсказка
       if (inventory.hints > 0) {
         useHintBtn.style.display = "inline-block";
         hintCountSpan.textContent = inventory.hints;
@@ -995,8 +958,6 @@
         refreshItemPanel();
       }
     });
-
-    // Подсказка
     useHintBtn.addEventListener("click", async () => {
       if (!isGameRunning) return;
       if (inventory.hints > 0) {
@@ -1008,53 +969,25 @@
     });
 
     function showHintMove() {
-      // Ищем любой ход
       const move = findAnyMove();
       if (!move) {
         showMessageModal("Подсказка", "Нет доступных ходов (поле будет перетасовано).");
         return;
       }
       // Подсветим эти клетки (два соседних)
-      hintCells = move; // [{r,c}, {r,c}]
+      hintCells = move;
       if (hintTimer) clearTimeout(hintTimer);
       hintTimer = setTimeout(() => {
         hintCells = null;
       }, 2000);
     }
 
-    function findAnyMove() {
-      // Перебираем все клетки, пробуем swaps, ищем совпадения
-      for (let r = 0; r < boardSize; r++) {
-        for (let c = 0; c < boardSize; c++) {
-          // swap справа
-          if (c+1 < boardSize) {
-            swapPieces(r, c, r, c+1);
-            if (findMatches().length) {
-              swapPieces(r, c, r, c+1);
-              return [{r, c}, {r, c:c+1}];
-            }
-            swapPieces(r, c, r, c+1);
-          }
-          // swap вниз
-          if (r+1 < boardSize) {
-            swapPieces(r, c, r+1, c);
-            if (findMatches().length) {
-              swapPieces(r, c, r+1, c);
-              return [{r, c}, {r:r+1, c}];
-            }
-            swapPieces(r, c, r+1, c);
-          }
-        }
-      }
-      return null;
-    }
-
-    // Drag бомбы
+    // ---------- DRAG бомбы ----------
     function startDraggingBomb(e) {
       if (!isGameRunning) return;
       if (inventory.bombs <= 0) return;
       draggingBomb = true;
-      bombGhost.style.display = "block";
+      bombGhost.style.display = "flex";
       moveGhost(bombGhost, e.clientX, e.clientY);
       document.addEventListener("mousemove", onBombDragging);
       document.addEventListener("mouseup", stopBombDragging);
@@ -1068,13 +1001,12 @@
       document.removeEventListener("mousemove", onBombDragging);
       document.removeEventListener("mouseup", stopBombDragging);
 
-      // Проверим, не бросили ли мы на canvas
+      // Проверка, бросили ли на canvas
       const rect = gameCanvas.getBoundingClientRect();
       if (
         e.clientX >= rect.left && e.clientX <= rect.right &&
         e.clientY >= rect.top && e.clientY <= rect.bottom
       ) {
-        // коорды на холсте
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         let c = Math.floor(x / cellSize);
@@ -1089,7 +1021,7 @@
       if (!isGameRunning) return;
       if (inventory.bombs <= 0) return;
       draggingBomb = true;
-      bombGhost.style.display = "block";
+      bombGhost.style.display = "flex";
       const touch = e.touches[0];
       moveGhost(bombGhost, touch.clientX, touch.clientY);
       document.addEventListener("touchmove", onBombDraggingTouch, {passive: false});
@@ -1105,9 +1037,6 @@
       document.removeEventListener("touchmove", onBombDraggingTouch);
       document.removeEventListener("touchend", stopBombDraggingTouch);
 
-      // touchend обычно последний палец оторвался
-      // берем последний touch для коорд - на touchend он пуст
-      // поэтому добавим проверку changedTouches
       if (e.changedTouches && e.changedTouches.length > 0) {
         const touch = e.changedTouches[0];
         const rect = gameCanvas.getBoundingClientRect();
@@ -1125,7 +1054,6 @@
         }
       }
     }
-
     function useBomb(r, c) {
       if (!isGameRunning) return;
       if (inventory.bombs <= 0) return;
@@ -1134,10 +1062,8 @@
       refreshItemPanel();
 
       bombArea(r, c);
-      // Заполнение пустых ячеек без падения
       refillEmptyCells();
     }
-
     function bombArea(r, c) {
       for (let rr = r-1; rr <= r+1; rr++) {
         for (let cc = c-1; cc <= c+1; cc++) {
@@ -1155,7 +1081,7 @@
             if (rr >= 0 && rr < boardSize && cc >= 0 && cc < boardSize) {
               if (board[rr][cc] && board[rr][cc].removing) {
                 board[rr][cc] = null;
-                scoreThisSession += POINTS_PER_PIECE; 
+                scoreThisSession += POINTS_PER_PIECE;
               }
             }
           }
@@ -1163,12 +1089,12 @@
       }, 200);
     }
 
-    // Drag линейная бомба
+    // ---------- DRAG линейной бомбы ----------
     function startDraggingLineBomb(e) {
       if (!isGameRunning) return;
       if (inventory.lineBombs <= 0) return;
       draggingLineBomb = true;
-      lineBombGhost.style.display = "block";
+      lineBombGhost.style.display = "flex";
       moveGhost(lineBombGhost, e.clientX, e.clientY);
       document.addEventListener("mousemove", onLineBombDragging);
       document.addEventListener("mouseup", stopLineBombDragging);
@@ -1182,7 +1108,6 @@
       document.removeEventListener("mousemove", onLineBombDragging);
       document.removeEventListener("mouseup", stopLineBombDragging);
 
-      // Проверка на canvas
       const rect = gameCanvas.getBoundingClientRect();
       if (
         e.clientX >= rect.left && e.clientX <= rect.right &&
@@ -1202,7 +1127,7 @@
       if (!isGameRunning) return;
       if (inventory.lineBombs <= 0) return;
       draggingLineBomb = true;
-      lineBombGhost.style.display = "block";
+      lineBombGhost.style.display = "flex";
       const touch = e.touches[0];
       moveGhost(lineBombGhost, touch.clientX, touch.clientY);
       document.addEventListener("touchmove", onLineBombDraggingTouch, {passive: false});
@@ -1235,7 +1160,6 @@
         }
       }
     }
-
     function useLineBomb(r) {
       if (!isGameRunning) return;
       if (inventory.lineBombs <= 0) return;
@@ -1243,7 +1167,6 @@
       updateUserInDB();
       refreshItemPanel();
 
-      // Убираем весь ряд r
       for (let cc = 0; cc < boardSize; cc++) {
         if (board[r][cc]) {
           board[r][cc].removing = true;
@@ -1266,75 +1189,183 @@
       ghostEl.style.top = (y - 20) + "px";
     }
 
-    // Заполняем пустые ячейки без падения (просто сразу генерируем новые)
-    function refillEmptyCells() {
-      // Ждём чуть (0.3с) после анимации удаления
-      setTimeout(() => {
-        for (let r = 0; r < boardSize; r++) {
-          for (let c = 0; c < boardSize; c++) {
-            if (!board[r][c]) {
-              const newPiece = getRandomPiece();
-              newPiece.x = c;
-              newPiece.y = r;
-              newPiece.scale = 1;
-              newPiece.alpha = 1;
-              newPiece.removing = false;
-              board[r][c] = newPiece;
-            }
-          }
-        }
-      }, 300);
-    }
-
-    function onCanvasClick(e) {
+    // ---------- DRAG ФИГУР ИГРОВОГО ПОЛЯ ----------
+    function onCanvasMouseDown(e) {
       if (!isGameRunning) return;
-      // Если мы в режиме перетаскивания бомбы — ничего не делать
       if (draggingBomb || draggingLineBomb) return;
 
       const rect = gameCanvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      handleClickOnBoard(x, y);
+      const c = Math.floor(x / cellSize);
+      const r = Math.floor(y / cellSize);
+
+      if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) return;
+      if (!board[r][c]) return;
+
+      // Запоминаем для drag
+      isDraggingPiece = true;
+      dragStart = { r, c, startX: x, startY: y };
+      dragCurrent = { x, y };
+    }
+    function onCanvasMouseMove(e) {
+      if (!isDraggingPiece) return;
+      const rect = gameCanvas.getBoundingClientRect();
+      dragCurrent.x = e.clientX - rect.left;
+      dragCurrent.y = e.clientY - rect.top;
     }
     function onCanvasMouseUp(e) {
-      // если нужно — ничего, пока не используется
+      if (!isDraggingPiece) return;
+      isDraggingPiece = false;
+      const rect = gameCanvas.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+
+      const dx = endX - dragStart.startX;
+      const dy = endY - dragStart.startY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < SELECT_THRESHOLD) {
+        // Считаем как простой "тап"
+        handleTapOnCell(dragStart.r, dragStart.c);
+        return;
+      }
+
+      // Проверяем, куда перетащили
+      let direction = null;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Горизонталь
+        if (dx > 0) {
+          direction = "right";
+        } else {
+          direction = "left";
+        }
+      } else {
+        // Вертикаль
+        if (dy > 0) {
+          direction = "down";
+        } else {
+          direction = "up";
+        }
+      }
+
+      const {r, c} = dragStart;
+      let r2 = r, c2 = c;
+      if (direction === "right" && c < boardSize-1) c2++;
+      if (direction === "left"  && c > 0) c2--;
+      if (direction === "down"  && r < boardSize-1) r2++;
+      if (direction === "up"    && r > 0) r2--;
+
+      if (r2 === r && c2 === c) {
+        // Не двинулись
+        handleTapOnCell(r, c);
+        return;
+      }
+      doSwap(r, c, r2, c2);
     }
 
+    // Touch
     function onCanvasTouchStart(e) {
-      // Не делаем preventDefault, чтобы не ломать клики
       if (!isGameRunning) return;
       if (draggingBomb || draggingLineBomb) return;
+      if (e.touches.length > 1) return; // не обрабатываем мультитач
+
+      e.preventDefault(); // чтобы не прокручивалась страница
       const rect = gameCanvas.getBoundingClientRect();
       const touch = e.touches[0];
       const x = touch.clientX - rect.left;
       const y = touch.clientY - rect.top;
-      handleClickOnBoard(x, y);
-    }
-    function onCanvasTouchEnd(e) {
-      // ничего
-    }
-
-    function handleClickOnBoard(x, y) {
       const c = Math.floor(x / cellSize);
       const r = Math.floor(y / cellSize);
-      if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) return;
 
+      if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) return;
+      if (!board[r][c]) return;
+
+      isDraggingPiece = true;
+      dragStart = { r, c, startX: x, startY: y };
+      dragCurrent = { x, y };
+    }
+    function onCanvasTouchMove(e) {
+      if (!isDraggingPiece) return;
+      e.preventDefault();
+      const rect = gameCanvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      dragCurrent.x = touch.clientX - rect.left;
+      dragCurrent.y = touch.clientY - rect.top;
+    }
+    function onCanvasTouchEnd(e) {
+      if (!isDraggingPiece) return;
+      isDraggingPiece = false;
+
+      const rect = gameCanvas.getBoundingClientRect();
+      // На момент touchend changedTouches содержит финальный
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const endX = touch.clientX - rect.left;
+        const endY = touch.clientY - rect.top;
+        const dx = endX - dragStart.startX;
+        const dy = endY - dragStart.startY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < SELECT_THRESHOLD) {
+          handleTapOnCell(dragStart.r, dragStart.c);
+          return;
+        }
+        let direction = null;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          direction = dx > 0 ? "right" : "left";
+        } else {
+          direction = dy > 0 ? "down" : "up";
+        }
+        const {r, c} = dragStart;
+        let r2 = r, c2 = c;
+        if (direction === "right" && c < boardSize-1) c2++;
+        if (direction === "left"  && c > 0) c2--;
+        if (direction === "down"  && r < boardSize-1) r2++;
+        if (direction === "up"    && r > 0) r2--;
+
+        if (r2 === r && c2 === c) {
+          handleTapOnCell(r, c);
+          return;
+        }
+        doSwap(r, c, r2, c2);
+      }
+    }
+
+    // ---------- ЛОГИКА "Тап по клетке" + "Тап по соседней" ----------
+    function handleTapOnCell(r, c) {
       if (!selectedCell) {
         selectedCell = { r, c };
+        playSelectSound();
       } else {
         const { r: r1, c: c1 } = selectedCell;
         if (isNeighbor(r1, c1, r, c)) {
-          swapPieces(r1, c1, r, c);
-          const matched = findMatches();
-          if (!matched.length) {
-            swapPieces(r1, c1, r, c); // отмена
-          } else {
-            removeAllMatches(false);
-          }
+          doSwap(r1, c1, r, c);
         }
         selectedCell = null;
       }
     }
+
+    function doSwap(r1, c1, r2, c2) {
+      swapPieces(r1, c1, r2, c2);
+      const matched = findMatches();
+      if (!matched.length) {
+        // нет совпадения — анимация отката
+        setTimeout(() => {
+          swapPieces(r1, c1, r2, c2);
+        }, 200);
+      } else {
+        removeAllMatches(false);
+      }
+    }
+
+    function playSelectSound() {
+      selectSound.currentTime = 0;
+      selectSound.play().catch(()=>{});
+    }
+    function playMatchSound() {
+      matchSound.currentTime = 0;
+      matchSound.play().catch(()=>{});
+    }
+
     function isNeighbor(r1, c1, r2, c2) {
       const dr = Math.abs(r1 - r2);
       const dc = Math.abs(c1 - c2);
@@ -1354,6 +1385,7 @@
       }
     }
 
+    // ---------- ПОИСК СОВПАДЕНИЙ ----------
     function findMatches() {
       const toRemove = [];
       // Горизонталь
@@ -1417,9 +1449,11 @@
         }
         return;
       }
+      // Есть совпадение
       comboCount = comboCount === 0 ? 1 : comboCount + 1;
       const points = matches.length * POINTS_PER_PIECE * comboCount;
       scoreThisSession += points;
+      playMatchSound();
 
       if (forceImmediate) {
         for (let m of matches) {
@@ -1429,6 +1463,7 @@
         removeAllMatches(true);
         return;
       }
+
       for (let m of matches) {
         const piece = board[m.r][m.c];
         if (piece) {
@@ -1491,7 +1526,6 @@
             board[r][c] = null;
           }
         }
-        // Перемешиваем
         for (let i = allPieces.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [allPieces[i], allPieces[j]] = [allPieces[j], allPieces[i]];
@@ -1518,13 +1552,31 @@
       }, 300);
     }
 
+    function refillEmptyCells() {
+      setTimeout(() => {
+        for (let r = 0; r < boardSize; r++) {
+          for (let c = 0; c < boardSize; c++) {
+            if (!board[r][c]) {
+              const newPiece = getRandomPiece();
+              newPiece.x = c;
+              newPiece.y = r;
+              newPiece.scale = 1;
+              newPiece.alpha = 1;
+              newPiece.removing = false;
+              board[r][c] = newPiece;
+            }
+          }
+        }
+      }, 300);
+    }
+
     function resizeCanvas() {
       const maxWidth = window.innerWidth * 0.95;
-      const maxHeight = (window.innerHeight - 200); // запас под кнопки/панели
+      const maxHeight = (window.innerHeight - 200);
       const possibleCellSizeWidth = Math.floor(maxWidth / boardSize);
       const possibleCellSizeHeight = Math.floor(maxHeight / boardSize);
       cellSize = Math.min(80, possibleCellSizeWidth, possibleCellSizeHeight);
-      if (cellSize < 30) cellSize = 30; // минимальный размер
+      if (cellSize < 30) cellSize = 30;
 
       gameCanvas.width = boardSize * cellSize;
       gameCanvas.height = boardSize * cellSize;
@@ -1557,7 +1609,7 @@
       return { shape, color };
     }
 
-    // Анимация
+    // ---------- АНИМАЦИЯ РЕНДЕРИНГА ----------
     function animationLoop() {
       if (!isGameRunning) return;
       ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
@@ -1570,7 +1622,6 @@
       updateTopPanel();
     }
     function updateAnimations() {
-      // здесь можно было бы делать анимации "падения" и т.п.
       for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
           const piece = board[r][c];
@@ -1586,6 +1637,7 @@
       }
     }
     function drawBoard() {
+      // Рисуем клетки + фигуры
       for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
           drawCell(r, c);
@@ -1606,12 +1658,12 @@
           ctx.strokeRect(cell.c * cellSize, cell.r * cellSize, cellSize, cellSize);
         });
       }
+      // Если мы тащим фигуру — можно дорисовать "призрак" на канвасе, но для простоты опустим
     }
     function drawCell(r, c) {
       const piece = board[r][c];
       const px = c * cellSize;
       const py = r * cellSize;
-      // фоновая сетка
       ctx.strokeStyle = "rgba(150, 150, 150, 0.3)";
       ctx.lineWidth = 1;
       ctx.strokeRect(px, py, cellSize, cellSize);
@@ -1651,7 +1703,6 @@
       }
       ctx.restore();
     }
-
     function drawHexagon(w, h, ctx) {
       const radius = w * 0.35;
       const cx = w / 2;
@@ -1694,7 +1745,7 @@
       ctx.fill();
     }
 
-    // Частицы
+    // ---------- ЧАСТИЦЫ ----------
     function spawnParticles(piece, r, c) {
       const px = c * cellSize + cellSize/2;
       const py = r * cellSize + cellSize/2;
@@ -1725,9 +1776,8 @@
       particles = particles.filter(p => p.alpha > 0);
     }
 
-    // Обновляем верхнюю панель (очки/время)
+    // ---------- ОБНОВЛЕНИЕ ПАНЕЛИ ВРЕМЕНИ/ОЧКОВ ----------
     function updateTopPanel() {
-      // время
       if (!isGameRunning) return;
       const now = Date.now();
       const elapsed = now - gameStartTime;
@@ -1741,17 +1791,19 @@
       const min = Math.floor(secsLeft / 60);
       const sec = secsLeft % 60;
       timeDisplay.textContent = `Время: ${min}:${sec < 10 ? "0"+sec : sec}`;
-      // очки
+
       scoreDisplay.textContent = `Очки: ${scoreThisSession}`;
     }
 
-    // Конец игры
     function gameOverActions() {
       isGameRunning = false;
       cancelAnimationFrame(animationId);
-      gameCanvas.removeEventListener("mousedown", onCanvasClick);
+      gameCanvas.removeEventListener("mousedown", onCanvasMouseDown);
+      gameCanvas.removeEventListener("mousemove", onCanvasMouseMove);
       gameCanvas.removeEventListener("mouseup", onCanvasMouseUp);
+
       gameCanvas.removeEventListener("touchstart", onCanvasTouchStart);
+      gameCanvas.removeEventListener("touchmove", onCanvasTouchMove);
       gameCanvas.removeEventListener("touchend", onCanvasTouchEnd);
 
       bombDragBtn.removeEventListener("mousedown", startDraggingBomb);
@@ -1762,16 +1814,18 @@
       // Начислим монеты
       currentCoins += scoreThisSession;
       updateUserInDB();
+      updateTopBar();
     }
     function endGameAndReturn() {
       if (isGameRunning) {
         gameOverActions();
       }
       gameContainer.style.display = "none";
-      displayMainMenu();
+      bottomNav.style.display = "flex";
+      showScreen("homeScreen");
     }
 
-    // Окна Победы / Проигрыша / ...
+    // ---------- МОДАЛКИ (WIN/LOSE/ ...)
     function openModal(modal) {
       modal.style.display = "flex";
     }
@@ -1781,7 +1835,6 @@
     function openLoseModal() {
       openModal(loseModal);
     }
-
     if (winModalClose) {
       winModalClose.addEventListener("click", () => closeModal(winModal));
     }
@@ -1800,22 +1853,38 @@
       closeModal(fortuneModal);
     });
 
-    // Колесо Фортуны
-    const ticketsMap = [1, 2, 3, 4, 5];
+    // ---------- КОЛЕСО ФОРТУНЫ ----------
+    function updateFortuneButton() {
+      const now = Date.now();
+      const diff = now - lastSpinTime;
+      const hours = diff / (1000 * 60 * 60);
+      if (hours >= 24) {
+        openFortuneModalBtn.disabled = false;
+        openFortuneModalBtn.style.opacity = "1";
+        openFortuneModalBtn.textContent = "Wheel of Fortune";
+      } else {
+        openFortuneModalBtn.disabled = true;
+        openFortuneModalBtn.style.opacity = "0.5";
+        const hoursLeft = 24 - hours;
+        const h = Math.floor(hoursLeft);
+        const m = Math.floor((hoursLeft - h) * 60);
+        openFortuneModalBtn.textContent = `Колесо (через ${h}ч ${m}м)`;
+      }
+    }
     let isSpinning = false;
     spinWheelBtn.addEventListener("click", spinWheel);
 
+    const ticketsMap = [1, 2, 3, 4, 5];
     async function spinWheel() {
       if (isSpinning) return;
       isSpinning = true;
       spinResultMsg.textContent = "";
 
-      // Фиксируем время
       lastSpinTime = Date.now();
-      await updateUserInDB(); // сразу блокируем повтор
+      await updateUserInDB();
 
       const wheel = document.getElementById("fortuneWheel");
-      const randomAngle = 360 * 5 + Math.floor(Math.random() * 360); 
+      const randomAngle = 360 * 5 + Math.floor(Math.random() * 360);
       wheel.style.transition = "transform 4s cubic-bezier(0.33, 1, 0.68, 1)";
       wheel.style.transform = `rotate(${randomAngle}deg)`;
 
@@ -1835,13 +1904,12 @@
           wheel.style.transform = "rotate(0deg)";
           isSpinning = false;
           closeModal(fortuneModal);
-          // Обновим главную кнопку (чтобы показал таймер)
           updateFortuneButton();
         }, 600);
       }, 4200);
     }
 
-    // Сохранение в БД
+    // ---------- ВСПОМОГАТЕЛЬНОЕ ----------
     async function updateUserInDB() {
       if (!currentUsername) return;
       const userRef = ref(db, `users/${currentUsername}`);
@@ -1851,10 +1919,13 @@
         lastSpinTime,
         inventory
       });
-      // Обновим текст
-      coinsDisplay.textContent = `Монет: ${currentCoins}`;
-      ticketsDisplay.textContent = `Билетов: ${currentTickets}`;
     }
+    function updateTopBar() {
+      topBarUsername.textContent = currentUsername;
+      topBarCoins.textContent = `Coins: ${currentCoins}`;
+      topBarTickets.textContent = `Tickets: ${currentTickets}`;
+    }
+
   </script>
 </body>
 </html>
