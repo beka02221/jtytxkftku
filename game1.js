@@ -1,140 +1,81 @@
-/* game1.js - Простейший Dino Runner */
-
-let dinoInterval = null;
-let dinoCtx = null;
-
-// Параметры игры
-let dinoX = 50;
-let dinoY = 180;
-let velocityY = 0;
-let gravity = 0.5;
-let isJumping = false;
-let obstacles = [];
-let obstacleSpeed = 3;
-let frameCount = 0;
+let match3Interval = null;
+let match3Ctx = null;
+let match3TimeLeft = 60; // 1 минута
+let match3TimerElement = null;
 
 /**
- * Инициализация игры (запускается при открытии модалки "Игра 1").
+ * Инициализация игры "3 в ряд"
  */
-function initGame1() {
-  const canvas = document.getElementById('gameCanvas');
-  dinoCtx = canvas.getContext('2d');
+function initGame2() {
+  const canvas = document.getElementById('match3Canvas');
+  match3Ctx = canvas.getContext('2d');
+  match3TimerElement = document.getElementById('match3Timer');
 
-  // Сбрасываем значения
-  dinoX = 50;
-  dinoY = 180;
-  velocityY = 0;
-  isJumping = false;
-  obstacles = [];
-  obstacleSpeed = 3;
-  frameCount = 0;
+  // Сброс значений игры
+  match3TimeLeft = 60;
+  updateMatch3Timer();
 
-  // Назначаем слушатели (прыжок по клику и пробелу)
-  window.addEventListener('keydown', handleDinoKeyDown);
-  canvas.addEventListener('click', handleDinoJump);
-
-  // Запускаем игровой цикл
-  dinoInterval = requestAnimationFrame(dinoGameLoop);
-}
-
-/**
- * Сброс игры (вызывается при закрытии модалки или окончании игры).
- */
-function resetGame1() {
-  if (dinoInterval) {
-    cancelAnimationFrame(dinoInterval);
-    dinoInterval = null;
-  }
-  window.removeEventListener('keydown', handleDinoKeyDown);
-  const canvas = document.getElementById('gameCanvas');
-  canvas.removeEventListener('click', handleDinoJump);
-  dinoCtx = null;
-}
-
-function handleDinoKeyDown(e) {
-  if (e.code === 'Space') {
-    handleDinoJump();
-  }
-}
-
-function handleDinoJump() {
-  if (!isJumping) {
-    velocityY = -10;
-    isJumping = true;
-  }
-}
-
-function spawnObstacle() {
-  obstacles.push({
-    x: 400, // ширина canvas (в index.html - width="400")
-    y: 180,
-    width: 20,
-    height: 20
-  });
-}
-
-function dinoUpdate() {
-  // Движение динозавра
-  dinoY += velocityY;
-  velocityY += gravity;
-  if (dinoY >= 180) {
-    dinoY = 180;
-    isJumping = false;
-  }
-
-  // Спавн препятствий
-  frameCount++;
-  if (frameCount % 120 === 0) {
-    spawnObstacle();
-  }
-
-  // Движение препятствий
-  obstacles.forEach(obs => {
-    obs.x -= obstacleSpeed;
-  });
-
-  // Проверка столкновений
-  obstacles.forEach(obs => {
-    if (
-      dinoX < obs.x + obs.width &&
-      dinoX + 20 > obs.x &&
-      dinoY < obs.y + obs.height &&
-      dinoY + 20 > obs.y
-    ) {
-      // Столкновение – игра окончена
-      // Показываем модалку из index.html (showGlobalModal)
-      showGlobalModal('Игра окончена', 'Вы врезались в препятствие!');
-      // Сброс
-      resetGame1();
+  // Запуск таймера
+  match3Interval = setInterval(() => {
+    match3TimeLeft--;
+    updateMatch3Timer();
+    if (match3TimeLeft <= 0) {
+      endMatch3Game();
     }
-  });
+  }, 1000);
 
-  // Удаляем вышедшие за экран препятствия
-  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+  // Запуск игрового цикла
+  match3GameLoop();
 }
 
-function dinoDraw() {
-  if (!dinoCtx) return;
-  dinoCtx.clearRect(0, 0, 400, 200);
-
-  // Рисуем динозавра (просто квадрат)
-  dinoCtx.fillStyle = '#00FF00';
-  dinoCtx.fillRect(dinoX, dinoY, 20, 20);
-
-  // Рисуем препятствия
-  dinoCtx.fillStyle = 'red';
-  obstacles.forEach(obs => {
-    dinoCtx.fillRect(obs.x, obs.y, obs.width, obs.height);
-  });
-
-  // "Пол"
-  dinoCtx.fillStyle = '#555';
-  dinoCtx.fillRect(0, 190, 400, 10);
+/**
+ * Обновление отображения таймера
+ */
+function updateMatch3Timer() {
+  if (match3TimerElement) {
+    match3TimerElement.textContent = `Время: ${match3TimeLeft} сек`;
+  }
 }
 
-function dinoGameLoop() {
-  if (!dinoCtx) return; // Если сброшено
-  dinoUpdate();
-  dinoDraw();
-  dinoInterval = requestAnimationFrame(dinoGameLoop);
+/**
+ * Завершение игры "3 в ряд"
+ */
+function endMatch3Game() {
+  clearInterval(match3Interval);
+  match3Interval = null;
+  showGlobalModal('Время вышло!', 'Игра "3 в ряд" завершена.');
+  resetGame2();
+}
+
+/**
+ * Завершение игры и возврат к главному экрану
+ */
+function resetGame2() {
+  if (match3Interval) {
+    clearInterval(match3Interval);
+    match3Interval = null;
+  }
+  match3Ctx = null;
+  document.getElementById('match3Canvas').style.display = 'none';
+  document.getElementById('match3Timer').style.display = 'none';
+  // Отображение кнопки закрытия после завершения игры
+  document.querySelector('.game-close-button').style.display = 'block';
+}
+
+/**
+ * Игровой цикл для Match-3 (пример)
+ */
+function match3GameLoop() {
+  if (!match3Ctx) return;
+
+  // Здесь должна быть логика вашей игры "3 в ряд"
+  // Например, обновление состояния доски, проверка на совпадения и т.д.
+
+  // Для примера просто очищаем и закрашиваем канвас
+  match3Ctx.clearRect(0, 0, 800, 800);
+  match3Ctx.fillStyle = '#00FF00';
+  match3Ctx.fillRect(0, 0, 800, 800);
+
+  // Продолжаем игровой цикл
+  requestAnimationFrame(match3GameLoop);
 }
