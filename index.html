@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <!-- Запрещаем масштабирование, чтобы не было горизонтального скролла -->
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Mobile Games Site</title>
@@ -232,7 +233,7 @@
       border-radius: 5px;
     }
 
-    /* Модальное окно (глобальное) для сообщений */
+    /* Глобальное Модальное окно для сообщений (вместо alert) */
     .modal-backdrop {
       position: fixed;
       top: 0; left: 0;
@@ -258,10 +259,12 @@
     }
     .modal h2 {
       margin-bottom: 10px;
+      font-size: 18px;
     }
     .modal p {
       margin-bottom: 20px;
       white-space: pre-line;
+      font-size: 14px;
     }
     .close-modal {
       background-color: #00FF00;
@@ -272,7 +275,7 @@
       border-radius: 5px;
     }
 
-    /* Модалка для инфо по сезону (Leaderboard) */
+    /* Модалка для инфо о сезоне */
     .modal-season {
       text-align: left;
     }
@@ -494,6 +497,9 @@
     </div>
   </div>
 
+  <!-- Подключаем скрипты игр (game1.js, game2.js) и сам проект -->
+  <script src="game1.js"></script>
+  <script src="game2.js"></script>
   <script>
     /* --------------------------------------------------------------------
        1. Инициализация Firebase
@@ -580,11 +586,10 @@
     }
 
     /* --------------------------------------------------------------------
-       5. Игры
+       5. Игры (открытие модалок, списание билетов)
        -------------------------------------------------------------------- */
-    let lastSpinTime = 0; // время последнего вращения колеса (для примера)
+    let lastSpinTime = 0; // для примера
 
-    // Открываем модалку с нужной игрой
     function handleStartGame(gameName, ticketCost) {
       if (!currentUser) {
         showGlobalModal('Ошибка', 'Нет данных о пользователе!');
@@ -616,11 +621,11 @@
       if (gameName === 'game1') {
         modalTitle.textContent = 'Раннер с динозавром';
         document.getElementById('gameCanvas').style.display = 'block';
-        initGame1();
+        initGame1();  // Функция из game1.js
       } else {
         modalTitle.textContent = '"3 в ряд"';
         document.getElementById('match3Canvas').style.display = 'block';
-        initGame2();
+        initGame2();  // Функция из game2.js
       }
 
       document.getElementById('gameModalBackdrop').classList.add('active');
@@ -628,9 +633,9 @@
 
     function closeGameModal() {
       document.getElementById('gameModalBackdrop').classList.remove('active');
-      // При закрытии сбрасываем / останавливаем игру, если нужно
-      resetGame1();
-      resetGame2();
+      // При закрытии сбрасываем игры, если нужно
+      resetGame1(); // Функция из game1.js
+      resetGame2(); // Функция из game2.js
     }
 
     /* --------------------------------------------------------------------
@@ -721,187 +726,6 @@
       navigator.clipboard.writeText(link).then(() => {
         showGlobalModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена!');
       });
-    }
-
-    /* --------------------------------------------------------------------
-       9. Логика игр: Dino Runner (Game1) и Match-3 (Game2)
-       -------------------------------------------------------------------- */
-
-    // ========== Game 1 (Dino Runner) ==========
-    let dinoInterval = null;
-    let dinoCtx = null;
-    let dinoX = 50;
-    let dinoY = 180;
-    let velocityY = 0;
-    let gravity = 0.5;
-    let isJumping = false;
-    let obstacles = [];
-    let obstacleSpeed = 3;
-    let frameCount = 0;
-
-    function initGame1() {
-      const canvas = document.getElementById('gameCanvas');
-      dinoCtx = canvas.getContext('2d');
-
-      // Обнуляем стартовые параметры
-      dinoX = 50;
-      dinoY = 180;
-      velocityY = 0;
-      isJumping = false;
-      obstacles = [];
-      obstacleSpeed = 3;
-      frameCount = 0;
-
-      // Назначаем слушатели
-      window.addEventListener('keydown', handleDinoKeyDown);
-      canvas.addEventListener('click', handleDinoJump);
-
-      dinoInterval = requestAnimationFrame(dinoGameLoop);
-    }
-
-    function resetGame1() {
-      // Отключаем анимацию
-      if (dinoInterval) {
-        cancelAnimationFrame(dinoInterval);
-        dinoInterval = null;
-      }
-      // Убираем слушатели
-      window.removeEventListener('keydown', handleDinoKeyDown);
-      const canvas = document.getElementById('gameCanvas');
-      canvas.removeEventListener('click', handleDinoJump);
-      dinoCtx = null;
-    }
-
-    function handleDinoKeyDown(e) {
-      if (e.code === 'Space') {
-        handleDinoJump();
-      }
-    }
-    function handleDinoJump() {
-      if (!isJumping) {
-        velocityY = -10;
-        isJumping = true;
-      }
-    }
-    function spawnObstacle() {
-      obstacles.push({
-        x: 400,  // canvas width
-        y: 180,
-        width: 20,
-        height: 20
-      });
-    }
-    function dinoUpdate() {
-      dinoY += velocityY;
-      velocityY += gravity;
-      if (dinoY >= 180) {
-        dinoY = 180;
-        isJumping = false;
-      }
-
-      frameCount++;
-      if (frameCount % 120 === 0) {
-        spawnObstacle();
-      }
-
-      obstacles.forEach(obs => {
-        obs.x -= obstacleSpeed;
-      });
-
-      // Проверка столкновений
-      obstacles.forEach(obs => {
-        if (
-          dinoX < obs.x + obs.width &&
-          dinoX + 20 > obs.x &&
-          dinoY < obs.y + obs.height &&
-          dinoY + 20 > obs.y
-        ) {
-          // Столкновение
-          showGlobalModal('Игра окончена', 'Вы врезались в препятствие!');
-          // Ресет
-          resetGame1();
-        }
-      });
-
-      // Удаляем объекты вне экрана
-      obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
-    }
-    function dinoDraw() {
-      dinoCtx.clearRect(0, 0, 400, 200);
-      // Динозавр (простой квадрат)
-      dinoCtx.fillStyle = '#00FF00';
-      dinoCtx.fillRect(dinoX, dinoY, 20, 20);
-
-      // Препятствия
-      dinoCtx.fillStyle = 'red';
-      obstacles.forEach(obs => {
-        dinoCtx.fillRect(obs.x, obs.y, obs.width, obs.height);
-      });
-
-      // Пол
-      dinoCtx.fillStyle = '#555';
-      dinoCtx.fillRect(0, 190, 400, 10);
-    }
-    function dinoGameLoop() {
-      if (!dinoCtx) return; // Если уже сброшено
-      dinoUpdate();
-      dinoDraw();
-      dinoInterval = requestAnimationFrame(dinoGameLoop);
-    }
-
-    // ========== Game 2 (Match-3) ==========
-    let match3Interval = null;
-    let match3Ctx = null;
-    const gridSize = 8;
-    const cellSize = 40;
-    const matchColors = ['red', 'green', 'blue', 'yellow', 'purple'];
-    let matchGrid = [];
-
-    function initGame2() {
-      const canvas = document.getElementById('match3Canvas');
-      match3Ctx = canvas.getContext('2d');
-
-      matchGrid = [];
-      for (let y = 0; y < gridSize; y++) {
-        matchGrid[y] = [];
-        for (let x = 0; x < gridSize; x++) {
-          matchGrid[y][x] = {
-            color: matchColors[Math.floor(Math.random() * matchColors.length)]
-          };
-        }
-      }
-      drawMatch3Grid();
-
-      // При желании можно запустить анимацию
-      match3Interval = requestAnimationFrame(match3Loop);
-    }
-
-    function resetGame2() {
-      if (match3Interval) {
-        cancelAnimationFrame(match3Interval);
-        match3Interval = null;
-      }
-      match3Ctx = null;
-    }
-
-    function match3Loop() {
-      if (!match3Ctx) return;
-      // Здесь можно обрабатывать логику
-      // пока просто перерисовываем
-      drawMatch3Grid();
-      match3Interval = requestAnimationFrame(match3Loop);
-    }
-
-    function drawMatch3Grid() {
-      match3Ctx.clearRect(0, 0, cellSize * gridSize, cellSize * gridSize);
-      for (let y = 0; y < gridSize; y++) {
-        for (let x = 0; x < gridSize; x++) {
-          match3Ctx.fillStyle = matchGrid[y][x].color;
-          match3Ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-          match3Ctx.strokeStyle = '#000';
-          match3Ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
-        }
-      }
     }
   </script>
 </body>
