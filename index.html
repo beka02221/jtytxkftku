@@ -79,41 +79,37 @@
     }
 
     /* Навигация внизу экрана */
-   /* Навигация внизу экрана */
-nav {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  border-top: 2px solid #00FF00;
-  padding: 10px 0;
-  background-color: #000; /* Добавим фон для лучшей видимости */
-}
-
-nav button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 10px;
-  transition: 0.3s;
-}
-
-nav button img {
-  width: 30px;
-  height: 30px;
-}
-
-nav button:hover {
-  background-color: #00FF00;
-}
-
-@media (max-width: 480px) {
-  nav button img {
-    width: 25px;
-    height: 25px;
-  }
-}
-
+    nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 2px solid #00FF00;
+      padding: 10px 0;
+      background-color: #111; /* Добавил фон для лучшей видимости */
+    }
+    nav button {
+      background: none;
+      border: 2px solid #00FF00;
+      color: #00FF00;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 10px; /* Увеличенное значение */
+      border-radius: 10px; /* Более закруглённые углы */
+      transition: 0.3s;
+      width: 60px; /* Увеличенная ширина */
+      height: 60px; /* Увеличенная высота */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    nav button img {
+      width: 30px; /* Размер иконки */
+      height: 30px;
+    }
+    nav button:hover {
+      background-color: #00FF00;
+      color: #000;
+    }
 
     /* Стили для скрытых/открытых секций */
     .section {
@@ -295,61 +291,69 @@ nav button:hover {
     }
 
     /* Модальное окно для игр */
-  /* Модальное окно для игр */
-.game-modal-backdrop {
-  position: fixed;
-  top: 60px; /* Высота header (может потребоваться уточнение) */
-  left: 0;
-  width: 100%;
-  height: calc(100% - 60px); /* Высота экрана минус высота header */
-  background: rgba(0,0,0,0.9);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.game-modal-backdrop.active {
-  display: flex;
-}
-
-.game-modal {
-  background-color: #111;
-  border: 2px solid #00FF00;
-  border-radius: 5px;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.game-modal-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 2px solid #00FF00;
-  background-color: #000; /* Добавим фон для header внутри модалки */
-}
-
-.game-modal-header h2 {
-  font-size: 20px;
-}
-
-.game-canvas-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#gameCanvas, #match3Canvas {
-  background-color: #222;
-  border: 1px solid #00FF00;
-  width: 100%;
-  height: 100%;
-}
+    .game-modal-backdrop {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    .game-modal-backdrop.active {
+      display: flex;
+    }
+    .game-modal {
+      background-color: #111;
+      border: 2px solid #00FF00;
+      border-radius: 5px;
+      width: 100%; /* Занимает всю ширину экрана */
+      height: 100%; /* Занимает всю высоту экрана */
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-top: 60px; /* Отступ для верхней панели */
+    }
+    .game-modal-header {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 2px solid #00FF00;
+      background-color: #111;
+      z-index: 10001;
+    }
+    .game-modal-header h2 {
+      font-size: 16px;
+    }
+    .game-close-button {
+      background-color: transparent;
+      color: #00FF00;
+      border: 1px solid #00FF00;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 12px;
+      display: none; /* Скрываем кнопку закрытия по умолчанию */
+    }
+    .game-canvas-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #gameCanvas, #match3Canvas {
+      background-color: #222;
+      border: 1px solid #00FF00;
+      max-width: 100%;
+      max-height: 100%;
+    }
 
     /* Адаптивность */
     @media (max-width: 480px) {
@@ -363,6 +367,8 @@ nav button:hover {
       }
       nav button {
         font-size: 12px;
+        width: 50px;
+        height: 50px;
       }
       .game-modal-header h2 {
         font-size: 14px;
@@ -407,14 +413,18 @@ nav button:hover {
           <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
                alt="Dino Runner">
           <p>Раннер с динозавром</p>
-          <button onclick="handleStartGame('game1', 1)">Играть (1 билет)</button>
+          <button onclick="handleStartGame('game1', 1)">
+            <img src="https://img.icons8.com/ios-filled/50/000000/play--v1.png" alt="Играть">
+          </button>
         </div>
         <!-- Игра 2 -->
         <div class="game-card">
           <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
                alt="Match-3">
           <p>"3 в ряд"</p>
-          <button onclick="handleStartGame('game2', 1)">Играть (1 билет)</button>
+          <button onclick="handleStartGame('game2', 1)">
+            <img src="https://img.icons8.com/ios-filled/50/000000/play--v1.png" alt="Играть">
+          </button>
         </div>
       </div>
     </section>
@@ -427,8 +437,12 @@ nav button:hover {
           <span>Колесо</span>
         </div>
         <div class="tickets-actions">
-          <button onclick="spinWheel()">Вращать (раз в 24ч)</button>
-          <button onclick="buyTickets()">Купить билеты</button>
+          <button onclick="spinWheel()">
+            <img src="https://img.icons8.com/ios-filled/50/000000/refresh--v1.png" alt="Вращать" width="24">
+          </button>
+          <button onclick="buyTickets()">
+            <img src="https://img.icons8.com/ios-filled/50/000000/shopping-cart.png" alt="Купить" width="24">
+          </button>
         </div>
         <div class="spin-result" id="spinResult"></div>
       </div>
@@ -468,22 +482,20 @@ nav button:hover {
   </main>
 
   <!-- Нижняя навигация -->
- <!-- Нижняя навигация -->
-<nav>
-  <button onclick="showSection('playSection')" title="Play">
-    <img src="https://img.icons8.com/ios-filled/50/00FF00/play--v1.png" alt="Play" />
-  </button>
-  <button onclick="showSection('ticketsSection')" title="Tickets">
-    <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets" />
-  </button>
-  <button onclick="showSection('leaderboardSection')" title="Leaderboard">
-    <img src="https://img.icons8.com/ios-filled/50/00FF00/leaderboard.png" alt="Leaderboard" />
-  </button>
-  <button onclick="showSection('referralSection')" title="Referral">
-    <img src="https://img.icons8.com/ios-filled/50/00FF00/referral.png" alt="Referral" />
-  </button>
-</nav>
-
+  <nav>
+    <button onclick="showSection('playSection')" aria-label="Play">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/play--v1.png" alt="Play">
+    </button>
+    <button onclick="showSection('ticketsSection')" aria-label="Tickets">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets">
+    </button>
+    <button onclick="showSection('leaderboardSection')" aria-label="Leaderboard">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/leaderboard.png" alt="Leaderboard">
+    </button>
+    <button onclick="showSection('referralSection')" aria-label="Referral">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/referral.png" alt="Referral">
+    </button>
+  </nav>
 
   <!-- Глобальное Модальное окно для сообщений (вместо alert) -->
   <div class="modal-backdrop" id="globalModalBackdrop">
@@ -506,23 +518,22 @@ nav button:hover {
   </div>
 
   <!-- Модальное окно для игр -->
- <!-- Модальное окно для игр -->
-<div class="game-modal-backdrop" id="gameModalBackdrop">
-  <div class="game-modal">
-    <div class="game-modal-header">
-      <h2 id="gameModalTitle">Игра</h2>
-      <!-- Удаляем кнопку закрытия, чтобы предотвратить выход из игры -->
-      <!-- <button class="game-close-button" onclick="closeGameModal()">Закрыть</button> -->
-    </div>
-    <div class="game-canvas-container">
-      <!-- Canvas для раннера -->
-      <canvas id="gameCanvas" style="display: none;"></canvas>
-      <!-- Canvas для Match-3 -->
-      <canvas id="match3Canvas" style="display: none;"></canvas>
+  <div class="game-modal-backdrop" id="gameModalBackdrop">
+    <div class="game-modal">
+      <div class="game-modal-header">
+        <h2 id="gameModalTitle">Игра</h2>
+        <button class="game-close-button" onclick="closeGameModal()">Закрыть</button>
+      </div>
+      <div class="game-canvas-container">
+        <!-- Canvas для раннера -->
+        <canvas id="gameCanvas" width="800" height="400" style="display: none;"></canvas>
+        <!-- Canvas для Match-3 -->
+        <canvas id="match3Canvas" width="800" height="800" style="display: none;"></canvas>
+        <!-- Таймер для Match-3 -->
+        <div id="match3Timer" style="position: absolute; top: 60px; right: 20px; font-size: 20px; color: #00FF00;"></div>
+      </div>
     </div>
   </div>
-</div>
-
 
   <!-- Подключаем скрипты игр (game1.js, game2.js) и сам проект -->
   <script src="game1.js"></script>
@@ -531,16 +542,16 @@ nav button:hover {
     /* --------------------------------------------------------------------
        1. Инициализация Firebase
        -------------------------------------------------------------------- */
-   const firebaseConfig = {
-  apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-  authDomain: "test-with-likes.firebaseapp.com",
-  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-  projectId: "test-with-likes",
-  storageBucket: "test-with-likes.appspot.com",
-  messagingSenderId: "764738820142",
-  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-  measurementId: "G-WJNF0HSN9P"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -642,6 +653,7 @@ nav button:hover {
       // Скрываем оба canvas
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
+      document.getElementById('match3Timer').style.display = 'none';
 
       const modalTitle = document.getElementById('gameModalTitle');
 
@@ -652,10 +664,14 @@ nav button:hover {
       } else {
         modalTitle.textContent = '"3 в ряд"';
         document.getElementById('match3Canvas').style.display = 'block';
+        document.getElementById('match3Timer').style.display = 'block';
         initGame2();  // Функция из game2.js
       }
 
       document.getElementById('gameModalBackdrop').classList.add('active');
+
+      // Скрываем кнопку закрытия
+      document.querySelector('.game-close-button').style.display = 'none';
     }
 
     function closeGameModal() {
@@ -663,6 +679,9 @@ nav button:hover {
       // При закрытии сбрасываем игры, если нужно
       resetGame1(); // Функция из game1.js
       resetGame2(); // Функция из game2.js
+
+      // Сбрасываем таймер для Match-3
+      document.getElementById('match3Timer').textContent = '';
     }
 
     /* --------------------------------------------------------------------
@@ -757,3 +776,4 @@ nav button:hover {
   </script>
 </body>
 </html>
+
