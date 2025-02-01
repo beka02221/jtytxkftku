@@ -1,332 +1,441 @@
-/* game2.js – Полная реализация игры "HackMatch 3" */
+/***************************************************************
+ * HackMatch 3 - Игра "3 в ряд" в стиле хакинга и программирования
+ * -------------------------------------------------------------
+ * Автор: (Ваше имя или команда)
+ * Версия: 1.0
+ ***************************************************************/
 
-(function() {
-  // Размеры поля и ячеек
-  const ROWS = 8,
-        COLS = 8,
-        cellSize = 60; // размер ячейки в пикселях
+// ============= Константы и настройки =============
+const GRID_SIZE = 8;              // Размер сетки (8x8)
+const CELL_SIZE = 50;            // Размер одной ячейки в пикселях
+const GAME_DURATION = 60;         // Продолжительность игры (секунд)
+const HACK_BG_COLOR = "#013220";  // Тёмно-зелёный фон (хакинг-стиль)
+const ICONS = [
+  "https://img.icons8.com/ios/50/lock.png",
+  "https://img.icons8.com/ios/50/error--v1.png",
+  "https://img.icons8.com/fluency-systems-regular/50/fraud.png",
+  "https://img.icons8.com/fluency-systems-regular/50/key-security--v1.png",
+  "https://img.icons8.com/fluency-systems-regular/50/user-credentials.png"
+];
 
-  // Массив для хранения состояния игрового поля (матрица)
-  let grid = [];
+// ============= Глобальные переменные для игры =============
+let match3Canvas = null;
+let match3Ctx = null;
+let match3Grid = [];        // Двухмерный массив с объектами { icon, isRemoving }
+let isGameRunning = false;  // Идёт ли игра
+let score = 0;              // Текущий счёт
+let timeLeft = GAME_DURATION;  // Сколько секунд осталось
+let timerInterval = null;   // Интервал для отсчёта времени
 
-  // Массив для хранения загруженных изображений (иконок)
-  let icons = [];
-  // URL-ы иконок (неоновые элементы, тематические для хакинга)
-  const iconUrls = [
-    "https://img.icons8.com/ios/50/lock.png",
-    "https://img.icons8.com/ios/50/error--v1.png",
-    "https://img.icons8.com/fluency-systems-regular/50/fraud.png",
-    "https://img.icons8.com/fluency-systems-regular/50/key-security--v1.png",
-    "https://img.icons8.com/fluency-systems-regular/50/user-credentials.png"
-  ];
-  let imagesLoaded = 0,
-      totalImages = iconUrls.length;
+// Данные для обработки перетаскивания
+let dragStart = null;       // { x, y } – координаты ячейки, которую взяли
+let dragEnd = null;         // { x, y } – координаты ячейки, куда пытаемся поставить
 
-  // Ссылка на canvas и его контекст
-  let canvas, ctx;
+/***************************************************************************
+ * initGame2()
+ * Инициализация игры "HackMatch 3". Вызывается при открытии игрового поля.
+ ***************************************************************************/
+function initGame2() {
+  // Получаем canvas и контекст
+  match3Canvas = document.getElementById("match3Canvas");
+  match3Ctx = match3Canvas.getContext("2d");
 
-  // Переменные для управления выбором и анимацией
-  let selectedCell = null;  // { row, col } выбранная ячейка
-  let isProcessing = false; // флаг блокировки ввода во время анимаций/обработки
+  // Задаём размеры canvas (если нужно). Можно вынести в HTML
+  match3Canvas.width = GRID_SIZE * CELL_SIZE;
+  match3Canvas.height = GRID_SIZE * CELL_SIZE;
 
-  // Переменные для игры
-  let score = 0;                 // текущий счёт (увеличивается на 10 за каждую удалённую иконку)
-  let gameStartTime = 0;         // время начала игры (в мс)
-  const GAME_DURATION = 60 * 1000; // 60 секунд
+  // Сбрасываем переменные
+  match3Grid = [];
+  score = 0;
+  timeLeft = GAME_DURATION;
+  isGameRunning = true;
 
-  // Предварительная загрузка изображений
-  function preloadImages(callback) {
-    for (let i = 0; i < iconUrls.length; i++) {
-      const img = new Image();
-      img.src = iconUrls[i];
-      img.onload = function() {
-        imagesLoaded++;
-        if (imagesLoaded === totalImages) {
-          callback();
-        }
+  // Генерируем поле
+  generateGrid();
+
+  // Подключаем обработчики мыши / тач-событий (для swap)
+  match3Canvas.addEventListener("mousedown", onMouseDown);
+  match3Canvas.addEventListener("mousemove", onMouseMove);
+  match3Canvas.addEventListener("mouseup", onMouseUp);
+
+  match3Canvas.addEventListener("touchstart", onTouchStart);
+  match3Canvas.addEventListener("touchmove", onTouchMove);
+  match3Canvas.addEventListener("touchend", onTouchEnd);
+
+  // Запускаем таймер
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    // Здесь можно обновлять отображение таймера в интерфейсе
+    // Например, document.getElementById("timerDisplay").textContent = timeLeft;
+
+    if (timeLeft <= 0) {
+      endGame2();
+    }
+  }, 1000);
+
+  // Запускаем игровой цикл
+  requestAnimationFrame(gameLoop);
+}
+
+/***************************************************************************
+ * resetGame2()
+ * Полная остановка и сброс игры. Вызывается при выходе или завершении.
+ ***************************************************************************/
+function resetGame2() {
+  isGameRunning = false;
+
+  // Отключаем таймер
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  // Удаляем обработчики
+  match3Canvas.removeEventListener("mousedown", onMouseDown);
+  match3Canvas.removeEventListener("mousemove", onMouseMove);
+  match3Canvas.removeEventListener("mouseup", onMouseUp);
+
+  match3Canvas.removeEventListener("touchstart", onTouchStart);
+  match3Canvas.removeEventListener("touchmove", onTouchMove);
+  match3Canvas.removeEventListener("touchend", onTouchEnd);
+
+  match3Ctx = null;
+}
+
+/***************************************************************************
+ * endGame2()
+ * Завершает игру при окончании времени (или другой причине).
+ * Вызывается при timeLeft <= 0.
+ ***************************************************************************/
+function endGame2() {
+  // Останавливаем игру
+  resetGame2();
+
+  // Обновляем базу данных (если нужно)
+  updateScoreInDatabase(score);
+
+  // Показываем результат (можно через модалку, вывод на экран и т.д.)
+  showGameOverMessage(score);
+}
+
+/***************************************************************************
+ * generateGrid()
+ * Генерация случайного поля, чтобы изначально не было больших матчей.
+ * При необходимости можно повторять проверку, пока есть совпадения.
+ ***************************************************************************/
+function generateGrid() {
+  // Заполняем случайными иконками
+  for (let row = 0; row < GRID_SIZE; row++) {
+    match3Grid[row] = [];
+    for (let col = 0; col < GRID_SIZE; col++) {
+      match3Grid[row][col] = {
+        icon: getRandomIcon(),
+        isRemoving: false
       };
-      icons.push(img);
     }
   }
+  // Если хотим избежать стартовых матчей – проверяем и перегенерируем
+  // (Для простоты здесь не делаем, но можно добавить логику)
+}
 
-  // Инициализация игрового поля – заполняем матрицу случайными типами (индексами иконок)
-  function initGrid() {
-    grid = [];
-    for (let r = 0; r < ROWS; r++) {
-      let row = [];
-      for (let c = 0; c < COLS; c++) {
-        row.push({
-          type: Math.floor(Math.random() * iconUrls.length), // случайный тип
-          offsetY: 0,        // смещение по вертикали (для анимации падения)
-          exploding: false,  // флаг эффекта «взрыва»
-          explosionTime: 0   // время начала эффекта взрыва
-        });
+/***************************************************************************
+ * gameLoop()
+ * Основной цикл игры. Вызывается через requestAnimationFrame.
+ ***************************************************************************/
+function gameLoop() {
+  if (!isGameRunning || !match3Ctx) return;
+
+  // Рисуем поле
+  drawBoard();
+
+  // Постоянно проверяем, нет ли новых совпадений после swap/каскадов
+  // (Можно делать чаще/реже по событию)
+  checkAndClearMatches();
+  applyGravity();
+  refillEmptyCells();
+
+  requestAnimationFrame(gameLoop);
+}
+
+/***************************************************************************
+ * drawBoard()
+ * Рисуем игровое поле (фон и иконки).
+ ***************************************************************************/
+function drawBoard() {
+  // Тёмно-зелёный фон под все поле
+  match3Ctx.fillStyle = HACK_BG_COLOR;
+  match3Ctx.fillRect(0, 0, match3Canvas.width, match3Canvas.height);
+
+  // Рисуем каждую ячейку
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const cell = match3Grid[row][col];
+      if (!cell) continue;
+
+      // Координаты в пикселях
+      const x = col * CELL_SIZE;
+      const y = row * CELL_SIZE;
+
+      // Фон ячейки (прозрачный или с лёгким неоновым оттенком)
+      // Можно дорисовать "неон" (совмещённый слой).
+      // match3Ctx.fillStyle = "rgba(0, 255, 0, 0.1)";
+      // match3Ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+
+      // Рисуем иконку
+      if (cell.icon) {
+        drawIcon(cell.icon, x, y);
       }
-      grid.push(row);
-    }
-    // Если на старте есть совпадения, убираем их (чтобы игрок начинал с "чистого" поля)
-    clearInitialMatches();
-  }
 
-  // Убираем начальные совпадения (повторяем до тех пор, пока они не исчезнут)
-  function clearInitialMatches() {
-    let matches = findMatches();
-    while (matches.length > 0) {
-      removeMatches(matches);
-      collapseGrid();
-      matches = findMatches();
+      // Можно нарисовать "неон" по контуру
+      // match3Ctx.strokeStyle = "#00ff00";
+      // match3Ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
     }
   }
+}
 
-  // Рисуем игровое поле – каждую ячейку с фоном, иконкой, а также эффекты выделения/взрыва
-  function drawGrid(timestamp) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+/***************************************************************************
+ * drawIcon(iconUrl, x, y)
+ * Рисуем иконку в заданной ячейке.
+ ***************************************************************************/
+function drawIcon(iconUrl, x, y) {
+  const image = new Image();
+  image.src = iconUrl;
+  // Чтобы не перегружать запросами, обычно делают pre-load или кеш.
+  // Для упрощения здесь каждый раз создаём объект.
 
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const x = c * cellSize,
-              y = r * cellSize;
-        const cell = grid[r][c];
+  // Когда изображение загрузится, рисуем
+  image.onload = () => {
+    // Рассчитываем размер, чтобы вписать в CELL_SIZE
+    match3Ctx.drawImage(image, x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+    // Можно добавить неоновую обводку, glow и т.д. через эффекты Canvas или CSS.
+  };
+}
 
-        // Заливка ячейки – тёмно-зелёный фон (атмосфера киберпространства)
-        ctx.fillStyle = "#013220";
-        ctx.fillRect(x, y, cellSize, cellSize);
+/***************************************************************************
+ * checkAndClearMatches()
+ * Ищет все совпадения (3+ в ряд по горизонтали или вертикали),
+ * помечает их для удаления, если есть.
+ * Затем удаляет и начисляет очки.
+ ***************************************************************************/
+function checkAndClearMatches() {
+  let matchesFound = false;
 
-        // Рассчитываем позицию для рисования с учётом вертикального смещения (анимация падения)
-        const drawY = y + cell.offsetY;
+  // Сбрасываем флаги удаления
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (match3Grid[row][col]) {
+        match3Grid[row][col].isRemoving = false;
+      }
+    }
+  }
 
-        // Если ячейка не пустая, рисуем иконку
-        if (cell.type !== null) {
-          const img = icons[cell.type];
-          // Размер изображения – 80% от размера ячейки
-          const imgSize = cellSize * 0.8,
-                imgX = x + (cellSize - imgSize) / 2,
-                imgY = drawY + (cellSize - imgSize) / 2;
-          ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+  // Проверяем горизонтальные совпадения
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE - 2; col++) {
+      const icon1 = match3Grid[row][col].icon;
+      const icon2 = match3Grid[row][col + 1].icon;
+      const icon3 = match3Grid[row][col + 2].icon;
+      if (icon1 && icon1 === icon2 && icon2 === icon3) {
+        // Нашли минимум 3 подряд
+        match3Grid[row][col].isRemoving = true;
+        match3Grid[row][col + 1].isRemoving = true;
+        match3Grid[row][col + 2].isRemoving = true;
+        matchesFound = true;
+      }
+    }
+  }
+
+  // Проверяем вертикальные совпадения
+  for (let col = 0; col < GRID_SIZE; col++) {
+    for (let row = 0; row < GRID_SIZE - 2; row++) {
+      const icon1 = match3Grid[row][col].icon;
+      const icon2 = match3Grid[row + 1][col].icon;
+      const icon3 = match3Grid[row + 2][col].icon;
+      if (icon1 && icon1 === icon2 && icon2 === icon3) {
+        // Нашли минимум 3 подряд
+        match3Grid[row][col].isRemoving = true;
+        match3Grid[row + 1][col].isRemoving = true;
+        match3Grid[row + 2][col].isRemoving = true;
+        matchesFound = true;
+      }
+    }
+  }
+
+  // Если есть совпадения, удаляем иконки и даём очки
+  if (matchesFound) {
+    let removedCount = 0;
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        if (match3Grid[row][col].isRemoving) {
+          match3Grid[row][col].icon = null; // убираем иконку
+          removedCount++;
         }
+      }
+    }
+    // Начислим очки: например, +10 за каждую удалённую иконку
+    score += removedCount * 10;
+    // Здесь можно обновлять UI-элемент, показывающий score
+    // Например: document.getElementById("scoreDisplay").textContent = score;
+  }
+}
 
-        // Если ячейка выбрана, рисуем неоновую рамку
-        if (selectedCell && selectedCell.row === r && selectedCell.col === c) {
-          ctx.strokeStyle = "#00FF00";
-          ctx.lineWidth = 4;
-          ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
-        }
-
-        // Если ячейка находится в состоянии "взрыва", рисуем эффект (радиальный градиент)
-        if (cell.exploding) {
-          const progress = (timestamp - cell.explosionTime) / 300;
-          if (progress < 1) {
-            const centerX = x + cellSize / 2,
-                  centerY = drawY + cellSize / 2,
-                  radius = cellSize * progress;
-            const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-            grad.addColorStop(0, "rgba(0,255,0,0.8)");
-            grad.addColorStop(1, "rgba(0,255,0,0)");
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.fill();
-          } else {
-            cell.exploding = false; // завершаем эффект
+/***************************************************************************
+ * applyGravity()
+ * "Притягивает" иконки вниз, если под ними пустые ячейки (icon = null).
+ ***************************************************************************/
+function applyGravity() {
+  for (let col = 0; col < GRID_SIZE; col++) {
+    // Снизу вверх (чтобы "ронять" иконки вниз)
+    for (let row = GRID_SIZE - 1; row >= 0; row--) {
+      if (match3Grid[row][col].icon === null) {
+        // Ищем выше иконку
+        for (let aboveRow = row - 1; aboveRow >= 0; aboveRow--) {
+          if (match3Grid[aboveRow][col].icon) {
+            match3Grid[row][col].icon = match3Grid[aboveRow][col].icon;
+            match3Grid[aboveRow][col].icon = null;
+            break;
           }
         }
       }
     }
   }
+}
 
-  // Главный игровой цикл – вызывается через requestAnimationFrame
-  function gameLoop(timestamp) {
-    // Проверяем, не истекло ли время игры (60 секунд)
-    if (timestamp - gameStartTime >= GAME_DURATION) {
-      // Время вышло – завершаем игру
-      // Передаём итоговый счёт через глобальную функцию game2TimeUp (она должна быть определена в index.html)
-      game2TimeUp(score);
-      return;
-    }
-    drawGrid(timestamp);
-    requestAnimationFrame(gameLoop);
-  }
-
-  // Находим совпадения – возвращаем массив объектов {row, col} для ячеек, входящих в линии из трёх и более
-  function findMatches() {
-    let matches = [];
-    // Горизонтальные совпадения
-    for (let r = 0; r < ROWS; r++) {
-      let matchLength = 1;
-      for (let c = 0; c < COLS; c++) {
-        if (c < COLS - 1 &&
-            grid[r][c].type !== null &&
-            grid[r][c].type === grid[r][c + 1].type) {
-          matchLength++;
-        } else {
-          if (matchLength >= 3) {
-            for (let k = 0; k < matchLength; k++) {
-              matches.push({ row: r, col: c - k });
-            }
-          }
-          matchLength = 1;
-        }
-      }
-    }
-    // Вертикальные совпадения
-    for (let c = 0; c < COLS; c++) {
-      let matchLength = 1;
-      for (let r = 0; r < ROWS; r++) {
-        if (r < ROWS - 1 &&
-            grid[r][c].type !== null &&
-            grid[r][c].type === grid[r + 1][c].type) {
-          matchLength++;
-        } else {
-          if (matchLength >= 3) {
-            for (let k = 0; k < matchLength; k++) {
-              matches.push({ row: r - k, col: c });
-            }
-          }
-          matchLength = 1;
-        }
-      }
-    }
-    // Убираем дубликаты
-    const unique = {};
-    return matches.filter(cell => {
-      const key = cell.row + "-" + cell.col;
-      if (!unique[key]) {
-        unique[key] = true;
-        return true;
-      }
-      return false;
-    });
-  }
-
-  // Удаляем совпавшие ячейки: для каждой найденной ячейки запускаем эффект взрыва, обнуляем её и начисляем очки
-  function removeMatches(matches) {
-    matches.forEach(cell => {
-      const current = grid[cell.row][cell.col];
-      if (current.type !== null) {
-        current.exploding = true;
-        current.explosionTime = performance.now();
-        current.type = null; // удаляем ячейку
-        score += 10; // начисляем 10 очков за каждую удалённую иконку
-      }
-    });
-  }
-
-  // "Схлопывание" поля: ячейки опускаются вниз, а сверху появляются новые
-  function collapseGrid() {
-    // Для каждой колонки
-    for (let c = 0; c < COLS; c++) {
-      let emptySpaces = 0;
-      // Проходим снизу вверх
-      for (let r = ROWS - 1; r >= 0; r--) {
-        if (grid[r][c].type === null) {
-          emptySpaces++;
-          grid[r][c].offsetY = emptySpaces * cellSize;
-        } else if (emptySpaces > 0) {
-          // Перемещаем ячейку вниз на количество пустых мест
-          grid[r + emptySpaces][c].type = grid[r][c].type;
-          grid[r + emptySpaces][c].offsetY = grid[r][c].offsetY;
-          grid[r][c].type = null;
-          grid[r][c].offsetY = 0;
-        }
-      }
-      // Заполняем пустые ячейки сверху
-      for (let r = 0; r < emptySpaces; r++) {
-        grid[r][c].type = Math.floor(Math.random() * iconUrls.length);
-        // Задаём смещение, чтобы анимация падения была видна
-        grid[r][c].offsetY = -((emptySpaces - r) * cellSize);
+/***************************************************************************
+ * refillEmptyCells()
+ * Заполняет пустые ячейки (icon = null) новыми случайными иконками.
+ ***************************************************************************/
+function refillEmptyCells() {
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (match3Grid[row][col].icon === null) {
+        match3Grid[row][col].icon = getRandomIcon();
       }
     }
   }
+}
 
-  // Меняем местами два элемента (без анимации – можно доработать при необходимости)
-  function swapCells(r1, c1, r2, c2) {
-    const temp = grid[r1][c1].type;
-    grid[r1][c1].type = grid[r2][c2].type;
-    grid[r2][c2].type = temp;
+/***************************************************************************
+ * getRandomIcon()
+ * Возвращает случайный URL-иконки из массива ICONS.
+ ***************************************************************************/
+function getRandomIcon() {
+  return ICONS[Math.floor(Math.random() * ICONS.length)];
+}
+
+/***************************************************************************
+ * Обработчики мыши и тач-событий (упрощённая логика Swap)
+ ***************************************************************************/
+
+// Конвертируем координаты клика в координаты ячейки (колонка, строка)
+function getCellFromXY(clientX, clientY) {
+  const rect = match3Canvas.getBoundingClientRect();
+  // положение относительно canvas
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const col = Math.floor(x / CELL_SIZE);
+  const row = Math.floor(y / CELL_SIZE);
+  return { row, col };
+}
+
+// MOUSE
+function onMouseDown(e) {
+  e.preventDefault();
+  dragStart = getCellFromXY(e.clientX, e.clientY);
+  dragEnd = null;
+}
+
+function onMouseMove(e) {
+  if (!dragStart) return;
+  e.preventDefault();
+  dragEnd = getCellFromXY(e.clientX, e.clientY);
+}
+
+function onMouseUp(e) {
+  e.preventDefault();
+  if (!dragStart || !dragEnd) {
+    dragStart = null;
+    dragEnd = null;
+    return;
   }
+  attemptSwap(dragStart, dragEnd);
+  dragStart = null;
+  dragEnd = null;
+}
 
-  // Обработка клика по canvas – реализует выбор ячейки и обмен с соседней
-  function onCanvasClick(e) {
-    if (isProcessing) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left,
-          y = e.clientY - rect.top;
-    const col = Math.floor(x / cellSize),
-          row = Math.floor(y / cellSize);
-    if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return;
+// TOUCH
+function onTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  if (!touch) return;
+  dragStart = getCellFromXY(touch.clientX, touch.clientY);
+  dragEnd = null;
+}
 
-    if (!selectedCell) {
-      // Если ни одна ячейка не выбрана, запоминаем текущую
-      selectedCell = { row, col };
-    } else {
-      // Проверяем, что выбранная ячейка соседняя (по горизонтали или вертикали)
-      const dr = Math.abs(row - selectedCell.row),
-            dc = Math.abs(col - selectedCell.col);
-      if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
-        // Начинаем обработку обмена
-        isProcessing = true;
-        swapCells(selectedCell.row, selectedCell.col, row, col);
-        // Проверяем, появилось ли совпадение после обмена
-        const matches = findMatches();
-        if (matches.length > 0) {
-          // Если обмен валиден, обрабатываем совпадения с небольшой задержкой для "анимации"
-          setTimeout(() => {
-            processMatches();
-          }, 300);
-        } else {
-          // Если обмен не привёл к совпадению, возвращаем обратно
-          setTimeout(() => {
-            swapCells(selectedCell.row, selectedCell.col, row, col);
-            isProcessing = false;
-          }, 300);
-        }
-      }
-      selectedCell = null;
-    }
+function onTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  if (!touch || !dragStart) return;
+  dragEnd = getCellFromXY(touch.clientX, touch.clientY);
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  if (!dragStart || !dragEnd) {
+    dragStart = null;
+    dragEnd = null;
+    return;
   }
+  attemptSwap(dragStart, dragEnd);
+  dragStart = null;
+  dragEnd = null;
+}
 
-  // Рекурсивная функция для обработки совпадений (включая каскады)
-  function processMatches() {
-    const matches = findMatches();
-    if (matches.length > 0) {
-      removeMatches(matches);
-      setTimeout(() => {
-        collapseGrid();
-        setTimeout(() => {
-          processMatches();
-          isProcessing = false;
-        }, 300);
-      }, 300);
-    } else {
-      isProcessing = false;
-    }
-  }
+/***************************************************************************
+ * attemptSwap(cellA, cellB)
+ * Проверяем, соседние ли ячейки. Если да, меняем иконки местами.
+ ***************************************************************************/
+function attemptSwap(cellA, cellB) {
+  if (!cellA || !cellB) return;
+  const { row: r1, col: c1 } = cellA;
+  const { row: r2, col: c2 } = cellB;
 
-  // Главная функция инициализации игры "HackMatch 3"
-  function initGame2() {
-    canvas = document.getElementById('match3Canvas');
-    ctx = canvas.getContext('2d');
-    canvas.width = COLS * cellSize;
-    canvas.height = ROWS * cellSize;
+  // Проверяем валидность
+  if (r1 < 0 || r1 >= GRID_SIZE || c1 < 0 || c1 >= GRID_SIZE) return;
+  if (r2 < 0 || r2 >= GRID_SIZE || c2 < 0 || c2 >= GRID_SIZE) return;
 
-    preloadImages(() => {
-      initGrid();
-      score = 0;
-      gameStartTime = performance.now();
-      canvas.addEventListener('click', onCanvasClick);
-      requestAnimationFrame(gameLoop);
-    });
-  }
+  // Соседние ли клетки? (по горизонтали или вертикали)
+  const isAdjacent = (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1);
+  if (!isAdjacent) return;
 
-  // Сброс игры (например, при закрытии модального окна)
-  function resetGame2() {
-    if (canvas) {
-      canvas.removeEventListener('click', onCanvasClick);
-    }
-    // Дополнительный сброс анимаций можно добавить при необходимости
-  }
+  // Меняем иконки
+  const tempIcon = match3Grid[r1][c1].icon;
+  match3Grid[r1][c1].icon = match3Grid[r2][c2].icon;
+  match3Grid[r2][c2].icon = tempIcon;
+}
 
-  // Экспортируем функции для доступа из index.html
-  window.initGame2 = initGame2;
-  window.resetGame2 = resetGame2;
-})();
+/***************************************************************************
+ * Заглушки для интеграции с остальным проектом
+ ***************************************************************************/
+
+/**
+ * updateScoreInDatabase(finalScore)
+ * Обновляет счёт пользователя в базе данных (заглушка).
+ */
+function updateScoreInDatabase(finalScore) {
+  // Здесь вы можете вызвать Firebase или другую логику
+  // Например: db.ref(`users/${currentUser.username}`).update({ points: finalScore })
+  console.log("Обновление очков в БД:", finalScore);
+}
+
+/**
+ * showGameOverMessage(finalScore)
+ * Показывает сообщение об окончании игры и выводит результат (заглушка).
+ */
+function showGameOverMessage(finalScore) {
+  // Здесь можно показать модалку, заменить содержимое экрана и т.д.
+  // Для примера — вывод в консоль:
+  console.log(`Время вышло! Вы заработали: ${finalScore} очков`);
+  // Или используйте свой глобальный модал:
+  // showGlobalModal("Время вышло", `Вы заработали ${finalScore} очков!`);
+}
