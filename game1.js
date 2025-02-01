@@ -1,16 +1,12 @@
-/***************************************************************
- * HackMatch 3 - Игра "3 в ряд" в стиле хакинга и программирования
- * -------------------------------------------------------------
- * Автор: (Ваше имя или команда)
- * Версия: 1.0
- ***************************************************************/
+/* game2.js
+   HackMatch 3
+   Тематика: хакинг/кибер. Иконки: lock, error, fraud, key, user-credentials
+   Игра 8x8, swap соседних элементов, match >=3, исчезновение, падение, каскады.
+   Таймер 60 сек. По истечении вызываем hackMatchTimeIsOver(score).
+*/
 
-// ============= Константы и настройки =============
-const GRID_SIZE = 8;              // Размер сетки (8x8)
-const CELL_SIZE = 50;            // Размер одной ячейки в пикселях
-const GAME_DURATION = 60;         // Продолжительность игры (секунд)
-const HACK_BG_COLOR = "#013220";  // Тёмно-зелёный фон (хакинг-стиль)
-const ICONS = [
+/* Список иконок (неон/хакинг) */
+const hackIcons = [
   "https://img.icons8.com/ios/50/lock.png",
   "https://img.icons8.com/ios/50/error--v1.png",
   "https://img.icons8.com/fluency-systems-regular/50/fraud.png",
@@ -18,424 +14,421 @@ const ICONS = [
   "https://img.icons8.com/fluency-systems-regular/50/user-credentials.png"
 ];
 
-// ============= Глобальные переменные для игры =============
-let match3Canvas = null;
-let match3Ctx = null;
-let match3Grid = [];        // Двухмерный массив с объектами { icon, isRemoving }
-let isGameRunning = false;  // Идёт ли игра
-let score = 0;              // Текущий счёт
-let timeLeft = GAME_DURATION;  // Сколько секунд осталось
-let timerInterval = null;   // Интервал для отсчёта времени
+const GRID_SIZE = 8;      // Размер поля
+const CELL_SIZE = 60;     // Пикселей (желательно совпадать с canvas width/height)
+const TIME_LIMIT = 60;    // Секунд
+let score = 0;
 
-// Данные для обработки перетаскивания
-let dragStart = null;       // { x, y } – координаты ячейки, которую взяли
-let dragEnd = null;         // { x, y } – координаты ячейки, куда пытаемся поставить
+let grid = [];            // Матрица иконок
+let canvas, ctx;
+let selectedCell = null;  // Для выделения ячейки (x,y)
+let startTime = 0;
+let gameTimer = null;     // Интервал обновления таймера
 
-/***************************************************************************
- * initGame2()
- * Инициализация игры "HackMatch 3". Вызывается при открытии игрового поля.
- ***************************************************************************/
-function initGame2() {
-  // Получаем canvas и контекст
-  match3Canvas = document.getElementById("match3Canvas");
-  match3Ctx = match3Canvas.getContext("2d");
+/**
+ * Функция запускается при нажатии "Играть" (index.html -> startHackMatchGame).
+ */
+function startHackMatchGame() {
+  canvas = document.getElementById('match3Canvas');
+  ctx = canvas.getContext('2d');
 
-  // Задаём размеры canvas (если нужно). Можно вынести в HTML
-  match3Canvas.width = GRID_SIZE * CELL_SIZE;
-  match3Canvas.height = GRID_SIZE * CELL_SIZE;
-
-  // Сбрасываем переменные
-  match3Grid = [];
+  // Инициализируем поле
+  initGrid();
   score = 0;
-  timeLeft = GAME_DURATION;
-  isGameRunning = true;
 
-  // Генерируем поле
-  generateGrid();
+  // Ставим обработчики мыши (swap)
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mouseup', onMouseUp);
 
-  // Подключаем обработчики мыши / тач-событий (для swap)
-  match3Canvas.addEventListener("mousedown", onMouseDown);
-  match3Canvas.addEventListener("mousemove", onMouseMove);
-  match3Canvas.addEventListener("mouseup", onMouseUp);
+  // Для мобильных свайпов (touch)
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
 
-  match3Canvas.addEventListener("touchstart", onTouchStart);
-  match3Canvas.addEventListener("touchmove", onTouchMove);
-  match3Canvas.addEventListener("touchend", onTouchEnd);
-
-  // Запускаем таймер
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    // Здесь можно обновлять отображение таймера в интерфейсе
-    // Например, document.getElementById("timerDisplay").textContent = timeLeft;
-
-    if (timeLeft <= 0) {
-      endGame2();
+  // Запускаем таймер на 60 сек
+  startTime = Date.now();
+  gameTimer = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const secLeft = TIME_LIMIT - elapsed;
+    if (secLeft <= 0) {
+      // Время вышло
+      clearInterval(gameTimer);
+      gameTimer = null;
+      endHackMatchGame();
+    } else {
+      // Обновляем отображение таймера в index.html
+      updateGameTimerUI(secLeft);
     }
   }, 1000);
 
-  // Запускаем игровой цикл
-  requestAnimationFrame(gameLoop);
+  // Рисуем стартовое поле и проверяем на случайные совпадения
+  chainCheck();
+  drawGrid();
 }
 
-/***************************************************************************
- * resetGame2()
- * Полная остановка и сброс игры. Вызывается при выходе или завершении.
- ***************************************************************************/
-function resetGame2() {
-  isGameRunning = false;
-
-  // Отключаем таймер
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-
+/**
+ * Завершаем игру (вызываем hackMatchTimeIsOver(score) из index.html).
+ */
+function endHackMatchGame() {
   // Удаляем обработчики
-  match3Canvas.removeEventListener("mousedown", onMouseDown);
-  match3Canvas.removeEventListener("mousemove", onMouseMove);
-  match3Canvas.removeEventListener("mouseup", onMouseUp);
+  canvas.removeEventListener('mousedown', onMouseDown);
+  canvas.removeEventListener('mouseup', onMouseUp);
+  canvas.removeEventListener('touchstart', onTouchStart);
+  canvas.removeEventListener('touchend', onTouchEnd);
 
-  match3Canvas.removeEventListener("touchstart", onTouchStart);
-  match3Canvas.removeEventListener("touchmove", onTouchMove);
-  match3Canvas.removeEventListener("touchend", onTouchEnd);
-
-  match3Ctx = null;
-}
-
-/***************************************************************************
- * endGame2()
- * Завершает игру при окончании времени (или другой причине).
- * Вызывается при timeLeft <= 0.
- ***************************************************************************/
-function endGame2() {
-  // Останавливаем игру
-  resetGame2();
-
-  // Обновляем базу данных (если нужно)
-  updateScoreInDatabase(score);
-
-  // Показываем результат (можно через модалку, вывод на экран и т.д.)
-  showGameOverMessage(score);
-}
-
-/***************************************************************************
- * generateGrid()
- * Генерация случайного поля, чтобы изначально не было больших матчей.
- * При необходимости можно повторять проверку, пока есть совпадения.
- ***************************************************************************/
-function generateGrid() {
-  // Заполняем случайными иконками
-  for (let row = 0; row < GRID_SIZE; row++) {
-    match3Grid[row] = [];
-    for (let col = 0; col < GRID_SIZE; col++) {
-      match3Grid[row][col] = {
-        icon: getRandomIcon(),
-        isRemoving: false
-      };
-    }
+  // Сбрасываем таймер
+  if (gameTimer) {
+    clearInterval(gameTimer);
+    gameTimer = null;
   }
-  // Если хотим избежать стартовых матчей – проверяем и перегенерируем
-  // (Для простоты здесь не делаем, но можно добавить логику)
+
+  // Говорим index.html, что время вышло
+  hackMatchTimeIsOver(score);
 }
 
-/***************************************************************************
- * gameLoop()
- * Основной цикл игры. Вызывается через requestAnimationFrame.
- ***************************************************************************/
-function gameLoop() {
-  if (!isGameRunning || !match3Ctx) return;
-
-  // Рисуем поле
-  drawBoard();
-
-  // Постоянно проверяем, нет ли новых совпадений после swap/каскадов
-  // (Можно делать чаще/реже по событию)
-  checkAndClearMatches();
-  applyGravity();
-  refillEmptyCells();
-
-  requestAnimationFrame(gameLoop);
+/**
+ * Инициализируем поле случайными иконками.
+ */
+function initGrid() {
+  grid = [];
+  for (let y = 0; y < GRID_SIZE; y++) {
+    let row = [];
+    for (let x = 0; x < GRID_SIZE; x++) {
+      row.push(randomIcon());
+    }
+    grid.push(row);
+  }
 }
 
-/***************************************************************************
- * drawBoard()
- * Рисуем игровое поле (фон и иконки).
- ***************************************************************************/
-function drawBoard() {
-  // Тёмно-зелёный фон под все поле
-  match3Ctx.fillStyle = HACK_BG_COLOR;
-  match3Ctx.fillRect(0, 0, match3Canvas.width, match3Canvas.height);
+/**
+ * Возвращает случайную иконку из массива hackIcons.
+ */
+function randomIcon() {
+  return hackIcons[Math.floor(Math.random() * hackIcons.length)];
+}
+
+/**
+ * Отрисовка поля на canvas.
+ */
+function drawGrid() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Рисуем каждую ячейку
-  for (let row = 0; row < GRID_SIZE; row++) {
-    for (let col = 0; col < GRID_SIZE; col++) {
-      const cell = match3Grid[row][col];
-      if (!cell) continue;
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      // Фон (тёмно-зелёный, хакинг)
+      ctx.fillStyle = "#003300"; 
+      ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
 
-      // Координаты в пикселях
-      const x = col * CELL_SIZE;
-      const y = row * CELL_SIZE;
-
-      // Фон ячейки (прозрачный или с лёгким неоновым оттенком)
-      // Можно дорисовать "неон" (совмещённый слой).
-      // match3Ctx.fillStyle = "rgba(0, 255, 0, 0.1)";
-      // match3Ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-
-      // Рисуем иконку
-      if (cell.icon) {
-        drawIcon(cell.icon, x, y);
+      // Если выделено
+      if (selectedCell && selectedCell.x === x && selectedCell.y === y) {
+        ctx.strokeStyle = "#00FF00";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x * CELL_SIZE + 2, y * CELL_SIZE + 2,
+                       CELL_SIZE - 4, CELL_SIZE - 4);
       }
 
-      // Можно нарисовать "неон" по контуру
-      // match3Ctx.strokeStyle = "#00ff00";
-      // match3Ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+      // Рисуем иконку
+      drawIcon(grid[y][x], x, y);
     }
   }
 }
 
-/***************************************************************************
- * drawIcon(iconUrl, x, y)
- * Рисуем иконку в заданной ячейке.
- ***************************************************************************/
+/**
+ * Отрисовка одной иконки по ссылке iconUrl в клетке (x,y).
+ */
 function drawIcon(iconUrl, x, y) {
-  const image = new Image();
-  image.src = iconUrl;
-  // Чтобы не перегружать запросами, обычно делают pre-load или кеш.
-  // Для упрощения здесь каждый раз создаём объект.
-
-  // Когда изображение загрузится, рисуем
-  image.onload = () => {
-    // Рассчитываем размер, чтобы вписать в CELL_SIZE
-    match3Ctx.drawImage(image, x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
-    // Можно добавить неоновую обводку, glow и т.д. через эффекты Canvas или CSS.
+  const img = new Image();
+  img.src = iconUrl;
+  // При загрузке картинки рисуем её
+  img.onload = () => {
+    const offsetX = x * CELL_SIZE + (CELL_SIZE - 40) / 2; // 40 - предполагаемый размер иконки
+    const offsetY = y * CELL_SIZE + (CELL_SIZE - 40) / 2;
+    ctx.drawImage(img, offsetX, offsetY, 40, 40);
   };
 }
 
-/***************************************************************************
- * checkAndClearMatches()
- * Ищет все совпадения (3+ в ряд по горизонтали или вертикали),
- * помечает их для удаления, если есть.
- * Затем удаляет и начисляет очки.
- ***************************************************************************/
-function checkAndClearMatches() {
-  let matchesFound = false;
+/* ----------------------------------------------------------------
+   Управление: мышь + touch (облегчённая логика)
+---------------------------------------------------------------- */
+let mouseStart = null; // координаты начала клика (для свайпа)
 
-  // Сбрасываем флаги удаления
-  for (let row = 0; row < GRID_SIZE; row++) {
-    for (let col = 0; col < GRID_SIZE; col++) {
-      if (match3Grid[row][col]) {
-        match3Grid[row][col].isRemoving = false;
-      }
-    }
-  }
-
-  // Проверяем горизонтальные совпадения
-  for (let row = 0; row < GRID_SIZE; row++) {
-    for (let col = 0; col < GRID_SIZE - 2; col++) {
-      const icon1 = match3Grid[row][col].icon;
-      const icon2 = match3Grid[row][col + 1].icon;
-      const icon3 = match3Grid[row][col + 2].icon;
-      if (icon1 && icon1 === icon2 && icon2 === icon3) {
-        // Нашли минимум 3 подряд
-        match3Grid[row][col].isRemoving = true;
-        match3Grid[row][col + 1].isRemoving = true;
-        match3Grid[row][col + 2].isRemoving = true;
-        matchesFound = true;
-      }
-    }
-  }
-
-  // Проверяем вертикальные совпадения
-  for (let col = 0; col < GRID_SIZE; col++) {
-    for (let row = 0; row < GRID_SIZE - 2; row++) {
-      const icon1 = match3Grid[row][col].icon;
-      const icon2 = match3Grid[row + 1][col].icon;
-      const icon3 = match3Grid[row + 2][col].icon;
-      if (icon1 && icon1 === icon2 && icon2 === icon3) {
-        // Нашли минимум 3 подряд
-        match3Grid[row][col].isRemoving = true;
-        match3Grid[row + 1][col].isRemoving = true;
-        match3Grid[row + 2][col].isRemoving = true;
-        matchesFound = true;
-      }
-    }
-  }
-
-  // Если есть совпадения, удаляем иконки и даём очки
-  if (matchesFound) {
-    let removedCount = 0;
-    for (let row = 0; row < GRID_SIZE; row++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
-        if (match3Grid[row][col].isRemoving) {
-          match3Grid[row][col].icon = null; // убираем иконку
-          removedCount++;
-        }
-      }
-    }
-    // Начислим очки: например, +10 за каждую удалённую иконку
-    score += removedCount * 10;
-    // Здесь можно обновлять UI-элемент, показывающий score
-    // Например: document.getElementById("scoreDisplay").textContent = score;
-  }
-}
-
-/***************************************************************************
- * applyGravity()
- * "Притягивает" иконки вниз, если под ними пустые ячейки (icon = null).
- ***************************************************************************/
-function applyGravity() {
-  for (let col = 0; col < GRID_SIZE; col++) {
-    // Снизу вверх (чтобы "ронять" иконки вниз)
-    for (let row = GRID_SIZE - 1; row >= 0; row--) {
-      if (match3Grid[row][col].icon === null) {
-        // Ищем выше иконку
-        for (let aboveRow = row - 1; aboveRow >= 0; aboveRow--) {
-          if (match3Grid[aboveRow][col].icon) {
-            match3Grid[row][col].icon = match3Grid[aboveRow][col].icon;
-            match3Grid[aboveRow][col].icon = null;
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-
-/***************************************************************************
- * refillEmptyCells()
- * Заполняет пустые ячейки (icon = null) новыми случайными иконками.
- ***************************************************************************/
-function refillEmptyCells() {
-  for (let row = 0; row < GRID_SIZE; row++) {
-    for (let col = 0; col < GRID_SIZE; col++) {
-      if (match3Grid[row][col].icon === null) {
-        match3Grid[row][col].icon = getRandomIcon();
-      }
-    }
-  }
-}
-
-/***************************************************************************
- * getRandomIcon()
- * Возвращает случайный URL-иконки из массива ICONS.
- ***************************************************************************/
-function getRandomIcon() {
-  return ICONS[Math.floor(Math.random() * ICONS.length)];
-}
-
-/***************************************************************************
- * Обработчики мыши и тач-событий (упрощённая логика Swap)
- ***************************************************************************/
-
-// Конвертируем координаты клика в координаты ячейки (колонка, строка)
-function getCellFromXY(clientX, clientY) {
-  const rect = match3Canvas.getBoundingClientRect();
-  // положение относительно canvas
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
-  const col = Math.floor(x / CELL_SIZE);
-  const row = Math.floor(y / CELL_SIZE);
-  return { row, col };
-}
-
-// MOUSE
 function onMouseDown(e) {
-  e.preventDefault();
-  dragStart = getCellFromXY(e.clientX, e.clientY);
-  dragEnd = null;
-}
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const gridX = Math.floor(mx / CELL_SIZE);
+  const gridY = Math.floor(my / CELL_SIZE);
 
-function onMouseMove(e) {
-  if (!dragStart) return;
-  e.preventDefault();
-  dragEnd = getCellFromXY(e.clientX, e.clientY);
+  mouseStart = { x: gridX, y: gridY };
 }
 
 function onMouseUp(e) {
-  e.preventDefault();
-  if (!dragStart || !dragEnd) {
-    dragStart = null;
-    dragEnd = null;
-    return;
+  if (!mouseStart) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const gridX = Math.floor(mx / CELL_SIZE);
+  const gridY = Math.floor(my / CELL_SIZE);
+
+  // Проверяем, соседние ли ячейки
+  if (isNeighbor(mouseStart.x, mouseStart.y, gridX, gridY)) {
+    swapAndCheck(mouseStart.x, mouseStart.y, gridX, gridY);
+  } else {
+    // Если клик по одной ячейке – просто выделяем
+    if (mouseStart.x === gridX && mouseStart.y === gridY) {
+      selectedCell = { x: gridX, y: gridY };
+      drawGrid();
+    }
   }
-  attemptSwap(dragStart, dragEnd);
-  dragStart = null;
-  dragEnd = null;
+
+  mouseStart = null;
 }
 
-// TOUCH
 function onTouchStart(e) {
   e.preventDefault();
-  const touch = e.touches[0];
-  if (!touch) return;
-  dragStart = getCellFromXY(touch.clientX, touch.clientY);
-  dragEnd = null;
-}
+  if (!e.touches[0]) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.touches[0].clientX - rect.left;
+  const my = e.touches[0].clientY - rect.top;
+  const gridX = Math.floor(mx / CELL_SIZE);
+  const gridY = Math.floor(my / CELL_SIZE);
 
-function onTouchMove(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  if (!touch || !dragStart) return;
-  dragEnd = getCellFromXY(touch.clientX, touch.clientY);
+  mouseStart = { x: gridX, y: gridY };
 }
 
 function onTouchEnd(e) {
   e.preventDefault();
-  if (!dragStart || !dragEnd) {
-    dragStart = null;
-    dragEnd = null;
-    return;
+  if (!mouseStart) return;
+  // Для простоты, примем, что touchend происходит там же (не учитываем перемещение).
+  // Либо можно отлавливать touchmove и определять направление свайпа.
+  const rect = canvas.getBoundingClientRect();
+  // Возьмём последнюю позицию пальца (touches=0, значит берём changedTouches)
+  if (!e.changedTouches[0]) return;
+  const mx = e.changedTouches[0].clientX - rect.left;
+  const my = e.changedTouches[0].clientY - rect.top;
+  const gridX = Math.floor(mx / CELL_SIZE);
+  const gridY = Math.floor(my / CELL_SIZE);
+
+  // Проверяем, соседние ли ячейки
+  if (isNeighbor(mouseStart.x, mouseStart.y, gridX, gridY)) {
+    swapAndCheck(mouseStart.x, mouseStart.y, gridX, gridY);
+  } else {
+    // Просто выделяем
+    if (mouseStart.x === gridX && mouseStart.y === gridY) {
+      selectedCell = { x: gridX, y: gridY };
+      drawGrid();
+    }
   }
-  attemptSwap(dragStart, dragEnd);
-  dragStart = null;
-  dragEnd = null;
-}
 
-/***************************************************************************
- * attemptSwap(cellA, cellB)
- * Проверяем, соседние ли ячейки. Если да, меняем иконки местами.
- ***************************************************************************/
-function attemptSwap(cellA, cellB) {
-  if (!cellA || !cellB) return;
-  const { row: r1, col: c1 } = cellA;
-  const { row: r2, col: c2 } = cellB;
-
-  // Проверяем валидность
-  if (r1 < 0 || r1 >= GRID_SIZE || c1 < 0 || c1 >= GRID_SIZE) return;
-  if (r2 < 0 || r2 >= GRID_SIZE || c2 < 0 || c2 >= GRID_SIZE) return;
-
-  // Соседние ли клетки? (по горизонтали или вертикали)
-  const isAdjacent = (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1);
-  if (!isAdjacent) return;
-
-  // Меняем иконки
-  const tempIcon = match3Grid[r1][c1].icon;
-  match3Grid[r1][c1].icon = match3Grid[r2][c2].icon;
-  match3Grid[r2][c2].icon = tempIcon;
-}
-
-/***************************************************************************
- * Заглушки для интеграции с остальным проектом
- ***************************************************************************/
-
-/**
- * updateScoreInDatabase(finalScore)
- * Обновляет счёт пользователя в базе данных (заглушка).
- */
-function updateScoreInDatabase(finalScore) {
-  // Здесь вы можете вызвать Firebase или другую логику
-  // Например: db.ref(`users/${currentUser.username}`).update({ points: finalScore })
-  console.log("Обновление очков в БД:", finalScore);
+  mouseStart = null;
 }
 
 /**
- * showGameOverMessage(finalScore)
- * Показывает сообщение об окончании игры и выводит результат (заглушка).
+ * Проверка, являются ли ячейки соседними.
  */
-function showGameOverMessage(finalScore) {
-  // Здесь можно показать модалку, заменить содержимое экрана и т.д.
-  // Для примера — вывод в консоль:
-  console.log(`Время вышло! Вы заработали: ${finalScore} очков`);
-  // Или используйте свой глобальный модал:
-  // showGlobalModal("Время вышло", `Вы заработали ${finalScore} очков!`);
+function isNeighbor(x1, y1, x2, y2) {
+  return (
+    (x1 === x2 && Math.abs(y1 - y2) === 1) ||
+    (y1 === y2 && Math.abs(x1 - x2) === 1)
+  );
+}
+
+/**
+ * Меняем местами две иконки и проверяем на совпадения.
+ */
+function swapAndCheck(x1, y1, x2, y2) {
+  // Меняем в grid
+  const temp = grid[y1][x1];
+  grid[y1][x1] = grid[y2][x2];
+  grid[y2][x2] = temp;
+
+  // Рисуем (временно)
+  drawGrid();
+
+  // Проверяем, есть ли совпадения
+  if (!checkMatches()) {
+    // Если совпадений нет, возвращаем обратно
+    const tmp = grid[y1][x1];
+    grid[y1][x1] = grid[y2][x2];
+    grid[y2][x2] = tmp;
+    drawGrid();
+  } else {
+    // Если есть совпадение, запускаем каскады
+    chainCheck();
+  }
+}
+
+/**
+ * Полный цикл проверки + каскадов.
+ */
+function chainCheck() {
+  let combo = true;
+  while (combo) {
+    const matched = checkMatches();
+    if (matched > 0) {
+      // Есть совпадения, удаляем + начисляем очки
+      score += matched * 10; // к примеру, 10 очков за каждую группу
+      removeMatches();
+      dropIcons();
+    } else {
+      combo = false;
+    }
+  }
+  // После каскадов перерисовываем
+  drawGrid();
+}
+
+/**
+ * Находит все совпадения (3+ в ряд).
+ * Возвращает количество найденных "групп" или 0, если нет.
+ * Или можем вернуть общее число затронутых ячеек.
+ */
+function checkMatches() {
+  const toRemove = []; // массив координат, которые надо удалить
+
+  // Ищем горизонтальные совпадения
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE - 2; x++) {
+      const icon = grid[y][x];
+      if (icon &&
+          icon === grid[y][x+1] &&
+          icon === grid[y][x+2]) {
+        // Нашли минимум 3 подряд
+        let matchLen = 3;
+        // Проверим, не идет ли дальше
+        let nx = x + 3;
+        while (nx < GRID_SIZE && grid[y][nx] === icon) {
+          matchLen++;
+          nx++;
+        }
+        // Записываем все эти ячейки
+        for (let i = 0; i < matchLen; i++) {
+          toRemove.push({ x: x + i, y });
+        }
+        x += matchLen - 1; // пропускаем
+      }
+    }
+  }
+
+  // Ищем вертикальные совпадения
+  for (let x = 0; x < GRID_SIZE; x++) {
+    for (let y = 0; y < GRID_SIZE - 2; y++) {
+      const icon = grid[y][x];
+      if (icon &&
+          icon === grid[y+1][x] &&
+          icon === grid[y+2][x]) {
+        // Нашли минимум 3 подряд
+        let matchLen = 3;
+        let ny = y + 3;
+        while (ny < GRID_SIZE && grid[ny][x] === icon) {
+          matchLen++;
+          ny++;
+        }
+        // Записываем
+        for (let i = 0; i < matchLen; i++) {
+          toRemove.push({ x, y: y + i });
+        }
+        y += matchLen - 1;
+      }
+    }
+  }
+
+  // Убираем дубликаты
+  const unique = {};
+  toRemove.forEach(cell => {
+    unique[`${cell.x}_${cell.y}`] = true;
+  });
+  const cellsToRemove = Object.keys(unique);
+
+  return cellsToRemove.length;
+}
+
+/**
+ * Удаляем совпавшие иконки (заменяем на null).
+ */
+function removeMatches() {
+  // Для каждого совпавшего ставим null
+  // Повторяем логику checkMatches, но теперь уже конкретнее
+  const toRemove = [];
+
+  // Горизонтали
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE - 2; x++) {
+      const icon = grid[y][x];
+      if (icon &&
+          icon === grid[y][x+1] &&
+          icon === grid[y][x+2]) {
+        let matchLen = 3;
+        let nx = x + 3;
+        while (nx < GRID_SIZE && grid[y][nx] === icon) {
+          matchLen++;
+          nx++;
+        }
+        for (let i = 0; i < matchLen; i++) {
+          toRemove.push({ x: x + i, y });
+        }
+        x += matchLen - 1;
+      }
+    }
+  }
+
+  // Вертикали
+  for (let x = 0; x < GRID_SIZE; x++) {
+    for (let y = 0; y < GRID_SIZE - 2; y++) {
+      const icon = grid[y][x];
+      if (icon &&
+          icon === grid[y+1][x] &&
+          icon === grid[y+2][x]) {
+        let matchLen = 3;
+        let ny = y + 3;
+        while (ny < GRID_SIZE && grid[ny][x] === icon) {
+          matchLen++;
+          ny++;
+        }
+        for (let i = 0; i < matchLen; i++) {
+          toRemove.push({ x, y: y + i });
+        }
+        y += matchLen - 1;
+      }
+    }
+  }
+
+  // Убираем дубли
+  const unique = {};
+  toRemove.forEach(cell => {
+    unique[`${cell.x}_${cell.y}`] = true;
+  });
+  const cellsToRemove = Object.keys(unique);
+
+  // Ставим null
+  cellsToRemove.forEach(key => {
+    const [x, y] = key.split('_');
+    grid[y][x] = null;
+  });
+}
+
+/**
+ * "Просыпаем" ячейки вниз, заполняем верх рандомом.
+ */
+function dropIcons() {
+  for (let x = 0; x < GRID_SIZE; x++) {
+    // Сдвигаем вниз
+    for (let y = GRID_SIZE - 1; y >= 0; y--) {
+      if (grid[y][x] === null) {
+        // Найдем сверху следующую не-null
+        let ny = y - 1;
+        while (ny >= 0 && grid[ny][x] === null) {
+          ny--;
+        }
+        if (ny >= 0) {
+          // Перемещаем
+          grid[y][x] = grid[ny][x];
+          grid[ny][x] = null;
+        } else {
+          // Нет, тогда ставим рандом
+          grid[y][x] = randomIcon();
+        }
+      }
+    }
+  }
 }
