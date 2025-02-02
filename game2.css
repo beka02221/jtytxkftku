@@ -1,1 +1,7 @@
 
+/* game2.css — стили, специфичные для игры "3 в ряд" */
+/* Оформление canvas для игры 2 */
+#match3Canvas {
+  background-color: #222;
+  border: 1px solid #00FF00;
+}
