@@ -1,9 +1,14 @@
-/* game1.js - Раннер с динозавром */
+
+/* game1.js - Раннер с динозавром
+   Здесь мы во время игры "накручиваем" локальные очки localUserData.points,
+   чтобы пользователь видел растущее число в шапке. 
+   При столкновении - показываем итоговое окно, очки записываются в БД после закрытия итогового окна.
+*/
 
 let dinoInterval = null;
 let dinoCtx = null;
 
-// Параметры игры
+// Параметры
 let dinoX = 50;
 let dinoY = 180;
 let velocityY = 0;
@@ -13,14 +18,11 @@ let obstacles = [];
 let obstacleSpeed = 3;
 let frameCount = 0;
 
-/**
- * Инициализация игры (запускается при открытии).
- */
 function initGame1() {
   const canvas = document.getElementById('gameCanvas');
   dinoCtx = canvas.getContext('2d');
 
-  // Сбрасываем параметры
+  // Сброс
   dinoX = 50;
   dinoY = 180;
   velocityY = 0;
@@ -29,17 +31,18 @@ function initGame1() {
   obstacleSpeed = 3;
   frameCount = 0;
 
-  // Слушатели
+  // Чтобы "стартовые очки" запомнить, 
+  // допустим, берём currentPoints = localUserData.points (из index.html)
+  // и дальше увеличиваем на frameCount.
+  // Или можно начать "с нуля" за текущую сессию.
+  // Для наглядности, давайте будем увеличивать localUserData.points динамически.
+
   window.addEventListener('keydown', handleDinoKeyDown);
   canvas.addEventListener('click', handleDinoJump);
 
-  // Запуск цикла
   dinoInterval = requestAnimationFrame(dinoGameLoop);
 }
 
-/**
- * Сброс игры (когда она завершается).
- */
 function resetGame1() {
   if (dinoInterval) {
     cancelAnimationFrame(dinoInterval);
@@ -51,7 +54,6 @@ function resetGame1() {
   dinoCtx = null;
 }
 
-/* Управление */
 function handleDinoKeyDown(e) {
   if (e.code === 'Space') {
     handleDinoJump();
@@ -74,7 +76,6 @@ function spawnObstacle() {
 }
 
 function dinoUpdate() {
-  // Движение динозавра
   dinoY += velocityY;
   velocityY += gravity;
   if (dinoY >= 180) {
@@ -82,18 +83,25 @@ function dinoUpdate() {
     isJumping = false;
   }
 
-  // Спавн препятствий
   frameCount++;
+  // Каждые 100 кадров - новое препятствие
   if (frameCount % 100 === 0) {
     spawnObstacle();
   }
 
-  // Движение препятствий
+  // Двигаем препятствия
   obstacles.forEach(obs => {
     obs.x -= obstacleSpeed;
   });
 
-  // Проверка столкновений
+  // Увеличиваем локальные очки (например, 1 очко за кадр)
+  // localUserData.points += 1 - но лучше делать это реже, чтобы не вызывать лишнюю нагрузку.
+  // Для простоты: 1 очко за каждый кадр
+  localUserData.points++;
+  // Обновляем шапку (чтобы игрок видел, как растут очки)
+  updateTopBar();
+
+  // Проверяем столкновения
   obstacles.forEach(obs => {
     if (
       dinoX < obs.x + obs.width &&
@@ -101,15 +109,17 @@ function dinoUpdate() {
       dinoY < obs.y + obs.height &&
       dinoY + 20 > obs.y
     ) {
-      // Проигрыш
-      const pointsEarned = frameCount;  // например, очки = количество кадров
-      showEndGameModal('Игра окончена',
-        `Вы врезались в препятствие!\nЗаработанные очки: ${pointsEarned}`);
+      // Столкновение
+      // Покажем итоговое окно (из index.html)
+      showEndGameModal(
+        'Игра окончена',
+        `Вы врезались в препятствие!\nНабрано очков: ${localUserData.points}`
+      );
       resetGame1();
     }
   });
 
-  // Удаляем объекты вне экрана
+  // Удаляем пройденные препятствия
   obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 }
 
@@ -127,13 +137,13 @@ function dinoDraw() {
     dinoCtx.fillRect(obs.x, obs.y, obs.width, obs.height);
   });
 
-  // "Пол"
+  // Пол
   dinoCtx.fillStyle = '#555';
   dinoCtx.fillRect(0, 190, 400, 10);
 }
 
 function dinoGameLoop() {
-  if (!dinoCtx) return; // Если уже сбросили
+  if (!dinoCtx) return; 
   dinoUpdate();
   dinoDraw();
   dinoInterval = requestAnimationFrame(dinoGameLoop);
