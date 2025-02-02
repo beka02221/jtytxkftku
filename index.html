@@ -9,6 +9,9 @@
   <!-- Шрифт Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="game1.css">
+<link rel="stylesheet" href="game2.css">
+
 
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -19,212 +22,270 @@
 
   <style>
     * {
-      margin: 0; padding: 0;
-      box-sizing: border-box;
-      font-family: 'Press Start 2P', cursive;
-    }
-    html, body {
-      width: 100%; height: 100%;
-      background-color: #000; color: #00FF00;
-      overflow-x: hidden; /* Запрет горизонтального скролла */
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-    }
+  margin: 0; 
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Press Start 2P', cursive;
+}
+html, body {
+  width: 100%; 
+  height: 100%;
+  background-color: #000; 
+  color: #00FF00;
+  overflow-x: hidden; /* Запрет горизонтального скролла */
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
 
-    /* Шапка (header) всегда видна */
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px;
-      border-bottom: 2px solid #00FF00;
-      flex-shrink: 0;
-        z-index: 10001;
+/* Шапка (header) всегда видна */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 2px solid #00FF00;
+  flex-shrink: 0;
+  z-index: 10001;
   position: relative; /* если ещё не задано */
-    }
-    .user-info {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .user-info img {
-      width: 40px; height: 40px;
-      border-radius: 50%; object-fit: cover;
-      border: 2px solid #00FF00;
-    }
-    .balances {
-      display: flex; gap: 15px; align-items: center;
-    }
-    .balances span {
-      display: flex; align-items: center; gap: 5px;
-    }
+}
+.user-info {
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+}
+.user-info img {
+  width: 40px; 
+  height: 40px;
+  border-radius: 50%; 
+  object-fit: cover;
+  border: 2px solid #00FF00;
+}
+.balances {
+  display: flex; 
+  gap: 15px; 
+  align-items: center;
+}
+.balances span {
+  display: flex; 
+  align-items: center; 
+  gap: 5px;
+}
 
-    /* Основной контейнер для вкладок */
-    main {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-    }
+/* Основной контейнер для вкладок */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
 
-    /* Нижняя навигация (иконки без текста) */
-    nav {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      border-top: 2px solid #00FF00;
-      padding: 10px 0;
-      flex-shrink: 0;
-    }
-    nav button {
-      background: none; border: none;
-      cursor: pointer; transition: 0.3s;
-    }
-    nav button img {
-      width: 35px; height: 35px;
-    }
-    nav button:hover img {
-      filter: brightness(60%);
-    }
+/* Нижняя навигация (иконки без текста) */
+nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 2px solid #00FF00;
+  padding: 10px 0;
+  flex-shrink: 0;
+}
+nav button {
+  background: none; 
+  border: none;
+  cursor: pointer; 
+  transition: 0.3s;
+}
+nav button img {
+  width: 35px; 
+  height: 35px;
+}
+nav button:hover img {
+  filter: brightness(60%);
+}
 
-    /* Скрытые/открытые секции */
-    .section { display: none; }
-    .section.active { display: block; }
+/* Скрытые/открытые секции */
+.section { 
+  display: none; 
+}
+.section.active { 
+  display: block; 
+}
 
-    /* Раздел Play */
-    .games-container {
-      display: flex; flex-wrap: nowrap;
-      overflow-x: auto; gap: 20px;
-      padding: 10px;
-    }
-    .game-card {
-      min-width: 200px;
-      border: 2px solid #00FF00;
-      border-radius: 5px;
-      padding: 10px;
-      text-align: center;
-      flex-shrink: 0;
-      background-color: #111;
-    }
-    .game-card img {
-      width: 80px; height: 80px;
-      object-fit: contain; margin-bottom: 10px;
-    }
-    .game-card button {
-      margin-top: 10px;
-      background-color: #00FF00; color: #000;
-      border: none; padding: 5px 10px;
-      cursor: pointer; border-radius: 5px;
-      transition: 0.3s;
-    }
-    .game-card button:hover {
-      opacity: 0.8;
-    }
+/* Раздел Play */
+.games-container {
+  display: flex; 
+  flex-wrap: nowrap;
+  overflow-x: auto; 
+  gap: 20px;
+  padding: 10px;
+}
+.game-card {
+  min-width: 200px;
+  border: 2px solid #00FF00;
+  border-radius: 5px;
+  padding: 10px;
+  text-align: center;
+  flex-shrink: 0;
+  background-color: #111;
+}
+.game-card img {
+  width: 80px; 
+  height: 80px;
+  object-fit: contain; 
+  margin-bottom: 10px;
+}
+.game-card button {
+  margin-top: 10px;
+  background-color: #00FF00; 
+  color: #000;
+  border: none; 
+  padding: 5px 10px;
+  cursor: pointer; 
+  border-radius: 5px;
+  transition: 0.3s;
+}
+.game-card button:hover {
+  opacity: 0.8;
+}
 
-    /* Раздел Tickets */
-    .wheel-container {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 20px;
-      margin-top: 30px;
-    }
-    .wheel {
-      width: 200px; height: 200px;
-      border: 2px solid #00FF00; border-radius: 50%;
-      display: flex; align-items: center;
-      justify-content: center; position: relative;
-      background: #111;
-    }
-    .spin-result {
-      margin-top: 10px; text-align: center;
-    }
-    .tickets-actions button {
-      background-color: #00FF00; color: #000;
-      border: none; padding: 8px 15px;
-      margin: 5px; cursor: pointer;
-      border-radius: 5px; transition: 0.3s;
-    }
-    .tickets-actions button:hover {
-      opacity: 0.8;
-    }
+/* Раздел Tickets */
+.wheel-container {
+  display: flex; 
+  flex-direction: column;
+  align-items: center; 
+  gap: 20px;
+  margin-top: 30px;
+}
+.wheel {
+  width: 200px; 
+  height: 200px;
+  border: 2px solid #00FF00; 
+  border-radius: 50%;
+  display: flex; 
+  align-items: center;
+  justify-content: center; 
+  position: relative;
+  background: #111;
+}
+.spin-result {
+  margin-top: 10px; 
+  text-align: center;
+}
+.tickets-actions button {
+  background-color: #00FF00; 
+  color: #000;
+  border: none; 
+  padding: 8px 15px;
+  margin: 5px; 
+  cursor: pointer;
+  border-radius: 5px; 
+  transition: 0.3s;
+}
+.tickets-actions button:hover {
+  opacity: 0.8;
+}
 
-    /* Раздел Leaderboard */
-    .leaderboard-container {
-      margin-top: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #00FF00;
-      padding: 10px;
-      text-align: left;
-    }
-    .info-button {
-      background-color: #00FF00; color: #000;
-      border: none; padding: 5px 10px;
-      cursor: pointer; margin-bottom: 10px;
-      border-radius: 5px;
-    }
+/* Раздел Leaderboard */
+.leaderboard-container {
+  margin-top: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid #00FF00;
+  padding: 10px;
+  text-align: left;
+}
+.info-button {
+  background-color: #00FF00; 
+  color: #000;
+  border: none; 
+  padding: 5px 10px;
+  cursor: pointer; 
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
 
-    /* Раздел Referral */
-    .referral-container {
-      margin-top: 20px;
-      display: flex; flex-direction: column;
-      gap: 10px; align-items: center;
-      text-align: center;
-    }
-    .referral-link {
-      word-wrap: break-word;
-      border: 1px solid #00FF00;
-      padding: 5px; margin-bottom: 5px;
-      width: 80%; background-color: #111;
-      border-radius: 5px;
-    }
-    .copy-button {
-      background-color: #00FF00; color: #000;
-      border: none; padding: 5px 10px;
-      cursor: pointer; border-radius: 5px;
-    }
+/* Раздел Referral */
+.referral-container {
+  margin-top: 20px;
+  display: flex; 
+  flex-direction: column;
+  gap: 10px; 
+  align-items: center;
+  text-align: center;
+}
+.referral-link {
+  word-wrap: break-word;
+  border: 1px solid #00FF00;
+  padding: 5px; 
+  margin-bottom: 5px;
+  width: 80%; 
+  background-color: #111;
+  border-radius: 5px;
+}
+.copy-button {
+  background-color: #00FF00; 
+  color: #000;
+  border: none; 
+  padding: 5px 10px;
+  cursor: pointer; 
+  border-radius: 5px;
+}
 
-    /* Глобальное Модальное окно (вместо alert) */
-    .modal-backdrop {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: none; align-items: center; justify-content: center;
-      z-index: 9999;
-    }
-    .modal-backdrop.active {
-      display: flex;
-    }
-    .modal {
-      background-color: #000;
-      border: 2px solid #00FF00;
-      padding: 20px; width: 80%;
-      max-width: 400px; text-align: center;
-      border-radius: 5px;
-    }
-    .modal h2 {
-      margin-bottom: 10px; font-size: 18px;
-    }
-    .modal p {
-      margin-bottom: 20px; white-space: pre-line;
-      font-size: 14px;
-    }
-    .close-modal {
-      background-color: #00FF00; color: #000;
-      padding: 5px 10px; border: none;
-      cursor: pointer; border-radius: 5px;
-    }
+/* Глобальное Модальное окно (вместо alert) */
+.modal-backdrop {
+  position: fixed; 
+  top: 0; 
+  left: 0;
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none; 
+  align-items: center; 
+  justify-content: center;
+  z-index: 9999;
+}
+.modal-backdrop.active {
+  display: flex;
+}
+.modal {
+  background-color: #000;
+  border: 2px solid #00FF00;
+  padding: 20px; 
+  width: 80%;
+  max-width: 400px; 
+  text-align: center;
+  border-radius: 5px;
+}
+.modal h2 {
+  margin-bottom: 10px; 
+  font-size: 18px;
+}
+.modal p {
+  margin-bottom: 20px; 
+  white-space: pre-line;
+  font-size: 14px;
+}
+.close-modal {
+  background-color: #00FF00; 
+  color: #000;
+  padding: 5px 10px; 
+  border: none;
+  cursor: pointer; 
+  border-radius: 5px;
+}
 
-    /* Модалка для инфо о сезоне */
-    .modal-season {
-      text-align: left;
-    }
+/* Модалка для инфо о сезоне */
+.modal-season {
+  text-align: left;
+}
 
-    /* "Полноэкранный" блок для игры (кроме header) */
-    .game-modal-backdrop {
-      position: fixed;
+/* "Полноэкранный" блок для игры (кроме header) */
+.game-modal-backdrop {
+  position: fixed;
   top: 60px; /* вместо 0 */
   left: 0;
   width: 100%;
@@ -233,57 +294,71 @@
   display: none;
   flex-direction: column;
   z-index: 10000;
-    }
-    .game-modal-backdrop.active {
-      display: flex;
-    }
-    .game-modal-content {
-      flex: 1;
-      display: flex; flex-direction: column;
-      margin-top: 60px; /* отступ под header */
-    }
-    /* Навигация скрываем, чтобы нельзя было уйти из игры */
-    .hidden { display: none !important; }
+}
+.game-modal-backdrop.active {
+  display: flex;
+}
+.game-modal-content {
+  flex: 1;
+  display: flex; 
+  flex-direction: column;
+  margin-top: 60px; /* отступ под header */
+}
+/* Навигация скрываем, чтобы нельзя было уйти из игры */
+.hidden { 
+  display: none !important; 
+}
 
-    .game-canvas {
-      flex: 1; /* Заполнить всё оставшееся место */
-      display: flex; align-items: center; justify-content: center;
-    }
-    .game-canvas canvas {
-      background-color: #222; border: 1px solid #00FF00;
-    }
+.game-canvas {
+  flex: 1; /* Заполнить всё оставшееся место */
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+/* Правило для canvas удалено и будет перенесено в game1.css и game2.css */
 
-    /* Итоговое окно после проигрыша / окончания игры */
-    .endgame-backdrop {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: none; align-items: center; justify-content: center;
-      z-index: 10001;
-    }
-    .endgame-backdrop.active {
-      display: flex;
-    }
-    .endgame-modal {
-      background-color: #000;
-      border: 2px solid #00FF00;
-      border-radius: 5px;
-      padding: 20px; width: 80%;
-      max-width: 400px; text-align: center;
-    }
+/* Итоговое окно после проигрыша / окончания игры */
+.endgame-backdrop {
+  position: fixed; 
+  top: 0; 
+  left: 0;
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none; 
+  align-items: center; 
+  justify-content: center;
+  z-index: 10001;
+}
+.endgame-backdrop.active {
+  display: flex;
+}
+.endgame-modal {
+  background-color: #000;
+  border: 2px solid #00FF00;
+  border-radius: 5px;
+  padding: 20px; 
+  width: 80%;
+  max-width: 400px; 
+  text-align: center;
+}
 
-    /* Адаптив */
-    @media (max-width: 480px) {
-      header {
-        flex-direction: column; gap: 10px;
-      }
-      .user-info img {
-        width: 30px; height: 30px;
-      }
-      nav button img {
-        width: 30px; height: 30px;
-      }
-    }
+/* Адаптив */
+@media (max-width: 480px) {
+  header {
+    flex-direction: column; 
+    gap: 10px;
+  }
+  .user-info img {
+    width: 30px; 
+    height: 30px;
+  }
+  nav button img {
+    width: 30px; 
+    height: 30px;
+  }
+}
+
   </style>
 </head>
 <body>
