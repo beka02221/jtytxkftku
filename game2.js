@@ -13,11 +13,11 @@ const CELL_SIZE = 50;
 
 // Ссылки на исходные иконки (чёрно-белые)
 const ICON_URLS = [
-  'https://img.icons8.com/ios/50/lock.png',               
-  'https://img.icons8.com/ios/50/error--v1.png',          
-  'https://img.icons8.com/fluency-systems-regular/50/fraud.png',        
-  'https://img.icons8.com/fluency-systems-regular/50/key-security--v1.png', 
-  'https://img.icons8.com/fluency-systems-regular/50/user-credentials.png'
+  'https://img.icons8.com/neon/100/password.png',               
+  'https://img.icons8.com/neon/100/fingerprint.png',          
+  'https://img.icons8.com/neon/100/password1.png',        
+  'https://img.icons8.com/neon/100/warning-shield.png', 
+  'https://img.icons8.com/neon/100/face-id.png'
 ];
 
 // Параметры анимации
