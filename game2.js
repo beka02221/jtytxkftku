@@ -93,7 +93,6 @@ let swapAnimation = null;
 //   r1, c1, r2, c2,
 //   startTime, duration, // в мс
 //   revert: bool,
-//   completed: bool,
 //   fromCellStartX, fromCellStartY,
 //   toCellStartX, toCellStartY
 // }
@@ -255,7 +254,7 @@ function update(dt) {
       if (cell.type < 0) continue; // пусто
       // Находим, куда может упасть
       let nr = r;
-      while (nr+1 < BOARD_ROWS && board[nr+1][c].type === -1) {
+      while (nr + 1 < BOARD_ROWS && board[nr + 1][c].type === -1) {
         nr++;
       }
       if (nr !== r) {
@@ -312,68 +311,77 @@ function update(dt) {
 
 /***********************************************************
  * handleSwapAnimation() — обработка анимации SWAP
+ *
+ * Исправление: для revert (неудачного хода) реализована двухфазная анимация:
+ * в первой половине (progress < 0.5) фигуры двигаются в позицию обмена,
+ * а во второй – возвращаются обратно.
  ***********************************************************/
 function handleSwapAnimation() {
   if (!swapAnimation) return;
 
   const now = performance.now();
-  const elapsed = now - swapAnimation.startTime;
-  let progress  = elapsed / swapAnimation.duration;
+  let elapsed = now - swapAnimation.startTime;
+  let progress = elapsed / swapAnimation.duration;
   if (progress > 1) progress = 1;
 
   const r1 = swapAnimation.r1, c1 = swapAnimation.c1;
   const r2 = swapAnimation.r2, c2 = swapAnimation.c2;
-
-  // Интерполяция позиции
   const cell1 = board[r1][c1];
   const cell2 = board[r2][c2];
 
-  // Начальные координаты
   const startX1 = swapAnimation.fromCellStartX;
   const startY1 = swapAnimation.fromCellStartY;
   const startX2 = swapAnimation.toCellStartX;
   const startY2 = swapAnimation.toCellStartY;
 
-  // Целевые координаты
   const endX1 = c2 * CELL_SIZE;
   const endY1 = r2 * CELL_SIZE;
   const endX2 = c1 * CELL_SIZE;
   const endY2 = r1 * CELL_SIZE;
 
-  // Если revert — цели меняются «вернуться» на место
   if (swapAnimation.revert) {
-    // меняем местами назначения, чтобы вернуть
-    // cell1 «идёт назад» в (r1,c1), cell2 идёт назад в (r2,c2)
+    // Двухфазная анимация: сначала движемся к обмену, потом обратно
+    if (progress < 0.5) {
+      let p = progress * 2; // нормализуем [0, 0.5] в [0,1]
+      cell1.x = lerp(startX1, endX1, p);
+      cell1.y = lerp(startY1, endY1, p);
+      cell2.x = lerp(startX2, endX2, p);
+      cell2.y = lerp(startY2, endY2, p);
+    } else {
+      let p = (progress - 0.5) * 2; // нормализуем [0.5,1] в [0,1]
+      cell1.x = lerp(endX1, startX1, p);
+      cell1.y = lerp(endY1, startY1, p);
+      cell2.x = lerp(endX2, startX2, p);
+      cell2.y = lerp(endY2, startY2, p);
+    }
   } else {
-    // «финальный» swap
-  }
-
-  // Если revert = false, cell1 анимируем к endX1/Y1, cell2 к endX2/Y2
-  // Если revert = true, наоборот: cell1 -> startX1/Y1, cell2 -> startX2/Y2
-  if (swapAnimation.revert) {
-    // При "revert" целевые координаты для cell1 — его исходные (startX1/startY1),
-    // а для cell2 — startX2/startY2
-    cell1.x = lerp(startX1, startX1, progress); 
-    cell1.y = lerp(startY1, startY1, progress);
-    cell2.x = lerp(startX2, startX2, progress);
-    cell2.y = lerp(startY2, startY2, progress);
-  } else {
-    // Нормальный swap
+    // Обычный обмен: двигаемся от исходных позиций к позициям обмена
     cell1.x = lerp(startX1, endX1, progress);
     cell1.y = lerp(startY1, endY1, progress);
     cell2.x = lerp(startX2, endX2, progress);
     cell2.y = lerp(startY2, endY2, progress);
   }
 
-  // Когда анимация закончена
+  // По окончании анимации выставляем точные координаты
   if (progress >= 1) {
-    if (!swapAnimation.revert) {
-      // SWAP в массиве (type)
+    if (swapAnimation.revert) {
+      // Если revert, возвращаем фигуры в исходное положение
+      cell1.x = startX1;
+      cell1.y = startY1;
+      cell2.x = startX2;
+      cell2.y = startY2;
+    } else {
+      // Если обмен успешен, ставим фигуры точно в целевые позиции
+      cell1.x = endX1;
+      cell1.y = endY1;
+      cell2.x = endX2;
+      cell2.y = endY2;
+      // Меняем типы ячеек (обмен в массиве)
       const tempType = cell1.type;
       cell1.type = cell2.type;
       cell2.type = tempType;
     }
-    swapAnimation = null; 
+    swapAnimation = null;
   }
 }
 
@@ -391,14 +399,14 @@ function draw() {
   match3Ctx.strokeStyle = '#00FF00';
   for (let r = 0; r <= BOARD_ROWS; r++) {
     match3Ctx.beginPath();
-    match3Ctx.moveTo(0, r*CELL_SIZE);
-    match3Ctx.lineTo(BOARD_COLS*CELL_SIZE, r*CELL_SIZE);
+    match3Ctx.moveTo(0, r * CELL_SIZE);
+    match3Ctx.lineTo(BOARD_COLS * CELL_SIZE, r * CELL_SIZE);
     match3Ctx.stroke();
   }
   for (let c = 0; c <= BOARD_COLS; c++) {
     match3Ctx.beginPath();
-    match3Ctx.moveTo(c*CELL_SIZE, 0);
-    match3Ctx.lineTo(c*CELL_SIZE, BOARD_ROWS*CELL_SIZE);
+    match3Ctx.moveTo(c * CELL_SIZE, 0);
+    match3Ctx.lineTo(c * CELL_SIZE, BOARD_ROWS * CELL_SIZE);
     match3Ctx.stroke();
   }
 
@@ -411,7 +419,7 @@ function draw() {
       // Если выбрана (подсветка красным)
       if (match3Selected && match3Selected.row === r && match3Selected.col === c) {
         match3Ctx.fillStyle = 'rgba(255,0,0,0.3)';
-        match3Ctx.fillRect(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        match3Ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
 
       const img = iconImages[cell.type];
@@ -428,8 +436,8 @@ function draw() {
         // match3Ctx.globalAlpha = 1 - fraction;
       }
       const drawSize = CELL_SIZE * scale;
-      const dx = cell.x + (CELL_SIZE - drawSize)/2;
-      const dy = cell.y + (CELL_SIZE - drawSize)/2;
+      const dx = cell.x + (CELL_SIZE - drawSize) / 2;
+      const dy = cell.y + (CELL_SIZE - drawSize) / 2;
 
       match3Ctx.drawImage(img, dx, dy, drawSize, drawSize);
       // match3Ctx.globalAlpha = 1.0;
@@ -494,10 +502,10 @@ function findMatches() {
     for (let c = 0; c < BOARD_COLS - 2; c++) {
       const t = board[r][c].type;
       if (t < 0) continue;
-      if (t === board[r][c+1].type && t === board[r][c+2].type) {
+      if (t === board[r][c + 1].type && t === board[r][c + 2].type) {
         matched.add(`${r}-${c}`);
-        matched.add(`${r}-${c+1}`);
-        matched.add(`${r}-${c+2}`);
+        matched.add(`${r}-${c + 1}`);
+        matched.add(`${r}-${c + 2}`);
       }
     }
   }
@@ -507,10 +515,10 @@ function findMatches() {
     for (let r = 0; r < BOARD_ROWS - 2; r++) {
       const t = board[r][c].type;
       if (t < 0) continue;
-      if (t === board[r+1][c].type && t === board[r+2][c].type) {
+      if (t === board[r + 1][c].type && t === board[r + 2][c].type) {
         matched.add(`${r}-${c}`);
-        matched.add(`${r+1}-${c}`);
-        matched.add(`${r+2}-${c}`);
+        matched.add(`${r + 1}-${c}`);
+        matched.add(`${r + 2}-${c}`);
       }
     }
   }
@@ -548,7 +556,7 @@ function onMouseDown(evt) {
     col: Math.floor(x / CELL_SIZE)
   };
   // Выбираем ячейку
-  match3Selected = {row: mouseDownInfo.row, col: mouseDownInfo.col};
+  match3Selected = { row: mouseDownInfo.row, col: mouseDownInfo.col };
 
   // Подключим mousemove/up
   document.addEventListener('mousemove', onMouseMove);
@@ -616,10 +624,10 @@ function onTouchStart(evt) {
     row: Math.floor(y / CELL_SIZE),
     col: Math.floor(x / CELL_SIZE)
   };
-  match3Selected = {row: mouseDownInfo.row, col: mouseDownInfo.col};
+  match3Selected = { row: mouseDownInfo.row, col: mouseDownInfo.col };
 
   // Добавляем обработчики для движения
-  document.addEventListener('touchmove', onTouchMove, {passive: false});
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
   document.addEventListener('touchend', onTouchEnd);
 }
 
@@ -637,7 +645,7 @@ function onTouchMove(evt) {
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
 
-  if (absDx > CELL_SIZE*0.4 || absDy > CELL_SIZE*0.4) {
+  if (absDx > CELL_SIZE * 0.4 || absDy > CELL_SIZE * 0.4) {
     let targetRow = mouseDownInfo.row;
     let targetCol = mouseDownInfo.col;
     if (absDx > absDy) {
@@ -700,7 +708,7 @@ function doSwap(r1, c1, r2, c2) {
  * startSwapAnimation(...)
  * Заполняет swapAnimation данными, чтобы update() анимировал
  ***********************************************************/
-function startSwapAnimation(r1,c1, r2,c2, revert) {
+function startSwapAnimation(r1, c1, r2, c2, revert) {
   const cell1 = board[r1][c1];
   const cell2 = board[r2][c2];
 
@@ -711,8 +719,8 @@ function startSwapAnimation(r1,c1, r2,c2, revert) {
     revert,
     fromCellStartX: cell1.x,
     fromCellStartY: cell1.y,
-    toCellStartX:   cell2.x,
-    toCellStartY:   cell2.y
+    toCellStartX: cell2.x,
+    toCellStartY: cell2.y
   };
 }
 
@@ -724,10 +732,10 @@ function endMatch3Game() {
     clearInterval(match3TimerId);
     match3TimerId = null;
   }
-  // Добавляем match3Score в локальные очки
+  // Добавляем match3Score в локальные очки (предполагается, что localUserData определён)
   localUserData.points += match3Score;
 
-  // Показываем итоговое окно
+  // Показываем итоговое окно (функция showEndGameModal должна быть определена в вашем проекте)
   showEndGameModal('Время вышло!', `Вы заработали ${match3Score} очков!`);
 }
 
