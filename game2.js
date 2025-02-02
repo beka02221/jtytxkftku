@@ -1,97 +1,117 @@
 /***********************************************************
- * game2.js — «3 в ряд» (match-3) с неоновыми цветными иконками
- * и простыми анимациями (взрывы, плавное падение).
+ * game2.js — «3 в ряд» (match-3) в неоново-хакерском стиле
+ *
+ * 1. Общая механика (ПК/мобильные устройства):
+ *    --------------------------------------------------------
+ *    - ПК: Управление мышью. Игрок кликает на элемент (иконку),
+ *      затем перетаскивает курсор к соседней ячейке (вверх/вниз/
+ *      влево/вправо) и отпускает, совершая обмен.
+ *
+ *    - Мобильные устройства: Сенсорное управление (свайпы).
+ *      Игрок тапает по элементу, удерживает палец и перемещает
+ *      его к соседней ячейке. Если та находится рядом, выполняется
+ *      SWAP. При этом ячейка при выборе подсвечивается красным
+ *      (эффект «неоновой» заливки).
+ *
+ * 2. Основная цель:
+ *    --------------------------------------------------------
+ *    - Составлять ряды из трёх и более одинаковых элементов
+ *      (горизонтально или вертикально). Они взрываются и дают
+ *      очки (10 очков за каждую удалённую иконку).
+ *    - После взрыва элементы сверху плавно падают вниз,
+ *      а сверху появляются новые иконки. Возможны каскадные
+ *      совпадения (цепные реакции).
+ *
+ * 3. Механика SWAP:
+ *    --------------------------------------------------------
+ *    - Если после обмена нет совпадений, происходит «короткая»
+ *      анимация возврата (элементы возвращаются на исходные
+ *      позиции).
+ *    - Если обмен приводит к совпадению, взрывы + падение,
+ *      начисление очков.
+ *
+ * 4. Анимации:
+ *    --------------------------------------------------------
+ *    - Плавное появление (падение) элементов при старте и
+ *      при заполнении после взрыва.
+ *    - «Взрыв» (увеличение + мерцание) при удалении.
+ *    - Плавное перемещение при SWAP и анимация возврата,
+ *      если SWAP неудачный.
+ *
  ***********************************************************/
 
-// Настройки игрового поля
 const BOARD_ROWS = 8;
 const BOARD_COLS = 8;
-// Количество типов фигурок
+const CELL_SIZE  = 50;  // При canvas 400x400 получается 8*50 = 400
 const ICON_TYPES = 5;
-// Размер ячейки (px). Если canvas 400×400, то 50×50
-const CELL_SIZE = 50;    
 
-// Ссылки на исходные иконки (чёрно-белые)
+// Ссылки на неоновые иконки
 const ICON_URLS = [
-  'https://img.icons8.com/neon/100/password.png',               
-  'https://img.icons8.com/neon/100/fingerprint.png',          
-  'https://img.icons8.com/neon/100/password1.png',        
-  'https://img.icons8.com/neon/100/warning-shield.png', 
+  'https://img.icons8.com/neon/100/password.png',
+  'https://img.icons8.com/neon/100/fingerprint.png',
+  'https://img.icons8.com/neon/100/password1.png',
+  'https://img.icons8.com/neon/100/warning-shield.png',
   'https://img.icons8.com/neon/100/face-id.png'
 ];
 
-// Параметры анимации
-const EXPLOSION_DURATION = 300; // ms на «взрыв»
-const FALL_SPEED = 300;         // пикс/с при падении
-const GAME_TIME = 60;           // сек на игру
+// Длительности и скорости анимаций
+const EXPLOSION_DURATION = 300;  // мс
+const FALL_SPEED         = 300;  // px/сек (анимация падения)
+const SWAP_DURATION      = 200;  // мс (анимация SWAP)
+const GAME_TIME          = 60;   // секунд на игру
 
 let match3Canvas, match3Ctx;
 let iconImages = [];
 
-// Основные флаги и переменные
+// Глобальные флаги
 let isGame2Running = false;
-let match3TimerId = null;
-let timeSpan = null;      // Отображение таймера в шапке
-let timeLeft = GAME_TIME;
+let match3TimerId  = null;
+
+// Таймер в шапке
+let timeSpan  = null;  
+let timeLeft  = GAME_TIME;
 let match3Score = 0;
 
-//
-// Структура board[r][c]:
+// Структура одной ячейки board[r][c]:
 // {
-//   type: 0..(ICON_TYPES-1) или -1 (пустая),
-//   x, y: координаты для анимации,
-//   explosionTime: если не null, значит «взорвана» иконка
+//   type: <0..ICON_TYPES-1> или -1 (пустая),
+//   x, y: текущие пиксельные координаты (для анимации),
+//   explosionTime: когда начался взрыв (null, если нет),
 // }
+
+// Основной массив
 let board = [];
+
+// Текущая выбранная ячейка для клика/тапа
 let match3Selected = null; // {row, col}
 
-// Для анимации (requestAnimationFrame)
-let lastTimestamp = 0;
+// Информация об анимации SWAP (при перетаскивании)
+// Если swapAnimation != null, значит идёт процесс обмена двух ячеек.
+let swapAnimation = null;
+// Структура swapAnimation:
+// {
+//   r1, c1, r2, c2,
+//   startTime, duration, // в мс
+//   revert: bool,
+//   completed: bool,
+//   fromCellStartX, fromCellStartY,
+//   toCellStartX, toCellStartY
+// }
 
-/**************************************************************
- * Функция получения неонового фильтра для каждого типа иконки
- * Можно дорабатывать цвета/эффекты по желанию
- **************************************************************/
-function getNeonFilterForType(type) {
-  // База: invert(1) превращает белое в чёрное (и наоборот),
-  //       brightness и saturate усиливают свечение,
-  //       hue-rotate смещает оттенок,
-  //       drop-shadow добавляет «неоновую» обводку (свечения).
-  switch (type) {
-    case 0: 
-      // Зелёный (пример)
-      return 'invert(1) brightness(2) saturate(2) hue-rotate(90deg) drop-shadow(0 0 8px #0f0)';
-    case 1: 
-      // Жёлтый
-      return 'invert(1) brightness(2) saturate(2) hue-rotate(50deg) drop-shadow(0 0 8px #ff0)';
-    case 2: 
-      // Голубой
-      return 'invert(1) brightness(2) saturate(2) hue-rotate(180deg) drop-shadow(0 0 8px #0ff)';
-    case 3: 
-      // Розовый
-      return 'invert(1) brightness(2) saturate(2) hue-rotate(310deg) drop-shadow(0 0 8px #f0f)';
-    case 4: 
-      // Красный
-      return 'invert(1) brightness(2) saturate(2) hue-rotate(0deg) drop-shadow(0 0 8px #f00)';
-    default:
-      return 'none';
-  }
-}
-
-/**************************************************************
- * ИНИЦИАЛИЗАЦИЯ ИГРЫ
- **************************************************************/
+/***********************************************************
+ * initGame2() — запуск игры
+ ***********************************************************/
 function initGame2() {
   if (isGame2Running) return;
   isGame2Running = true;
 
   match3Score = 0;
-  timeLeft = GAME_TIME;
+  timeLeft    = GAME_TIME;
 
   match3Canvas = document.getElementById('match3Canvas');
-  match3Ctx = match3Canvas.getContext('2d');
+  match3Ctx    = match3Canvas.getContext('2d');
 
-  // Загрузка иконок (один раз)
+  // Загрузка иконок (только один раз)
   if (iconImages.length === 0) {
     ICON_URLS.forEach(url => {
       const img = new Image();
@@ -100,27 +120,27 @@ function initGame2() {
     });
   }
 
-  // Создаём метку для времени в шапке
+  // Добавляем метку времени в шапку
   timeSpan = document.createElement('span');
-  timeSpan.style.color = '#00FF00';
-  timeSpan.style.marginLeft = '10px';
-  timeSpan.textContent = `Время: ${timeLeft}s`;
+  timeSpan.style.color       = '#00FF00';
+  timeSpan.style.marginLeft  = '10px';
+  timeSpan.textContent       = `Время: ${timeLeft}s`;
   const balancesDiv = document.querySelector('.balances');
   if (balancesDiv) {
     balancesDiv.appendChild(timeSpan);
   }
 
-  // Генерируем поле
+  // Генерация поля
   generateBoard();
 
-  // Убираем возможные стартовые совпадения (без анимации)
+  // Удаляем стартовые совпадения (чтобы не было уже готовых линий)
   removeAllMatchesCascade();
 
-  // Слушатели событий
-  match3Canvas.addEventListener('mousedown', onCanvasClick);
-  match3Canvas.addEventListener('touchstart', onTouchStart);
+  // События мыши / касаний
+  match3Canvas.addEventListener('mousedown', onMouseDown);
+  match3Canvas.addEventListener('touchstart', onTouchStart, {passive: false});
 
-  // Таймер
+  // Таймер на секунды
   match3TimerId = setInterval(() => {
     timeLeft--;
     if (timeLeft < 0) {
@@ -132,14 +152,14 @@ function initGame2() {
     }
   }, 1000);
 
-  // Запуск анимационного цикла
+  // Запуск анимации
   lastTimestamp = performance.now();
   requestAnimationFrame(animationLoop);
 }
 
-/**************************************************************
- * СБРОС/ВЫХОД ИЗ ИГРЫ
- **************************************************************/
+/***********************************************************
+ * resetGame2() — сброс игры (при выходе)
+ ***********************************************************/
 function resetGame2() {
   if (match3TimerId) {
     clearInterval(match3TimerId);
@@ -147,53 +167,36 @@ function resetGame2() {
   }
   isGame2Running = false;
 
-  // Удаляем таймер из шапки
+  // Удаляем timeSpan
   if (timeSpan && timeSpan.parentNode) {
     timeSpan.parentNode.removeChild(timeSpan);
   }
   timeSpan = null;
 
-  // Удаляем события
+  // Снимаем события
   if (match3Canvas) {
-    match3Canvas.removeEventListener('mousedown', onCanvasClick);
+    match3Canvas.removeEventListener('mousedown', onMouseDown);
     match3Canvas.removeEventListener('touchstart', onTouchStart);
   }
 
-  // Очистка canvas
+  // Очищаем canvas и массив
   if (match3Ctx) {
     match3Ctx.clearRect(0, 0, match3Canvas.width, match3Canvas.height);
   }
-
   board = [];
   match3Selected = null;
+  swapAnimation   = null;
 }
 
-/**************************************************************
- * Генерация начального поля
- **************************************************************/
-function generateBoard() {
-  board = [];
-  for (let r = 0; r < BOARD_ROWS; r++) {
-    board[r] = [];
-    for (let c = 0; c < BOARD_COLS; c++) {
-      const type = Math.floor(Math.random() * ICON_TYPES);
-      board[r][c] = {
-        type,
-        x: c * CELL_SIZE,
-        y: r * CELL_SIZE,
-        explosionTime: null
-      };
-    }
-  }
-}
+// ------------------------------------------------------------
+// Доп. переменные для анимационного цикла
+let lastTimestamp = 0;
 
-/**************************************************************
- * АНИМАЦИОННЫЙ ЦИКЛ
- **************************************************************/
+// Главный цикл анимации
 function animationLoop(timestamp) {
-  if (!isGame2Running) return;
+  if (!isGame2Running) return; // если игра остановлена
 
-  let dt = (timestamp - lastTimestamp) / 1000; // время в секундах
+  const dt = (timestamp - lastTimestamp) / 1000; // в секундах
   lastTimestamp = timestamp;
 
   update(dt);
@@ -202,42 +205,66 @@ function animationLoop(timestamp) {
   requestAnimationFrame(animationLoop);
 }
 
-/**************************************************************
- * ЛОГИКА ОБНОВЛЕНИЯ
- **************************************************************/
+/***********************************************************
+ * generateBoard() — генерируем поле с начальными позициями
+ ***********************************************************/
+function generateBoard() {
+  board = [];
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    board[r] = [];
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const t = Math.floor(Math.random() * ICON_TYPES);
+      board[r][c] = {
+        type: t,
+        x: c * CELL_SIZE,
+        y: -Math.random() * 300, // «хаотично» падают сверху при старте
+        explosionTime: null
+      };
+    }
+  }
+}
+
+/***********************************************************
+ * update(dt) — логика игры
+ ***********************************************************/
 function update(dt) {
-  // 1) «Взрывы» (проверяем explosionTime)
+  // Анимации SWAP (если swapAnimation != null)
+  if (swapAnimation) {
+    handleSwapAnimation();
+  }
+
+  // 1) «Взрывы»
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
       const cell = board[r][c];
       if (cell.explosionTime !== null) {
         const elapsed = performance.now() - cell.explosionTime;
         if (elapsed > EXPLOSION_DURATION) {
-          cell.type = -1; // убираем фигурку
+          // Убираем элемент
+          cell.type = -1;
           cell.explosionTime = null;
         }
       }
     }
   }
 
-  // 2) Плавное падение вниз
-  for (let r = BOARD_ROWS - 2; r >= 0; r--) {
-    for (let c = 0; c < BOARD_COLS; c++) {
+  // 2) Плавное «падение» (gravity)
+  for (let c = 0; c < BOARD_COLS; c++) {
+    for (let r = BOARD_ROWS - 1; r >= 0; r--) {
       const cell = board[r][c];
-      if (cell.type < 0) continue; // пустая ячейка не падает
-
-      // Ищем, куда можно упасть
+      if (cell.type < 0) continue; // пусто
+      // Находим, куда может упасть
       let nr = r;
-      while (nr + 1 < BOARD_ROWS && board[nr+1][c].type === -1) {
+      while (nr+1 < BOARD_ROWS && board[nr+1][c].type === -1) {
         nr++;
       }
       if (nr !== r) {
-        // «Переносим» ячейку вниз в массиве
-        const downCell = board[nr][c];
-        downCell.type = cell.type;
-        downCell.x = cell.x;
-        downCell.y = cell.y;
-        downCell.explosionTime = cell.explosionTime;
+        // «Перемещаем» вниз в массиве
+        const below = board[nr][c];
+        below.type = cell.type;
+        below.x = cell.x;
+        below.y = cell.y;
+        below.explosionTime = cell.explosionTime;
 
         cell.type = -1;
         cell.explosionTime = null;
@@ -245,57 +272,119 @@ function update(dt) {
     }
   }
 
-  // Медленно перемещаем фактические координаты (cell.y) к нужному месту
+  // Обновляем координаты (плавное «долетание»)
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
       const cell = board[r][c];
       const targetY = r * CELL_SIZE;
       if (cell.y < targetY) {
         cell.y += FALL_SPEED * dt;
-        if (cell.y > targetY) {
-          cell.y = targetY;
-        }
+        if (cell.y > targetY) cell.y = targetY;
       }
     }
   }
 
-  // 3) Заполняем пустые клетки (type=-1) новыми фигурками
+  // 3) Заполнение новых (если пустые type=-1)
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
       if (board[r][c].type < 0) {
         board[r][c].type = Math.floor(Math.random() * ICON_TYPES);
+        board[r][c].y    = -CELL_SIZE * 2; // появятся сверху
         board[r][c].explosionTime = null;
-        // Пусть появляются сверху (для анимации падения)
-        board[r][c].y = -CELL_SIZE;
       }
     }
   }
 
-  // 4) Если поле «устаканилось», проверяем новые совпадения
-  if (isAllSettled()) {
-    let matched = findMatches();
+  // 4) Если все устаканились (не падают) — ищем совпадения
+  if (isAllSettled() && !swapAnimation) {
+    const matched = findMatches();
     if (matched.size > 0) {
-      // Запускаем «взрывы»
+      // Запускаем взрыв для совпавших
       matched.forEach(idx => {
         const [rr, cc] = idx.split('-').map(Number);
         board[rr][cc].explosionTime = performance.now();
       });
       // Начисляем очки
       match3Score += matched.size * 10;
-      // Score не отображаем на Canvas, 
-      // в конце прибавим к localUserData.points
     }
   }
 }
 
-/**************************************************************
- * РИСОВАНИЕ
- **************************************************************/
+/***********************************************************
+ * handleSwapAnimation() — обработка анимации SWAP
+ ***********************************************************/
+function handleSwapAnimation() {
+  if (!swapAnimation) return;
+
+  const now = performance.now();
+  const elapsed = now - swapAnimation.startTime;
+  let progress  = elapsed / swapAnimation.duration;
+  if (progress > 1) progress = 1;
+
+  const r1 = swapAnimation.r1, c1 = swapAnimation.c1;
+  const r2 = swapAnimation.r2, c2 = swapAnimation.c2;
+
+  // Интерполяция позиции
+  const cell1 = board[r1][c1];
+  const cell2 = board[r2][c2];
+
+  // Начальные координаты
+  const startX1 = swapAnimation.fromCellStartX;
+  const startY1 = swapAnimation.fromCellStartY;
+  const startX2 = swapAnimation.toCellStartX;
+  const startY2 = swapAnimation.toCellStartY;
+
+  // Целевые координаты
+  const endX1 = c2 * CELL_SIZE;
+  const endY1 = r2 * CELL_SIZE;
+  const endX2 = c1 * CELL_SIZE;
+  const endY2 = r1 * CELL_SIZE;
+
+  // Если revert — цели меняются «вернуться» на место
+  if (swapAnimation.revert) {
+    // меняем местами назначения, чтобы вернуть
+    // cell1 «идёт назад» в (r1,c1), cell2 идёт назад в (r2,c2)
+  } else {
+    // «финальный» swap
+  }
+
+  // Если revert = false, cell1 анимируем к endX1/Y1, cell2 к endX2/Y2
+  // Если revert = true, наоборот: cell1 -> startX1/Y1, cell2 -> startX2/Y2
+  if (swapAnimation.revert) {
+    // При "revert" целевые координаты для cell1 — его исходные (startX1/startY1),
+    // а для cell2 — startX2/startY2
+    cell1.x = lerp(startX1, startX1, progress); 
+    cell1.y = lerp(startY1, startY1, progress);
+    cell2.x = lerp(startX2, startX2, progress);
+    cell2.y = lerp(startY2, startY2, progress);
+  } else {
+    // Нормальный swap
+    cell1.x = lerp(startX1, endX1, progress);
+    cell1.y = lerp(startY1, endY1, progress);
+    cell2.x = lerp(startX2, endX2, progress);
+    cell2.y = lerp(startY2, endY2, progress);
+  }
+
+  // Когда анимация закончена
+  if (progress >= 1) {
+    if (!swapAnimation.revert) {
+      // SWAP в массиве (type)
+      const tempType = cell1.type;
+      cell1.type = cell2.type;
+      cell2.type = tempType;
+    }
+    swapAnimation = null; 
+  }
+}
+
+/***********************************************************
+ * draw() — отрисовка
+ ***********************************************************/
 function draw() {
   match3Ctx.clearRect(0, 0, match3Canvas.width, match3Canvas.height);
 
-  // Чёрный фон
-  match3Ctx.fillStyle = '#000';
+  // Фон
+  match3Ctx.fillStyle = '#000000';
   match3Ctx.fillRect(0, 0, match3Canvas.width, match3Canvas.height);
 
   // Ярко-зелёная сетка
@@ -313,120 +402,61 @@ function draw() {
     match3Ctx.stroke();
   }
 
-  // Рисуем иконки
+  // Рисуем ячейки
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
       const cell = board[r][c];
-      if (cell.type < 0) continue; // пустая
+      if (cell.type < 0) continue; // пусто
 
-      // Подсветка красной ячейкой, если выбрана
+      // Если выбрана (подсветка красным)
       if (match3Selected && match3Selected.row === r && match3Selected.col === c) {
         match3Ctx.fillStyle = 'rgba(255,0,0,0.3)';
         match3Ctx.fillRect(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
 
-      // Готовим фильтр (неоновый цвет)
-      const prevFilter = match3Ctx.filter; 
-      match3Ctx.filter = getNeonFilterForType(cell.type);
+      const img = iconImages[cell.type];
+      if (!img) continue;
 
-      // Анимация «взрыва» — масштаб
+      // «Взрыв» (увеличение + вспышка)
       let scale = 1.0;
       if (cell.explosionTime !== null) {
         const elapsed = performance.now() - cell.explosionTime;
         let fraction = elapsed / EXPLOSION_DURATION; 
         if (fraction > 1) fraction = 1;
-        scale = 1 + 0.5 * fraction; // от 1.0 до 1.5
+        scale = 1 + 0.5 * fraction; 
+        // Можно добавить мерцание прозрачности:
+        // match3Ctx.globalAlpha = 1 - fraction;
       }
+      const drawSize = CELL_SIZE * scale;
+      const dx = cell.x + (CELL_SIZE - drawSize)/2;
+      const dy = cell.y + (CELL_SIZE - drawSize)/2;
 
-      // Рисуем иконку
-      const img = iconImages[cell.type];
-      if (img) {
-        const drawSize = CELL_SIZE * scale;
-        const dx = cell.x + (CELL_SIZE - drawSize) / 2;
-        const dy = cell.y + (CELL_SIZE - drawSize) / 2;
-        match3Ctx.drawImage(img, dx, dy, drawSize, drawSize);
-      }
-
-      // Возвращаем старый фильтр
-      match3Ctx.filter = prevFilter;
+      match3Ctx.drawImage(img, dx, dy, drawSize, drawSize);
+      // match3Ctx.globalAlpha = 1.0;
     }
   }
 }
 
-/**************************************************************
- * Проверка, что все ячейки на месте (не падают)
- **************************************************************/
-function isAllSettled() {
-  for (let r = 0; r < BOARD_ROWS; r++) {
-    for (let c = 0; c < BOARD_COLS; c++) {
-      const cell = board[r][c];
-      if (cell.y !== r * CELL_SIZE) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-/**************************************************************
- * Поиск совпадений (3+ в ряд)
- **************************************************************/
-function findMatches() {
-  const matched = new Set();
-
-  // Горизонтали
-  for (let r = 0; r < BOARD_ROWS; r++) {
-    for (let c = 0; c < BOARD_COLS - 2; c++) {
-      const t = board[r][c].type;
-      if (t < 0) continue;
-      if (t === board[r][c+1].type && t === board[r][c+2].type) {
-        matched.add(`${r}-${c}`);
-        matched.add(`${r}-${c+1}`);
-        matched.add(`${r}-${c+2}`);
-      }
-    }
-  }
-  // Вертикали
-  for (let c = 0; c < BOARD_COLS; c++) {
-    for (let r = 0; r < BOARD_ROWS - 2; r++) {
-      const t = board[r][c].type;
-      if (t < 0) continue;
-      if (t === board[r+1][c].type && t === board[r+2][c].type) {
-        matched.add(`${r}-${c}`);
-        matched.add(`${r+1}-${c}`);
-        matched.add(`${r+2}-${c}`);
-      }
-    }
-  }
-  return matched;
-}
-
-/**************************************************************
- * Удаление совпадений перед стартом (без анимации)
- **************************************************************/
+/***********************************************************
+ * Функции для мгновенного удаления совпадений при старте
+ ***********************************************************/
 function removeAllMatchesCascade() {
   let again = true;
   while (again) {
-    let matched = findMatches();
+    const matched = findMatches();
     if (matched.size === 0) {
       again = false;
     } else {
-      // Помечаем пустыми
       matched.forEach(idx => {
-        const [rr, cc] = idx.split('-').map(Number);
-        board[rr][cc].type = -1;
+        const [r, c] = idx.split('-').map(Number);
+        board[r][c].type = -1;
       });
-      // Мгновенное «падение»
       applyGravityInstant();
-      // Заполнение пустот
       fillEmptyInstant();
     }
   }
 }
 
-/**************************************************************
- * Мгновенное падение (без анимации) — для стартовой подготовки
- **************************************************************/
 function applyGravityInstant() {
   for (let c = 0; c < BOARD_COLS; c++) {
     for (let r = BOARD_ROWS - 1; r >= 0; r--) {
@@ -443,9 +473,6 @@ function applyGravityInstant() {
   }
 }
 
-/**************************************************************
- * Мгновенное заполнение пустот (без анимации) — старт
- **************************************************************/
 function fillEmptyInstant() {
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
@@ -456,80 +483,257 @@ function fillEmptyInstant() {
   }
 }
 
-/**************************************************************
- * Обработка кликов по canvas
- **************************************************************/
-function onCanvasClick(evt) {
+/***********************************************************
+ * Поиск совпадений (3+ в ряд)
+ ***********************************************************/
+function findMatches() {
+  const matched = new Set();
+
+  // Горизонтальные
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS - 2; c++) {
+      const t = board[r][c].type;
+      if (t < 0) continue;
+      if (t === board[r][c+1].type && t === board[r][c+2].type) {
+        matched.add(`${r}-${c}`);
+        matched.add(`${r}-${c+1}`);
+        matched.add(`${r}-${c+2}`);
+      }
+    }
+  }
+
+  // Вертикальные
+  for (let c = 0; c < BOARD_COLS; c++) {
+    for (let r = 0; r < BOARD_ROWS - 2; r++) {
+      const t = board[r][c].type;
+      if (t < 0) continue;
+      if (t === board[r+1][c].type && t === board[r+2][c].type) {
+        matched.add(`${r}-${c}`);
+        matched.add(`${r+1}-${c}`);
+        matched.add(`${r+2}-${c}`);
+      }
+    }
+  }
+  return matched;
+}
+
+/***********************************************************
+ * Проверка, что все упали и остановились
+ ***********************************************************/
+function isAllSettled() {
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const cell = board[r][c];
+      if (cell.y !== r * CELL_SIZE) return false;
+    }
+  }
+  return true;
+}
+
+/***********************************************************
+ * Обработка кликов/тач
+ * (упрощённая реализация "drag" + swap)
+ ***********************************************************/
+let mouseDownInfo = null; // {startX, startY, row, col}
+
+function onMouseDown(evt) {
+  if (!isGame2Running) return;
   const rect = match3Canvas.getBoundingClientRect();
   const x = evt.clientX - rect.left;
   const y = evt.clientY - rect.top;
-  handleClick(x, y);
+  mouseDownInfo = {
+    startX: x,
+    startY: y,
+    row: Math.floor(y / CELL_SIZE),
+    col: Math.floor(x / CELL_SIZE)
+  };
+  // Выбираем ячейку
+  match3Selected = {row: mouseDownInfo.row, col: mouseDownInfo.col};
+
+  // Подключим mousemove/up
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
+function onMouseMove(evt) {
+  if (!mouseDownInfo || swapAnimation) return;
+  const rect = match3Canvas.getBoundingClientRect();
+  const x = evt.clientX - rect.left;
+  const y = evt.clientY - rect.top;
+
+  // Проверяем, если переместились достаточно далеко к соседней ячейке
+  const dx = x - mouseDownInfo.startX;
+  const dy = y - mouseDownInfo.startY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  if (absDx > CELL_SIZE * 0.4 || absDy > CELL_SIZE * 0.4) {
+    // Определяем направление (вверх/вниз/влево/вправо)
+    let targetRow = mouseDownInfo.row;
+    let targetCol = mouseDownInfo.col;
+    if (absDx > absDy) {
+      if (dx > 0) targetCol++; else targetCol--;
+    } else {
+      if (dy > 0) targetRow++; else targetRow--;
+    }
+    // Проверяем, что рядом
+    const rowDiff = Math.abs(targetRow - mouseDownInfo.row);
+    const colDiff = Math.abs(targetCol - mouseDownInfo.col);
+    if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+      // Выполняем попытку SWAP
+      doSwap(mouseDownInfo.row, mouseDownInfo.col, targetRow, targetCol);
+    }
+    // Сбрасываем
+    mouseDownInfo = null;
+    match3Selected = null;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+}
+
+function onMouseUp() {
+  // Отпустили мышь, но не «дотащили» до соседней ячейки
+  mouseDownInfo = null;
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+  // Снимаем выделение
+  match3Selected = null;
 }
 
 function onTouchStart(evt) {
+  if (!isGame2Running) return;
+  evt.preventDefault();
+
   const rect = match3Canvas.getBoundingClientRect();
   const touch = evt.touches[0];
   const x = touch.clientX - rect.left;
   const y = touch.clientY - rect.top;
-  handleClick(x, y);
+
+  // Аналог mouseDown + упрощённый свайп
+  mouseDownInfo = {
+    startX: x,
+    startY: y,
+    row: Math.floor(y / CELL_SIZE),
+    col: Math.floor(x / CELL_SIZE)
+  };
+  match3Selected = {row: mouseDownInfo.row, col: mouseDownInfo.col};
+
+  // Добавляем обработчики для движения
+  document.addEventListener('touchmove', onTouchMove, {passive: false});
+  document.addEventListener('touchend', onTouchEnd);
 }
 
-function handleClick(x, y) {
-  if (!isGame2Running) return;
-  if (!isAllSettled()) return; // пока падают — не даём ходить
+function onTouchMove(evt) {
+  if (!mouseDownInfo || swapAnimation) return;
+  evt.preventDefault();
 
-  const col = Math.floor(x / CELL_SIZE);
-  const row = Math.floor(y / CELL_SIZE);
+  const rect = match3Canvas.getBoundingClientRect();
+  const touch = evt.touches[0];
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
 
-  if (!match3Selected) {
-    match3Selected = { row, col };
-  } else {
-    // Проверяем соседние клетки
-    const r1 = match3Selected.row, c1 = match3Selected.col;
-    if ((Math.abs(r1 - row) === 1 && c1 === col) ||
-        (Math.abs(c1 - col) === 1 && r1 === row)) {
-      swapAndCheck(r1, c1, row, col);
+  const dx = x - mouseDownInfo.startX;
+  const dy = y - mouseDownInfo.startY;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  if (absDx > CELL_SIZE*0.4 || absDy > CELL_SIZE*0.4) {
+    let targetRow = mouseDownInfo.row;
+    let targetCol = mouseDownInfo.col;
+    if (absDx > absDy) {
+      if (dx > 0) targetCol++; else targetCol--;
+    } else {
+      if (dy > 0) targetRow++; else targetRow--;
     }
+    // Проверяем соседство
+    const rowDiff = Math.abs(targetRow - mouseDownInfo.row);
+    const colDiff = Math.abs(targetCol - mouseDownInfo.col);
+    if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+      doSwap(mouseDownInfo.row, mouseDownInfo.col, targetRow, targetCol);
+    }
+
+    mouseDownInfo = null;
     match3Selected = null;
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onTouchEnd);
   }
 }
 
-/**************************************************************
- * SWAP + проверка на совпадения
- **************************************************************/
-function swapAndCheck(r1, c1, r2, c2) {
-  // Swap
-  let temp = board[r1][c1].type;
-  board[r1][c1].type = board[r2][c2].type;
-  board[r2][c2].type = temp;
+function onTouchEnd() {
+  mouseDownInfo = null;
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+  match3Selected = null;
+}
 
-  // Проверяем
-  let matched = findMatches();
+/***********************************************************
+ * doSwap(r1,c1, r2,c2) — пытаемся совершить ход
+ * Если нет совпадения — анимируем «возврат».
+ ***********************************************************/
+function doSwap(r1, c1, r2, c2) {
+  if (swapAnimation) return; // уже идёт анимация
+
+  // Пробуем временно swap-нуть в board, проверяем совпадения
+  const type1 = board[r1][c1].type;
+  const type2 = board[r2][c2].type;
+  board[r1][c1].type = type2;
+  board[r2][c2].type = type1;
+
+  const matched = findMatches();
+
+  let revert = false;
   if (matched.size === 0) {
-    // Если нет совпадений, откатываем
-    temp = board[r1][c1].type;
-    board[r1][c1].type = board[r2][c2].type;
-    board[r2][c2].type = temp;
+    // Нет совпадений — нужно откатить, но красиво
+    revert = true;
   }
+
+  // Сразу возвращаем (если revert=true, визуально анимируем «туда-обратно»,
+  // если revert=false, оставляем как есть, анимируя в новую позицию).
+  board[r1][c1].type = type1;
+  board[r2][c2].type = type2;
+
+  // Запускаем SWAP-анимацию
+  startSwapAnimation(r1, c1, r2, c2, revert);
 }
 
-/**************************************************************
- * Завершение игры
- **************************************************************/
+/***********************************************************
+ * startSwapAnimation(...)
+ * Заполняет swapAnimation данными, чтобы update() анимировал
+ ***********************************************************/
+function startSwapAnimation(r1,c1, r2,c2, revert) {
+  const cell1 = board[r1][c1];
+  const cell2 = board[r2][c2];
+
+  swapAnimation = {
+    r1, c1, r2, c2,
+    startTime: performance.now(),
+    duration: SWAP_DURATION,
+    revert,
+    fromCellStartX: cell1.x,
+    fromCellStartY: cell1.y,
+    toCellStartX:   cell2.x,
+    toCellStartY:   cell2.y
+  };
+}
+
+/***********************************************************
+ * endMatch3Game() — конец игры
+ ***********************************************************/
 function endMatch3Game() {
   if (match3TimerId) {
     clearInterval(match3TimerId);
     match3TimerId = null;
   }
-  // Добавляем очки к локальным
+  // Добавляем match3Score в локальные очки
   localUserData.points += match3Score;
 
-  // Показываем итог (из общего скрипта)
+  // Показываем итоговое окно
   showEndGameModal('Время вышло!', `Вы заработали ${match3Score} очков!`);
 }
 
-/**************************************************************
- * Экспорт (две функции), чтобы вызывались из основного кода:
- *   initGame2()  - запуск игры
- *   resetGame2() - сброс при выходе
- **************************************************************/
+/***********************************************************
+ * Вспомогательные функции
+ ***********************************************************/
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
