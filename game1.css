@@ -1,1 +1,7 @@
 
+/* game1.css — стили, специфичные для игры "Dino Runner" */
+/* Оформление canvas для игры 1 */
+#gameCanvas {
+  background-color: #222;
+  border: 1px solid #00FF00;
+}
