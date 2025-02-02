@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <!-- Запрещаем масштабирование, чтобы не было горизонтального скролла -->
+  <!-- Запрет масштабирования, чтобы не было горизонтального скролла -->
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Mobile Games Site</title>
@@ -19,7 +19,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <style>
-    /* Обнуление и базовые стили */
+    /* Базовые стили */
     * {
       margin: 0;
       padding: 0;
@@ -34,19 +34,19 @@
       color: #00FF00;
       overflow-x: hidden; /* Запрет горизонтального скролла */
     }
-
     body {
       display: flex;
       flex-direction: column;
     }
 
-    /* Верхняя панель с аватаром, юзернеймом и балансом */
+    /* Верхняя панель: аватар, юзернейм, баланс */
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 10px;
       border-bottom: 2px solid #00FF00;
+      flex-shrink: 0;
     }
     .user-info {
       display: flex;
@@ -85,33 +85,23 @@
       align-items: center;
       border-top: 2px solid #00FF00;
       padding: 10px 0;
-      background-color: #111; /* Добавил фон для лучшей видимости */
+      flex-shrink: 0;
     }
     nav button {
       background: none;
-      border: 2px solid #00FF00;
-      color: #00FF00;
-      font-size: 14px;
+      border: none;
       cursor: pointer;
-      padding: 10px; /* Увеличенное значение */
-      border-radius: 10px; /* Более закруглённые углы */
       transition: 0.3s;
-      width: 60px; /* Увеличенная ширина */
-      height: 60px; /* Увеличенная высота */
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     nav button img {
-      width: 30px; /* Размер иконки */
-      height: 30px;
+      width: 35px;
+      height: 35px;
     }
-    nav button:hover {
-      background-color: #00FF00;
-      color: #000;
+    nav button:hover img {
+      filter: brightness(60%);
     }
 
-    /* Стили для скрытых/открытых секций */
+    /* Скрытые/открытые секции */
     .section {
       display: none;
     }
@@ -243,7 +233,7 @@
       border-radius: 5px;
     }
 
-    /* Глобальное Модальное окно для сообщений (вместо alert) */
+    /* Глобальное Модальное окно (вместо alert) */
     .modal-backdrop {
       position: fixed;
       top: 0; left: 0;
@@ -290,72 +280,71 @@
       text-align: left;
     }
 
-    /* Модальное окно для игр */
+    /* Модальное окно игры (заполняет основную часть экрана) */
     .game-modal-backdrop {
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.9);
+      background: #000;
       display: none;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
       z-index: 10000;
     }
     .game-modal-backdrop.active {
       display: flex;
     }
-    .game-modal {
-      background-color: #111;
-      border: 2px solid #00FF00;
-      border-radius: 5px;
-      width: 100%; /* Занимает всю ширину экрана */
-      height: 100%; /* Занимает всю высоту экрана */
+    /* Внутри используем flex-col, чтобы наверху оставался header сайта,
+       а внизу - холст игры (или время). */
+    .game-modal-content {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      position: relative;
-      padding-top: 60px; /* Отступ для верхней панели */
+      margin-top: 60px;  /* Отступ под header (40px высота + небольшой запас) */
     }
-    .game-modal-header {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-bottom: 2px solid #00FF00;
-      background-color: #111;
-      z-index: 10001;
+    /* Прячем navigation, чтобы нельзя было уходить из игры */
+    .hidden {
+      display: none !important;
     }
-    .game-modal-header h2 {
-      font-size: 16px;
-    }
-    .game-close-button {
-      background-color: transparent;
-      color: #00FF00;
-      border: 1px solid #00FF00;
-      padding: 5px 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      font-size: 12px;
-      display: none; /* Скрываем кнопку закрытия по умолчанию */
-    }
-    .game-canvas-container {
-      flex: 1;
+    /* Canvas игры */
+    .game-canvas {
+      flex: 1; /* Заполнить всё оставшееся место */
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    #gameCanvas, #match3Canvas {
+    .game-canvas canvas {
       background-color: #222;
       border: 1px solid #00FF00;
-      max-width: 100%;
-      max-height: 100%;
     }
 
-    /* Адаптивность */
+    /* Итоговая модалка результатов (при окончании игры) */
+    .endgame-backdrop {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+    }
+    .endgame-backdrop.active {
+      display: flex;
+    }
+    .endgame-modal {
+      background-color: #000;
+      border: 2px solid #00FF00;
+      border-radius: 5px;
+      padding: 20px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    /* Адаптив */
     @media (max-width: 480px) {
       header {
         flex-direction: column;
@@ -365,19 +354,15 @@
         width: 30px;
         height: 30px;
       }
-      nav button {
-        font-size: 12px;
-        width: 50px;
-        height: 50px;
-      }
-      .game-modal-header h2 {
-        font-size: 14px;
+      nav button img {
+        width: 30px;
+        height: 30px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Шапка сайта: аватар, юзернейм, баланс -->
+  <!-- Шапка сайта (всегда видна) -->
   <header>
     <div class="user-info">
       <img id="userPhoto" src="" alt="Avatar" />
@@ -402,7 +387,7 @@
     </div>
   </header>
 
-  <!-- Основной контент -->
+  <!-- Основной контент, где расположены вкладки -->
   <main>
     <!-- Раздел Play -->
     <section id="playSection" class="section active">
@@ -413,23 +398,19 @@
           <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
                alt="Dino Runner">
           <p>Раннер с динозавром</p>
-          <button onclick="handleStartGame('game1', 1)">
-            <img src="https://img.icons8.com/ios-filled/50/000000/play--v1.png" alt="Играть">
-          </button>
+          <button onclick="handleStartGame('game1', 1)">Играть (1 билет)</button>
         </div>
         <!-- Игра 2 -->
         <div class="game-card">
           <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
                alt="Match-3">
           <p>"3 в ряд"</p>
-          <button onclick="handleStartGame('game2', 1)">
-            <img src="https://img.icons8.com/ios-filled/50/000000/play--v1.png" alt="Играть">
-          </button>
+          <button onclick="handleStartGame('game2', 1)">Играть (1 билет)</button>
         </div>
       </div>
     </section>
 
-    <!-- Раздел Tickets (Колесо фортуны) -->
+    <!-- Раздел Tickets -->
     <section id="ticketsSection" class="section">
       <h2>Tickets</h2>
       <div class="wheel-container">
@@ -437,12 +418,8 @@
           <span>Колесо</span>
         </div>
         <div class="tickets-actions">
-          <button onclick="spinWheel()">
-            <img src="https://img.icons8.com/ios-filled/50/000000/refresh--v1.png" alt="Вращать" width="24">
-          </button>
-          <button onclick="buyTickets()">
-            <img src="https://img.icons8.com/ios-filled/50/000000/shopping-cart.png" alt="Купить" width="24">
-          </button>
+          <button onclick="spinWheel()">Вращать (раз в 24ч)</button>
+          <button onclick="buyTickets()">Купить билеты</button>
         </div>
         <div class="spin-result" id="spinResult"></div>
       </div>
@@ -481,23 +458,23 @@
     </section>
   </main>
 
-  <!-- Нижняя навигация -->
-  <nav>
-    <button onclick="showSection('playSection')" aria-label="Play">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/play--v1.png" alt="Play">
+  <!-- Нижняя навигация (иконки без текста) -->
+  <nav id="mainNav">
+    <button onclick="showSection('playSection')">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/playing.png" alt="Play"/>
     </button>
-    <button onclick="showSection('ticketsSection')" aria-label="Tickets">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets">
+    <button onclick="showSection('ticketsSection')">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets"/>
     </button>
-    <button onclick="showSection('leaderboardSection')" aria-label="Leaderboard">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/leaderboard.png" alt="Leaderboard">
+    <button onclick="showSection('leaderboardSection')">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/trophy.png" alt="Leaderboard"/>
     </button>
-    <button onclick="showSection('referralSection')" aria-label="Referral">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/referral.png" alt="Referral">
+    <button onclick="showSection('referralSection')">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/share.png" alt="Referral"/>
     </button>
   </nav>
 
-  <!-- Глобальное Модальное окно для сообщений (вместо alert) -->
+  <!-- Глобальное Модальное окно для сообщений -->
   <div class="modal-backdrop" id="globalModalBackdrop">
     <div class="modal">
       <h2 id="globalModalTitle">Сообщение</h2>
@@ -517,28 +494,30 @@
     </div>
   </div>
 
-  <!-- Модальное окно для игр -->
+  <!-- "Полноэкранный" блок для игры (кроме верхнего header) -->
   <div class="game-modal-backdrop" id="gameModalBackdrop">
-    <div class="game-modal">
-      <div class="game-modal-header">
-        <h2 id="gameModalTitle">Игра</h2>
-        <button class="game-close-button" onclick="closeGameModal()">Закрыть</button>
-      </div>
-      <div class="game-canvas-container">
-        <!-- Canvas для раннера -->
-   <canvas id="match3Canvas"></canvas>
-
+    <!-- Содержимое игры -->
+    <div class="game-modal-content">
+      <!-- Здесь сам canvas игры -->
+      <div class="game-canvas">
+        <!-- Canvas для Dino Runner -->
+        <canvas id="gameCanvas" width="400" height="200" style="display: none;"></canvas>
         <!-- Canvas для Match-3 -->
-        <canvas id="match3Canvas"></canvas>
-
-        <!-- Таймер для Match-3 -->
-      <canvas id="match3Canvas"></canvas>
-
+        <canvas id="match3Canvas" width="320" height="320" style="display: none;"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Подключаем скрипты игр (game1.js, game2.js) и сам проект -->
+  <!-- Итоговое окно после проигрыша / окончания игры -->
+  <div class="endgame-backdrop" id="endgameBackdrop">
+    <div class="endgame-modal">
+      <h2 id="endgameTitle">Результат</h2>
+      <p id="endgameMessage"></p>
+      <button class="close-modal" onclick="finishGame()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Подключаем скрипты игр и наш общий скрипт -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
   <script>
@@ -546,14 +525,13 @@
        1. Инициализация Firebase
        -------------------------------------------------------------------- */
     const firebaseConfig = {
-      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-      authDomain: "test-with-likes.firebaseapp.com",
-      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-      projectId: "test-with-likes",
-      storageBucket: "test-with-likes.appspot.com",
-      messagingSenderId: "764738820142",
-      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-      measurementId: "G-WJNF0HSN9P"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DB_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_ID",
+      appId: "YOUR_APP_ID"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -607,7 +585,7 @@
     }
 
     /* --------------------------------------------------------------------
-       3. Переключение вкладок
+       3. Навигация между вкладками
        -------------------------------------------------------------------- */
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
@@ -615,7 +593,7 @@
     }
 
     /* --------------------------------------------------------------------
-       4. Глобальное модальное окно (замена alert)
+       4. Модальное окно (глобальное) для уведомлений
        -------------------------------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
@@ -627,16 +605,16 @@
     }
 
     /* --------------------------------------------------------------------
-       5. Игры (открытие модалок, списание билетов)
+       5. Игры (открытие на весь экран, запрет выхода до конца)
        -------------------------------------------------------------------- */
-    let lastSpinTime = 0; // для примера
+    let lastSpinTime = 0; // Для примера (Колесо фортуны)
 
+    let currentGame = null;  // 'game1' или 'game2'
     function handleStartGame(gameName, ticketCost) {
       if (!currentUser) {
         showGlobalModal('Ошибка', 'Нет данных о пользователе!');
         return;
       }
-
       const userRef = db.ref('users/' + currentUser.username);
       userRef.once('value', snapshot => {
         const data = snapshot.val() || {};
@@ -644,47 +622,58 @@
           showGlobalModal('Нет билетов', 'У вас недостаточно билетов для игры!');
           return;
         }
-        // Списываем билеты и запускаем игру
+        // Списываем билеты и запускаем
         userRef.update({ tickets: (data.tickets || 0) - ticketCost });
-
+        currentGame = gameName;
         openGameModal(gameName);
       });
     }
 
-    // Модальное окно для игр
+    // Показываем блок игры (скрывая нижнюю навигацию, чтобы нельзя было уйти)
     function openGameModal(gameName) {
-      // Скрываем оба canvas
+      // Прячем все canvas
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
-      document.getElementById('match3Timer').style.display = 'none';
 
-      const modalTitle = document.getElementById('gameModalTitle');
+      // Прячем навигацию
+      document.getElementById('mainNav').classList.add('hidden');
 
       if (gameName === 'game1') {
-        modalTitle.textContent = 'Раннер с динозавром';
         document.getElementById('gameCanvas').style.display = 'block';
-        initGame1();  // Функция из game1.js
+        initGame1();
       } else {
-        modalTitle.textContent = '"3 в ряд"';
         document.getElementById('match3Canvas').style.display = 'block';
-        document.getElementById('match3Timer').style.display = 'block';
-        initGame2();  // Функция из game2.js
+        initGame2();
       }
-
       document.getElementById('gameModalBackdrop').classList.add('active');
-
-      // Скрываем кнопку закрытия
-      document.querySelector('.game-close-button').style.display = 'none';
     }
 
+    // При завершении игры (проигрыш или таймер) показываем итоговое окно
+    function showEndGameModal(title, message) {
+      // Вызывается из game1.js или game2.js, когда игра заканчивается
+      document.getElementById('endgameTitle').textContent = title;
+      document.getElementById('endgameMessage').textContent = message;
+      document.getElementById('endgameBackdrop').classList.add('active');
+    }
+
+    // Закрыть итоговую модалку и вернуться к обычному интерфейсу
+    function finishGame() {
+      document.getElementById('endgameBackdrop').classList.remove('active');
+      closeGameModal();  // вернёмся к вкладкам
+    }
+
+    // Закрытие самой игры (после нажатия "Закрыть" в итоговом окне)
     function closeGameModal() {
       document.getElementById('gameModalBackdrop').classList.remove('active');
-      // При закрытии сбрасываем игры, если нужно
-      resetGame1(); // Функция из game1.js
-      resetGame2(); // Функция из game2.js
+      document.getElementById('mainNav').classList.remove('hidden');
 
-      // Сбрасываем таймер для Match-3
-      document.getElementById('match3Timer').textContent = '';
+      // Сбрасываем игру
+      if (currentGame === 'game1') {
+        resetGame1();
+      } else {
+        resetGame2();
+      }
+      currentGame = null;
     }
 
     /* --------------------------------------------------------------------
@@ -721,8 +710,8 @@
       const userRef = db.ref('users/' + currentUser.username);
       userRef.once('value', snapshot => {
         const data = snapshot.val() || {};
-        // Допустим, 1 билет = 1 монета
         if ((data.coins || 0) > 0) {
+          // Допустим, 1 билет = 1 монета
           userRef.update({
             coins: data.coins - 1,
             tickets: data.tickets + 1
@@ -779,4 +768,3 @@
   </script>
 </body>
 </html>
-
