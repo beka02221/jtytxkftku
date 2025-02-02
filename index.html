@@ -41,6 +41,8 @@
       padding: 10px;
       border-bottom: 2px solid #00FF00;
       flex-shrink: 0;
+        z-index: 10001;
+  position: relative; /* если ещё не задано */
     }
     .user-info {
       display: flex; align-items: center; gap: 10px;
@@ -222,11 +224,15 @@
 
     /* "Полноэкранный" блок для игры (кроме header) */
     .game-modal-backdrop {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #000;
-      display: none; flex-direction: column;
-      z-index: 10000;
+      position: fixed;
+  top: 60px; /* вместо 0 */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 60px); /* чтобы область игры была на оставшейся высоте */
+  background: #000;
+  display: none;
+  flex-direction: column;
+  z-index: 10000;
     }
     .game-modal-backdrop.active {
       display: flex;
