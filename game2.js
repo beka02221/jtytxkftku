@@ -1,51 +1,63 @@
 /***********************************************************
- * game2.js — Реализация игры «3 в ряд» в стиле "хакинг"
+ * game2.js — «3 в ряд» (match-3) с простыми анимациями
  ***********************************************************/
 
-// Размер игрового поля (8x8)
+// Настройки
 const BOARD_ROWS = 8;
 const BOARD_COLS = 8;
-// Количество разных иконок
 const ICON_TYPES = 5;
+const CELL_SIZE = 50;    // Размер ячейки (если canvas 400x400, то 50)
 
-// Ссылки на изображения для иконок (неоново-хакерские элементы)
+// Ссылки на иконки
 const ICON_URLS = [
-  'https://img.icons8.com/ios/50/lock.png',               // 0
-  'https://img.icons8.com/ios/50/error--v1.png',          // 1
-  'https://img.icons8.com/fluency-systems-regular/50/fraud.png',        // 2
-  'https://img.icons8.com/fluency-systems-regular/50/key-security--v1.png', // 3
-  'https://img.icons8.com/fluency-systems-regular/50/user-credentials.png'  // 4
+  'https://img.icons8.com/ios/50/lock.png',               
+  'https://img.icons8.com/ios/50/error--v1.png',          
+  'https://img.icons8.com/fluency-systems-regular/50/fraud.png',        
+  'https://img.icons8.com/fluency-systems-regular/50/key-security--v1.png', 
+  'https://img.icons8.com/fluency-systems-regular/50/user-credentials.png'
 ];
 
-// Массив объектов Image (для быстрой отрисовки)
+// Длительность «взрыва» (ms)
+const EXPLOSION_DURATION = 300;
+// Скорость падения (пикселей в секунду)
+const FALL_SPEED = 300;
+// Время игры (секунды)
+const GAME_TIME = 60;
+
+let match3Canvas, match3Ctx;
 let iconImages = [];
+let isGame2Running = false;
+let match3TimerId = null;
+let timeSpan = null;   // DOM-элемент для отображения времени (добавляем в шапку)
+let timeLeft = GAME_TIME;
+let match3Score = 0;
 
-// Основные переменные для игры
-let match3Canvas = null;
-let match3Ctx = null;
-let board = [];         // Матрица [BOARD_ROWS][BOARD_COLS], хранит номера иконок 0..4
-let match3Selected = null;  // {row, col} выбранная ячейка (при клике)
-let match3Score = 0;        // Текущий счёт за партию
-let timeLeft = 60;          // Секунд на игру
-let match3TimerId = null;   // ID setInterval'а для таймера
-let isGame2Running = false; // Флаг, что игра запущена
-let timeSpan = null;        // DOM-элемент для отображения времени в шапке (динамически)
+// Структура для каждой ячейки
+// board[r][c] = {
+//   type: <0..ICON_TYPES-1> или -1 (если пусто),
+//   x:   текущая координата X (для анимации),
+//   y:   текущая координата Y (для анимации),
+//   explosionTime: timestamp начала взрыва (если удаляется)
+// }
+let board = [];
+let match3Selected = null; // {row, col}
 
-// ======================== ИНИЦИАЛИЗАЦИЯ ИГРЫ ==========================
+let lastTimestamp = 0; // для rAF-цикла
+
+/**
+ * Инициализация игры
+ */
 function initGame2() {
-  // Если уже идёт, не запускаем повторно
   if (isGame2Running) return;
   isGame2Running = true;
 
-  // Сброс очков и таймера
   match3Score = 0;
-  timeLeft = 60;
+  timeLeft = GAME_TIME;
 
-  // Находим canvas и контекст
   match3Canvas = document.getElementById('match3Canvas');
   match3Ctx = match3Canvas.getContext('2d');
 
-  // Загружаем изображения (один раз)
+  // Загрузка иконок (один раз)
   if (iconImages.length === 0) {
     ICON_URLS.forEach(url => {
       const img = new Image();
@@ -54,12 +66,11 @@ function initGame2() {
     });
   }
 
-  // Создаём элемент для отображения времени в шапке (не меняя HTML)
+  // Создаем метку для времени
   timeSpan = document.createElement('span');
   timeSpan.style.color = '#00FF00';
   timeSpan.style.marginLeft = '10px';
   timeSpan.textContent = `Время: ${timeLeft}s`;
-  // Вставим в .balances справа (или можно в любое место шапки)
   const balancesDiv = document.querySelector('.balances');
   if (balancesDiv) {
     balancesDiv.appendChild(timeSpan);
@@ -67,45 +78,39 @@ function initGame2() {
 
   // Генерируем поле
   generateBoard();
-  // Устраняем стартовые совпадения, чтобы при загрузке не было готовых «матчей»
-  removeAllMatchesAndFill();
 
-  // Отрисуем первый раз
-  drawBoard();
+  // Убираем возможные стартовые совпадения
+  removeAllMatchesCascade();
 
-  // Подключаем события мыши/тач для выбора и swap
+  // Подключаем события для кликов/тач
   match3Canvas.addEventListener('mousedown', onCanvasClick);
-  // (Опционально) для мобильных устройств — аналог touchstart
-  match3Canvas.addEventListener('touchstart', evt => {
-    const rect = match3Canvas.getBoundingClientRect();
-    const touch = evt.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    handleClick(x, y);
-  });
+  match3Canvas.addEventListener('touchstart', onTouchStart);
 
-  // Запускаем таймер обратного отсчёта
+  // Запуск таймера на секунды
   match3TimerId = setInterval(() => {
     timeLeft--;
     if (timeLeft < 0) {
       endMatch3Game();
     } else {
-      // Обновим в шапке
       if (timeSpan) {
         timeSpan.textContent = `Время: ${timeLeft}s`;
       }
     }
   }, 1000);
+
+  // Запуск анимационного цикла
+  lastTimestamp = performance.now();
+  requestAnimationFrame(animationLoop);
 }
 
-// Сброс (вызывается из главного скрипта finishGame() => resetGame2())
+/**
+ * Сброс игры (вызывается при выходе из игры)
+ */
 function resetGame2() {
-  // Останавливаем таймер
   if (match3TimerId) {
     clearInterval(match3TimerId);
     match3TimerId = null;
   }
-  // Снимем флаг
   isGame2Running = false;
 
   // Удаляем timeSpan из шапки
@@ -114,13 +119,13 @@ function resetGame2() {
   }
   timeSpan = null;
 
-  // Сбрасываем слушатели
+  // Удаляем события
   if (match3Canvas) {
     match3Canvas.removeEventListener('mousedown', onCanvasClick);
-    match3Canvas.removeEventListener('touchstart', () => {});
+    match3Canvas.removeEventListener('touchstart', onTouchStart);
   }
 
-  // Можно дополнительно очистить canvas
+  // Очистка canvas
   if (match3Ctx) {
     match3Ctx.clearRect(0, 0, match3Canvas.width, match3Canvas.height);
   }
@@ -129,128 +134,214 @@ function resetGame2() {
 }
 
 /********************************************************
- * Генерация и отрисовка игрового поля
+ * Генерация начального поля
  ********************************************************/
 function generateBoard() {
-  board = new Array(BOARD_ROWS);
+  board = [];
   for (let r = 0; r < BOARD_ROWS; r++) {
-    board[r] = new Array(BOARD_COLS);
+    board[r] = [];
     for (let c = 0; c < BOARD_COLS; c++) {
-      // Случайная иконка 0..4
-      board[r][c] = Math.floor(Math.random() * ICON_TYPES);
+      const type = Math.floor(Math.random() * ICON_TYPES);
+      board[r][c] = {
+        type,
+        x: c * CELL_SIZE,
+        y: r * CELL_SIZE,
+        explosionTime: null
+      };
     }
   }
 }
 
-function drawBoard() {
+/********************************************************
+ * Анимационный цикл
+ ********************************************************/
+function animationLoop(timestamp) {
+  if (!isGame2Running) return; // если игра остановилась
+
+  let dt = (timestamp - lastTimestamp) / 1000; // секунды
+  lastTimestamp = timestamp;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(animationLoop);
+}
+
+/**
+ * Логика обновления
+ */
+function update(dt) {
+  // 1) Обновляем анимацию «взрывов» (если explosionTime != null)
+  //    Если прошло > EXPLOSION_DURATION, удаляем ячейку (type=-1)
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const cell = board[r][c];
+      if (cell.explosionTime !== null) {
+        const elapsed = performance.now() - cell.explosionTime;
+        if (elapsed > EXPLOSION_DURATION) {
+          // Считаем ячейку пустой
+          cell.type = -1;
+          cell.explosionTime = null;
+        }
+      }
+    }
+  }
+
+  // 2) Плавное падение (если ниже пусто)
+  //    Считаем, что клетки падают вниз (row+1) если там type=-1
+  //    Меняем row в board, но с анимацией x,y
+  for (let r = BOARD_ROWS - 2; r >= 0; r--) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const cell = board[r][c];
+      if (cell.type < 0) continue; // пустая — нечего падать
+
+      // Пробуем упасть вниз, пока можем
+      let nr = r;
+      while (nr + 1 < BOARD_ROWS && board[nr+1][c].type === -1) {
+        nr++;
+      }
+      if (nr !== r) {
+        // «Опускаем» запись в массиве
+        const downCell = board[nr][c];
+        // Меняем свойства
+        downCell.type = cell.type;
+        downCell.x = cell.x;
+        downCell.y = cell.y;
+        downCell.explosionTime = cell.explosionTime;
+        // Очищаем старую
+        cell.type = -1;
+        cell.explosionTime = null;
+      }
+    }
+  }
+
+  // Обновляем фактические координаты (x, y) — плавно двигаем к row*CELL_SIZE
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const cell = board[r][c];
+      const targetY = r * CELL_SIZE;
+      // Двигаем вниз, если cell.y < targetY
+      if (cell.y < targetY) {
+        cell.y += FALL_SPEED * dt;
+        if (cell.y > targetY) {
+          cell.y = targetY;
+        }
+      }
+    }
+  }
+
+  // 3) Заполняем пустоты новыми
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      if (board[r][c].type < 0) {
+        board[r][c].type = Math.floor(Math.random() * ICON_TYPES);
+        board[r][c].explosionTime = null;
+        // Появляется за пределами сверху (для анимации падения)
+        board[r][c].y = -CELL_SIZE;
+      }
+    }
+  }
+
+  // 4) Проверяем, есть ли стабильные матчи (после окончания падения)
+  //    Чтобы не удалять во время анимации, убедимся, что все ячейки на месте
+  if (isAllSettled()) {
+    // Проверяем матчи
+    let matched = findMatches();
+    if (matched.size > 0) {
+      // Запускаем взрывы
+      matched.forEach(idx => {
+        const [rr, cc] = idx.split('-').map(Number);
+        board[rr][cc].explosionTime = performance.now();
+      });
+      // Начисляем очки (в коде — по кол-ву ячеек x 10)
+      match3Score += matched.size * 10;
+      // Но не обновляем top-bar, поскольку там отображается "points" (сумма)
+      // Запишем только после окончания партии (endMatch3Game).
+    }
+  }
+}
+
+/**
+ * Рисование
+ */
+function draw() {
   match3Ctx.clearRect(0, 0, match3Canvas.width, match3Canvas.height);
 
-  // Рисуем фон всего поля (тёмно-зелёный)
-  match3Ctx.fillStyle = '#003300';
+  // Фон
+  match3Ctx.fillStyle = '#000000';
   match3Ctx.fillRect(0, 0, match3Canvas.width, match3Canvas.height);
 
-  const cellSize = match3Canvas.width / BOARD_COLS; // 400 / 8 = 50
+  // Ярко-зелёная сетка
+  match3Ctx.strokeStyle = '#00FF00';
+  for (let r = 0; r <= BOARD_ROWS; r++) {
+    match3Ctx.beginPath();
+    match3Ctx.moveTo(0, r*CELL_SIZE);
+    match3Ctx.lineTo(BOARD_COLS*CELL_SIZE, r*CELL_SIZE);
+    match3Ctx.stroke();
+  }
+  for (let c = 0; c <= BOARD_COLS; c++) {
+    match3Ctx.beginPath();
+    match3Ctx.moveTo(c*CELL_SIZE, 0);
+    match3Ctx.lineTo(c*CELL_SIZE, BOARD_ROWS*CELL_SIZE);
+    match3Ctx.stroke();
+  }
+
+  // Рисуем элементы
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
-      const x = c * cellSize;
-      const y = r * cellSize;
+      const cell = board[r][c];
+      if (cell.type < 0) continue; // пустая
 
-      // Если ячейка выделена
+      // Если ячейка выделена, зальём красным подложку
       if (match3Selected && match3Selected.row === r && match3Selected.col === c) {
-        match3Ctx.fillStyle = '#004400'; // Чуть светлее
-        match3Ctx.fillRect(x, y, cellSize, cellSize);
+        match3Ctx.fillStyle = 'rgba(255,0,0,0.2)';
+        match3Ctx.fillRect(c*CELL_SIZE, r*CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
 
-      // Рисуем иконку
-      const iconIndex = board[r][c];
-      if (iconIndex >= 0 && iconImages[iconIndex]) {
-        const img = iconImages[iconIndex];
-        // Стараемся вписать в ячейку по центру
-        const offset = 5; // небольшой отступ
-        match3Ctx.drawImage(
-          img,
-          x + offset, 
-          y + offset,
-          cellSize - offset*2,
-          cellSize - offset*2
-        );
+      const img = iconImages[cell.type];
+      if (img) {
+        // Анимация «взрыва» (мигание / масштаб)
+        let scale = 1.0;
+        if (cell.explosionTime !== null) {
+          const elapsed = performance.now() - cell.explosionTime;
+          let fraction = elapsed / EXPLOSION_DURATION; // от 0 до 1
+          if (fraction > 1) fraction = 1;
+          // Пусть scale растет от 1 до 1.5
+          scale = 1 + 0.5 * fraction;
+          // Также можно сделать мерцание прозрачности
+          // match3Ctx.globalAlpha = 1 - fraction;
+        }
+
+        const drawSize = CELL_SIZE * scale;
+        const dx = cell.x + (CELL_SIZE - drawSize)/2;
+        const dy = cell.y + (CELL_SIZE - drawSize)/2;
+
+        match3Ctx.drawImage(img, dx, dy, drawSize, drawSize);
+
+        // match3Ctx.globalAlpha = 1.0; // восстанавливаем
       }
     }
   }
-
-  // Доп. инфо: счёт (в правом верхнем углу)
-  match3Ctx.fillStyle = '#00FF00';
-  match3Ctx.font = '16px "Press Start 2P", cursive';
-  match3Ctx.textAlign = 'right';
-  match3Ctx.fillText(`Score: ${match3Score}`, match3Canvas.width - 10, 20);
 }
 
 /********************************************************
- * Обработка кликов/тапов по canvas
+ * Проверка, что все ячейки «устаканились» (не падают)
  ********************************************************/
-function onCanvasClick(evt) {
-  const rect = match3Canvas.getBoundingClientRect();
-  const x = evt.clientX - rect.left;
-  const y = evt.clientY - rect.top;
-  handleClick(x, y);
-}
-
-function handleClick(x, y) {
-  if (!isGame2Running) return;
-
-  const cellSize = match3Canvas.width / BOARD_COLS;
-  const col = Math.floor(x / cellSize);
-  const row = Math.floor(y / cellSize);
-
-  if (!match3Selected) {
-    // Первая ячейка выбора
-    match3Selected = { row, col };
-  } else {
-    // Вторая ячейка выбора — проверяем на соседство
-    const rowDiff = Math.abs(match3Selected.row - row);
-    const colDiff = Math.abs(match3Selected.col - col);
-
-    if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
-      // Ячейки соседние — пробуем swap
-      swapAndCheck(match3Selected.row, match3Selected.col, row, col);
+function isAllSettled() {
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    for (let c = 0; c < BOARD_COLS; c++) {
+      const cell = board[r][c];
+      // Если y != row*CELL_SIZE, значит ещё двигается
+      if (cell.y !== r * CELL_SIZE) {
+        return false;
+      }
     }
-
-    // Снимаем выбор
-    match3Selected = null;
   }
-
-  // Перерисуем
-  drawBoard();
+  return true;
 }
 
 /********************************************************
- * SWAP + поиск совпадений и каскады
- ********************************************************/
-function swapAndCheck(r1, c1, r2, c2) {
-  // Меняем местами
-  swapCells(r1, c1, r2, c2);
-
-  // Проверяем, появились ли совпадения
-  const matched = findMatches();
-  if (matched.size === 0) {
-    // Нет совпадений — меняем обратно
-    swapCells(r1, c1, r2, c2);
-  } else {
-    // Есть совпадения — удаляем, каскадим
-    removeAllMatchesAndFill();
-  }
-}
-
-// Просто меняем содержимое двух ячеек
-function swapCells(r1, c1, r2, c2) {
-  const temp = board[r1][c1];
-  board[r1][c1] = board[r2][c2];
-  board[r2][c2] = temp;
-}
-
-/********************************************************
- * Поиск совпадений (3+ одинаковых подряд)
- * Возвращает Set с индексами "r-c", которые совпали
+ * Поиск совпадений (3+)
  ********************************************************/
 function findMatches() {
   const matched = new Set();
@@ -258,73 +349,65 @@ function findMatches() {
   // Горизонтали
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS - 2; c++) {
-      const v = board[r][c];
-      if (v < 0) continue;
-      if (v === board[r][c+1] && v === board[r][c+2]) {
-        // есть совпадение
+      const t = board[r][c].type;
+      if (t < 0) continue;
+      if (t === board[r][c+1].type && t === board[r][c+2].type) {
         matched.add(`${r}-${c}`);
         matched.add(`${r}-${c+1}`);
         matched.add(`${r}-${c+2}`);
       }
     }
   }
-
   // Вертикали
   for (let c = 0; c < BOARD_COLS; c++) {
     for (let r = 0; r < BOARD_ROWS - 2; r++) {
-      const v = board[r][c];
-      if (v < 0) continue;
-      if (v === board[r+1][c] && v === board[r+2][c]) {
-        // есть совпадение
+      const t = board[r][c].type;
+      if (t < 0) continue;
+      if (t === board[r+1][c].type && t === board[r+2][c].type) {
         matched.add(`${r}-${c}`);
         matched.add(`${r+1}-${c}`);
         matched.add(`${r+2}-${c}`);
       }
     }
   }
-
   return matched;
 }
 
 /********************************************************
- * Многократное удаление совпадений, "падение" и заполнение
+ * Удаление всех совпадений (без анимации) — для старта
  ********************************************************/
-function removeAllMatchesAndFill() {
-  let loop = true;
-  while (loop) {
-    const matched = findMatches();
+function removeAllMatchesCascade() {
+  let again = true;
+  while (again) {
+    let matched = findMatches();
     if (matched.size === 0) {
-      loop = false;
-      break;
+      again = false;
+    } else {
+      // Ставим -1
+      matched.forEach(idx => {
+        const [r, c] = idx.split('-').map(Number);
+        board[r][c].type = -1;
+      });
+      // "Падение"
+      applyGravityInstant();
+      // Заполняем пустоты
+      fillEmptyInstant();
     }
-
-    // Удаляем все совпавшие (ставим -1)
-    matched.forEach(idx => {
-      const [r, c] = idx.split('-').map(Number);
-      board[r][c] = -1;
-    });
-
-    // Начисляем очки (по кол-ву совпавших)
-    match3Score += matched.size * 10;
-
-    // "Падение" вниз
-    applyGravity();
-    // Заполнение сверху
-    fillEmptyCells();
   }
-  drawBoard();
 }
 
-// Сдвигаем иконки вниз, если есть пустые ячейки (-1)
-function applyGravity() {
+/**
+ * Мгновенное падение (без анимации, для стартовой генерации)
+ */
+function applyGravityInstant() {
   for (let c = 0; c < BOARD_COLS; c++) {
     for (let r = BOARD_ROWS - 1; r >= 0; r--) {
-      if (board[r][c] === -1) {
+      if (board[r][c].type < 0) {
         // Ищем сверху ближайшую непустую
         for (let nr = r - 1; nr >= 0; nr--) {
-          if (board[nr][c] !== -1) {
-            board[r][c] = board[nr][c];
-            board[nr][c] = -1;
+          if (board[nr][c].type >= 0) {
+            board[r][c].type = board[nr][c].type;
+            board[nr][c].type = -1;
             break;
           }
         }
@@ -333,38 +416,97 @@ function applyGravity() {
   }
 }
 
-// Заполняем пустые ячейки (-1) случайными иконками
-function fillEmptyCells() {
+/**
+ * Мгновенное заполнение пустот (для стартовой генерации)
+ */
+function fillEmptyInstant() {
   for (let r = 0; r < BOARD_ROWS; r++) {
     for (let c = 0; c < BOARD_COLS; c++) {
-      if (board[r][c] === -1) {
-        board[r][c] = Math.floor(Math.random() * ICON_TYPES);
+      if (board[r][c].type < 0) {
+        board[r][c].type = Math.floor(Math.random() * ICON_TYPES);
       }
     }
   }
 }
 
 /********************************************************
- * Завершение игры (когда вышло время)
+ * Обработка кликов
+ ********************************************************/
+function onCanvasClick(evt) {
+  const rect = match3Canvas.getBoundingClientRect();
+  const x = evt.clientX - rect.left;
+  const y = evt.clientY - rect.top;
+  handleClick(x, y);
+}
+
+function onTouchStart(evt) {
+  const rect = match3Canvas.getBoundingClientRect();
+  const touch = evt.touches[0];
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  handleClick(x, y);
+}
+
+function handleClick(x, y) {
+  if (!isGame2Running) return;
+  if (!isAllSettled()) return; // пока анимация падения — не даём ходить
+
+  const col = Math.floor(x / CELL_SIZE);
+  const row = Math.floor(y / CELL_SIZE);
+
+  if (!match3Selected) {
+    match3Selected = { row, col };
+  } else {
+    // Проверка на соседство
+    const r1 = match3Selected.row, c1 = match3Selected.col;
+    if ((Math.abs(r1 - row) === 1 && c1 === col) ||
+        (Math.abs(c1 - col) === 1 && r1 === row)) {
+      swapAndCheck(r1, c1, row, col);
+    }
+    match3Selected = null;
+  }
+}
+
+/********************************************************
+ * Swap + проверка совпадений
+ ********************************************************/
+function swapAndCheck(r1, c1, r2, c2) {
+  // Мгновенный swap в board
+  let tmp = board[r1][c1].type;
+  board[r1][c1].type = board[r2][c2].type;
+  board[r2][c2].type = tmp;
+
+  // Проверка
+  let matched = findMatches();
+  if (matched.size === 0) {
+    // откатываем
+    tmp = board[r1][c1].type;
+    board[r1][c1].type = board[r2][c2].type;
+    board[r2][c2].type = tmp;
+  } else {
+    // Есть совпадения — запустится анимация взрывов/падения в update()
+  }
+}
+
+/********************************************************
+ * Окончание игры
  ********************************************************/
 function endMatch3Game() {
-  // Останавливаем таймер
   if (match3TimerId) {
     clearInterval(match3TimerId);
     match3TimerId = null;
   }
-
-  // Добавляем очки к локальным данным пользователя
-  // (Чтобы потом сохранились в БД при closeGameModal)
+  // Добавляем match3Score к локальным очкам
   localUserData.points += match3Score;
 
-  // Показываем итоговое окно из общего скрипта
-  showEndGameModal("Время вышло!", `Вы заработали ${match3Score} очков!`);
+  // Показываем итоговое окно (из основного скрипта)
+  showEndGameModal(
+    'Время вышло!',
+    `Вы заработали ${match3Score} очков!`
+  );
 }
 
-// ------------------------------------------------------
-// Этот файл экспортирует только две функции, которые
-// вызываются из основного скрипта:
-//   initGame2()   - Запуск игры
-//   resetGame2()  - Сброс игры при выходе
-// ------------------------------------------------------
+/********************************************************
+ * Экспортируем только две функции:
+ *   initGame2() и resetGame2()
+ ********************************************************/
