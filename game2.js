@@ -1,19 +1,19 @@
 /***********************************************************
- * game2.js — "3 в ряд" с анимациями и звуками.
- * Работает совместно с исходным HTML (без правок html).
+ * game2.js — Улучшенная версия "3 в ряд" с анимациями и звуками
  ***********************************************************/
 
 // Параметры поля
 const BOARD_SIZE = 8;
 const ICON_TYPES = 5;  // количество видов иконок
+const CELL_SIZE = 50;  // размер клетки (50px для 400x400 canvas)
+const GAME_TIME = 60;  // время игры (секунд)
 
-// Размеры
-const CELL_SIZE = 50;
+// Звуковые эффекты (URL-ы замените на подходящие файлы)
+const SWAP_SOUND_URL      = 'https://example.com/swap.mp3';
+const EXPLOSION_SOUND_URL = 'https://example.com/explosion.mp3';
+const ATTEMPT_SOUND_URL   = 'https://example.com/attempt.mp3';
 
-// Время игры (секунды)
-const GAME_TIME = 60;
-
-// Ссылки на неоновые иконки (пример)
+// Ссылки на неоновые иконки
 const ICON_URLS = [
   'https://img.icons8.com/neon/100/password.png',
   'https://img.icons8.com/neon/100/fingerprint.png',
@@ -22,44 +22,13 @@ const ICON_URLS = [
   'https://img.icons8.com/neon/100/face-id.png'
 ];
 
-// ----- Новые переменные для анимаций -----
-
-// Каждая иконка в отрисовке хранит не только тип, но и текущее (x,y), цель (targetX,targetY).
-// Это нужно, чтобы плавно двигать их при swap, падении и т.д.
-let sprites = []; // двумерный массив тех же размеров, что board, где каждый элемент — объект с полями { type, x, y, targetX, targetY, alpha, removing }
-                 // либо null, если клетка пуста
-
-// Флаг, чтобы заблокировать действия пользователя во время анимации
-let isAnimating = false;
-
-// Продолжительность анимации в миллисекундах
-const SWAP_ANIM_DURATION = 200;  
-const REMOVE_ANIM_DURATION = 300;
-const FALL_ANIM_DURATION = 300;
-const INITIAL_FALL_DURATION = 400;
-
-// Звуки (можно заменить на свои файлы)
-const sfxSwapUrl    = 'https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg';
-const sfxMatchUrl   = 'https://actions.google.com/sounds/v1/explosions/medium_explosion.ogg';
-const sfxErrorUrl   = 'https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg';
-const sfxFallingUrl = 'https://actions.google.com/sounds/v1/foley/cloth_flap_fast.ogg';
-
-// Создадим объекты Audio
-let sfxSwap    = new Audio(sfxSwapUrl);
-let sfxMatch   = new Audio(sfxMatchUrl);
-let sfxError   = new Audio(sfxErrorUrl);
-let sfxFalling = new Audio(sfxFallingUrl);
-
-// Громкость (0.0 — 1.0)
-sfxSwap.volume    = 0.4;
-sfxMatch.volume   = 0.5;
-sfxError.volume   = 0.4;
-sfxFalling.volume = 0.3;
-
-// -----------------------------------------
-
 // Массив для загрузки изображений
 let iconImages = [];
+
+// Звуковые объекты
+const swapSound      = new Audio(SWAP_SOUND_URL);
+const explosionSound = new Audio(EXPLOSION_SOUND_URL);
+const attemptSound   = new Audio(ATTEMPT_SOUND_URL);
 
 // Основные переменные
 let match3Canvas, match3Ctx;
@@ -69,19 +38,34 @@ let timeSpan       = null;   // SPAN для отображения оставш�
 let timeLeft       = GAME_TIME;
 let match3Score    = 0;
 
-// 2D-массив board[row][col]:
-//    board[r][c] = от 0 до ICON_TYPES-1 (тип иконки), либо -1 (пусто)
+// Игровое поле: board[row][col] = тип от 0 до ICON_TYPES-1, либо -1 (пусто)
 let board = [];
 
-// Запоминаем выбранную ячейку при нажатии/тапе
+// Для отслеживания выбранной ячейки (при клике/тапе)
 let selectedCell = null; // {row, col}
 
-// Координаты нажатия мышью (для swipe)
-let mouseDownCell = null;
+// ******************** Анимационные переменные ********************
 
-// --------------------------------------------------
-// 1. Инициализация игры
-// --------------------------------------------------
+// Флаг анимации (не принимаем новые ходы, пока идёт анимация)
+let animating = false;
+
+// Для анимации обмена: объект { r1, c1, r2, c2, startTime, duration, reversing }
+let currentSwapAnimation = null;
+
+// Для анимации исчезновения (fade-out) совпадающих клеток
+// Массив объектов { r, c, startTime, duration }
+let fadeAnimations = [];
+
+// Для анимации падения (гравитации) – для уже существующих и новых фигур
+// Массив объектов { r, c, startY, endY, startTime, duration }
+let gravityAnimations = [];
+
+// Для начальной анимации «падения» фигурок (начальное появление)
+// Для каждой клетки хранится изначальный вертикальный отступ (отрицательное значение)
+let pieceInitialOffsets = []; // двумерный массив, размер BOARD_SIZE x BOARD_SIZE
+let initialFall = null;       // объект { startTime, duration } для начального падения
+
+// ******************** Инициализация и сброс ********************
 function initGame2() {
   if (isGame2Running) return;
   isGame2Running = true;
@@ -115,18 +99,30 @@ function initGame2() {
   // Генерируем поле (без стартовых совпадений)
   generateBoard();
 
-  // Инициируем массив спрайтов (для анимаций) и сделаем эффект «падения сверху»
-  initSprites();
-  animateInitialFall(() => {
-    // После начального падения – можно взаимодействовать
-    isAnimating = false;
-  });
+  // Инициализируем массив pieceInitialOffsets для анимации начального падения
+  pieceInitialOffsets = [];
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    pieceInitialOffsets[r] = [];
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      // Каждая фигурка начинает с произвольного отступа сверху (от -200 до -100)
+      pieceInitialOffsets[r][c] = -(Math.random() * 100 + 100);
+    }
+  }
+  // Устанавливаем параметры начального падения (duration – 800 мс)
+  initialFall = { startTime: performance.now(), duration: 800 };
 
-  // Подключаем события
+  // Рисуем начальное поле (с учётом анимации)
+  drawBoard();
+
+  // Запускаем анимационный цикл
+  animating = true;
+  requestAnimationFrame(animationLoop);
+
+  // Подключаем события (если анимаций нет, новые ходы принимаются)
   match3Canvas.addEventListener('mousedown', onMouseDown);
   match3Canvas.addEventListener('touchstart', onTouchStart, { passive: false });
 
-  // Запуск таймера
+  // Запуск таймера на секунды
   match3TimerId = setInterval(() => {
     timeLeft--;
     if (timeLeft < 0) {
@@ -135,9 +131,6 @@ function initGame2() {
       timeSpan.textContent = `Время: ${timeLeft}s`;
     }
   }, 1000);
-
-  // Запускаем цикл перерисовки (animation loop)
-  requestAnimationFrame(animationLoop);
 }
 
 function resetGame2() {
@@ -147,33 +140,33 @@ function resetGame2() {
   }
   isGame2Running = false;
 
-  // Убираем таймер
   if (timeSpan && timeSpan.parentNode) {
     timeSpan.parentNode.removeChild(timeSpan);
   }
   timeSpan = null;
 
-  // Снимаем события
   if (match3Canvas) {
     match3Canvas.removeEventListener('mousedown', onMouseDown);
     match3Canvas.removeEventListener('touchstart', onTouchStart);
   }
 
-  // Очищаем canvas
   if (match3Ctx) {
     match3Ctx.clearRect(0, 0, match3Canvas.width, match3Canvas.height);
   }
 
-  // Сбрасываем данные
   board = [];
-  sprites = [];
   selectedCell = null;
-  mouseDownCell = null;
+
+  // Сброс анимационных переменных
+  animating = false;
+  currentSwapAnimation = null;
+  fadeAnimations = [];
+  gravityAnimations = [];
+  pieceInitialOffsets = [];
+  initialFall = null;
 }
 
-// --------------------------------------------------
-// 2. Генерация поля (без стартовых «3 в ряд»)
-// --------------------------------------------------
+// ******************** Генерация поля ********************
 function generateBoard() {
   board = [];
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -196,82 +189,116 @@ function randomIcon() {
   return Math.floor(Math.random() * ICON_TYPES);
 }
 
-// --------------------------------------------------
-// 3. Инициализация «спрайтов» (для анимации)
-// --------------------------------------------------
-function initSprites() {
-  sprites = [];
-  for (let r = 0; r < BOARD_SIZE; r++) {
-    sprites[r] = [];
-    for (let c = 0; c < BOARD_SIZE; c++) {
-      const type = board[r][c];
-      if (type < 0) {
-        sprites[r][c] = null;
-      } else {
-        // Начнём «выше» экрана для эффекта падения
-        const startY = - (Math.random() * 300 + 50); // случайная высота
-        sprites[r][c] = {
-          type: type,
-          x: c * CELL_SIZE,
-          y: startY,
-          targetX: c * CELL_SIZE,
-          targetY: r * CELL_SIZE,
-          alpha: 1,          // для анимации исчезания
-          removing: false    // флаг, что иконка «взрывается»
-        };
-      }
-    }
-  }
-  isAnimating = true; // пока идёт падение при старте
-}
+// ******************** Основной анимационный цикл ********************
+function animationLoop(currentTime) {
+  let stillAnimating = false;
 
-/** Анимация первоначального падения (все иконки опускаются на свои targetY) */
-function animateInitialFall(onComplete) {
-  const startTime = performance.now();
-  const duration = INITIAL_FALL_DURATION; // мс
-
-  // Опционально – звук
-  sfxFalling.currentTime = 0;
-  sfxFalling.play().catch(()=>{});
-
-  function step(now) {
-    const elapsed = now - startTime;
-    const t = Math.min(elapsed / duration, 1);
+  // 1. Обновление начального падения (initialFall)
+  if (initialFall) {
+    const progress = Math.min((currentTime - initialFall.startTime) / initialFall.duration, 1);
+    // Для каждой фигурки обновляем отступ: от начального значения до 0
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
-        if (sprites[r][c]) {
-          // Линейная интерполяция
-          const dy = sprites[r][c].targetY - sprites[r][c].y;
-          sprites[r][c].y += dy * t; // Под конец анимации иконка будет на targetY
-        }
+        pieceInitialOffsets[r][c] = pieceInitialOffsets[r][c] * (1 - progress);
       }
     }
-    if (t < 1) {
-      requestAnimationFrame(step);
+    if (progress < 1) {
+      stillAnimating = true;
     } else {
-      // Убедимся, что каждая иконка встала на место
-      for (let rr = 0; rr < BOARD_SIZE; rr++) {
-        for (let cc = 0; cc < BOARD_SIZE; cc++) {
-          if (sprites[rr][cc]) {
-            sprites[rr][cc].y = sprites[rr][cc].targetY;
-          }
+      initialFall = null;
+      // Гарантируем, что все offset равны 0
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          pieceInitialOffsets[r][c] = 0;
         }
       }
-      if (onComplete) onComplete();
     }
   }
-  requestAnimationFrame(step);
+
+  // 2. Обновление анимации обмена (swap)
+  if (currentSwapAnimation) {
+    const anim = currentSwapAnimation;
+    const progress = Math.min((currentTime - anim.startTime) / anim.duration, 1);
+    if (progress < 1) {
+      stillAnimating = true;
+    } else {
+      // Если обмен завершён – если ещё не перевёрнули обратно
+      if (!anim.reversing) {
+        // Выполняем обмен в массиве board
+        swapIcons(anim.r1, anim.c1, anim.r2, anim.c2);
+        // Проверяем совпадения
+        if (findMatches().length > 0) {
+          // Если совпадения есть, запускаем анимацию исчезновения
+          animateMatches(findMatches());
+          // Сбрасываем swap-анимацию
+          currentSwapAnimation = null;
+        } else {
+          // Если совпадений нет, проигрываем звук неудачной попытки и запускаем обратный обмен
+          attemptSound.play();
+          currentSwapAnimation = {
+            r1: anim.r1, c1: anim.c1,
+            r2: anim.r2, c2: anim.c2,
+            startTime: currentTime,
+            duration: anim.duration,
+            reversing: true
+          };
+          stillAnimating = true;
+        }
+      } else {
+        // Обратный обмен завершён – возвращаем исходное положение
+        swapIcons(anim.r1, anim.c1, anim.r2, anim.c2);
+        currentSwapAnimation = null;
+      }
+    }
+  }
+
+  // 3. Обновление анимаций исчезновения (fade-out)
+  for (let i = fadeAnimations.length - 1; i >= 0; i--) {
+    const fade = fadeAnimations[i];
+    const progress = (currentTime - fade.startTime) / fade.duration;
+    if (progress >= 1) {
+      // Закончили исчезать – убираем фигурку
+      board[fade.r][fade.c] = -1;
+      fadeAnimations.splice(i, 1);
+    } else {
+      stillAnimating = true;
+    }
+  }
+
+  // 4. Обновление анимаций падения (gravity)
+  for (let i = gravityAnimations.length - 1; i >= 0; i--) {
+    const grav = gravityAnimations[i];
+    const progress = Math.min((currentTime - grav.startTime) / grav.duration, 1);
+    grav.currentOffset = (1 - progress) * (grav.startY - grav.endY);
+    if (progress < 1) {
+      stillAnimating = true;
+    } else {
+      // По завершении – обновляем board: перемещаем фигурку в нужную ячейку
+      // (Уже выполнено в animateGravity, поэтому просто убираем анимацию)
+      gravityAnimations.splice(i, 1);
+    }
+  }
+
+  // Перерисовываем доску с учетом анимаций
+  drawBoard();
+
+  if (stillAnimating) {
+    requestAnimationFrame(animationLoop);
+  } else {
+    animating = false;
+    // После завершения падения – проверяем каскады совпадений
+    if (!currentSwapAnimation && fadeAnimations.length === 0 && gravityAnimations.length === 0) {
+      const moreMatches = findMatches();
+      if (moreMatches.length > 0) {
+        animateMatches(moreMatches);
+        animating = true;
+        requestAnimationFrame(animationLoop);
+      }
+    }
+  }
 }
 
-// --------------------------------------------------
-// 4. Цикл анимации (перерисовка)
-// --------------------------------------------------
-function animationLoop() {
-  drawBoard(); // рисуем всё текущее состояние
-  requestAnimationFrame(animationLoop);
-}
-
-/** Отрисовка поля на canvas */
+// ******************** Отрисовка доски ********************
 function drawBoard() {
   match3Ctx.clearRect(0, 0, match3Canvas.width, match3Canvas.height);
 
@@ -279,7 +306,7 @@ function drawBoard() {
   match3Ctx.fillStyle = '#000000';
   match3Ctx.fillRect(0, 0, match3Canvas.width, match3Canvas.height);
 
-  // Сетка (ярко-зелёная)
+  // Сетка
   match3Ctx.strokeStyle = '#00FF00';
   for (let r = 0; r <= BOARD_SIZE; r++) {
     match3Ctx.beginPath();
@@ -294,48 +321,85 @@ function drawBoard() {
     match3Ctx.stroke();
   }
 
-  // Рисуем иконки (с учётом alpha и текущих x,y)
+  // Рисуем иконки
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
-      const spr = sprites[r][c];
-      if (!spr) continue;
+      const type = board[r][c];
+      if (type < 0) continue; // пустая клетка
 
-      // Если эта клетка выбрана – нарисуем полупрозрачный прямоугольник
+      // Если клетка выбрана – выделяем
       if (selectedCell && selectedCell.row === r && selectedCell.col === c) {
         match3Ctx.fillStyle = 'rgba(255,0,0,0.3)';
         match3Ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
 
-      // Рисуем саму иконку
-      const img = iconImages[spr.type];
-      if (img) {
-        match3Ctx.save();
-        match3Ctx.globalAlpha = spr.alpha; // для исчезновения
-        match3Ctx.drawImage(img, spr.x, spr.y, CELL_SIZE, CELL_SIZE);
-        match3Ctx.restore();
+      // Определяем дополнительные смещения по Y: начальное падение и (падение по гравитации)
+      let offsetY = 0;
+      if (pieceInitialOffsets[r] && typeof pieceInitialOffsets[r][c] === 'number') {
+        offsetY += pieceInitialOffsets[r][c];
       }
+      // Если для данной ячейки запущена анимация гравитации – добавляем текущий offset
+      const grav = gravityAnimations.find(g => g.r === r && g.c === c);
+      if (grav) {
+        offsetY += grav.currentOffset || 0;
+      }
+
+      // Если эта клетка участвует в swap-анимации, вычисляем её позицию
+      let drawX = c * CELL_SIZE;
+      let drawY = r * CELL_SIZE + offsetY;
+      if (currentSwapAnimation) {
+        const anim = currentSwapAnimation;
+        // Если эта клетка – одна из обмениваемых
+        if ((anim.r1 === r && anim.c1 === c) || (anim.r2 === r && anim.c2 === c)) {
+          const progress = Math.min((performance.now() - anim.startTime) / anim.duration, 1);
+          let dr = anim.r2 - anim.r1;
+          let dc = anim.c2 - anim.c1;
+          if (anim.reversing) progress; // при обратном обмене используем ту же логику
+          if (anim.r1 === r && anim.c1 === c) {
+            drawX = (anim.c1 * CELL_SIZE) + dc * CELL_SIZE * (anim.reversing ? (1 - progress) : progress);
+            drawY = (anim.r1 * CELL_SIZE) + dr * CELL_SIZE * (anim.reversing ? (1 - progress) : progress);
+          } else {
+            drawX = (anim.c2 * CELL_SIZE) - dc * CELL_SIZE * (anim.reversing ? (1 - progress) : progress);
+            drawY = (anim.r2 * CELL_SIZE) - dr * CELL_SIZE * (anim.reversing ? (1 - progress) : progress);
+          }
+        }
+      }
+
+      // Если к данной клетке применяется fade-анимация, устанавливаем прозрачность
+      let alpha = 1;
+      const fade = fadeAnimations.find(f => f.r === r && f.c === c);
+      if (fade) {
+        const progress = (performance.now() - fade.startTime) / fade.duration;
+        alpha = Math.max(1 - progress, 0);
+      }
+
+      match3Ctx.globalAlpha = alpha;
+      const img = iconImages[type];
+      if (img) {
+        match3Ctx.drawImage(img, drawX, drawY, CELL_SIZE, CELL_SIZE);
+      }
+      match3Ctx.globalAlpha = 1; // сбрасываем
     }
   }
 }
 
-// --------------------------------------------------
-// 5. Логика кликов/тапов + SWAP
-// --------------------------------------------------
+// ******************** Логика кликов/тапов и обмена ********************
+let mouseDownCell = null;
 function onMouseDown(evt) {
-  if (!isGame2Running || isAnimating) return; // если идёт анимация, не даём ход
+  if (!isGame2Running || animating) return;
   const rect = match3Canvas.getBoundingClientRect();
   const x = evt.clientX - rect.left;
   const y = evt.clientY - rect.top;
-
   const col = Math.floor(x / CELL_SIZE);
   const row = Math.floor(y / CELL_SIZE);
 
   mouseDownCell = { row, col };
   selectedCell  = { row, col };
 
-  // Навешиваем mousemove/up
   document.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseup', onMouseUp);
+
+  drawBoard();
 }
 
 function onMouseMove(evt) {
@@ -343,29 +407,22 @@ function onMouseMove(evt) {
   const rect = match3Canvas.getBoundingClientRect();
   const x = evt.clientX - rect.left;
   const y = evt.clientY - rect.top;
-
   const dx = x - (mouseDownCell.col * CELL_SIZE + CELL_SIZE / 2);
   const dy = y - (mouseDownCell.row * CELL_SIZE + CELL_SIZE / 2);
-
   if (Math.abs(dx) > CELL_SIZE / 2 || Math.abs(dy) > CELL_SIZE / 2) {
     let targetRow = mouseDownCell.row;
     let targetCol = mouseDownCell.col;
-
     if (Math.abs(dx) > Math.abs(dy)) {
-      // Горизонтально
-      if (dx > 0) targetCol++; else targetCol--;
+      targetCol += (dx > 0 ? 1 : -1);
     } else {
-      // Вертикально
-      if (dy > 0) targetRow++; else targetRow--;
+      targetRow += (dy > 0 ? 1 : -1);
     }
-
-    // Проверяем, что целевая клетка рядом
     if (isNeighbor(mouseDownCell.row, mouseDownCell.col, targetRow, targetCol)) {
       trySwap(mouseDownCell.row, mouseDownCell.col, targetRow, targetCol);
     }
-
     mouseDownCell = null;
-    selectedCell  = null;
+    selectedCell = null;
+    drawBoard();
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
   }
@@ -376,25 +433,21 @@ function onMouseUp() {
   selectedCell  = null;
   document.removeEventListener('mousemove', onMouseMove);
   document.removeEventListener('mouseup', onMouseUp);
+  drawBoard();
 }
 
-// То же для touch
 function onTouchStart(evt) {
-  if (!isGame2Running || isAnimating) return;
+  if (!isGame2Running || animating) return;
   evt.preventDefault();
-
   const rect = match3Canvas.getBoundingClientRect();
   const touch = evt.touches[0];
   const x = touch.clientX - rect.left;
   const y = touch.clientY - rect.top;
-
   const col = Math.floor(x / CELL_SIZE);
   const row = Math.floor(y / CELL_SIZE);
-
   mouseDownCell = { row, col };
   selectedCell  = { row, col };
-
-  // Навешиваем «слушатели»
+  drawBoard();
   document.addEventListener('touchmove', onTouchMove, { passive: false });
   document.addEventListener('touchend', onTouchEnd);
 }
@@ -402,31 +455,26 @@ function onTouchStart(evt) {
 function onTouchMove(evt) {
   if (!mouseDownCell) return;
   evt.preventDefault();
-
   const rect = match3Canvas.getBoundingClientRect();
   const touch = evt.touches[0];
   const x = touch.clientX - rect.left;
   const y = touch.clientY - rect.top;
-
   const dx = x - (mouseDownCell.col * CELL_SIZE + CELL_SIZE / 2);
   const dy = y - (mouseDownCell.row * CELL_SIZE + CELL_SIZE / 2);
-
   if (Math.abs(dx) > CELL_SIZE / 2 || Math.abs(dy) > CELL_SIZE / 2) {
     let targetRow = mouseDownCell.row;
     let targetCol = mouseDownCell.col;
-
     if (Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) targetCol++; else targetCol--;
+      targetCol += (dx > 0 ? 1 : -1);
     } else {
-      if (dy > 0) targetRow++; else targetRow--;
+      targetRow += (dy > 0 ? 1 : -1);
     }
-
     if (isNeighbor(mouseDownCell.row, mouseDownCell.col, targetRow, targetCol)) {
       trySwap(mouseDownCell.row, mouseDownCell.col, targetRow, targetCol);
     }
-
     mouseDownCell = null;
-    selectedCell  = null;
+    selectedCell = null;
+    drawBoard();
     document.removeEventListener('touchmove', onTouchMove);
     document.removeEventListener('touchend', onTouchEnd);
   }
@@ -437,6 +485,7 @@ function onTouchEnd() {
   selectedCell  = null;
   document.removeEventListener('touchmove', onTouchMove);
   document.removeEventListener('touchend', onTouchEnd);
+  drawBoard();
 }
 
 function isNeighbor(r1, c1, r2, c2) {
@@ -444,140 +493,34 @@ function isNeighbor(r1, c1, r2, c2) {
          (Math.abs(c1 - c2) === 1 && r1 === r2);
 }
 
-// --------------------------------------------------
-// 6. Попытка SWAP с анимацией
-// --------------------------------------------------
+// Попытка обмена с анимацией
 function trySwap(r1, c1, r2, c2) {
-  if (isAnimating) return;
-  isAnimating = true;
-
-  // Сыграем звук
-  sfxSwap.currentTime = 0;
-  sfxSwap.play().catch(()=>{});
-
-  // Мгновенно в логике меняем элементы
-  swapIcons(r1, c1, r2, c2);
-
-  // Анимируем «обмен местами» в спрайтах
-  animateSwap(r1, c1, r2, c2, () => {
-    // Когда swap закончен — проверим совпадения
-    let hasMatches = checkAllMatches();
-    if (!hasMatches) {
-      // Нет совпадений – делаем обратный swap
-      sfxError.currentTime = 0;
-      sfxError.play().catch(()=>{});
-      swapIcons(r1, c1, r2, c2);
-      animateSwap(r1, c1, r2, c2, () => {
-        isAnimating = false;
-      });
-    } else {
-      // Были совпадения, анимации удаления/падения запустятся внутри checkAllMatches
-      // и после их завершения isAnimating = false
-    }
-  });
+  if (animating) return; // не допускаем, если идёт другая анимация
+  swapSound.play();
+  currentSwapAnimation = {
+    r1, c1, r2, c2,
+    startTime: performance.now(),
+    duration: 200,
+    reversing: false
+  };
+  animating = true;
+  requestAnimationFrame(animationLoop);
 }
 
-/** Меняем местами в логике board */
+// Обмен значениями в массиве board
 function swapIcons(r1, c1, r2, c2) {
   let temp = board[r1][c1];
   board[r1][c1] = board[r2][c2];
   board[r2][c2] = temp;
-
-  // Поменяем и в спрайтах
-  let tempSpr = sprites[r1][c1];
-  sprites[r1][c1] = sprites[r2][c2];
-  sprites[r2][c2] = tempSpr;
 }
 
-/** Анимация перестановки */
-function animateSwap(r1, c1, r2, c2, onComplete) {
-  const spr1 = sprites[r1][c1];
-  const spr2 = sprites[r2][c2];
-  if (!spr1 || !spr2) {
-    // На всякий случай, если пусто
-    if (onComplete) onComplete();
-    return;
-  }
-  const startTime = performance.now();
-  const duration = SWAP_ANIM_DURATION; // мс
+// ******************** Поиск совпадений и анимация удаления ********************
 
-  const startX1 = spr1.x;
-  const startY1 = spr1.y;
-  const startX2 = spr2.x;
-  const startY2 = spr2.y;
-
-  const endX1 = c1 * CELL_SIZE;
-  const endY1 = r1 * CELL_SIZE;
-  const endX2 = c2 * CELL_SIZE;
-  const endY2 = r2 * CELL_SIZE;
-
-  function step(now) {
-    const elapsed = now - startTime;
-    const t = Math.min(elapsed / duration, 1);
-
-    // Линейная интерполяция
-    spr1.x = lerp(startX1, endX2, t);
-    spr1.y = lerp(startY1, endY2, t);
-    spr2.x = lerp(startX2, endX1, t);
-    spr2.y = lerp(startY2, endY1, t);
-
-    if (t < 1) {
-      requestAnimationFrame(step);
-    } else {
-      // Убедимся, что спрайты «встали» точно
-      spr1.x = endX2;
-      spr1.y = endY2;
-      spr2.x = endX1;
-      spr2.y = endY1;
-      if (onComplete) onComplete();
-    }
-  }
-  requestAnimationFrame(step);
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
-// --------------------------------------------------
-// 7. Поиск совпадений, удаление, падение
-// --------------------------------------------------
-function checkAllMatches() {
-  let matches = findMatches();
-  if (matches.length === 0) {
-    return false;
-  }
-  // Удаляем
-  removeMatches(matches, () => {
-    // После удаления делаем «каскады»: падение и заполнение
-    applyGravityAnimation(() => {
-      fillEmptyAnimation(() => {
-        // Снова проверим, вдруг новые совпадения
-        let next = findMatches();
-        if (next.length > 0) {
-          removeMatches(next, () => {
-            applyGravityAnimation(() => {
-              fillEmptyAnimation(() => {
-                // Закончили каскад
-                isAnimating = false;
-              });
-            });
-          });
-        } else {
-          // Больше нет совпадений
-          isAnimating = false;
-        }
-      });
-    });
-  });
-  return true;
-}
-
-/** Находит все совпадения (гориз. и вертик.) */
+// Находит все совпадения (возвращает массив объектов клеток)
 function findMatches() {
   let found = [];
 
-  // Горизонтали
+  // По горизонтали
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE - 2; c++) {
       let t = board[r][c];
@@ -595,7 +538,7 @@ function findMatches() {
     }
   }
 
-  // Вертикали
+  // По вертикали
   for (let c = 0; c < BOARD_SIZE; c++) {
     for (let r = 0; r < BOARD_SIZE - 2; r++) {
       let t = board[r][c];
@@ -616,167 +559,45 @@ function findMatches() {
   return found;
 }
 
-/** Удаляем найденные совпадения (анимация «взрыва») */
-function removeMatches(cells, onComplete) {
-  // Сыграем звук «взрыва»
-  sfxMatch.currentTime = 0;
-  sfxMatch.play().catch(()=>{});
-
-  // Очки
-  match3Score += cells.length * 10;
-
-  // Помечаем в массиве board как -1
-  cells.forEach(cell => {
-    board[cell.r][cell.c] = -1;
-  });
-
-  // Анимация исчезновения (fade out)
-  const startTime = performance.now();
-  const duration = REMOVE_ANIM_DURATION;
-
-  cells.forEach(cell => {
-    if (sprites[cell.r][cell.c]) {
-      sprites[cell.r][cell.c].removing = true; // для логики
-    }
-  });
-
-  function step(now) {
-    const elapsed = now - startTime;
-    const t = Math.min(elapsed / duration, 1);
-
-    cells.forEach(cell => {
-      const spr = sprites[cell.r][cell.c];
-      if (spr) {
-        spr.alpha = 1 - t; // плавная потеря прозрачности
-      }
+// Запускает анимацию исчезновения совпавших фигурок
+function animateMatches(matches) {
+  // Проигрываем звук взрыва
+  explosionSound.play();
+  // Для каждой найденной клетки добавляем fade-анимацию (200 мс)
+  matches.forEach(cell => {
+    fadeAnimations.push({
+      r: cell.r,
+      c: cell.c,
+      startTime: performance.now(),
+      duration: 200
     });
-
-    if (t < 1) {
-      requestAnimationFrame(step);
-    } else {
-      // Полностью убираем
-      cells.forEach(cell => {
-        sprites[cell.r][cell.c] = null;
-      });
-      if (onComplete) onComplete();
-    }
-  }
-  requestAnimationFrame(step);
+  });
+  // После исчезновения – запускаем анимацию гравитации через небольшой задержку
+  setTimeout(() => {
+    animateGravity();
+  }, 210);
+  animating = true;
+  requestAnimationFrame(animationLoop);
 }
 
-/** Анимация «падения» (gravity) */
-function applyGravityAnimation(onComplete) {
-  // Сначала логически всё «роняем»
-  applyGravity();
-
-  // Теперь у нас в board уже новые позиции.  
-  // Нужно анимировать spites так, чтобы они плавно перешли в новые row,col.
-  // Для этого создадим массив «целевых координат».
-  let moves = [];
-  for (let c = 0; c < BOARD_SIZE; c++) {
-    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-      if (board[r][c] >= 0) {
-        // board[r][c] есть какой-то тип
-        // Найдём соответствующий sprite (который остался после удаления),
-        // который стоял где-то выше в этой же колонке.
-        // Т.е. идём вверх по sprite и ищем, у кого row,col = (старое место).
-        // Проще: проверим, если sprites[r][c] уже совпадает, значит он остался на месте.
-        const spr = sprites[r][c];
-        if (!spr || spr.type !== board[r][c]) {
-          // Значит sprite «спустился» сверху
-          // Идём вверх, ищем sprite c таким типом, который ещё не учтён
-          for (let rr = r - 1; rr >= 0; rr--) {
-            if (sprites[rr][c] && sprites[rr][c].type === board[r][c]) {
-              moves.push({
-                fromR: rr, fromC: c,
-                toR: r,   toC: c
-              });
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  const startTime = performance.now();
-  const duration = FALL_ANIM_DURATION;
-
-  // Звук
-  if (moves.length > 0) {
-    sfxFalling.currentTime = 0;
-    sfxFalling.play().catch(()=>{});
-  }
-
-  // Чтобы при анимации не было «дублирования» спрайтов,
-  // сразу переставим их в окончательный массив sprites (но с x,y не меняем),
-  // а в старых местах обнулим.
-  moves.forEach(m => {
-    const spr = sprites[m.fromR][m.fromC];
-    sprites[m.toR][m.toC] = spr;
-    sprites[m.fromR][m.fromC] = null;
-  });
-
-  // Теперь у спрайта меняем его targetY
-  moves.forEach(m => {
-    const spr = sprites[m.toR][m.toC];
-    spr.targetX = m.toC * CELL_SIZE;
-    spr.targetY = m.toR * CELL_SIZE;
-  });
-
-  function step(now) {
-    const elapsed = now - startTime;
-    const t = Math.min(elapsed / duration, 1);
-
-    moves.forEach(m => {
-      const spr = sprites[m.toR][m.toC];
-      if (spr) {
-        // Линейная интерполяция от старого y к новому
-        const oldY = spr.y;
-        const goalY = spr.targetY;
-        spr.y = lerp(oldY, goalY, 0.2); 
-        // Параметр 0.2 — скорость «пружины». Можно усложнить, но для примера хватит.
-        // Или можно по классике spr.y = oldY + (goalY - oldY) * t;
-      }
-    });
-
-    // Проверим, закончили ли мы (примерно)
-    let allAtDestination = true;
-    moves.forEach(m => {
-      const spr = sprites[m.toR][m.toC];
-      if (spr && Math.abs(spr.y - spr.targetY) > 2) {
-        allAtDestination = false;
-      }
-    });
-
-    if (!allAtDestination) {
-      requestAnimationFrame(step);
-    } else {
-      // На всякий случай выравниваем
-      moves.forEach(m => {
-        const spr = sprites[m.toR][m.toC];
-        if (spr) {
-          spr.y = spr.targetY;
-        }
-      });
-      if (onComplete) onComplete();
-    }
-  }
-  if (moves.length > 0) {
-    requestAnimationFrame(step);
-  } else {
-    // Если ничего не двигается, сразу callback
-    onComplete();
-  }
-}
-
-/** Логика-«роняем» иконки вниз */
-function applyGravity() {
+// Анимация гравитации: «опускание» фигурок в пустые клетки и заполнение новых
+function animateGravity() {
+  // Для каждой колонки просматриваем снизу вверх
   for (let c = 0; c < BOARD_SIZE; c++) {
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       if (board[r][c] === -1) {
+        // Находим ближайшую не пустую сверху
         for (let rr = r - 1; rr >= 0; rr--) {
           if (board[rr][c] !== -1) {
+            // Запускаем анимацию падения для клетки (rr, c) до (r, c)
+            gravityAnimations.push({
+              r: r, c: c,
+              startY: (rr - r) * CELL_SIZE, // сколько нужно сместить
+              endY: 0,
+              startTime: performance.now(),
+              duration: 200
+            });
+            // Перемещаем значение в board (на самом деле поменяем после анимации)
             board[r][c] = board[rr][c];
             board[rr][c] = -1;
             break;
@@ -785,71 +606,27 @@ function applyGravity() {
       }
     }
   }
-}
-
-/** Анимация появления новых иконок сверху */
-function fillEmptyAnimation(onComplete) {
-  // Логически добавляем новые иконки
-  let newCells = [];
-  for (let r = 0; r < BOARD_SIZE; r++) {
-    for (let c = 0; c < BOARD_SIZE; c++) {
+  // Заполняем пустые клетки новыми фигурками с анимацией падения сверху
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    for (let r = 0; r < BOARD_SIZE; r++) {
       if (board[r][c] === -1) {
         board[r][c] = randomIcon();
-        newCells.push({r, c, type: board[r][c]});
+        // Запускаем анимацию: новая фигурка падает с верхней области
+        gravityAnimations.push({
+          r: r, c: c,
+          startY: -CELL_SIZE * (Math.random() * 2 + 1),
+          endY: 0,
+          startTime: performance.now(),
+          duration: 300
+        });
       }
     }
   }
-  // Спрайты тоже создаём «выше» и двигаем вниз
-  newCells.forEach(cell => {
-    sprites[cell.r][cell.c] = {
-      type: cell.type,
-      x: cell.c * CELL_SIZE,
-      y: -CELL_SIZE,            // чуть выше
-      targetX: cell.c * CELL_SIZE,
-      targetY: cell.r * CELL_SIZE,
-      alpha: 1,
-      removing: false
-    };
-  });
-
-  if (newCells.length === 0) {
-    // Нечего делать
-    onComplete();
-    return;
-  }
-
-  const startTime = performance.now();
-  const duration = FALL_ANIM_DURATION;
-
-  // Звук падения
-  sfxFalling.currentTime = 0;
-  sfxFalling.play().catch(()=>{});
-
-  function step(now) {
-    const t = Math.min((now - startTime) / duration, 1);
-    newCells.forEach(cell => {
-      const spr = sprites[cell.r][cell.c];
-      if (spr) {
-        spr.y = lerp(-CELL_SIZE, spr.targetY, t);
-      }
-    });
-    if (t < 1) {
-      requestAnimationFrame(step);
-    } else {
-      // Выравниваем
-      newCells.forEach(cell => {
-        const spr = sprites[cell.r][cell.c];
-        spr.y = spr.targetY;
-      });
-      onComplete();
-    }
-  }
-  requestAnimationFrame(step);
+  animating = true;
+  requestAnimationFrame(animationLoop);
 }
 
-// --------------------------------------------------
-// 8. Завершение игры
-// --------------------------------------------------
+// ******************** Завершение игры ********************
 function endMatch3Game() {
   if (match3TimerId) {
     clearInterval(match3TimerId);
