@@ -1,14 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Mobile Games Site</title>
 
-  <!-- Шрифт Press Start 2P -->
+  <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="game1.css">
+  <link rel="stylesheet" href="game2.css">
 
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -29,14 +31,14 @@
       height: 100%;
       background-color: #000; 
       color: #00FF00;
-      overflow-x: hidden; /* Запрет горизонтального скролла */
+      overflow-x: hidden; /* Prevent horizontal scrolling */
     }
     body {
       display: flex;
       flex-direction: column;
     }
 
-    /* Шапка (header) всегда видна */
+    /* Header (always visible) */
     header {
       display: flex;
       align-items: center;
@@ -70,14 +72,14 @@
       gap: 5px;
     }
 
-    /* Основной контейнер для вкладок */
+    /* Main container for sections */
     main {
       flex: 1;
       overflow-y: auto;
       padding: 10px;
     }
 
-    /* Нижняя навигация (иконки без текста) */
+    /* Navigation at the bottom (icons only) */
     nav {
       display: flex;
       justify-content: space-around;
@@ -100,7 +102,7 @@
       filter: brightness(60%);
     }
 
-    /* Скрытые/открытые секции */
+    /* Sections (hidden/visible) */
     .section { 
       display: none; 
     }
@@ -108,48 +110,28 @@
       display: block; 
     }
 
-    /********************************************************
-     * HOME SECTION
-     ********************************************************/
-    #homeSection {
-      /* можно добавить стили, если нужно */
-    }
-    #homeSection h2 {
-      font-size: 20px;
-      margin-bottom: 15px;
-      text-align: center;
-      color: #00FF00;
-    }
-    .game-category {
-      margin-bottom: 30px; /* отступ после группы */
-    }
-    .game-category h3 {
-      font-size: 16px;
-      margin: 20px 0 10px;
-      color: #00FF00;
-    }
-    /* Контейнер с карточками (гибкое расположение) */
+    /* Games section styles */
     .games-container {
-      display: flex;
-      flex-wrap: wrap;
+      display: flex; 
+      flex-wrap: nowrap;
+      overflow-x: auto; 
       gap: 20px;
+      padding: 10px 0;
     }
     .game-card {
-      min-width: 150px;
-      background-color: #111;
+      min-width: 200px;
       border: 2px solid #00FF00;
       border-radius: 5px;
-      text-align: center;
       padding: 10px;
+      text-align: center;
+      flex-shrink: 0;
+      background-color: #111;
     }
     .game-card img {
       width: 80px; 
       height: 80px;
       object-fit: contain; 
-      margin-bottom: 5px;
-    }
-    .game-card p {
-      margin: 5px 0;
+      margin-bottom: 10px;
     }
     .game-card button {
       margin-top: 10px;
@@ -165,9 +147,7 @@
       opacity: 0.8;
     }
 
-    /********************************************************
-     * TICKETS SECTION
-     ********************************************************/
+    /* Tickets section */
     .wheel-container {
       display: flex; 
       flex-direction: column;
@@ -183,7 +163,6 @@
       display: flex; 
       align-items: center;
       justify-content: center; 
-      position: relative;
       background: #111;
     }
     .spin-result {
@@ -204,9 +183,7 @@
       opacity: 0.8;
     }
 
-    /********************************************************
-     * LEADERBOARD SECTION
-     ********************************************************/
+    /* Leaderboard section */
     .leaderboard-container {
       margin-top: 20px;
     }
@@ -229,9 +206,7 @@
       border-radius: 5px;
     }
 
-    /********************************************************
-     * REFERRAL SECTION
-     ********************************************************/
+    /* Referral section */
     .referral-container {
       margin-top: 20px;
       display: flex; 
@@ -258,9 +233,7 @@
       border-radius: 5px;
     }
 
-    /********************************************************
-     * Глобальное Модальное окно (вместо alert)
-     ********************************************************/
+    /* Global modal */
     .modal-backdrop {
       position: fixed; 
       top: 0; 
@@ -303,20 +276,18 @@
       border-radius: 5px;
     }
 
-    /* Модалка для инфо о сезоне */
+    /* Modal for season info */
     .modal-season {
       text-align: left;
     }
 
-    /********************************************************
-     * Полноэкранный блок для игры (кроме header)
-     ********************************************************/
+    /* Fullscreen game block (excluding header) */
     .game-modal-backdrop {
       position: fixed;
-      top: 60px; 
+      top: 60px;
       left: 0;
       width: 100%;
-      height: calc(100% - 60px); 
+      height: calc(100% - 60px);
       background: #000;
       display: none;
       flex-direction: column;
@@ -329,23 +300,21 @@
       flex: 1;
       display: flex; 
       flex-direction: column;
-      margin-top: 60px; /* отступ под header */
+      margin-top: 60px;
     }
-    /* Навигация скрываем, чтобы нельзя было уйти из игры */
+    /* Hide navigation during game */
     .hidden { 
       display: none !important; 
     }
 
     .game-canvas {
-      flex: 1; 
+      flex: 1;
       display: flex; 
       align-items: center; 
       justify-content: center;
     }
 
-    /********************************************************
-     * Итоговое окно после окончания игры
-     ********************************************************/
+    /* Endgame modal */
     .endgame-backdrop {
       position: fixed; 
       top: 0; 
@@ -371,7 +340,7 @@
       text-align: center;
     }
 
-    /* Адаптив */
+    /* Responsive adjustments */
     @media (max-width: 480px) {
       header {
         flex-direction: column; 
@@ -386,11 +355,10 @@
         height: 30px;
       }
     }
-
   </style>
 </head>
 <body>
-  <!-- Шапка (header) всегда видна, даже при игре -->
+  <!-- Header -->
   <header>
     <div class="user-info">
       <img id="userPhoto" src="" alt="Avatar"/>
@@ -399,204 +367,200 @@
     <div class="balances">
       <span>
         <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png"
-             alt="tickets" width="20"/>
+             alt="Tickets" width="20"/>
         <span id="ticketCount">0</span>
       </span>
       <span>
         <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png"
-             alt="coins" width="20"/>
+             alt="Coins" width="20"/>
         <span id="coinCount">0</span>
       </span>
       <span>
         <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png"
-             alt="points" width="20"/>
+             alt="Points" width="20"/>
         <span id="pointCount">0</span>
       </span>
     </div>
   </header>
 
-  <!-- Основной контент -->
+  <!-- Main Content -->
   <main>
-    <!-- Секция HOME (с несколькими группами игр) -->
-    <section id="homeSection" class="section active">
-      <h2>Игры</h2>
+    <!-- Play Section with Game Categories -->
+    <section id="playSection" class="section active">
+      <h2>Play</h2>
       
-      <!-- Основные игры -->
-      <div class="game-category">
-        <h3>Основные игры</h3>
-        <div class="games-container">
-          <!-- Игра 1 (Dino Runner) -->
-          <div class="game-card">
-            <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
-                 alt="Dino Runner">
-            <p>Раннер с динозавром</p>
-            <button onclick="handleStartGame('game1', 1)">Играть (1 билет)</button>
-          </div>
-          <!-- Игра 2 (Match-3) -->
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios-filled/50/00FF00/share.png"
-                 alt="Match-3">
-            <p>"3 в ряд" (неоновая версия)</p>
-            <button onclick="handleStartGame('game2', 1)">Играть (1 билет)</button>
-          </div>
+      <!-- Main Games -->
+      <h3>Main Games</h3>
+      <div class="games-container">
+        <!-- Game 1: Dino Runner -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
+               alt="Dino Runner">
+          <p>Dino Runner</p>
+          <button onclick="handleStartGame('game1', 1)">Play (1 ticket)</button>
+        </div>
+        <!-- Game 2: Match-3 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
+               alt="Match-3">
+          <p>Match-3</p>
+          <button onclick="handleStartGame('game2', 1)">Play (1 ticket)</button>
+        </div>
+        <!-- Game 3 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png"
+               alt="Game 3">
+          <p>Game 3</p>
+          <button onclick="handleStartGame('game3', 1)">Play (1 ticket)</button>
         </div>
       </div>
-
-      <!-- Партнёрские игры -->
-      <div class="game-category">
-        <h3>Партнёрские игры</h3>
-        <div class="games-container">
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios/50/00FF00/online-store.png"
-                 alt="Partner Game">
-            <p>Партнёр #1</p>
-            <button>Играть</button>
-          </div>
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios/50/00FF00/game-controller.png"
-                 alt="Partner Game2">
-            <p>Партнёр #2</p>
-            <button>Играть</button>
-          </div>
+      
+      <!-- Special Games -->
+      <h3>Special Games</h3>
+      <div class="games-container">
+        <!-- Special Game: Special Game 1 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png"
+               alt="Special Game">
+          <p>Special Game</p>
+          <button onclick="handleStartGame('specialgame1', 1)">Play (1 ticket)</button>
         </div>
       </div>
-
-      <!-- Специальные предложения -->
-      <div class="game-category">
-        <h3>Специальные предложения</h3>
-        <div class="games-container">
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios-filled/50/00FF00/star--v1.png"
-                 alt="Special Game">
-            <p>Акция дня</p>
-            <button>Играть</button>
-          </div>
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios-filled/50/00FF00/gift.png"
-                 alt="Special Offer">
-            <p>Сюрприз-бокс</p>
-            <button>Играть</button>
-          </div>
+      
+      <!-- Partner Games -->
+      <h3>Partner Games</h3>
+      <div class="games-container">
+        <!-- Partner Game -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png"
+               alt="Partner Game">
+          <p>Partner Game</p>
+          <button onclick="handleStartGame('partnergame1', 1)">Play (1 ticket)</button>
         </div>
       </div>
     </section>
 
-    <!-- Секция Tickets -->
+    <!-- Tickets Section -->
     <section id="ticketsSection" class="section">
       <h2>Tickets</h2>
       <div class="wheel-container">
         <div class="wheel" id="wheel">
-          <span>Колесо</span>
+          <span>Wheel</span>
         </div>
         <div class="tickets-actions">
-          <button onclick="spinWheel()">Вращать (раз в 24ч)</button>
-          <button onclick="buyTickets()">Купить билеты</button>
+          <button onclick="spinWheel()">Spin (once every 24h)</button>
+          <button onclick="buyTickets()">Buy Tickets</button>
         </div>
         <div class="spin-result" id="spinResult"></div>
       </div>
     </section>
 
-    <!-- Секция Leaderboard -->
+    <!-- Leaderboard Section -->
     <section id="leaderboardSection" class="section">
       <h2>Leaderboard</h2>
-      <button class="info-button" onclick="openSeasonInfoModal()">Инфо</button>
+      <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
       <div class="leaderboard-container">
         <table id="leaderboardTable">
           <thead>
             <tr>
-              <th>Место</th>
-              <th>Пользователь</th>
-              <th>Очки</th>
+              <th>Rank</th>
+              <th>User</th>
+              <th>Points</th>
             </tr>
           </thead>
           <tbody id="leaderboardBody">
-            <!-- ... -->
+            <!-- Leaderboard data populated dynamically -->
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- Секция Referral -->
+    <!-- Referral Section -->
     <section id="referralSection" class="section">
       <h2>Referral</h2>
       <div class="referral-container">
-        <p>Приглашайте друзей по ссылке и получайте бонусы!</p>
+        <p>Invite your friends using the link and earn bonuses!</p>
         <div class="referral-link" id="referralLink">
-          Ссылка появится после авторизации...
+          Link will appear after login...
         </div>
-        <button class="copy-button" onclick="copyReferralLink()">Скопировать</button>
+        <button class="copy-button" onclick="copyReferralLink()">Copy</button>
       </div>
     </section>
   </main>
 
-  <!-- Нижняя навигация (иконки) -->
+  <!-- Bottom Navigation -->
   <nav id="mainNav">
-    <!-- Кнопка Home -->
-    <button onclick="showSection('homeSection')">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/home.png" alt="Home"/>
+    <button onclick="showSection('playSection')">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/playing.png" alt="Play"/>
     </button>
-    <!-- Кнопка Tickets -->
     <button onclick="showSection('ticketsSection')">
       <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets"/>
     </button>
-    <!-- Кнопка Leaderboard -->
     <button onclick="showSection('leaderboardSection')">
       <img src="https://img.icons8.com/ios-filled/50/00FF00/trophy.png" alt="Leaderboard"/>
     </button>
-    <!-- Кнопка Referral -->
     <button onclick="showSection('referralSection')">
       <img src="https://img.icons8.com/ios-filled/50/00FF00/share.png" alt="Referral"/>
     </button>
   </nav>
 
-  <!-- Глобальное окно для сообщений -->
+  <!-- Global Modal -->
   <div class="modal-backdrop" id="globalModalBackdrop">
     <div class="modal">
-      <h2 id="globalModalTitle">Сообщение</h2>
+      <h2 id="globalModalTitle">Message</h2>
       <p id="globalModalMessage"></p>
       <button class="close-modal" onclick="closeGlobalModal()">OK</button>
     </div>
   </div>
 
-  <!-- Модалка для инфо о сезоне -->
+  <!-- Season Info Modal -->
   <div class="modal-backdrop" id="seasonModalBackdrop">
     <div class="modal modal-season">
-      <h2>Информация о сезоне</h2>
+      <h2>Season Information</h2>
       <p>
-        Здесь можно указать детали сезона, призы, сроки и т.д.
+        Details about the season, prizes, deadlines, etc.
       </p>
-      <button class="close-modal" onclick="closeSeasonModal()">Закрыть</button>
+      <button class="close-modal" onclick="closeSeasonModal()">Close</button>
     </div>
   </div>
 
-  <!-- Полноэкранный блок для игры (кроме header) -->
+  <!-- Fullscreen Game Modal -->
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
       <div class="game-canvas">
-        <!-- Canvas Dino -->
+        <!-- Canvas for Game 1 -->
         <canvas id="gameCanvas" width="400" height="200" style="display: none;"></canvas>
-        <!-- Canvas Match-3 -->
+        <!-- Canvas for Game 2 (Match-3) -->
         <canvas id="match3Canvas" width="400" height="400" style="display: none;"></canvas>
+        <!-- Canvas for Partner Game -->
+        <canvas id="partnerGameCanvas" width="400" height="200" style="display: none;"></canvas>
+        <!-- Canvas for Special Game -->
+        <canvas id="specialGameCanvas" width="400" height="200" style="display: none;"></canvas>
+        <!-- Canvas for Game 3 -->
+        <canvas id="game3Canvas" width="400" height="200" style="display: none;"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Итоговое окно после окончания игры -->
+  <!-- Endgame Modal -->
   <div class="endgame-backdrop" id="endgameBackdrop">
     <div class="endgame-modal">
-      <h2 id="endgameTitle">Результат</h2>
+      <h2 id="endgameTitle">Result</h2>
       <p id="endgameMessage"></p>
-      <button class="close-modal" onclick="finishGame()">Закрыть</button>
+      <button class="close-modal" onclick="finishGame()">Close</button>
     </div>
   </div>
 
-  <!-- Скрипты игр + основной скрипт -->
+  <!-- Game Scripts and Main Script -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
+  <script src="partnergame1.js"></script>
+  <script src="specialgame1.js"></script>
+  <script src="game3.js"></script>
   <script>
-    /* --------------------------------------------------------------------
-       1. Инициализация Firebase
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       1. Firebase Initialization
+    ---------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -610,19 +574,19 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    /* --------------------------------------------------------------------
+    /* ----------------------------------------------
        2. Telegram Web App
-       -------------------------------------------------------------------- */
+    ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    /* --------------------------------------------------------------------
-       3. Глобальные переменные
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       3. Global Variables
+    ---------------------------------------------- */
     let currentUser = null;
     let userRef = null;
 
-    // Локальные данные пользователя (для промежуточного обновления)
+    // Local user data (to update scores during game)
     let localUserData = {
       photo: '',
       tickets: 0,
@@ -630,12 +594,9 @@
       points: 0
     };
 
-    // Флаг, что игра идёт
+    // Flag indicating an ongoing game
     let gameInProgress = false;
 
-    /* --------------------------------------------------------------------
-       4. Старт: проверяем пользователя Telegram
-       -------------------------------------------------------------------- */
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
@@ -644,10 +605,8 @@
       }
 
       userRef = db.ref('users/' + currentUser.username);
-      // Проверяем, есть ли пользователь в БД
       userRef.once('value', snapshot => {
         if (!snapshot.exists()) {
-          // Создаём начальные данные (можно дать стартовые билеты)
           userRef.set({
             photo: currentUser.photo_url || '',
             tickets: 0,
@@ -656,13 +615,11 @@
           });
         }
       });
-      // Подпишемся на изменения в БД
       userRef.on('value', snapshot => {
         const data = snapshot.val() || {};
         if (!gameInProgress) {
           localUserData = data;
         } else {
-          // Если игра идёт, не трогаем points (чтобы не сбить счёт)
           localUserData.tickets = data.tickets || 0;
           localUserData.coins   = data.coins   || 0;
         }
@@ -670,26 +627,26 @@
       });
     }
 
-    /* --------------------------------------------------------------------
-       5. Функция обновления шапки (top bar)
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       4. Update Top Bar (Header)
+    ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
-      document.getElementById('coinCount').textContent   = localUserData.coins   || 0;
-      document.getElementById('pointCount').textContent  = localUserData.points  || 0;
+      document.getElementById('coinCount').textContent   = localUserData.coins || 0;
+      document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
 
-    /* --------------------------------------------------------------------
-       6. Переключение вкладок (разделов)
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       5. Section Switching
+    ---------------------------------------------- */
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.getElementById(sectionId).classList.add('active');
     }
 
-    /* --------------------------------------------------------------------
-       7. Глобальное модальное окно (вместо alert)
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       6. Global Modal (instead of alert)
+    ---------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
       document.getElementById('globalModalMessage').textContent = message;
@@ -699,112 +656,118 @@
       document.getElementById('globalModalBackdrop').classList.remove('active');
     }
 
-    /* --------------------------------------------------------------------
-       8. Запуск игры (скрываем nav, показываем canvas)
-       -------------------------------------------------------------------- */
-    let currentGame = null; // 'game1' или 'game2'
+    /* ----------------------------------------------
+       7. Start Game (hide nav, show canvas)
+    ---------------------------------------------- */
+    let lastSpinTime = 0; // for the wheel of fortune
+    let currentGame = null; // 'game1', 'game2', 'partnergame1', 'specialgame1', or 'game3'
 
     function handleStartGame(gameName, ticketCost) {
       if (!currentUser || !userRef) {
-        showGlobalModal('Ошибка', 'Нет данных о пользователе!');
+        showGlobalModal('Error', 'No user data available!');
         return;
       }
-      // Проверим билеты
       if ((localUserData.tickets || 0) < ticketCost) {
-        showGlobalModal('Нет билетов', 'У вас недостаточно билетов для игры!');
+        showGlobalModal('Not enough tickets', 'You do not have enough tickets to play!');
         return;
       }
-      // Списываем билеты локально
+      // Deduct tickets locally
       localUserData.tickets -= ticketCost;
       updateTopBar();
-      // Сразу пишем в БД
       userRef.update({ tickets: localUserData.tickets });
 
-      // Запускаем игру
       currentGame = gameName;
       gameInProgress = true;
-
-      // Прячем нижнюю навигацию
       document.getElementById('mainNav').classList.add('hidden');
 
-      // Скрываем оба canvas
+      // Hide all canvas elements
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
+      document.getElementById('partnerGameCanvas').style.display = 'none';
+      document.getElementById('specialGameCanvas').style.display = 'none';
+      document.getElementById('game3Canvas').style.display = 'none';
 
-      // Показываем блок игры
+      // Show game modal
       document.getElementById('gameModalBackdrop').classList.add('active');
 
-      // Инициируем нужную игру
+      // Initialize the selected game
       if (gameName === 'game1') {
         document.getElementById('gameCanvas').style.display = 'block';
-        initGame1(); // из game1.js
-      } else {
+        initGame1(); // Defined in game1.js
+      } else if (gameName === 'game2') {
         document.getElementById('match3Canvas').style.display = 'block';
-        initGame2(); // из game2.js
+        initGame2(); // Defined in game2.js
+      } else if (gameName === 'partnergame1') {
+        document.getElementById('partnerGameCanvas').style.display = 'block';
+        initPartnerGame1(); // Defined in partnergame1.js
+      } else if (gameName === 'specialgame1') {
+        document.getElementById('specialGameCanvas').style.display = 'block';
+        initSpecialGame1(); // Defined in specialgame1.js
+      } else if (gameName === 'game3') {
+        document.getElementById('game3Canvas').style.display = 'block';
+        initGame3(); // Defined in game3.js
       }
     }
 
-    /* Функция показа итогового окна (вызывается из игр) */
+    /* ----------------------------------------------
+       8. End Game Modal (called from games)
+    ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = title;
       document.getElementById('endgameMessage').textContent = message;
       document.getElementById('endgameBackdrop').classList.add('active');
     }
 
-    /* По нажатию "Закрыть" на итоговом окне */
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       closeGameModal();
     }
 
-    /* Закрыть игру и вернуть интерфейс */
+    /* ----------------------------------------------
+       9. Close Game and Return to Interface
+    ---------------------------------------------- */
     function closeGameModal() {
       document.getElementById('gameModalBackdrop').classList.remove('active');
       document.getElementById('mainNav').classList.remove('hidden');
-
-      // Сохраняем итоговые очки (если менялись)
       if (userRef && currentGame) {
         userRef.update({ points: localUserData.points });
       }
-
-      // Сбрасываем игру
       if (currentGame === 'game1') {
         resetGame1();
       } else if (currentGame === 'game2') {
         resetGame2();
+      } else if (currentGame === 'partnergame1') {
+        resetPartnerGame1();
+      } else if (currentGame === 'specialgame1') {
+        resetSpecialGame1();
+      } else if (currentGame === 'game3') {
+        resetGame3();
       }
       currentGame = null;
       gameInProgress = false;
     }
 
-    /* --------------------------------------------------------------------
-       9. Колесо фортуны / Tickets
-       -------------------------------------------------------------------- */
-    let lastSpinTime = 0;
+    /* ----------------------------------------------
+       10. Wheel of Fortune / Tickets
+    ---------------------------------------------- */
     function spinWheel() {
       if (!currentUser) return;
       const now = Date.now();
-      // Пример: раз в 24 часа
       if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
-        showGlobalModal('Колесо фортуны', 'Бесплатное вращение доступно раз в 24 часа!');
+        showGlobalModal('Wheel of Fortune', 'Free spin available once every 24 hours!');
         return;
       }
       lastSpinTime = now;
-
-      // Случайная награда
       const possibleRewards = [5, 10, 15, 20];
       const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
-
       localUserData.tickets += reward;
       updateTopBar();
       userRef.update({ tickets: localUserData.tickets });
-
-      document.getElementById('spinResult').textContent = `Вы выиграли ${reward} билетов!`;
+      document.getElementById('spinResult').textContent = `You won ${reward} tickets!`;
     }
 
     function buyTickets() {
       if (!currentUser) return;
-      // 1 монета = 1 билет
       if ((localUserData.coins || 0) > 0) {
         localUserData.coins -= 1;
         localUserData.tickets += 1;
@@ -813,15 +776,15 @@
           coins: localUserData.coins,
           tickets: localUserData.tickets
         });
-        showGlobalModal('Покупка билетов', 'Вы купили 1 билет за 1 монету!');
+        showGlobalModal('Ticket Purchase', 'You purchased 1 ticket for 1 coin!');
       } else {
-        showGlobalModal('Ошибка', 'Недостаточно монет для покупки билетов!');
+        showGlobalModal('Error', 'Not enough coins to purchase tickets!');
       }
     }
 
-    /* --------------------------------------------------------------------
-       10. Leaderboard
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       11. Leaderboard
+    ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
       const usersData = snapshot.val() || {};
@@ -829,16 +792,14 @@
         username: uname,
         points: obj.points || 0
       }));
-      // Сортируем
-      usersArray.sort((a,b) => b.points - a.points);
-      const topUsers = usersArray.slice(0,10);
-
+      usersArray.sort((a, b) => b.points - a.points);
+      const topUsers = usersArray.slice(0, 10);
       const tbody = document.getElementById('leaderboardBody');
       tbody.innerHTML = '';
       topUsers.forEach((user, i) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${i+1}</td>
+          <td>${i + 1}</td>
           <td>@${user.username}</td>
           <td>${user.points}</td>
         `;
@@ -853,13 +814,13 @@
       document.getElementById('seasonModalBackdrop').classList.remove('active');
     }
 
-    /* --------------------------------------------------------------------
-       11. Referral
-       -------------------------------------------------------------------- */
+    /* ----------------------------------------------
+       12. Referral
+    ---------------------------------------------- */
     function copyReferralLink() {
       const link = document.getElementById('referralLink').textContent;
       navigator.clipboard.writeText(link).then(() => {
-        showGlobalModal('Скопировано', 'Реферальная ссылка скопирована в буфер обмена!');
+        showGlobalModal('Copied', 'Referral link copied to clipboard!');
       });
     }
   </script>
