@@ -67,7 +67,7 @@ function initGame3() {
   
   // Загрузим картинки (простейший способ)
   bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
-  playerImage.src   = "https://tenor.com/bA9rc.gif"; 
+  playerImage.src   = "https://i.pinimg.com/originals/fb/cf/03/fbcf03ca4b5c2bb86b17be104058d4c8.jpg"; 
   coinImage.src     = "https://i.gifer.com/xt.gif";
   enemyImage1.src   = "https://i.gifer.com/XOsa.gif";
   enemyImage2.src   = "https://i.gifer.com/Vp3M.gif";
