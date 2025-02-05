@@ -66,7 +66,7 @@ function initGame3() {
   ctx3        = game3Canvas.getContext("2d");
   
   // Загрузим картинки (простейший способ)
-  bgImage.src       = "https://i.gifer.com/7D4v.gif"; 
+  bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
   playerImage.src   = "https://tenor.com/bA9rc.gif"; 
   coinImage.src     = "https://i.gifer.com/xt.gif";
   enemyImage1.src   = "https://i.gifer.com/XOsa.gif";
