@@ -9,8 +9,6 @@
   <!-- Шрифт Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="game1.css">
-  <link rel="stylesheet" href="game2.css">
 
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -110,28 +108,48 @@
       display: block; 
     }
 
-    /* Раздел Play */
+    /********************************************************
+     * HOME SECTION
+     ********************************************************/
+    #homeSection {
+      /* можно добавить стили, если нужно */
+    }
+    #homeSection h2 {
+      font-size: 20px;
+      margin-bottom: 15px;
+      text-align: center;
+      color: #00FF00;
+    }
+    .game-category {
+      margin-bottom: 30px; /* отступ после группы */
+    }
+    .game-category h3 {
+      font-size: 16px;
+      margin: 20px 0 10px;
+      color: #00FF00;
+    }
+    /* Контейнер с карточками (гибкое расположение) */
     .games-container {
-      display: flex; 
-      flex-wrap: nowrap;
-      overflow-x: auto; 
+      display: flex;
+      flex-wrap: wrap;
       gap: 20px;
-      padding: 10px;
     }
     .game-card {
-      min-width: 200px;
+      min-width: 150px;
+      background-color: #111;
       border: 2px solid #00FF00;
       border-radius: 5px;
-      padding: 10px;
       text-align: center;
-      flex-shrink: 0;
-      background-color: #111;
+      padding: 10px;
     }
     .game-card img {
       width: 80px; 
       height: 80px;
       object-fit: contain; 
-      margin-bottom: 10px;
+      margin-bottom: 5px;
+    }
+    .game-card p {
+      margin: 5px 0;
     }
     .game-card button {
       margin-top: 10px;
@@ -147,7 +165,9 @@
       opacity: 0.8;
     }
 
-    /* Раздел Tickets */
+    /********************************************************
+     * TICKETS SECTION
+     ********************************************************/
     .wheel-container {
       display: flex; 
       flex-direction: column;
@@ -184,7 +204,9 @@
       opacity: 0.8;
     }
 
-    /* Раздел Leaderboard */
+    /********************************************************
+     * LEADERBOARD SECTION
+     ********************************************************/
     .leaderboard-container {
       margin-top: 20px;
     }
@@ -207,7 +229,9 @@
       border-radius: 5px;
     }
 
-    /* Раздел Referral */
+    /********************************************************
+     * REFERRAL SECTION
+     ********************************************************/
     .referral-container {
       margin-top: 20px;
       display: flex; 
@@ -234,7 +258,9 @@
       border-radius: 5px;
     }
 
-    /* Глобальное Модальное окно (вместо alert) */
+    /********************************************************
+     * Глобальное Модальное окно (вместо alert)
+     ********************************************************/
     .modal-backdrop {
       position: fixed; 
       top: 0; 
@@ -282,13 +308,15 @@
       text-align: left;
     }
 
-    /* "Полноэкранный" блок для игры (кроме header) */
+    /********************************************************
+     * Полноэкранный блок для игры (кроме header)
+     ********************************************************/
     .game-modal-backdrop {
       position: fixed;
-      top: 60px; /* вместо 0 */
+      top: 60px; 
       left: 0;
       width: 100%;
-      height: calc(100% - 60px); /* чтобы область игры была на оставшейся высоте */
+      height: calc(100% - 60px); 
       background: #000;
       display: none;
       flex-direction: column;
@@ -309,13 +337,15 @@
     }
 
     .game-canvas {
-      flex: 1; /* Заполнить всё оставшееся место */
+      flex: 1; 
       display: flex; 
       align-items: center; 
       justify-content: center;
     }
 
-    /* Итоговое окно после проигрыша / окончания игры */
+    /********************************************************
+     * Итоговое окно после окончания игры
+     ********************************************************/
     .endgame-backdrop {
       position: fixed; 
       top: 0; 
@@ -356,6 +386,7 @@
         height: 30px;
       }
     }
+
   </style>
 </head>
 <body>
@@ -386,49 +417,71 @@
 
   <!-- Основной контент -->
   <main>
-    <!-- Раздел Play -->
-    <section id="playSection" class="section active">
-      <h2>Play</h2>
-      <div class="games-container">
-        <!-- Игра 1 (Dino Runner) -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
-               alt="Dino Runner">
-          <p>Раннер с динозавром</p>
-          <button onclick="handleStartGame('game1', 1)">Играть (1 билет)</button>
+    <!-- Секция HOME (с несколькими группами игр) -->
+    <section id="homeSection" class="section active">
+      <h2>Игры</h2>
+      
+      <!-- Основные игры -->
+      <div class="game-category">
+        <h3>Основные игры</h3>
+        <div class="games-container">
+          <!-- Игра 1 (Dino Runner) -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
+                 alt="Dino Runner">
+            <p>Раннер с динозавром</p>
+            <button onclick="handleStartGame('game1', 1)">Играть (1 билет)</button>
+          </div>
+          <!-- Игра 2 (Match-3) -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/share.png"
+                 alt="Match-3">
+            <p>"3 в ряд" (неоновая версия)</p>
+            <button onclick="handleStartGame('game2', 1)">Играть (1 билет)</button>
+          </div>
         </div>
-        <!-- Игра 2 (Match-3) -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
-               alt="Match-3">
-          <p>"3 в ряд"</p>
-          <button onclick="handleStartGame('game2', 1)">Играть (1 билет)</button>
+      </div>
+
+      <!-- Партнёрские игры -->
+      <div class="game-category">
+        <h3>Партнёрские игры</h3>
+        <div class="games-container">
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios/50/00FF00/online-store.png"
+                 alt="Partner Game">
+            <p>Партнёр #1</p>
+            <button>Играть</button>
+          </div>
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios/50/00FF00/game-controller.png"
+                 alt="Partner Game2">
+            <p>Партнёр #2</p>
+            <button>Играть</button>
+          </div>
         </div>
-        <!-- Партнерская игра -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png"
-               alt="Partner Game">
-          <p>Партнерская игра</p>
-          <button onclick="handleStartGame('partnergame1', 1)">Играть (1 билет)</button>
-        </div>
-        <!-- Специальная игра -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png"
-               alt="Special Game">
-          <p>Специальная игра</p>
-          <button onclick="handleStartGame('specialgame1', 1)">Играть (1 билет)</button>
-        </div>
-        <!-- Игра 3 -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png"
-               alt="Game 3">
-          <p>Игра 3</p>
-          <button onclick="handleStartGame('game3', 1)">Играть (1 билет)</button>
+      </div>
+
+      <!-- Специальные предложения -->
+      <div class="game-category">
+        <h3>Специальные предложения</h3>
+        <div class="games-container">
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/star--v1.png"
+                 alt="Special Game">
+            <p>Акция дня</p>
+            <button>Играть</button>
+          </div>
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/gift.png"
+                 alt="Special Offer">
+            <p>Сюрприз-бокс</p>
+            <button>Играть</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Раздел Tickets -->
+    <!-- Секция Tickets -->
     <section id="ticketsSection" class="section">
       <h2>Tickets</h2>
       <div class="wheel-container">
@@ -443,7 +496,7 @@
       </div>
     </section>
 
-    <!-- Раздел Leaderboard -->
+    <!-- Секция Leaderboard -->
     <section id="leaderboardSection" class="section">
       <h2>Leaderboard</h2>
       <button class="info-button" onclick="openSeasonInfoModal()">Инфо</button>
@@ -463,7 +516,7 @@
       </div>
     </section>
 
-    <!-- Раздел Referral -->
+    <!-- Секция Referral -->
     <section id="referralSection" class="section">
       <h2>Referral</h2>
       <div class="referral-container">
@@ -478,15 +531,19 @@
 
   <!-- Нижняя навигация (иконки) -->
   <nav id="mainNav">
-    <button onclick="showSection('playSection')">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/playing.png" alt="Play"/>
+    <!-- Кнопка Home -->
+    <button onclick="showSection('homeSection')">
+      <img src="https://img.icons8.com/ios-filled/50/00FF00/home.png" alt="Home"/>
     </button>
+    <!-- Кнопка Tickets -->
     <button onclick="showSection('ticketsSection')">
       <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets"/>
     </button>
+    <!-- Кнопка Leaderboard -->
     <button onclick="showSection('leaderboardSection')">
       <img src="https://img.icons8.com/ios-filled/50/00FF00/trophy.png" alt="Leaderboard"/>
     </button>
+    <!-- Кнопка Referral -->
     <button onclick="showSection('referralSection')">
       <img src="https://img.icons8.com/ios-filled/50/00FF00/share.png" alt="Referral"/>
     </button>
@@ -516,16 +573,10 @@
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
       <div class="game-canvas">
-        <!-- Canvas для game1 -->
+        <!-- Canvas Dino -->
         <canvas id="gameCanvas" width="400" height="200" style="display: none;"></canvas>
-        <!-- Canvas для game2 (Match-3) -->
+        <!-- Canvas Match-3 -->
         <canvas id="match3Canvas" width="400" height="400" style="display: none;"></canvas>
-        <!-- Canvas для Partner Game -->
-        <canvas id="partnerGameCanvas" width="400" height="200" style="display: none;"></canvas>
-        <!-- Canvas для Special Game -->
-        <canvas id="specialGameCanvas" width="400" height="200" style="display: none;"></canvas>
-        <!-- Canvas для Game 3 -->
-        <canvas id="game3Canvas" width="400" height="200" style="display: none;"></canvas>
       </div>
     </div>
   </div>
@@ -542,9 +593,6 @@
   <!-- Скрипты игр + основной скрипт -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
-  <script src="partnergame1.js"></script>
-  <script src="specialgame1.js"></script>
-  <script src="game3.js"></script>
   <script>
     /* --------------------------------------------------------------------
        1. Инициализация Firebase
@@ -574,7 +622,7 @@
     let currentUser = null;
     let userRef = null;
 
-    // Локальные данные пользователя (чтобы можно было обновлять очки во время игры)
+    // Локальные данные пользователя (для промежуточного обновления)
     let localUserData = {
       photo: '',
       tickets: 0,
@@ -596,10 +644,10 @@
       }
 
       userRef = db.ref('users/' + currentUser.username);
-      // Проверим, есть ли пользователь в БД
+      // Проверяем, есть ли пользователь в БД
       userRef.once('value', snapshot => {
         if (!snapshot.exists()) {
-          // При желании, можно дать стартовые билеты
+          // Создаём начальные данные (можно дать стартовые билеты)
           userRef.set({
             photo: currentUser.photo_url || '',
             tickets: 0,
@@ -611,12 +659,10 @@
       // Подпишемся на изменения в БД
       userRef.on('value', snapshot => {
         const data = snapshot.val() || {};
-        // Если игры нет, берем все поля
         if (!gameInProgress) {
           localUserData = data;
         } else {
-          // Если игра в процессе,
-          // синхронизируем только билеты и монеты, не трогаем очки (чтобы не перезаписать).
+          // Если игра идёт, не трогаем points (чтобы не сбить счёт)
           localUserData.tickets = data.tickets || 0;
           localUserData.coins   = data.coins   || 0;
         }
@@ -656,8 +702,7 @@
     /* --------------------------------------------------------------------
        8. Запуск игры (скрываем nav, показываем canvas)
        -------------------------------------------------------------------- */
-    let lastSpinTime = 0; // для примера в колесе фортуны
-    let currentGame = null; // 'game1', 'game2', 'partnergame1', 'specialgame1' или 'game3'
+    let currentGame = null; // 'game1' или 'game2'
 
     function handleStartGame(gameName, ticketCost) {
       if (!currentUser || !userRef) {
@@ -672,8 +717,7 @@
       // Списываем билеты локально
       localUserData.tickets -= ticketCost;
       updateTopBar();
-
-      // Сразу пишем в БД изменение билетов
+      // Сразу пишем в БД
       userRef.update({ tickets: localUserData.tickets });
 
       // Запускаем игру
@@ -683,12 +727,9 @@
       // Прячем нижнюю навигацию
       document.getElementById('mainNav').classList.add('hidden');
 
-      // Скрываем все canvas
+      // Скрываем оба canvas
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
-      document.getElementById('partnerGameCanvas').style.display = 'none';
-      document.getElementById('specialGameCanvas').style.display = 'none';
-      document.getElementById('game3Canvas').style.display = 'none';
 
       // Показываем блок игры
       document.getElementById('gameModalBackdrop').classList.add('active');
@@ -697,27 +738,16 @@
       if (gameName === 'game1') {
         document.getElementById('gameCanvas').style.display = 'block';
         initGame1(); // из game1.js
-      } else if (gameName === 'game2') {
+      } else {
         document.getElementById('match3Canvas').style.display = 'block';
         initGame2(); // из game2.js
-      } else if (gameName === 'partnergame1') {
-        document.getElementById('partnerGameCanvas').style.display = 'block';
-        initPartnerGame1(); // из partnergame1.js
-      } else if (gameName === 'specialgame1') {
-        document.getElementById('specialGameCanvas').style.display = 'block';
-        initSpecialGame1(); // из specialgame1.js
-      } else if (gameName === 'game3') {
-        document.getElementById('game3Canvas').style.display = 'block';
-        initGame3(); // из game3.js
       }
     }
 
     /* Функция показа итогового окна (вызывается из игр) */
     function showEndGameModal(title, message) {
-      // Заполнить заголовок, текст
       document.getElementById('endgameTitle').textContent = title;
       document.getElementById('endgameMessage').textContent = message;
-      // Показать
       document.getElementById('endgameBackdrop').classList.add('active');
     }
 
@@ -729,28 +759,19 @@
 
     /* Закрыть игру и вернуть интерфейс */
     function closeGameModal() {
-      // Скрываем блок игры
       document.getElementById('gameModalBackdrop').classList.remove('active');
-
-      // Возвращаем нижнюю навигацию
       document.getElementById('mainNav').classList.remove('hidden');
 
-      // Сохраняем итоговые очки в БД (если изменялись)
+      // Сохраняем итоговые очки (если менялись)
       if (userRef && currentGame) {
         userRef.update({ points: localUserData.points });
       }
 
-      // Сбрасываем игру в зависимости от currentGame
+      // Сбрасываем игру
       if (currentGame === 'game1') {
         resetGame1();
       } else if (currentGame === 'game2') {
         resetGame2();
-      } else if (currentGame === 'partnergame1') {
-        resetPartnerGame1();
-      } else if (currentGame === 'specialgame1') {
-        resetSpecialGame1();
-      } else if (currentGame === 'game3') {
-        resetGame3();
       }
       currentGame = null;
       gameInProgress = false;
@@ -759,10 +780,11 @@
     /* --------------------------------------------------------------------
        9. Колесо фортуны / Tickets
        -------------------------------------------------------------------- */
+    let lastSpinTime = 0;
     function spinWheel() {
       if (!currentUser) return;
-
       const now = Date.now();
+      // Пример: раз в 24 часа
       if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
         showGlobalModal('Колесо фортуны', 'Бесплатное вращение доступно раз в 24 часа!');
         return;
@@ -773,7 +795,6 @@
       const possibleRewards = [5, 10, 15, 20];
       const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
 
-      // Локальное + БД обновление
       localUserData.tickets += reward;
       updateTopBar();
       userRef.update({ tickets: localUserData.tickets });
@@ -783,7 +804,7 @@
 
     function buyTickets() {
       if (!currentUser) return;
-      // Допустим, 1 билет = 1 монета
+      // 1 монета = 1 билет
       if ((localUserData.coins || 0) > 0) {
         localUserData.coins -= 1;
         localUserData.tickets += 1;
@@ -801,9 +822,7 @@
     /* --------------------------------------------------------------------
        10. Leaderboard
        -------------------------------------------------------------------- */
-    let leaderboardRef = null;
-    // Чтобы увидеть, как изменяются очки, можно слушать общую таблицу:
-    leaderboardRef = db.ref('users');
+    let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
       const usersData = snapshot.val() || {};
       const usersArray = Object.entries(usersData).map(([uname, obj]) => ({
@@ -811,15 +830,15 @@
         points: obj.points || 0
       }));
       // Сортируем
-      usersArray.sort((a, b) => b.points - a.points);
-      const topUsers = usersArray.slice(0, 10);
+      usersArray.sort((a,b) => b.points - a.points);
+      const topUsers = usersArray.slice(0,10);
 
       const tbody = document.getElementById('leaderboardBody');
       tbody.innerHTML = '';
       topUsers.forEach((user, i) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${i + 1}</td>
+          <td>${i+1}</td>
           <td>@${user.username}</td>
           <td>${user.points}</td>
         `;
@@ -846,4 +865,3 @@
   </script>
 </body>
 </html>
-
