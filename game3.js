@@ -12,7 +12,7 @@ let canvasHeight = 0;
 // Контейнер для добавления DOM‑элементов игры (например, спрайтов)
 let gameContainer;
 
-// Player (Kirby)
+// Игрок (Kirby)
 const player = {
   x: 100,
   y: 150,
@@ -59,11 +59,9 @@ const collisionMargin = 10;
  * Инициализирует игру (вызывается из основного скрипта при выборе "Game 3")
  */
 function initGame3() {
-  // Получаем canvas для Game 3 (он уже присутствует в index.html)
   const canvas = document.getElementById("game3Canvas");
   
-  // Определяем контейнер для DOM‑элементов игры (спрайтов врагов, монет, игрока)
-  // В нашем index.html контейнером является блок с классом "game-canvas"
+  // Получаем контейнер для DOM‑элементов игры (например, спрайтов) из игрового модального окна
   gameContainer = document.querySelector("#gameModalBackdrop .game-canvas");
   // Если позиционирование не задано, делаем контейнер относительным
   if (getComputedStyle(gameContainer).position === "static") {
@@ -88,10 +86,10 @@ function initGame3() {
   scoreThisRun = 0;
   bgX = 0;
   
-  // Создаём или показываем игрока (Kirby)
+  // Создаём (или показываем) спрайт игрока (Kirby)
   if (!player.el) {
     const kirby = document.createElement("img");
-    kirby.src = "kirby.gif"; // замените при необходимости на свой спрайт
+    kirby.src = "kirby.gif"; // Замените при необходимости на свой спрайт
     kirby.style.position = "absolute";
     kirby.style.width  = player.width + "px";
     kirby.style.height = player.height + "px";
@@ -104,7 +102,7 @@ function initGame3() {
     player.el.style.display = "block";
   }
   
-  // Добавляем обработчики ввода (пробел, клик, касание)
+  // Добавляем обработчики ввода (клавиатура, мышь, касание)
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("mousedown", onClickOrTouch);
   document.addEventListener("touchstart", onClickOrTouch);
@@ -113,13 +111,20 @@ function initGame3() {
 }
 
 /**
- * При изменении размеров окна корректирует размер canvas
+ * Корректирует размеры canvas под размеры игрового окна
  */
 function resizeCanvas() {
-  canvasWidth  = window.innerWidth;
-  canvasHeight = window.innerHeight;
   const canvas = document.getElementById("game3Canvas");
-  canvas.width  = canvasWidth;
+  // Вместо window.innerWidth/innerHeight берём размеры игрового модального окна
+  const gameModalBackdrop = document.getElementById("gameModalBackdrop");
+  if (gameModalBackdrop) {
+    canvasWidth = gameModalBackdrop.clientWidth;
+    canvasHeight = gameModalBackdrop.clientHeight;
+  } else {
+    canvasWidth = window.innerWidth;
+    canvasHeight = window.innerHeight;
+  }
+  canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 }
 
@@ -133,7 +138,7 @@ function updateGame() {
   // Рисуем фон
   drawScrollingBackground();
   
-  // Создаём врагов через определённый интервал
+  // Генерация врагов
   enemyTimer++;
   if (enemyTimer > enemyInterval) {
     createEnemy();
@@ -160,7 +165,7 @@ function updateGame() {
     return true;
   });
   
-  // Создаём монеты через заданный интервал
+  // Генерация монет
   coinTimer++;
   if (coinTimer > coinInterval) {
     createCoin();
@@ -187,10 +192,10 @@ function updateGame() {
     return true;
   });
   
-  // Обновляем позицию игрока (Kirby)
+  // Обновляем положение игрока (Kirby)
   updatePlayer();
   
-  // Отображаем счёт (количество собранных монет) на canvas
+  // Отображаем текущий счёт (количество собранных монет)
   ctx.fillStyle = "white";
   ctx.font = "24px Arial";
   ctx.fillText(`Coins this run: ${scoreThisRun}`, 20, 40);
@@ -201,7 +206,7 @@ function updateGame() {
 }
 
 /**
- * Функция для прорисовки прокручивающегося фона
+ * Рисует прокручивающийся фон
  */
 function drawScrollingBackground() {
   bgX -= 1;
@@ -220,7 +225,7 @@ function createEnemy() {
   const enemyEl = document.createElement("img");
   enemyEl.src = enemyGif;
   enemyEl.style.position = "absolute";
-  enemyEl.style.width  = enemyWidth  + "px";
+  enemyEl.style.width  = enemyWidth + "px";
   enemyEl.style.height = enemyHeight + "px";
   enemyEl.style.left   = canvasWidth + "px";
   enemyEl.style.top    = randY + "px";
@@ -261,7 +266,7 @@ function createCoin() {
 }
 
 /**
- * Обновляет положение игрока (Kirby) с учётом гравитации и прыжка
+ * Обновляет положение игрока с учетом гравитации и прыжка
  */
 function updatePlayer() {
   player.velocityY += player.gravity;
@@ -274,7 +279,7 @@ function updatePlayer() {
     player.y = 0;
     player.velocityY = 0;
   }
-  // Если игрок опускается ниже нижнего края, завершаем игру
+  // Если игрок опускается ниже игрового поля — заканчиваем игру
   if (player.y + player.height > canvasHeight) {
     gameOver();
   }
@@ -298,7 +303,7 @@ function flap() {
 }
 
 /**
- * Проверяет столкновение объекта игрока с переданным объектом (врагом или монетой)
+ * Проверяет столкновение игрока с объектом (врагом или монетой)
  */
 function checkCollision(pl, obj) {
   const pr = {
@@ -325,9 +330,8 @@ function checkCollision(pl, obj) {
 }
 
 /**
- * Завершение игры: останавливает игровой цикл, убирает обработчики ввода,
- * добавляет собранные монеты к общему количеству игрока и вызывает переход к
- * завершающему окну (вызовется функция finishGame() из основного скрипта).
+ * Завершает игру: останавливает игровой цикл, удаляет обработчики ввода,
+ * обновляет монеты в базе данных и выводит модальное окно "Game Over".
  */
 function gameOver() {
   player.alive = false;
@@ -337,56 +341,19 @@ function gameOver() {
   document.removeEventListener("touchstart", onClickOrTouch);
   isGameRunning = false;
   
-  // Добавляем заработанные монеты к общему количеству.
-  // Глобальные переменные localUserData и userRef определены в основном скрипте index.html
+  // Обновляем общее количество монет игрока в базе данных.
+  // Глобальные переменные localUserData и userRef определены в index.html.
   if (typeof localUserData !== 'undefined' && typeof userRef !== 'undefined') {
     localUserData.coins = (localUserData.coins || 0) + scoreThisRun;
     userRef.update({ coins: localUserData.coins });
   }
   
-  endGameAndReturn();
+  // Выводим модальное окно "Game Over" (оно уже описано в index.html)
+  showEndGameModal("Game Over", `Coins collected: ${scoreThisRun}`);
 }
 
 /**
- * Завершает игру: удаляет все объекты (врагов, монеты, игрока) из DOM и скрывает canvas.
- * (Функция вызывается при окончании игры, а основной скрипт затем закрывает модальное окно игры.)
- */
-function endGameAndReturn() {
-  if (isGameRunning) {
-    cancelAnimationFrame(animationId);
-    document.removeEventListener("keydown", onKeyDown);
-    document.removeEventListener("mousedown", onClickOrTouch);
-    document.removeEventListener("touchstart", onClickOrTouch);
-    isGameRunning = false;
-    if (typeof localUserData !== 'undefined' && typeof userRef !== 'undefined') {
-      localUserData.coins = (localUserData.coins || 0) + scoreThisRun;
-      userRef.update({ coins: localUserData.coins });
-    }
-  }
-  
-  if (player.el) {
-    player.el.style.display = "none";
-  }
-  enemies.forEach(e => {
-    if (e.el && e.el.parentNode) {
-      e.el.parentNode.removeChild(e.el);
-    }
-  });
-  enemies = [];
-  coins.forEach(c => {
-    if (c.el && c.el.parentNode) {
-      c.el.parentNode.removeChild(c.el);
-    }
-  });
-  coins = [];
-  
-  // Скрываем canvas (основной скрипт закроет окно игры)
-  const canvas = document.getElementById("game3Canvas");
-  canvas.style.display = "none";
-}
-
-/**
- * Функция для сброса игры (вызывается из основного скрипта при закрытии игрового окна)
+ * Сбрасывает состояние игры (вызывается из основного скрипта при закрытии игрового окна)
  */
 function resetGame3() {
   cancelAnimationFrame(animationId);
