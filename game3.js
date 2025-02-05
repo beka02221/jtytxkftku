@@ -1,383 +1,316 @@
-// =======================
-// Game 3 (Side-Scrolling Game)
-// =======================
+// game3.js
 
-let ctx;
-let animationId;
-let isGameRunning = false;
-
-let canvasWidth = 0;
-let canvasHeight = 0;
-
-// Контейнер для добавления DOM‑элементов игры (например, спрайтов)
-let gameContainer;
-
-// Игрок (Kirby)
-const player = {
-  x: 100,
-  y: 150,
-  width: 45,
-  height: 45,
-  velocityY: 0,
-  gravity: 0.3,
-  lift: -5,
-  alive: true,
-  maxFallSpeed: 3,
-  el: null
-};
-
-// Скорость прокрутки фона и движения объектов
-const scrollSpeed = 1.8;
-
-// Враги
+// Глобальные переменные игры
+let canvas, ctx;
+let bird;
 let enemies = [];
-const enemyGif = "https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif";
-const enemyWidth  = 80;
-const enemyHeight = 80;
-const enemyInterval = 150; // интервал появления врагов (в кадрах)
-let enemyTimer = 0;
-
-// Монеты
 let coins = [];
-const coinSize = 40;
-const coinGifURL = "https://donatepay.ru/uploads/notification/images/830208_1664005822.gif";
-const coinInterval = 80; // интервал появления монет
+let enemyTimer = 0;
 let coinTimer = 0;
-
-// Счёт за забег (количество собранных монет)
-let scoreThisRun = 0;
+let enemyInterval = 2000; // мс, базовый интервал появления врагов
+let coinInterval = 3000;  // мс, базовый интервал появления монет
+let gameLoopId;
+let lastTime;
+let gameOver = false;
+let gameStarted = false; // Игра начнётся по первому тапу
+let startTime;           // Время начала игры (после старта)
+let difficultyFactor = 1; // Фактор сложности (растёт с течением времени)
 
 // Фон
-const bgImage = new Image();
-bgImage.src = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg";
+let bgImage = new Image();
+bgImage.src = "https://i.imgur.com/2s2JtqX.png";  
+// Этот фон (пример) должен быть бесшовным и двигаться влево, создавая эффект полёта.
 let bgX = 0;
+let bgSpeed = 1;
 
-// Запас для проверки столкновений (чтобы не реагировать на мельчайшие пересечения)
-const collisionMargin = 10;
+// Ассеты персонажа и врагов/монет (согласно вашим ссылкам)
+const ASSETS = {
+  bird: "https://tenor.com/bA9rc.gif",
+  enemy1: "https://i.gifer.com/XOsa.gif",
+  enemy2: "https://i.gifer.com/Vp3M.gif", // будет иметь вертикальное движение
+  enemy3: "https://i.gifer.com/iHG.gif",
+  coin: "https://i.gifer.com/xt.gif"
+};
 
-/**
- * Инициализирует игру (вызывается из основного скрипта при выборе "Game 3")
- */
+// Инициализация игры (вызывается из index.html при выборе game3)
 function initGame3() {
-  const canvas = document.getElementById("game3Canvas");
-  
-  // Получаем контейнер для DOM‑элементов игры (например, спрайтов) из игрового модального окна
-  gameContainer = document.querySelector("#gameModalBackdrop .game-canvas");
-  // Если позиционирование не задано, делаем контейнер относительным
-  if (getComputedStyle(gameContainer).position === "static") {
-    gameContainer.style.position = "relative";
-  }
-  
+  canvas = document.getElementById("game3Canvas");
   ctx = canvas.getContext("2d");
-  canvas.style.display = "block";
-  resizeCanvas();
-  
-  // Сброс игровых переменных
-  isGameRunning = true;
-  player.y = canvasHeight / 2;
-  player.velocityY = 0;
-  player.alive = true;
-  
+
+  // Инициализируем главный персонаж (птичку)
+  bird = {
+    x: canvas.width * 0.25,
+    y: canvas.height / 2,
+    width: 50,
+    height: 40,
+    velocity: 0,
+    gravity: 0.5,
+    jumpStrength: -8,
+    image: new Image()
+  };
+  bird.image.src = ASSETS.bird;
+
+  // Сбрасываем врагов и монеты
   enemies = [];
-  enemyTimer = 0;
   coins = [];
+  enemyTimer = 0;
   coinTimer = 0;
-  
-  scoreThisRun = 0;
+  enemyInterval = 2000;
+  coinInterval = 3000;
   bgX = 0;
-  
-  // Создаём (или показываем) спрайт игрока (Kirby)
-  if (!player.el) {
-    const kirby = document.createElement("img");
-    kirby.src = "kirby.gif"; // Замените при необходимости на свой спрайт
-    kirby.style.position = "absolute";
-    kirby.style.width  = player.width + "px";
-    kirby.style.height = player.height + "px";
-    kirby.style.left   = player.x + "px";
-    kirby.style.top    = player.y + "px";
-    kirby.style.zIndex = "900";
-    gameContainer.appendChild(kirby);
-    player.el = kirby;
-  } else {
-    player.el.style.display = "block";
-  }
-  
-  // Добавляем обработчики ввода (клавиатура, мышь, касание)
-  document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("mousedown", onClickOrTouch);
-  document.addEventListener("touchstart", onClickOrTouch);
-  
-  animationId = requestAnimationFrame(updateGame);
+  difficultyFactor = 1;
+  gameOver = false;
+  gameStarted = false;
+
+  // Отобразим обучалку и надпись "TAP TO START"
+  lastTime = performance.now();
+  // Добавляем обработчики ввода
+  window.addEventListener("keydown", onStartInput);
+  canvas.addEventListener("mousedown", onStartInput);
+  canvas.addEventListener("touchstart", onStartInput);
+
+  // Запускаем игровой цикл (в режиме ожидания старта)
+  gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-/**
- * Корректирует размеры canvas под размеры игрового окна
- */
-function resizeCanvas() {
-  const canvas = document.getElementById("game3Canvas");
-  // Вместо window.innerWidth/innerHeight берём размеры игрового модального окна
-  const gameModalBackdrop = document.getElementById("gameModalBackdrop");
-  if (gameModalBackdrop) {
-    canvasWidth = gameModalBackdrop.clientWidth;
-    canvasHeight = gameModalBackdrop.clientHeight;
-  } else {
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
-  }
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-}
-
-/**
- * Главный игровой цикл
- */
-function updateGame() {
-  if (!isGameRunning) return;
-  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-  
-  // Рисуем фон
-  drawScrollingBackground();
-  
-  // Генерация врагов
-  enemyTimer++;
-  if (enemyTimer > enemyInterval) {
-    createEnemy();
-    enemyTimer = 0;
-  }
-  // Обновляем позицию врагов и проверяем столкновения
-  for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
-    e.x -= scrollSpeed;
-    e.el.style.left = e.x + "px";
-    e.el.style.top  = e.y + "px";
-    if (checkCollision(player, e)) {
-      gameOver();
-    }
-  }
-  // Удаляем врагов, ушедших за левый край
-  enemies = enemies.filter(e => {
-    if (e.x + e.width < 0) {
-      if (e.el && e.el.parentNode) {
-        e.el.parentNode.removeChild(e.el);
-      }
-      return false;
-    }
-    return true;
-  });
-  
-  // Генерация монет
-  coinTimer++;
-  if (coinTimer > coinInterval) {
-    createCoin();
-    coinTimer = 0;
-  }
-  // Обновляем монеты и проверяем сбор
-  for (let i = 0; i < coins.length; i++) {
-    const c = coins[i];
-    c.x -= scrollSpeed;
-    c.el.style.left = c.x + "px";
-    c.el.style.top  = c.y + "px";
-    if (checkCollision(player, c)) {
-      scoreThisRun++;
-      c.collected = true;
-    }
-  }
-  coins = coins.filter(c => {
-    if (c.collected || (c.x + c.size < 0)) {
-      if (c.el && c.el.parentNode) {
-        c.el.parentNode.removeChild(c.el);
-      }
-      return false;
-    }
-    return true;
-  });
-  
-  // Обновляем положение игрока (Kirby)
-  updatePlayer();
-  
-  // Отображаем текущий счёт (количество собранных монет)
-  ctx.fillStyle = "white";
-  ctx.font = "24px Arial";
-  ctx.fillText(`Coins this run: ${scoreThisRun}`, 20, 40);
-  
-  if (player.alive) {
-    animationId = requestAnimationFrame(updateGame);
+// Обработчик первого ввода для старта игры
+function onStartInput(e) {
+  if (!gameStarted) {
+    gameStarted = true;
+    startTime = performance.now();
+    // После старта переключаем обработчики ввода на игровой (flap) режим
+    window.removeEventListener("keydown", onStartInput);
+    canvas.removeEventListener("mousedown", onStartInput);
+    canvas.removeEventListener("touchstart", onStartInput);
+    window.addEventListener("keydown", onKeyDown);
+    canvas.addEventListener("mousedown", onMouseDown);
+    canvas.addEventListener("touchstart", onTouchStart);
+    birdFlap(); // первый "прыжок" для старта
   }
 }
 
-/**
- * Рисует прокручивающийся фон
- */
-function drawScrollingBackground() {
-  bgX -= 1;
-  if (bgX <= -canvasWidth) {
-    bgX = 0;
-  }
-  ctx.drawImage(bgImage, bgX, 0, canvasWidth, canvasHeight);
-  ctx.drawImage(bgImage, bgX + canvasWidth, 0, canvasWidth, canvasHeight);
-}
-
-/**
- * Создаёт врага и добавляет его в массив enemies
- */
-function createEnemy() {
-  const randY = Math.random() * (canvasHeight - enemyHeight - 20) + 10;
-  const enemyEl = document.createElement("img");
-  enemyEl.src = enemyGif;
-  enemyEl.style.position = "absolute";
-  enemyEl.style.width  = enemyWidth + "px";
-  enemyEl.style.height = enemyHeight + "px";
-  enemyEl.style.left   = canvasWidth + "px";
-  enemyEl.style.top    = randY + "px";
-  enemyEl.style.zIndex = "850";
-  gameContainer.appendChild(enemyEl);
-  
-  enemies.push({
-    x: canvasWidth,
-    y: randY,
-    width: enemyWidth,
-    height: enemyHeight,
-    el: enemyEl
-  });
-}
-
-/**
- * Создаёт монету и добавляет её в массив coins
- */
-function createCoin() {
-  const randY = Math.random() * (canvasHeight - coinSize - 20) + 10;
-  const coinEl = document.createElement("img");
-  coinEl.src = coinGifURL;
-  coinEl.style.position = "absolute";
-  coinEl.style.width  = coinSize + "px";
-  coinEl.style.height = coinSize + "px";
-  coinEl.style.left   = canvasWidth + "px";
-  coinEl.style.top    = randY + "px";
-  coinEl.style.zIndex = "800";
-  gameContainer.appendChild(coinEl);
-  
-  coins.push({
-    x: canvasWidth,
-    y: randY,
-    size: coinSize,
-    collected: false,
-    el: coinEl
-  });
-}
-
-/**
- * Обновляет положение игрока с учетом гравитации и прыжка
- */
-function updatePlayer() {
-  player.velocityY += player.gravity;
-  if (player.velocityY > player.maxFallSpeed) {
-    player.velocityY = player.maxFallSpeed;
-  }
-  player.y += player.velocityY;
-  
-  if (player.y < 0) {
-    player.y = 0;
-    player.velocityY = 0;
-  }
-  // Если игрок опускается ниже игрового поля — заканчиваем игру
-  if (player.y + player.height > canvasHeight) {
-    gameOver();
-  }
-  player.el.style.left = player.x + "px";
-  player.el.style.top  = player.y + "px";
-}
-
-/**
- * Обработчики ввода (пробел, клик, касание)
- */
+// Обработчики для управления птичкой (после старта)
 function onKeyDown(e) {
   if (e.code === "Space") {
-    flap();
+    birdFlap();
   }
 }
-function onClickOrTouch() {
-  flap();
+function onMouseDown(e) {
+  birdFlap();
 }
-function flap() {
-  player.velocityY = player.lift;
-}
-
-/**
- * Проверяет столкновение игрока с объектом (врагом или монетой)
- */
-function checkCollision(pl, obj) {
-  const pr = {
-    x: pl.x + collisionMargin,
-    y: pl.y + collisionMargin,
-    width: pl.width - collisionMargin * 2,
-    height: pl.height - collisionMargin * 2
-  };
-  const ow = (obj.width || obj.size) - collisionMargin * 2;
-  const oh = (obj.height || obj.size) - collisionMargin * 2;
-  const or = {
-    x: obj.x + collisionMargin,
-    y: obj.y + collisionMargin,
-    width: ow > 0 ? ow : 0,
-    height: oh > 0 ? oh : 0
-  };
-  
-  return !(
-    or.x > pr.x + pr.width ||
-    or.x + or.width < pr.x ||
-    or.y > pr.y + pr.height ||
-    or.y + or.height < pr.y
-  );
+function onTouchStart(e) {
+  birdFlap();
 }
 
-/**
- * Завершает игру: останавливает игровой цикл, удаляет обработчики ввода,
- * обновляет монеты в базе данных и выводит модальное окно "Game Over".
- */
-function gameOver() {
-  player.alive = false;
-  cancelAnimationFrame(animationId);
-  document.removeEventListener("keydown", onKeyDown);
-  document.removeEventListener("mousedown", onClickOrTouch);
-  document.removeEventListener("touchstart", onClickOrTouch);
-  isGameRunning = false;
-  
-  // Обновляем общее количество монет игрока в базе данных.
-  // Глобальные переменные localUserData и userRef определены в index.html.
-  if (typeof localUserData !== 'undefined' && typeof userRef !== 'undefined') {
-    localUserData.coins = (localUserData.coins || 0) + scoreThisRun;
-    userRef.update({ coins: localUserData.coins });
+// Функция подпрыгивания птички
+function birdFlap() {
+  bird.velocity = bird.jumpStrength;
+}
+
+// Игровой цикл
+function gameLoop(timestamp) {
+  let deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
+
+  // Обновляем фон (движение влево)
+  bgX -= bgSpeed * difficultyFactor;
+  if (bgX <= -canvas.width) {
+    bgX = 0;
   }
-  
-  // Выводим модальное окно "Game Over" (оно уже описано в index.html)
-  showEndGameModal("Game Over", `Coins collected: ${scoreThisRun}`);
+
+  // Отрисовка движущегося фона (двойной рисунок для зацикливания)
+  drawBackground();
+
+  // Если игра ещё не запущена, выводим обучалку и надпись
+  if (!gameStarted) {
+    drawStartScreen();
+    gameLoopId = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // Обновляем сложность: чем дольше игра, тем быстрее враги и монеты
+  let elapsed = timestamp - startTime;
+  difficultyFactor = 1 + elapsed / 30000; // каждые 30 секунд сложность увеличивается
+
+  // Физика птички
+  bird.velocity += bird.gravity;
+  bird.y += bird.velocity;
+  if (bird.y < 0) bird.y = 0;
+  if (bird.y + bird.height > canvas.height) {
+    bird.y = canvas.height - bird.height;
+    endGame();
+    return;
+  }
+
+  // Обновление таймеров появления врагов и монет
+  enemyTimer += deltaTime;
+  coinTimer += deltaTime;
+  if (enemyTimer > enemyInterval / difficultyFactor) {
+    spawnEnemy();
+    enemyTimer = 0;
+    enemyInterval = 1500 + Math.random() * 1000; // случайный интервал
+  }
+  if (coinTimer > coinInterval / difficultyFactor) {
+    spawnCoin();
+    coinTimer = 0;
+    coinInterval = 2000 + Math.random() * 2000;
+  }
+
+  // Обновляем позиции врагов
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    let enemy = enemies[i];
+    enemy.x += enemy.speed * deltaTime / 16 * difficultyFactor;
+    // Для врага №2 добавляем вертикальное движение
+    if (enemy.type === 2) {
+      enemy.y += enemy.vy * deltaTime / 16;
+      // Отскок от верхней и нижней границ
+      if (enemy.y < 0 || enemy.y + enemy.height > canvas.height) {
+        enemy.vy = -enemy.vy;
+      }
+    }
+    if (enemy.x > canvas.width + enemy.width) {
+      enemies.splice(i, 1);
+    } else if (rectIntersect(bird, enemy)) {
+      endGame();
+      return;
+    }
+  }
+
+  // Обновляем позиции монет
+  for (let i = coins.length - 1; i >= 0; i--) {
+    let coin = coins[i];
+    coin.x += coin.speed * deltaTime / 16 * difficultyFactor;
+    if (coin.x > canvas.width + coin.width) {
+      coins.splice(i, 1);
+    } else if (!coin.collected && rectIntersect(bird, coin)) {
+      coin.collected = true;
+      localUserData.points = (localUserData.points || 0) + 5;
+      updateTopBar();
+      coins.splice(i, 1);
+    }
+  }
+
+  // Отрисовка птички
+  ctx.drawImage(bird.image, bird.x, bird.y, bird.width, bird.height);
+
+  // Отрисовка врагов
+  enemies.forEach(enemy => {
+    ctx.drawImage(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height);
+  });
+
+  // Отрисовка монет
+  coins.forEach(coin => {
+    ctx.drawImage(coin.image, coin.x, coin.y, coin.width, coin.height);
+  });
+
+  // Отрисовка текущего счёта
+  drawScore();
+
+  if (!gameOver) {
+    gameLoopId = requestAnimationFrame(gameLoop);
+  }
 }
 
-/**
- * Сбрасывает состояние игры (вызывается из основного скрипта при закрытии игрового окна)
- */
+// Функция отрисовки движущегося фона
+function drawBackground() {
+  // Рисуем два изображения фона для создания эффекта зацикливания
+  ctx.drawImage(bgImage, bgX, 0, canvas.width, canvas.height);
+  ctx.drawImage(bgImage, bgX + canvas.width, 0, canvas.width, canvas.height);
+}
+
+// Функция отрисовки стартового экрана (обучалка + надпись)
+function drawStartScreen() {
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#00FF00";
+  ctx.font = "24px 'Press Start 2P'";
+  ctx.textAlign = "center";
+  ctx.fillText("TAP TO START", canvas.width / 2, canvas.height / 2 - 20);
+  ctx.font = "16px 'Press Start 2P'";
+  ctx.fillText("Tap to flap, avoid enemies", canvas.width / 2, canvas.height / 2 + 10);
+  ctx.fillText("and collect coins. The longer you survive,", canvas.width / 2, canvas.height / 2 + 30);
+  ctx.fillText("the harder it gets!", canvas.width / 2, canvas.height / 2 + 50);
+}
+
+// Функция отрисовки текущего счёта на canvas
+function drawScore() {
+  ctx.fillStyle = "#00FF00";
+  ctx.font = "20px 'Press Start 2P'";
+  ctx.textAlign = "left";
+  ctx.fillText("Score: " + (localUserData.points || 0), 10, 30);
+}
+
+// Функция создания врага
+function spawnEnemy() {
+  // Определяем тип врага случайным образом: 1, 2 или 3
+  let type = Math.floor(Math.random() * 3) + 1;
+  let img = new Image();
+  if (type === 1) {
+    img.src = ASSETS.enemy1;
+  } else if (type === 2) {
+    img.src = ASSETS.enemy2;
+  } else {
+    img.src = ASSETS.enemy3;
+  }
+  let enemy = {
+    x: -50,
+    y: Math.random() * (canvas.height - 50),
+    width: 50,
+    height: 50,
+    speed: 2 + Math.random() * 3,
+    image: img,
+    type: type
+  };
+  // Для врага типа 2 добавляем вертикальное движение
+  if (type === 2) {
+    enemy.vy = 1.5 + Math.random() * 2; // вертикальная скорость
+  }
+  enemies.push(enemy);
+}
+
+// Функция создания монеты
+function spawnCoin() {
+  let coin = {
+    x: -30,
+    y: Math.random() * (canvas.height - 30),
+    width: 30,
+    height: 30,
+    speed: 2 + Math.random() * 2,
+    image: new Image(),
+    collected: false
+  };
+  coin.image.src = ASSETS.coin;
+  coins.push(coin);
+}
+
+// Функция проверки пересечения прямоугольников (коллизии)
+function rectIntersect(a, b) {
+  return a.x < b.x + b.width &&
+         a.x + a.width > b.x &&
+         a.y < b.y + b.height &&
+         a.y + a.height > b.y;
+}
+
+// Функция завершения игры
+function endGame() {
+  gameOver = true;
+  cancelAnimationFrame(gameLoopId);
+  // Убираем обработчики ввода
+  window.removeEventListener("keydown", onKeyDown);
+  canvas.removeEventListener("mousedown", onMouseDown);
+  canvas.removeEventListener("touchstart", onTouchStart);
+  // Вызов глобального окна с итогами (функция showEndGameModal определена в index.html)
+  showEndGameModal("Game Over", "Your score: " + (localUserData.points || 0));
+}
+
+// Функция сброса игры (вызывается из index.html после завершения игры)
 function resetGame3() {
-  cancelAnimationFrame(animationId);
-  document.removeEventListener("keydown", onKeyDown);
-  document.removeEventListener("mousedown", onClickOrTouch);
-  document.removeEventListener("touchstart", onClickOrTouch);
-  isGameRunning = false;
-  
-  if (player.el) {
-    player.el.style.display = "none";
-  }
-  enemies.forEach(e => {
-    if (e.el && e.el.parentNode) {
-      e.el.parentNode.removeChild(e.el);
-    }
-  });
+  cancelAnimationFrame(gameLoopId);
+  window.removeEventListener("keydown", onKeyDown);
+  canvas.removeEventListener("mousedown", onMouseDown);
+  canvas.removeEventListener("touchstart", onTouchStart);
   enemies = [];
-  coins.forEach(c => {
-    if (c.el && c.el.parentNode) {
-      c.el.parentNode.removeChild(c.el);
-    }
-  });
   coins = [];
-  
-  const canvas = document.getElementById("game3Canvas");
-  canvas.style.display = "none";
+  gameOver = false;
 }
+
