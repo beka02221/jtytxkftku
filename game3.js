@@ -71,7 +71,7 @@ function initGame3() {
   coinImage.src     = "https://i.gifer.com/xt.gif";
   enemyImage1.src   = "https://i.gifer.com/XOsa.gif";
   enemyImage2.src   = "https://i.gifer.com/Vp3M.gif";
-  enemyImage3.src   = "https://i.gifer.com/iHG.gif";
+  enemyImage3.src   = "https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif";
 
   // Начальные настройки
   resetVars();
