@@ -68,12 +68,12 @@ function initGame3() {
 
   // Задаем ссылки на изображения
   // Фон – заменил на URL с imgur (при необходимости можно изменить)
-  bgImage.src       = "https://i.imgur.com/Z6aO0Rv.gif"; 
-  playerImage.src   = "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"; 
-  coinImage.src     = "https://i.gifer.com/xt.gif";
+  bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
+  playerImage.src   = "spooky-halloween.gif"; 
+  coinImage.src     = "https://donatepay.ru/uploads/notification/images/830208_1664005822.gif";
   enemyImage1.src   = "https://i.gifer.com/XOsa.gif";
   enemyImage2.src   = "https://i.gifer.com/Vp3M.gif";
-  enemyImage3.src   = "https://i.gifer.com/iHG.gif";
+  enemyImage3.src   = "https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif";
 
   // Сброс игровых переменных
   resetVars();
