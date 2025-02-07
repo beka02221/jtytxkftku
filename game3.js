@@ -1,59 +1,59 @@
-/* game3.js
-   "Flappy Bird–like" game:
-   - Управление: tap (или SPACE) → прыжок.
-   - Вместо труб — 3 типа врагов с разной скоростью и поведением.
-   - Игрок собирает монеты (+5 очков за монету).
-   - Фон движется, создавая иллюзию полёта.
-   - При столкновении игра завершается, показывается итоговое окно и очки записываются в БД.
+
+/* Improved game3.js – "Flappy Bird–like" game with gradual difficulty and enemy introduction.
+   Features:
+   - Control: TAP (or SPACE) makes the player jump.
+   - Instead of pipes, there are enemies (up to 3 types) with different speeds and behaviors.
+   - The player collects coins (each coin gives +5 points).
+   - The background scrolls to simulate forward flight.
+   - On collision, the game ends, a results modal is shown, and the score is saved to the database.
    
-   Глобальные переменные (localUserData, updateTopBar, showEndGameModal) доступны из index.html.
+   Global variables (localUserData, updateTopBar, showEndGameModal) are expected to be defined in index.html.
 */
 
 let game3Canvas;
 let ctx3;
 
-// Изображения (проверьте, что URL корректны)
+// Images – (Проверьте URL, замените при необходимости)
 let bgImage      = new Image();
 let playerImage  = new Image();
 let coinImage    = new Image();
-let enemyImage1  = new Image(); // enemy type 1
-let enemyImage2  = new Image(); // enemy type 2 (движется вверх/вниз)
-let enemyImage3  = new Image(); // enemy type 3
+let enemyImage1  = new Image(); // Enemy type 1
+let enemyImage2  = new Image(); // Enemy type 2 (oscillates vertically)
+let enemyImage3  = new Image(); // Enemy type 3
 
-// Параметры фона
+// Background parameters
 let bgX = 0;
-let bgSpeed = 1.5; // скорость прокрутки фона
+let bgSpeed = 1.5; // Скорость прокрутки фона
 
-// Игровые переменные
-let gameLoopId;       // идентификатор requestAnimationFrame
-let gameState = "ready"; // "ready" | "play" | "over"
+// Game state variables
+let gameLoopId;            // Идентификатор requestAnimationFrame
+let gameState = "ready";   // "ready" | "play" | "over"
 
-// Параметры игрока
+// Player properties
 let player = {
   x: 50,
   y: 150,
   w: 50,
   h: 50,
-  vy: 0,       // вертикальная скорость
-  jumpPower: -5,
-  gravity: 0.25
+  vy: 0,            // Вертикальная скорость
+  jumpPower: -5,    // Сила прыжка (отрицательная, т.к. вверх)
+  gravity: 0.25     // Гравитация
 };
 
-// Массив врагов
+// Arrays for enemies and coins
 let enemies = [];
-let enemySpawnTimer = 0;
-
-// Массив монет
 let coins = [];
+
+// Timers and counters
+let enemySpawnTimer = 0;
 let coinSpawnTimer = 0;
+let gameTime = 0;  // Количество кадров с начала игры
 
-// Текущий счет (каждая монета даёт +5 очков)
-let currentScore = 0;
-let basePoints   = 0; // очки пользователя до начала игры
-
-// Переменные для усложнения игры
-let difficultyTimer = 0;
-let difficultyLevel = 1; // влияет на скорость врагов и частоту спавна
+// Score and difficulty variables
+let currentScore = 0;             // Счёт, набранный за монеты
+let basePoints = 0;               // Очки пользователя до начала игры
+let difficultyLevel = 1;          // Уровень сложности (растёт постепенно)
+let maxEnemyType = 1;             // На начальном этапе разрешены только враги типа 1
 
 /* Инициализация игры.
    Вызывается из main-скрипта (handleStartGame('game3', ...))
@@ -66,8 +66,7 @@ function initGame3() {
   }
   ctx3 = game3Canvas.getContext("2d");
 
-  // Задаем ссылки на изображения
-  // Фон – заменил на URL с imgur (при необходимости можно изменить)
+  // Задаем ссылки на изображения (при необходимости замените URL)
   bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
   playerImage.src   = "spooky-halloween.gif"; 
   coinImage.src     = "https://donatepay.ru/uploads/notification/images/830208_1664005822.gif";
@@ -75,13 +74,10 @@ function initGame3() {
   enemyImage2.src   = "https://i.gifer.com/Vp3M.gif";
   enemyImage3.src   = "https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif";
 
-  // Сброс игровых переменных
   resetVars();
-  // Подключаем события ввода (tap / keydown)
   addInputListeners();
 
   console.log("Game3 initialized");
-  // Запускаем игровой цикл
   gameLoopId = requestAnimationFrame(updateGame3);
 }
 
@@ -89,32 +85,32 @@ function initGame3() {
 function resetVars() {
   bgX = 0;
   gameState = "ready";
-  difficultyTimer = 0;
+  enemySpawnTimer = 0;
+  coinSpawnTimer = 0;
+  gameTime = 0;
   difficultyLevel = 1;
+  maxEnemyType = 1;
 
   player.x = 50;
   player.y = game3Canvas.height / 2 - player.h / 2;
   player.vy = 0;
 
   enemies = [];
-  enemySpawnTimer = 0;
-
   coins = [];
-  coinSpawnTimer = 0;
 
-  // Запоминаем базовый счет (до начала игры)
+  // Запоминаем базовый счет пользователя до начала игры
   basePoints = localUserData.points || 0;
   currentScore = 0;
 }
 
-/* Удаление слушателей и остановка игрового цикла */
+/* Отключение событий и остановка игрового цикла */
 function resetGame3() {
   removeInputListeners();
   cancelAnimationFrame(gameLoopId);
   console.log("Game3 reset");
 }
 
-/* Добавление событий ввода */
+/* Подключение событий ввода (тап/клик и клавиша SPACE) */
 function addInputListeners() {
   game3Canvas.addEventListener("mousedown", onUserInput);
   game3Canvas.addEventListener("touchstart", onUserInput);
@@ -128,7 +124,7 @@ function removeInputListeners() {
   document.removeEventListener("keydown", onKeyDown);
 }
 
-/* Обработка ввода: при клике/тапе или нажатии пробела */
+/* Обработка ввода: по клику/тапу или при нажатии SPACE */
 function onUserInput() {
   if (gameState === "ready") {
     gameState = "play";
@@ -138,7 +134,7 @@ function onUserInput() {
   }
 }
 
-/* Обработка нажатия клавиши (SPACE) */
+/* Обработка нажатия клавиши SPACE */
 function onKeyDown(e) {
   if (e.code === "Space") {
     e.preventDefault();
@@ -154,9 +150,9 @@ function updateGame3() {
     updateCoins();
     updateDifficulty();
     checkCollisions();
+    gameTime++;
   }
   drawScene();
-
   if (gameState !== "over") {
     gameLoopId = requestAnimationFrame(updateGame3);
   }
@@ -167,7 +163,7 @@ function updatePlayer() {
   player.vy += player.gravity;
   player.y += player.vy;
 
-  // Ограничение по верху и низу
+  // Ограничиваем движение игрока по вертикали
   if (player.y < 0) {
     player.y = 0;
     player.vy = 0;
@@ -178,28 +174,31 @@ function updatePlayer() {
   }
 }
 
-/* Обновление врагов */
+/* Обновление врагов с постепенным увеличением сложности */
 function updateEnemies() {
   enemySpawnTimer++;
-  let spawnInterval = Math.max(60 - difficultyLevel * 5, 20);
+  // Интервал спавна врагов постепенно сокращается (но не ниже 30 кадров)
+  let spawnInterval = Math.max(60 - difficultyLevel * 2, 30);
   if (enemySpawnTimer > spawnInterval) {
     spawnEnemy();
     enemySpawnTimer = 0;
   }
-  for (let i = 0; i < enemies.length; i++) {
-    let en = enemies[i];
+  enemies.forEach(en => {
+    // Для врагов типа 2 – вертикальное колебание
     if (en.type === 2) {
       en.y += Math.sin(en.moveAngle) * en.moveRange;
       en.moveAngle += 0.1;
     }
     en.x -= en.speed;
-  }
+  });
   enemies = enemies.filter(en => en.x + en.w > 0);
 }
 
-/* Создание врага (случайный тип 1..3) */
+/* Спавн врага.
+   Тип врага выбирается случайно от 1 до maxEnemyType (максимум разрешенных типов, зависящий от сложности).
+*/
 function spawnEnemy() {
-  let type = Math.floor(Math.random() * 3) + 1;
+  let type = Math.floor(Math.random() * maxEnemyType) + 1;
   let speed = 3;
   let enemyW = 60;
   let enemyH = 60;
@@ -208,15 +207,15 @@ function spawnEnemy() {
   let moveRange = 0.5;
   switch (type) {
     case 1:
-      speed = 3 + difficultyLevel * 0.5; 
+      speed = 3 + difficultyLevel * 0.3;
       break;
     case 2:
-      speed = 2 + difficultyLevel * 0.3;
+      speed = 2.5 + difficultyLevel * 0.25;
       moveAngle = Math.random() * Math.PI * 2;
       moveRange = 1.0 + difficultyLevel * 0.1;
       break;
     case 3:
-      speed = 4 + difficultyLevel * 0.6; 
+      speed = 4 + difficultyLevel * 0.4;
       break;
   }
   enemies.push({
@@ -234,18 +233,19 @@ function spawnEnemy() {
 /* Обновление монет */
 function updateCoins() {
   coinSpawnTimer++;
-  let spawnInterval = Math.max(90 - difficultyLevel * 3, 30);
+  // Интервал спавна монет постепенно сокращается, но не ниже 40 кадров
+  let spawnInterval = Math.max(90 - difficultyLevel * 2, 40);
   if (coinSpawnTimer > spawnInterval) {
     spawnCoin();
     coinSpawnTimer = 0;
   }
-  for (let i = 0; i < coins.length; i++) {
-    coins[i].x -= coins[i].speed;
-  }
+  coins.forEach(c => {
+    c.x -= c.speed;
+  });
   coins = coins.filter(c => c.x + c.w > 0);
 }
 
-/* Создание монеты */
+/* Спавн монеты */
 function spawnCoin() {
   let cW = 30, cH = 30;
   let yPos = Math.random() * (game3Canvas.height - cH);
@@ -258,25 +258,38 @@ function spawnCoin() {
   });
 }
 
-/* Увеличение сложности */
+/* Постепенное увеличение сложности.
+   - Каждые 600 кадров (~10 секунд при 60fps) увеличивается уровень сложности.
+   - При повышении сложности уменьшается интервал спавна врагов/монет и увеличивается скорость.
+   - Появление новых типов врагов: до уровня 3 – только тип 1, до уровня 6 – типы 1 и 2, затем – все 3 типа.
+*/
 function updateDifficulty() {
-  difficultyTimer++;
-  if (difficultyTimer > 600) {
+  if (gameTime % 600 === 0) {
     difficultyLevel++;
-    difficultyTimer = 0;
+    console.log("Difficulty increased to", difficultyLevel);
+  }
+  if (difficultyLevel < 3) {
+    maxEnemyType = 1;
+  } else if (difficultyLevel < 6) {
+    maxEnemyType = 2;
+  } else {
+    maxEnemyType = 3;
   }
 }
 
-/* Проверка столкновений (игрок-враг, игрок-coin) */
+/* Проверка столкновений:
+   - Если игрок сталкивается с врагом, игра заканчивается.
+   - Если игрок касается монеты – монета исчезает, а игрок получает +5 очков.
+*/
 function checkCollisions() {
-  // Столкновение с врагами
+  // Проверка столкновения с врагами
   for (let en of enemies) {
     if (isColliding(player, en)) {
       onGameOver();
       return;
     }
   }
-  // Сбор монет
+  // Проверка столкновения с монетами
   for (let i = 0; i < coins.length; i++) {
     let c = coins[i];
     if (isColliding(player, c)) {
@@ -301,7 +314,11 @@ function isColliding(a, b) {
   );
 }
 
-/* Обработка конца игры */
+/* Обработка конца игры.
+   При столкновении с врагом игра переводится в состояние "over",
+   показывается модальное окно с итоговым счётом,
+   и игровой цикл останавливается.
+*/
 function onGameOver() {
   gameState = "over";
   showEndGameModal("Game Over", `You scored ${currentScore} points!\nCoins collected: ${currentScore / 5}.`);
@@ -311,7 +328,7 @@ function onGameOver() {
 
 /* Отрисовка игрового поля */
 function drawScene() {
-  // Обновляем фон
+  // Отрисовка прокручивающегося фона
   bgX -= bgSpeed;
   if (bgX <= -game3Canvas.width) {
     bgX = 0;
@@ -319,18 +336,19 @@ function drawScene() {
   drawBg(bgX, 0);
   drawBg(bgX + game3Canvas.width, 0);
 
-  // Если игра ещё не началась, показываем инструкцию
+  // Если игра ещё не началась – показываем инструкции
   if (gameState === "ready") {
     ctx3.fillStyle = "#fff";
-    ctx3.font = "14px sans-serif";
-    ctx3.fillText("TAP or SPACE to start", game3Canvas.width / 2 - 80, game3Canvas.height / 2);
-    ctx3.fillText("Collect coins and avoid enemies!", game3Canvas.width / 2 - 120, game3Canvas.height / 2 + 20);
+    ctx3.font = "16px sans-serif";
+    ctx3.textAlign = "center";
+    ctx3.fillText("TAP or PRESS SPACE to start", game3Canvas.width / 2, game3Canvas.height / 2 - 20);
+    ctx3.fillText("Collect coins, avoid enemies!", game3Canvas.width / 2, game3Canvas.height / 2 + 10);
   }
 
-  // Рисуем игрока
+  // Отрисовка игрока
   ctx3.drawImage(playerImage, player.x, player.y, player.w, player.h);
 
-  // Рисуем врагов
+  // Отрисовка врагов
   enemies.forEach(en => {
     if (en.type === 1) {
       ctx3.drawImage(enemyImage1, en.x, en.y, en.w, en.h);
@@ -341,16 +359,17 @@ function drawScene() {
     }
   });
 
-  // Рисуем монеты
+  // Отрисовка монет
   coins.forEach(c => {
     ctx3.drawImage(coinImage, c.x, c.y, c.w, c.h);
   });
 
-  // Если игра идёт – показываем счет
+  // Если игра идёт, показываем текущий счёт
   if (gameState === "play") {
     ctx3.fillStyle = "#fff";
-    ctx3.font = "14px sans-serif";
-    ctx3.fillText(`Score: ${currentScore}`, 10, 20);
+    ctx3.font = "16px sans-serif";
+    ctx3.textAlign = "left";
+    ctx3.fillText(`Score: ${currentScore}`, 10, 30);
   }
 }
 
