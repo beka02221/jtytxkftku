@@ -21,17 +21,17 @@
 
   <style>
     * {
-      margin: 0;
+      margin: 0; 
       padding: 0;
       box-sizing: border-box;
       font-family: 'Press Start 2P', cursive;
     }
     html, body {
-      width: 100%;
+      width: 100%; 
       height: 100%;
-      background-color: #111;
+      background-color: #000; 
       color: #00FF00;
-      overflow-x: hidden;
+      overflow-x: hidden; /* Prevent horizontal scrolling */
     }
     body {
       display: flex;
@@ -46,28 +46,29 @@
       padding: 10px;
       border-bottom: 2px solid #00FF00;
       flex-shrink: 0;
+      z-index: 10001;
       position: relative;
     }
     .user-info {
-      display: flex;
-      align-items: center;
+      display: flex; 
+      align-items: center; 
       gap: 10px;
     }
     .user-info img {
-      width: 40px;
+      width: 40px; 
       height: 40px;
-      border-radius: 50%;
+      border-radius: 50%; 
       object-fit: cover;
       border: 2px solid #00FF00;
     }
     .balances {
-      display: flex;
-      gap: 15px;
+      display: flex; 
+      gap: 15px; 
       align-items: center;
     }
     .balances span {
-      display: flex;
-      align-items: center;
+      display: flex; 
+      align-items: center; 
       gap: 5px;
     }
 
@@ -88,13 +89,13 @@
       flex-shrink: 0;
     }
     nav button {
-      background: none;
+      background: none; 
       border: none;
-      cursor: pointer;
+      cursor: pointer; 
       transition: 0.3s;
     }
     nav button img {
-      width: 35px;
+      width: 35px; 
       height: 35px;
     }
     nav button:hover img {
@@ -102,18 +103,18 @@
     }
 
     /* Sections (hidden/visible) */
-    .section {
-      display: none;
+    .section { 
+      display: none; 
     }
-    .section.active {
-      display: block;
+    .section.active { 
+      display: block; 
     }
 
     /* Games section styles */
     .games-container {
-      display: flex;
+      display: flex; 
       flex-wrap: nowrap;
-      overflow-x: auto;
+      overflow-x: auto; 
       gap: 20px;
       padding: 10px 0;
     }
@@ -124,21 +125,21 @@
       padding: 10px;
       text-align: center;
       flex-shrink: 0;
-      background-color: #222;
+      background-color: #111;
     }
     .game-card img {
-      width: 80px;
+      width: 80px; 
       height: 80px;
-      object-fit: contain;
+      object-fit: contain; 
       margin-bottom: 10px;
     }
     .game-card button {
       margin-top: 10px;
-      background-color: #00FF00;
+      background-color: #00FF00; 
       color: #000;
-      border: none;
+      border: none; 
       padding: 5px 10px;
-      cursor: pointer;
+      cursor: pointer; 
       border-radius: 5px;
       transition: 0.3s;
     }
@@ -148,34 +149,34 @@
 
     /* Tickets section */
     .wheel-container {
-      display: flex;
+      display: flex; 
       flex-direction: column;
-      align-items: center;
+      align-items: center; 
       gap: 20px;
       margin-top: 30px;
     }
     .wheel {
-      width: 200px;
+      width: 200px; 
       height: 200px;
-      border: 2px solid #00FF00;
+      border: 2px solid #00FF00; 
       border-radius: 50%;
-      display: flex;
+      display: flex; 
       align-items: center;
-      justify-content: center;
-      background: #222;
+      justify-content: center; 
+      background: #111;
     }
     .spin-result {
-      margin-top: 10px;
+      margin-top: 10px; 
       text-align: center;
     }
     .tickets-actions button {
-      background-color: #00FF00;
+      background-color: #00FF00; 
       color: #000;
-      border: none;
+      border: none; 
       padding: 8px 15px;
-      margin: 5px;
+      margin: 5px; 
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: 5px; 
       transition: 0.3s;
     }
     .tickets-actions button:hover {
@@ -196,11 +197,11 @@
       text-align: left;
     }
     .info-button {
-      background-color: #00FF00;
+      background-color: #00FF00; 
       color: #000;
-      border: none;
+      border: none; 
       padding: 5px 10px;
-      cursor: pointer;
+      cursor: pointer; 
       margin-bottom: 10px;
       border-radius: 5px;
     }
@@ -208,40 +209,40 @@
     /* Referral section */
     .referral-container {
       margin-top: 20px;
-      display: flex;
+      display: flex; 
       flex-direction: column;
-      gap: 10px;
+      gap: 10px; 
       align-items: center;
       text-align: center;
     }
     .referral-link {
       word-wrap: break-word;
       border: 1px solid #00FF00;
-      padding: 5px;
+      padding: 5px; 
       margin-bottom: 5px;
-      width: 80%;
-      background-color: #222;
+      width: 80%; 
+      background-color: #111;
       border-radius: 5px;
     }
     .copy-button {
-      background-color: #00FF00;
+      background-color: #00FF00; 
       color: #000;
-      border: none;
+      border: none; 
       padding: 5px 10px;
-      cursor: pointer;
+      cursor: pointer; 
       border-radius: 5px;
     }
 
     /* Global modal */
     .modal-backdrop {
-      position: fixed;
-      top: 0;
+      position: fixed; 
+      top: 0; 
       left: 0;
-      width: 100%;
+      width: 100%; 
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      align-items: center;
+      background: rgba(0,0,0,0.8);
+      display: none; 
+      align-items: center; 
       justify-content: center;
       z-index: 9999;
     }
@@ -249,29 +250,29 @@
       display: flex;
     }
     .modal {
-      background-color: #111;
+      background-color: #000;
       border: 2px solid #00FF00;
-      padding: 20px;
+      padding: 20px; 
       width: 80%;
-      max-width: 400px;
+      max-width: 400px; 
       text-align: center;
       border-radius: 5px;
     }
     .modal h2 {
-      margin-bottom: 10px;
+      margin-bottom: 10px; 
       font-size: 18px;
     }
     .modal p {
-      margin-bottom: 20px;
+      margin-bottom: 20px; 
       white-space: pre-line;
       font-size: 14px;
     }
     .close-modal {
-      background-color: #00FF00;
+      background-color: #00FF00; 
       color: #000;
-      padding: 5px 10px;
+      padding: 5px 10px; 
       border: none;
-      cursor: pointer;
+      cursor: pointer; 
       border-radius: 5px;
     }
 
@@ -287,7 +288,7 @@
       left: 0;
       width: 100%;
       height: calc(100% - 60px);
-      background: #111;
+      background: #000;
       display: none;
       flex-direction: column;
       z-index: 10000;
@@ -297,32 +298,32 @@
     }
     .game-modal-content {
       flex: 1;
-      display: flex;
+      display: flex; 
       flex-direction: column;
       margin-top: 60px;
     }
     /* Hide navigation during game */
-    .hidden {
-      display: none !important;
+    .hidden { 
+      display: none !important; 
     }
 
     .game-canvas {
       flex: 1;
-      display: flex;
-      align-items: center;
+      display: flex; 
+      align-items: center; 
       justify-content: center;
     }
 
     /* Endgame modal */
     .endgame-backdrop {
-      position: fixed;
-      top: 0;
+      position: fixed; 
+      top: 0; 
       left: 0;
-      width: 100%;
+      width: 100%; 
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      align-items: center;
+      background: rgba(0,0,0,0.8);
+      display: none; 
+      align-items: center; 
       justify-content: center;
       z-index: 10001;
     }
@@ -330,27 +331,27 @@
       display: flex;
     }
     .endgame-modal {
-      background-color: #111;
+      background-color: #000;
       border: 2px solid #00FF00;
       border-radius: 5px;
-      padding: 20px;
+      padding: 20px; 
       width: 80%;
-      max-width: 400px;
+      max-width: 400px; 
       text-align: center;
     }
 
     /* Responsive adjustments */
     @media (max-width: 480px) {
       header {
-        flex-direction: column;
+        flex-direction: column; 
         gap: 10px;
       }
       .user-info img {
-        width: 30px;
+        width: 30px; 
         height: 30px;
       }
       nav button img {
-        width: 30px;
+        width: 30px; 
         height: 30px;
       }
     }
