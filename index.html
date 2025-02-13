@@ -9,9 +9,7 @@
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="game1.css">
-  <link rel="stylesheet" href="game2.css">
-
+  
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -19,228 +17,568 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
+  <!-- ===================== СТИЛИ В ОДНОМ БЛОКЕ ===================== -->
   <style>
- * {
-      margin: 0; 
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Press Start 2P', cursive;
-    }
+    /* Удаляем горизонтальный скролл на всём сайте */
     html, body {
-      width: 100%; 
+      width: 100%;
       height: 100%;
-      background-color: #000; 
-      color: #00FF00;
-      overflow-x: hidden; /* Prevent horizontal scrolling */
+      overflow-x: hidden; /* ВАЖНО: нет прокрутки по горизонтали */
+      margin: 0;
+      padding: 0;
     }
+
     body {
       display: flex;
       flex-direction: column;
+      background-color: #00103c; /* Тёмно-зелёный (Game Boy style) */
+      color: #ff2553;
     }
 
-    /* Header (always visible) */
+    /* Общие шрифты: Заголовки (Press Start 2P), остальное (Courier New) */
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', cursive;
+      text-transform: uppercase;
+    }
+    p, span, td, th, button, input, a, label {
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Небольшая анимация "нажатия" для 3D-кнопок */
+    @keyframes press {
+      0%   { transform: translateY(0) scale(1); }
+      50%  { transform: translateY(2px) scale(0.97); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    /* Анимация появления справа (для листания карточек) */
+    @keyframes slideInRight {
+      0%   { transform: translateX(50%); opacity: 0; }
+      100% { transform: translateX(0);   opacity: 1; }
+    }
+
+    /* Анимация вращения колеса (wheel) */
+    @keyframes wheelSpin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(720deg); }
+    }
+
+    /* ---------- HEADER ---------- */
     header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px;
-      border-bottom: 2px solid #00FF00;
+      padding: 10px 12px;
+      border-bottom: 2px solid #ff2553;
+      background-color: #6d4fba; 
       flex-shrink: 0;
-      z-index: 10001;
-      position: relative;
     }
     .user-info {
-      display: flex; 
-      align-items: center; 
+      display: flex;
+      align-items: center;
       gap: 10px;
     }
     .user-info img {
-      width: 40px; 
+      width: 40px;
       height: 40px;
-      border-radius: 50%; 
+      border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #00FF00;
+      border: 2px solid #3b3b3b;
     }
     .balances {
-      display: flex; 
-      gap: 15px; 
+      display: flex;
+      gap: 15px;
       align-items: center;
     }
     .balances span {
-      display: flex; 
-      align-items: center; 
+      display: flex;
+      align-items: center;
       gap: 5px;
     }
 
-    /* Main container for sections */
+    /* Иконки в balances — чуть меняем оттенок (пример) */
+    .balances img {
+      filter: invert(70%) sepia(90%) hue-rotate(120deg) saturate(200%) brightness(0.9);
+    }
+
+    /* ---------- MAIN (Контент) ---------- */
     main {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-    }
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  padding-bottom: 70px; /* Добавляем отступ снизу, равный высоте нижней панели */
+  -webkit-overflow-scrolling: touch;
+}
 
-    /* Navigation at the bottom (icons only) */
-    nav {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      border-top: 2px solid #00FF00;
-      padding: 10px 0;
-      flex-shrink: 0;
-    }
-    nav button {
-      background: none; 
-      border: none;
-      cursor: pointer; 
-      transition: 0.3s;
-    }
-    nav button img {
-      width: 35px; 
-      height: 35px;
-    }
-    nav button:hover img {
-      filter: brightness(60%);
-    }
 
-    /* Sections (hidden/visible) */
-    .section { 
-      display: none; 
-    }
-    .section.active { 
-      display: block; 
-    }
+    /* ---------- NAV (нижняя панель) ---------- */
+    @import url('https://fonts.googleapis.com/css?family=Press+Start+2P');
 
-    /* Games section styles */
+/* NAVIGATION CONTAINER STYLES */
+nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 0;
+  background-color: #6d4fba;
+  z-index: 1000;
+}
+
+/* NAVIGATION BUTTON STYLES */
+nav button {
+  font-size: 0.9em;
+  font-family: 'Press Start 2P', cursive;
+  width: 120px;
+  height: 50px;
+  background: #06C1DE;
+  border: none;
+  position: relative;
+  box-shadow: 
+    inset -3px 1px 1px 1px grey,
+    inset -3px -1px 1px 1px lightgray,
+    inset 3px 0px 1px 1px lightgray;
+  transition: background-color 0.2s, top 0.1s, box-shadow 0.1s;
+}
+
+nav button:hover {
+  cursor: pointer;
+  background-color: #06B6D1;
+}
+
+nav button:active {
+  top: 3px;
+  box-shadow: 
+    -3px 1px 1px 1px grey,
+    -3px -1px 1px 1px lightgray,
+    3px 0px 1px 1px lightgray;
+}
+
+/* BUTTON SHADOW EFFECTS */
+nav button::after {
+  content: '';
+  background: black;
+  position: absolute;
+  left: -2%;
+  top: 0;
+  width: 104%;
+  height: 100%;
+  z-index: -1;
+}
+
+nav button::before {
+  content: '';
+  background: black;
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 100%;
+  height: 107%;
+  z-index: -1;
+}
+
+/* NAVIGATION BUTTON ICONS: Make icons black and smaller */
+nav button img {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) saturate(100%);
+}
+
+
+    /* ---------- СЕКЦИИ (section) ---------- */
+    .section {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  padding: 50px;
+  background-color: var(--content-bg, #440052); /* Фон для контента */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+.section.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section h2 {
+  margin: 20px 0 15px;
+  font-size: 20px;
+  text-align: center;
+  color: var(--accent-primary, #FF00FF); /* Яркий неоновый акцент */
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+}
+
+.section h3 {
+  margin: 15px 0 30px;
+  font-size: 16px;
+  text-align: center;
+  color: var(--text-light, #FF00FF);
+  letter-spacing: 0.5px;
+}
+
+
+    /* ---------- GAMES CONTAINER ---------- */
     .games-container {
-      display: flex; 
-      flex-wrap: nowrap;
-      overflow-x: auto; 
-      gap: 20px;
-      padding: 10px 0;
+      position: relative;
+      display: flex;
+      justify-content: center; 
+      align-items: center;
+      margin-bottom: 20px;
+      /* Убираем горизонтальный скролл, если вдруг */
+      overflow: hidden;
     }
+    .games-container input[type="radio"] {
+      display: none; /* Скрываем радио-кнопки для переключения */
+    }
+    .game-cards-wrapper {
+      position: relative;
+      width: 220px;  /* ширина на 1 карточку */
+      height: 200px; /* примерная высота */
+    }
+    /* Прячем все карточки по умолчанию */
+    /* Обёртка карточек остаётся без изменений */
+.game-cards-wrapper {
+  position: relative;
+  width: 220px;  /* ширина на 1 карточку */
+  height: 200px; /* примерная высота */
+}
+
+/* Изменённое позиционирование карточки */
+.game-cards-wrapper .game-card {
+  position: absolute;
+  top: 0;
+  left: 50%; /* устанавливаем точку отсчёта по центру */
+  width: 220px;
+  height: auto;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%); /* сдвигаем карточку влево на половину её ширины */
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+/* Анимация появления — корректируем конечное положение */
+@keyframes slideInRight {
+  0% {
+    transform: translateX(150%); /* начинает справа от центра */
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-50%); /* конечное положение: центр обёртки */
+    opacity: 1;
+  }
+}
+
+/* При выборе конкретной карточки — применяем анимацию */
+.main-games #mainGame1:checked ~ .game-cards-wrapper .game-card:nth-of-type(1),
+.main-games #mainGame2:checked ~ .game-cards-wrapper .game-card:nth-of-type(2),
+.main-games #mainGame3:checked ~ .game-cards-wrapper .game-card:nth-of-type(3) {
+  opacity: 1;
+  pointer-events: auto;
+  animation: slideInRight 0.4s forwards;
+}
+
+    
+    /* ----- Пример: main-games с 3 карточками.
+       При checked у #mainGame1: показываем .game-card:nth-of-type(1), и т.д. ----- */
+    .main-games #mainGame1:checked ~ .game-cards-wrapper .game-card:nth-of-type(1) {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      animation: slideInRight 0.4s forwards;
+    }
+    .main-games #mainGame2:checked ~ .game-cards-wrapper .game-card:nth-of-type(2) {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      animation: slideInRight 0.4s forwards;
+    }
+    .main-games #mainGame3:checked ~ .game-cards-wrapper .game-card:nth-of-type(3) {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+      animation: slideInRight 0.4s forwards;
+    }
+
+    /* Стрелки. Для "Main Games" делаем несколько наборов, 
+       чтобы было "обратные" кнопки (влево и вправо) для каждого state */
+    /* Общий стиль стрелок */
+    .arrow-btn {
+  background: #06B6D1;
+  border: 1px solid #4b4b4b;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 3px #6b6b6b;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 18px;
+  color: #262626;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: 0.2s;
+  z-index: 1; /* Чтобы стрелки были поверх карточек */
+}
+
+/* Новые значения: распологаем стрелки ближе к краю контейнера */
+.arrow-left {
+  left: 5px;
+}
+.arrow-right {
+  right: 5px;
+}
+
+/* Адаптация для мобильных устройств (при необходимости можно скорректировать) */
+@media (max-width: 480px) {
+  .arrow-left {
+    left: 5px;
+  }
+  .arrow-right {
+    right: 5px;
+  }
+}
+
+
+    /* ----- 
+       Для каждой из 3 карточек делаем "пару" стрелок,
+       которые показываются ТОЛЬКО когда отмечен соответствующий radio
+     ----- */
+
+    /* Если выбрано #mainGame1, показываем стрелки arrow-for-1 (лево/право) */
+    .main-games #mainGame1:checked ~ .arrow-for-1-left,
+    .main-games #mainGame1:checked ~ .arrow-for-1-right {
+      display: flex;
+    }
+    /* Если выбрано #mainGame2, показываем стрелки arrow-for-2 (лево/право) */
+    .main-games #mainGame2:checked ~ .arrow-for-2-left,
+    .main-games #mainGame2:checked ~ .arrow-for-2-right {
+      display: flex;
+    }
+    /* Если выбрано #mainGame3, показываем стрелки arrow-for-3 (лево/право) */
+    .main-games #mainGame3:checked ~ .arrow-for-3-left,
+    .main-games #mainGame3:checked ~ .arrow-for-3-right {
+      display: flex;
+    }
+
+    /* ---------- CARD СТИЛИЗАЦИЯ ---------- */
     .game-card {
-      min-width: 200px;
-      border: 2px solid #00FF00;
-      border-radius: 5px;
-      padding: 10px;
-      text-align: center;
-      flex-shrink: 0;
-      background-color: #111;
-    }
+  /* Используем пиксельный шрифт для соответствия стилю */
+  font-family: 'Press Start 2P', cursive;
+  /* Основной фон карточки (например, красный) */
+  background-color: #45cac5;
+  color: #fff;
+  
+  /* Убираем стандартные рамки и скругления для «пиксельного» вида */
+  border: none;
+  border-radius: 0;
+  
+  /* Внутренние отступы и выравнивание текста */
+  padding: 12px;
+  text-align: center;
+  
+  /* Позиционирование для работы с псевдоэлементами */
+  position: relative;
+  
+  /* Основной 3D-эффект с помощью inset-теней */
+  box-shadow: 
+    inset -4px 2px 1px 1px grey,
+    inset -4px -2px 1px 1px lightgray,
+    inset 4px 0px 1px 1px lightgray;
+    
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Эффект при наведении — небольшой масштаб для живости */
+.game-card:hover {
+  cursor: pointer;
+  transform: scale(1.02);
+}
+
+/* Эффект нажатия — смещение и изменение теней, как будто карточка нажата */
+.game-card:active {
+  transform: translateY(5px);
+  box-shadow: 
+    -4px 2px 1px 1px grey,
+    -4px -2px 1px 1px lightgray,
+    4px 0px 1px 1px lightgray;
+}
+
+/* Псевдоэлемент для создания «тяжёлого» нижнего/бокового обрамления */
+
+
     .game-card img {
-      width: 80px; 
+      width: 80px;
       height: 80px;
-      object-fit: contain; 
+      object-fit: contain;
       margin-bottom: 10px;
+      /* Меняем оттенок иконок: */
+      filter: invert(40%) sepia(80%) hue-rotate(100deg) saturate(200%) brightness(0.9);
     }
     .game-card button {
       margin-top: 10px;
-      background-color: #00FF00; 
-      color: #000;
-      border: none; 
-      padding: 5px 10px;
-      cursor: pointer; 
-      border-radius: 5px;
-      transition: 0.3s;
+      background: #d0dab4;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 10px;
+      box-shadow: 0 3px #6b6b6b;
+      transition: 0.2s;
     }
     .game-card button:hover {
-      opacity: 0.8;
+      transform: scale(1.05);
+    }
+    .game-card button:active {
+      animation: press 0.15s forwards;
+      box-shadow: 0 2px #6b6b6b;
+      transform: translateY(1px) scale(1.0);
     }
 
-    /* Tickets section */
+    /* ---------- TICKETS (колесо фортуны) ---------- */
     .wheel-container {
-      display: flex; 
+      display: flex;
       flex-direction: column;
-      align-items: center; 
+      align-items: center;
       gap: 20px;
-      margin-top: 30px;
+      margin-top: 20px;
     }
     .wheel {
-      width: 200px; 
+      width: 200px;
       height: 200px;
-      border: 2px solid #00FF00; 
+      border: 2px solid #3b3b3b;
       border-radius: 50%;
-      display: flex; 
+      display: flex;
       align-items: center;
-      justify-content: center; 
-      background: #111;
+      justify-content: center;
+      background: #b6c9a0;
+      transition: transform 1s;
+      overflow: hidden;
+    }
+    .wheel.spinning {
+      animation: wheelSpin 2s ease-in-out;
     }
     .spin-result {
-      margin-top: 10px; 
       text-align: center;
     }
+    .tickets-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
     .tickets-actions button {
-      background-color: #00FF00; 
-      color: #000;
-      border: none; 
-      padding: 8px 15px;
-      margin: 5px; 
+      background: #d0dab4;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 8px 10px;
       cursor: pointer;
-      border-radius: 5px; 
-      transition: 0.3s;
+      font-size: 10px;
+      box-shadow: 0 3px #6b6b6b;
     }
     .tickets-actions button:hover {
-      opacity: 0.8;
+      transform: scale(1.05);
+    }
+    .tickets-actions button:active {
+      animation: press 0.15s forwards;
+      box-shadow: 0 2px #6b6b6b;
+      transform: translateY(1px) scale(1.0);
     }
 
-    /* Leaderboard section */
+    /* ---------- ЛИДЕРБОРД, РЕФЕРАЛЫ И Т.Д. ---------- */
     .leaderboard-container {
       margin-top: 20px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
+      background: #b6c9a0;
     }
     th, td {
-      border: 1px solid #00FF00;
+      border: 1px solid #3b3b3b;
       padding: 10px;
       text-align: left;
+      font-size: 10px;
     }
     .info-button {
-      background-color: #00FF00; 
-      color: #000;
-      border: none; 
-      padding: 5px 10px;
-      cursor: pointer; 
+      background: #d0dab4;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
       margin-bottom: 10px;
-      border-radius: 5px;
+      font-size: 10px;
+      box-shadow: 0 3px #6b6b6b;
+      transition: 0.2s;
+    }
+    .info-button:hover {
+      transform: scale(1.05);
+    }
+    .info-button:active {
+      animation: press 0.15s forwards;
+      box-shadow: 0 2px #6b6b6b;
+      transform: translateY(1px) scale(1.0);
     }
 
-    /* Referral section */
     .referral-container {
       margin-top: 20px;
-      display: flex; 
+      display: flex;
       flex-direction: column;
-      gap: 10px; 
+      gap: 10px;
       align-items: center;
       text-align: center;
     }
     .referral-link {
       word-wrap: break-word;
-      border: 1px solid #00FF00;
-      padding: 5px; 
-      margin-bottom: 5px;
-      width: 80%; 
-      background-color: #111;
-      border-radius: 5px;
+      border: 1px solid #3b3b3b;
+      padding: 5px;
+      width: 80%;
+      background-color: #b6c9a0;
+      border-radius: 4px;
+      font-size: 10px;
     }
     .copy-button {
-      background-color: #00FF00; 
-      color: #000;
-      border: none; 
-      padding: 5px 10px;
-      cursor: pointer; 
-      border-radius: 5px;
+      background: #d0dab4;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 10px;
+      box-shadow: 0 3px #6b6b6b;
+      transition: 0.2s;
+    }
+    .copy-button:hover {
+      transform: scale(1.05);
+    }
+    .copy-button:active {
+      animation: press 0.15s forwards;
+      box-shadow: 0 2px #6b6b6b;
+      transform: translateY(1px) scale(1.0);
     }
 
-    /* Global modal */
+    /* ---------- ГЛОБАЛЬНЫЕ МОДАЛЫ ---------- */
     .modal-backdrop {
       position: fixed; 
       top: 0; 
       left: 0;
       width: 100%; 
       height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.3);
       display: none; 
       align-items: center; 
       justify-content: center;
@@ -250,45 +588,55 @@
       display: flex;
     }
     .modal {
-      background-color: #000;
-      border: 2px solid #00FF00;
-      padding: 20px; 
+      background-color: #b6c9a0;
+      border: 2px solid #3b3b3b;
+      padding: 20px;
       width: 80%;
-      max-width: 400px; 
+      max-width: 400px;
       text-align: center;
-      border-radius: 5px;
+      border-radius: 4px;
     }
     .modal h2 {
-      margin-bottom: 10px; 
-      font-size: 18px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-family: 'Press Start 2P', cursive; 
+      text-transform: uppercase;
     }
     .modal p {
-      margin-bottom: 20px; 
-      white-space: pre-line;
-      font-size: 14px;
+      margin-bottom: 20px;
+      font-size: 10px;
+      font-family: 'Courier New', monospace;
     }
     .close-modal {
-      background-color: #00FF00; 
-      color: #000;
-      padding: 5px 10px; 
-      border: none;
-      cursor: pointer; 
-      border-radius: 5px;
+      background: #d0dab4;
+      color: #262626;
+      padding: 5px 8px;
+      border: 1px solid #4b4b4b;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 10px;
+      box-shadow: 0 3px #6b6b6b;
     }
-
-    /* Modal for season info */
+    .close-modal:hover {
+      transform: scale(1.05);
+    }
+    .close-modal:active {
+      animation: press 0.15s forwards;
+      box-shadow: 0 2px #6b6b6b;
+      transform: translateY(1px) scale(1.0);
+    }
     .modal-season {
       text-align: left;
     }
 
-    /* Fullscreen game block (excluding header) */
+    /* ---------- ПОЛНОЭКРАННОЕ ОКНО ИГРЫ ---------- */
     .game-modal-backdrop {
       position: fixed;
       top: 60px;
       left: 0;
       width: 100%;
       height: calc(100% - 60px);
-      background: #000;
+      background: #8c946a;
       display: none;
       flex-direction: column;
       z-index: 10000;
@@ -302,11 +650,9 @@
       flex-direction: column;
       margin-top: 60px;
     }
-    /* Hide navigation during game */
-    .hidden { 
-      display: none !important; 
+    .hidden {
+      display: none !important;
     }
-
     .game-canvas {
       flex: 1;
       display: flex; 
@@ -314,14 +660,14 @@
       justify-content: center;
     }
 
-    /* Endgame modal */
+    /* ---------- МОДАЛ РЕЗУЛЬТАТОВ ИГРЫ ---------- */
     .endgame-backdrop {
       position: fixed; 
       top: 0; 
       left: 0;
       width: 100%; 
       height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.3);
       display: none; 
       align-items: center; 
       justify-content: center;
@@ -331,28 +677,71 @@
       display: flex;
     }
     .endgame-modal {
-      background-color: #000;
-      border: 2px solid #00FF00;
-      border-radius: 5px;
-      padding: 20px; 
+      background-color: #b6c9a0;
+      border: 2px solid #3b3b3b;
+      border-radius: 4px;
+      padding: 20px;
       width: 80%;
-      max-width: 400px; 
+      max-width: 400px;
       text-align: center;
     }
+    .endgame-modal h2 {
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-family: 'Press Start 2P', cursive;
+      text-transform: uppercase;
+    }
+    .endgame-modal p {
+      margin-bottom: 20px;
+      font-size: 10px;
+    }
+    .endgame-modal button {
+      background: #d0dab4;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 10px;
+      box-shadow: 0 3px #6b6b6b;
+      transition: 0.2s;
+    }
+    .endgame-modal button:hover {
+      transform: scale(1.05);
+    }
+    .endgame-modal button:active {
+      animation: press 0.15s forwards;
+      box-shadow: 0 2px #6b6b6b;
+      transform: translateY(1px) scale(1.0);
+    }
 
-    /* Responsive adjustments */
+    /* ---------- АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ (480px) ---------- */
     @media (max-width: 480px) {
       header {
-        flex-direction: column; 
-        gap: 10px;
+        flex-direction: column;
+        gap: 6px;
       }
       .user-info img {
-        width: 30px; 
+        width: 30px;
         height: 30px;
       }
+      nav button {
+        font-size: 10px;
+        padding: 4px 6px;
+      }
       nav button img {
-        width: 30px; 
-        height: 30px;
+        width: 18px; 
+        height: 18px;
+      }
+      .game-cards-wrapper {
+        width: 180px;
+      }
+      /* на мобильных стрелки поближе (60px) */
+      .arrow-left {
+        left: -60px;
+      }
+      .arrow-right {
+        right: -60px;
       }
     }
   </style>
@@ -385,40 +774,77 @@
 
   <!-- Main Content -->
   <main>
-    <!-- Play Section with Game Categories -->
+    <!-- ============ PLAY SECTION ============ -->
     <section id="playSection" class="section active">
       <h2>Play</h2>
-      
-      <!-- Main Games -->
+
+      <!-- ================== Main Games ================== -->
       <h3>Main Games</h3>
-      <div class="games-container">
-        <!-- Game 1: Dino Runner -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
-               alt="Dino Runner">
-          <p>Dino Runner</p>
-          <button onclick="handleStartGame('game1', 1)">Play (1 ticket)</button>
+      <!-- 
+           Группа радиокнопок (type="radio") 
+           с одинаковым name="mainGameChoice".
+           По умолчанию checked у первой игры (game1).
+      -->
+      <div class="games-container main-games">
+        <!-- Радиокнопки (скрытые) -->
+        <input type="radio" name="mainGameChoice" id="mainGame1" checked>
+        <input type="radio" name="mainGameChoice" id="mainGame2">
+        <input type="radio" name="mainGameChoice" id="mainGame3">
+
+        <!-- Обёртка для карточек -->
+        <div class="game-cards-wrapper">
+          <!-- Карточка №1: Dino Runner -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
+                 alt="Dino Runner">
+            <p>Dino Runner</p>
+            <button onclick="handleStartGame('game1', 1)">Play (1 ticket)</button>
+          </div>
+
+          <!-- Карточка №2: Match-3 -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
+                 alt="Match-3">
+            <p>Match-3</p>
+            <button onclick="handleStartGame('game2', 1)">Play (1 ticket)</button>
+          </div>
+
+          <!-- Карточка №3: Game 3 -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png"
+                 alt="Game 3">
+            <p>Game 3</p>
+            <button onclick="handleStartGame('game3', 1)">Play (1 ticket)</button>
+          </div>
         </div>
-        <!-- Game 2: Match-3 -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
-               alt="Match-3">
-          <p>Match-3</p>
-          <button onclick="handleStartGame('game2', 1)">Play (1 ticket)</button>
-        </div>
-        <!-- Game 3 -->
-        <div class="game-card">
-          <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png"
-               alt="Game 3">
-          <p>Game 3</p>
-          <button onclick="handleStartGame('game3', 1)">Play (1 ticket)</button>
-        </div>
+
+        <!-- ========== Стрелки для Main Games ==========
+             Каждой радиокнопке (mainGame1, mainGame2, mainGame3) соответствуют 2 стрелки.
+             При checked у mainGame1: показываем arrow-for-1, и т.д. -->
+
+        <!-- Если выбрана карточка #1, 
+             левая кнопка => mainGame3 (цикл назад), 
+             правая => mainGame2 -->
+        <label class="arrow-btn arrow-left  arrow-for-1-left"  for="mainGame3">&lt;</label>
+        <label class="arrow-btn arrow-right arrow-for-1-right" for="mainGame2">&gt;</label>
+
+        <!-- Если выбрана карточка #2,
+             левая кнопка => mainGame1, 
+             правая => mainGame3 -->
+        <label class="arrow-btn arrow-left  arrow-for-2-left"  for="mainGame1">&lt;</label>
+        <label class="arrow-btn arrow-right arrow-for-2-right" for="mainGame3">&gt;</label>
+
+        <!-- Если выбрана карточка #3,
+             левая => mainGame2,
+             правая => mainGame1 -->
+        <label class="arrow-btn arrow-left  arrow-for-3-left"  for="mainGame2">&lt;</label>
+        <label class="arrow-btn arrow-right arrow-for-3-right" for="mainGame1">&gt;</label>
       </div>
-      
-      <!-- Special Games -->
+
+      <!-- ================== Special Games ================== -->
       <h3>Special Games</h3>
       <div class="games-container">
-        <!-- Special Game: Special Game 1 -->
+        <!-- Всего 1 игра, без радио и стрелок -->
         <div class="game-card">
           <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png"
                alt="Special Game">
@@ -426,11 +852,11 @@
           <button onclick="handleStartGame('specialgame1', 1)">Play (1 ticket)</button>
         </div>
       </div>
-      
-      <!-- Partner Games -->
+
+      <!-- ================== Partner Games ================== -->
       <h3>Partner Games</h3>
       <div class="games-container">
-        <!-- Partner Game -->
+        <!-- Тоже 1 игра -->
         <div class="game-card">
           <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png"
                alt="Partner Game">
@@ -440,7 +866,7 @@
       </div>
     </section>
 
-    <!-- Tickets Section -->
+    <!-- ============ TICKETS SECTION ============ -->
     <section id="ticketsSection" class="section">
       <h2>Tickets</h2>
       <div class="wheel-container">
@@ -491,16 +917,16 @@
   <!-- Bottom Navigation -->
   <nav id="mainNav">
     <button onclick="showSection('playSection')">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/playing.png" alt="Play"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/playing.png" alt="Play"/>
     </button>
     <button onclick="showSection('ticketsSection')">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/ticket.png" alt="Tickets"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/ticket.png" alt="Tickets"/>
     </button>
     <button onclick="showSection('leaderboardSection')">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/trophy.png" alt="Leaderboard"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/trophy.png" alt="Leaderboard"/>
     </button>
     <button onclick="showSection('referralSection')">
-      <img src="https://img.icons8.com/ios-filled/50/00FF00/share.png" alt="Referral"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/share.png" alt="Referral"/>
     </button>
   </nav>
 
@@ -530,16 +956,14 @@
       <div class="game-canvas">
         <!-- Canvas for Game 1 -->
         <canvas id="gameCanvas" width="400" height="200" style="display: none;"></canvas>
-        <!-- Canvas for Game 2 (Match-3) -->
+        <!-- Canvas for Game 2 -->
         <canvas id="match3Canvas" width="400" height="400" style="display: none;"></canvas>
         <!-- Canvas for Partner Game -->
         <canvas id="partnerGameCanvas" width="400" height="200" style="display: none;"></canvas>
         <!-- Canvas for Special Game -->
         <canvas id="specialGameCanvas" width="400" height="200" style="display: none;"></canvas>
         <!-- Canvas for Game 3 -->
-     <canvas id="game3Canvas" width="300" height="800" style="display: none;"></canvas>
-
-
+        <canvas id="game3Canvas" width="300" height="800" style="display: none;"></canvas>
       </div>
     </div>
   </div>
@@ -588,15 +1012,12 @@
     let currentUser = null;
     let userRef = null;
 
-    // Local user data (to update scores during game)
     let localUserData = {
       photo: '',
       tickets: 0,
       coins: 0,
       points: 0
     };
-
-    // Flag indicating an ongoing game
     let gameInProgress = false;
 
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -630,7 +1051,7 @@
     }
 
     /* ----------------------------------------------
-       4. Update Top Bar (Header)
+       4. Update Top Bar
     ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
@@ -647,7 +1068,7 @@
     }
 
     /* ----------------------------------------------
-       6. Global Modal (instead of alert)
+       6. Global Modal
     ---------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
@@ -659,10 +1080,10 @@
     }
 
     /* ----------------------------------------------
-       7. Start Game (hide nav, show canvas)
+       7. Start Game
     ---------------------------------------------- */
-    let lastSpinTime = 0; // for the wheel of fortune
-    let currentGame = null; // 'game1', 'game2', 'partnergame1', 'specialgame1', or 'game3'
+    let lastSpinTime = 0;
+    let currentGame = null;
 
     function handleStartGame(gameName, ticketCost) {
       if (!currentUser || !userRef) {
@@ -673,7 +1094,6 @@
         showGlobalModal('Not enough tickets', 'You do not have enough tickets to play!');
         return;
       }
-      // Deduct tickets locally
       localUserData.tickets -= ticketCost;
       updateTopBar();
       userRef.update({ tickets: localUserData.tickets });
@@ -682,51 +1102,47 @@
       gameInProgress = true;
       document.getElementById('mainNav').classList.add('hidden');
 
-      // Hide all canvas elements
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
       document.getElementById('partnerGameCanvas').style.display = 'none';
       document.getElementById('specialGameCanvas').style.display = 'none';
       document.getElementById('game3Canvas').style.display = 'none';
 
-      // Show game modal
       document.getElementById('gameModalBackdrop').classList.add('active');
 
-      // Initialize the selected game
       if (gameName === 'game1') {
         document.getElementById('gameCanvas').style.display = 'block';
-        initGame1(); // Defined in game1.js
+        initGame1();
       } else if (gameName === 'game2') {
         document.getElementById('match3Canvas').style.display = 'block';
-        initGame2(); // Defined in game2.js
+        initGame2();
       } else if (gameName === 'partnergame1') {
         document.getElementById('partnerGameCanvas').style.display = 'block';
-        initPartnerGame1(); // Defined in partnergame1.js
+        initPartnerGame1();
       } else if (gameName === 'specialgame1') {
         document.getElementById('specialGameCanvas').style.display = 'block';
-        initSpecialGame1(); // Defined in specialgame1.js
+        initSpecialGame1();
       } else if (gameName === 'game3') {
         document.getElementById('game3Canvas').style.display = 'block';
-        initGame3(); // Defined in game3.js
+        initGame3();
       }
     }
 
     /* ----------------------------------------------
-       8. End Game Modal (called from games)
+       8. End Game Modal
     ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = title;
       document.getElementById('endgameMessage').textContent = message;
       document.getElementById('endgameBackdrop').classList.add('active');
     }
-
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       closeGameModal();
     }
 
     /* ----------------------------------------------
-       9. Close Game and Return to Interface
+       9. Close Game and Return
     ---------------------------------------------- */
     function closeGameModal() {
       document.getElementById('gameModalBackdrop').classList.remove('active');
@@ -760,12 +1176,20 @@
         return;
       }
       lastSpinTime = now;
-      const possibleRewards = [5, 10, 15, 20];
-      const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
-      localUserData.tickets += reward;
-      updateTopBar();
-      userRef.update({ tickets: localUserData.tickets });
-      document.getElementById('spinResult').textContent = `You won ${reward} tickets!`;
+
+      const wheelEl = document.getElementById('wheel');
+      wheelEl.classList.remove('spinning'); 
+      void wheelEl.offsetWidth; // сброс анимации
+      wheelEl.classList.add('spinning');
+
+      setTimeout(() => {
+        const possibleRewards = [5, 10, 15, 20];
+        const reward = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
+        localUserData.tickets += reward;
+        updateTopBar();
+        userRef.update({ tickets: localUserData.tickets });
+        document.getElementById('spinResult').textContent = `You won ${reward} tickets!`;
+      }, 2000);
     }
 
     function buyTickets() {
