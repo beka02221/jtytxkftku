@@ -32,7 +32,7 @@
       display: flex;
       flex-direction: column;
       background-color: #00103c; /* Тёмно-зелёный (Game Boy style) */
-      color: #ff2553;
+      color: #00FF99;
     }
 
     /* Общие шрифты: Заголовки (Press Start 2P), остальное (Courier New) */
@@ -196,7 +196,7 @@ nav button img {
   transform: translateY(20px);
   transition: opacity 0.4s ease, transform 0.4s ease;
   padding: 50px;
- /* Фон для контента */
+  background-color: var(--content-bg, #44005200); /* Фон для контента */
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   margin: 20px auto;
@@ -379,7 +379,7 @@ nav button img {
   font-family: 'Press Start 2P', cursive;
   /* Основной фон карточки (например, красный) */
   background-color: #45cac5;
-  color: #fff;
+  color: #ff2553;
   
   /* Убираем стандартные рамки и скругления для «пиксельного» вида */
   border: none;
@@ -388,6 +388,11 @@ nav button img {
   /* Внутренние отступы и выравнивание текста */
   padding: 12px;
   text-align: center;
+  p {
+  -webkit-text-stroke: 1px #000000;
+}
+
+
   
   /* Позиционирование для работы с псевдоэлементами */
   position: relative;
@@ -429,8 +434,9 @@ nav button img {
     }
     .game-card button {
       margin-top: 10px;
-      background: #d0dab4;
+      background: #06B6D1;
       color: #262626;
+      
       border: 1px solid #4b4b4b;
       border-radius: 4px;
       padding: 5px 8px;
@@ -464,7 +470,7 @@ nav button img {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #b6c9a0;
+      background: #6d4fba;
       transition: transform 1s;
       overflow: hidden;
     }
@@ -505,7 +511,7 @@ nav button img {
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #b6c9a0;
+      background: #150069;
     }
     th, td {
       border: 1px solid #3b3b3b;
@@ -588,7 +594,7 @@ nav button img {
       display: flex;
     }
     .modal {
-      background-color: #b6c9a0;
+      background-color: #6d4fba;
       border: 2px solid #3b3b3b;
       padding: 20px;
       width: 80%;
@@ -1252,3 +1258,4 @@ nav button img {
   </script>
 </body>
 </html>
+
