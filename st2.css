@@ -1,0 +1,633 @@
+/* Сброс базовых стилей */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Основные стили для html и body */
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+  }
+  
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #1f1c2c, #928dab);
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* ---------- HEADER ---------- */
+  header {
+    width: 100%;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #ff6b6b;
+  }
+  
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .user-info img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    object-fit: cover;
+  }
+  
+  .balances {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  
+  .balances span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .balances img {
+    width: 20px;
+    height: 20px;
+    filter: brightness(1.2) contrast(1.1);
+  }
+  
+  /* Типографика */
+  h1, h2, h3, h4 {
+    font-family: 'Montserrat', sans-serif;
+    text-transform: uppercase;
+    color: #ffcc00;
+  }
+  
+  p, span, td, th, button, input, a, label {
+    font-family: 'Roboto Mono', monospace;
+  }
+  
+  /* ---------- Анимации ---------- */
+  @keyframes buttonPress {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(3px) scale(0.95); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  
+  @keyframes cardSlide {
+    0% { transform: translateX(100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes rotateWheel {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  /* ---------- MAIN (Контент) ---------- */
+  main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    padding-bottom: 80px; /* отступ снизу для навигации */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* ---------- NAV (нижняя панель) ---------- */
+  nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    z-index: 1000;
+  }
+  
+  nav button {
+    width: 130px;
+    height: 50px;
+    background: #ff6b6b;
+    border: none;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #c05555;
+    transition: all 0.15s ease-in-out;
+    position: relative;
+  }
+  
+  nav button:hover {
+    background: #ff7f7f;
+  }
+  
+  nav button:active {
+    animation: buttonPress 0.2s forwards;
+    box-shadow: 0 2px 0 #c05555;
+  }
+  
+  nav button img {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+  }
+  
+  /* ---------- СЕКЦИИ ---------- */
+  .section {
+    display: none;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    background: rgba(30, 30, 30, 0.8);
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    margin: 20px auto;
+    max-width: 800px;
+  }
+  
+  .section.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .section h2 {
+    margin-bottom: 15px;
+    font-size: 22px;
+    text-align: center;
+    color: #ffcc00;
+    letter-spacing: 1px;
+  }
+  
+  .section h3 {
+    margin-bottom: 25px;
+    font-size: 18px;
+    text-align: center;
+    color: #ffa500;
+  }
+  
+  /* ---------- GAMES CONTAINER и CARD ---------- */
+  .games-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;
+    overflow: hidden;
+  }
+  
+  .games-container input[type="radio"] {
+    display: none;
+  }
+  
+  .game-cards-wrapper {
+    position: relative;
+    width: 240px;
+    height: 220px;
+  }
+  
+  .game-cards-wrapper .game-card {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 240px;
+    padding: 20px;
+    background: #ffffff;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  
+  @keyframes slideInCard {
+    from { transform: translateX(150%); opacity: 0; }
+    to { transform: translateX(-50%); opacity: 1; }
+  }
+  
+  /* При выборе соответствующей карточки */
+  .main-games #mainGame1:checked ~ .game-cards-wrapper .game-card:nth-of-type(1),
+  .main-games #mainGame2:checked ~ .game-cards-wrapper .game-card:nth-of-type(2),
+  .main-games #mainGame3:checked ~ .game-cards-wrapper .game-card:nth-of-type(3) {
+    opacity: 1;
+    pointer-events: auto;
+    animation: slideInCard 0.4s forwards;
+  }
+  
+  /* Стрелки для переключения карточек */
+  .arrow-btn {
+    background: #ff6b6b;
+    border: 2px solid #aa4444;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 16px;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: background 0.2s;
+    z-index: 1;
+  }
+  
+  .arrow-left {
+    left: 10px;
+  }
+  
+  .arrow-right {
+    right: 10px;
+  }
+  
+  @media (max-width: 480px) {
+    .arrow-left { left: 5px; }
+    .arrow-right { right: 5px; }
+  }
+  
+  /* Показываем стрелки для выбранной карточки */
+  .main-games #mainGame1:checked ~ .arrow-for-1-left,
+  .main-games #mainGame1:checked ~ .arrow-for-1-right,
+  .main-games #mainGame2:checked ~ .arrow-for-2-left,
+  .main-games #mainGame2:checked ~ .arrow-for-2-right,
+  .main-games #mainGame3:checked ~ .arrow-for-3-left,
+  .main-games #mainGame3:checked ~ .arrow-for-3-right {
+    display: flex;
+  }
+  
+  /* Стилизация карточки */
+  .game-card {
+    font-family: 'Montserrat', sans-serif;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .game-card img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    filter: brightness(0.9);
+  }
+  
+  .game-card button {
+    margin-top: 10px;
+    background: #ff6b6b;
+    border: none;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 3px 0 #aa4444;
+    transition: transform 0.2s;
+  }
+  
+  .game-card button:hover {
+    transform: scale(1.05);
+  }
+  
+  .game-card button:active {
+    animation: buttonPress 0.15s forwards;
+  }
+  
+  /* ---------- WHEEL (Колесо фортуны) ---------- */
+  .wheel-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 30px;
+  }
+  
+  .wheel {
+    width: 220px;
+    height: 220px;
+    border: 4px solid #aa4444;
+    border-radius: 50%;
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 1s;
+  }
+  
+  .wheel.spinning {
+    animation: rotateWheel 2s linear;
+  }
+  
+  .spin-result {
+    text-align: center;
+    font-size: 16px;
+    color: #ffcc00;
+  }
+  
+  .tickets-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .tickets-actions button {
+    background: #aa4444;
+    border: none;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 3px 0 #881f1f;
+    transition: transform 0.2s;
+  }
+  
+  .tickets-actions button:hover {
+    transform: scale(1.05);
+  }
+  
+  .tickets-actions button:active {
+    animation: buttonPress 0.15s forwards;
+  }
+  
+  /* ---------- ЛИДЕРБОРД, РЕФЕРАЛЫ ---------- */
+  .leaderboard-container {
+    margin-top: 30px;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(0, 0, 0, 0.6);
+  }
+  
+  th, td {
+    border: 1px solid #555;
+    padding: 10px;
+    font-size: 12px;
+    text-align: left;
+  }
+  
+  .info-button {
+    background: #aa4444;
+    border: none;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 3px 0 #881f1f;
+    transition: transform 0.2s;
+    margin-bottom: 12px;
+  }
+  
+  .info-button:hover {
+    transform: scale(1.05);
+  }
+  
+  .info-button:active {
+    animation: buttonPress 0.15s forwards;
+  }
+  
+  .referral-container {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .referral-link {
+    word-wrap: break-word;
+    border: 1px solid #555;
+    padding: 8px;
+    width: 80%;
+    background: #444;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #fff;
+  }
+  
+  .copy-button {
+    background: #aa4444;
+    border: none;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 3px 0 #881f1f;
+    transition: transform 0.2s;
+  }
+  
+  .copy-button:hover {
+    transform: scale(1.05);
+  }
+  
+  .copy-button:active {
+    animation: buttonPress 0.15s forwards;
+  }
+  
+  /* ---------- ГЛОБАЛЬНЫЕ МОДАЛЫ ---------- */
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+  
+  .modal-backdrop.active {
+    display: flex;
+  }
+  
+  .modal {
+    background: #222;
+    padding: 24px;
+    border: 2px solid #aa4444;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+  }
+  
+  .modal h2 {
+    margin-bottom: 16px;
+    font-size: 20px;
+    color: #ffcc00;
+    text-transform: uppercase;
+  }
+  
+  .modal p {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #ccc;
+  }
+  
+  .close-modal {
+    background: #aa4444;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 3px 0 #881f1f;
+    transition: transform 0.2s;
+  }
+  
+  .close-modal:hover {
+    transform: scale(1.05);
+  }
+  
+  .close-modal:active {
+    animation: buttonPress 0.15s forwards;
+  }
+  
+  /* ---------- ПОЛНОЭКРАННОЕ ОКНО ИГРЫ ---------- */
+  .game-modal-backdrop {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 60px);
+    background: #111;
+    display: none;
+    flex-direction: column;
+    z-index: 3000;
+  }
+  
+  .game-modal-backdrop.active {
+    display: flex;
+  }
+  
+  .game-modal-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: 60px;
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+  
+  .game-canvas {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* ---------- МОДАЛ РЕЗУЛЬТАТОВ ИГРЫ ---------- */
+  .endgame-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 4000;
+  }
+  
+  .endgame-backdrop.active {
+    display: flex;
+  }
+  
+  .endgame-modal {
+    background: #333;
+    padding: 20px;
+    border: 2px solid #aa4444;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+  }
+  
+  .endgame-modal h2 {
+    margin-bottom: 12px;
+    font-size: 20px;
+    color: #ffcc00;
+    text-transform: uppercase;
+  }
+  
+  .endgame-modal p {
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #ddd;
+  }
+  
+  .endgame-modal button {
+    background: #aa4444;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    box-shadow: 0 3px 0 #881f1f;
+    transition: transform 0.2s;
+  }
+  
+  .endgame-modal button:hover {
+    transform: scale(1.05);
+  }
+  
+  .endgame-modal button:active {
+    animation: buttonPress 0.15s forwards;
+  }
+  
+  /* ---------- АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ---------- */
+  @media (max-width: 480px) {
+    header {
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+    }
+    .user-info img {
+      width: 40px;
+      height: 40px;
+    }
+    nav button {
+      font-size: 10px;
+      width: 100px;
+      height: 40px;
+    }
+    nav button img {
+      width: 18px;
+      height: 18px;
+    }
+    .game-cards-wrapper {
+      width: 200px;
+    }
+    .section {
+      padding: 20px;
+    }
+  }
+  
