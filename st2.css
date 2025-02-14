@@ -1,34 +1,105 @@
-/* Сброс базовых стилей */
-* {
+/* ========== CSS Variables ========== */
+:root {
+    --primary-bg: #00103c;
+    --secondary-bg: linear-gradient(135deg, #1f1c2c, #928dab);
+    --accent-color: #00FF99;
+    --header-bg: #6d4fba;
+    --header-border: #ff2553;
+    --nav-bg: rgba(0, 0, 0, 0.8);
+    --button-bg: #ff6b6b;
+    --button-hover-bg: #ff7f7f;
+    --modal-bg: rgba(0, 0, 0, 0.5);
+    --section-bg: rgba(30, 30, 30, 0.8);
+    --section-shadow: rgba(0, 0, 0, 0.5);
+  }
+  
+  #design-settings button {
+    font-size: 0.4em; /* уменьшенный размер */
+    font-family: 'Press Start 2P', cursive;
+    width: 66px;      /* примерно 200px/3 */
+    height: 23px;     /* примерно 70px/3 */
+    background: linear-gradient(145deg, #f0c27b, #f2994a);
+    color: #000;      /* текст черный для контраста */
+    border: 2px solid #fff;
+    border-radius: 4px;
+    position: relative;
+    /* Внутренние тени для эффекта рельефности в ретро стиле */
+    box-shadow: 
+      inset -1.33px 0.67px 0.33px 0.33px #ccc,
+      inset -1.33px -0.67px 0.33px 0.33px #bbb,
+      inset 1.33px 0px 0.33px 0.33px #aaa;
+    transition: all 0.15s ease-in-out;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  #design-settings button:hover {
+    cursor: pointer;
+    /* Перевернутый градиент при наведении */
+    background: linear-gradient(145deg, #f2994a, #f0c27b);
+  }
+  
+  #design-settings button:active {
+    top: 2px; /* смещение при нажатии */
+    box-shadow: 
+      inset -1.33px 0.67px 0.33px 0.33px #ccc,
+      inset -1.33px -0.67px 0.33px 0.33px #bbb,
+      inset 1.33px 0px 0.33px 0.33px #aaa;
+  }
+  
+  #design-settings button::after {
+    content: '';
+    background: #333;
+    position: absolute;
+    left: -2.5%;
+    top: 0;
+    width: 105%;
+    height: 100%;
+    z-index: -1;
+  }
+  
+  #design-settings button::before {
+    content: '';
+    background: #333;
+    position: absolute;
+    left: 0;
+    top: -5%;
+    width: 100%;
+    height: 113%;
+    z-index: -1;
+  }
+  
+  
+  /* ========== Сброс базовых стилей ========== */
+  * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
   
-  /* Основные стили для html и body */
   html, body {
     width: 100%;
     height: 100%;
-    overflow-x: hidden;
+    overflow-x: hidden; /* Нет горизонтальной прокрутки */
   }
   
   body {
     font-family: 'Roboto', sans-serif;
-    background: linear-gradient(135deg, #1f1c2c, #928dab);
+    background: var(--secondary-bg);
     color: #e0e0e0;
     display: flex;
     flex-direction: column;
   }
   
-  /* ---------- HEADER ---------- */
+  /* ========== HEADER ========== */
   header {
     width: 100%;
     padding: 16px;
     background: rgba(0, 0, 0, 0.7);
+    border-bottom: 2px solid var(--header-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #ff6b6b;
   }
   
   .user-info {
@@ -63,7 +134,7 @@
     filter: brightness(1.2) contrast(1.1);
   }
   
-  /* Типографика */
+  /* Типографика заголовков и основного текста */
   h1, h2, h3, h4 {
     font-family: 'Montserrat', sans-serif;
     text-transform: uppercase;
@@ -74,7 +145,7 @@
     font-family: 'Roboto Mono', monospace;
   }
   
-  /* ---------- Анимации ---------- */
+  /* ========== Анимации ========== */
   @keyframes buttonPress {
     0% { transform: translateY(0) scale(1); }
     50% { transform: translateY(3px) scale(0.95); }
@@ -91,22 +162,24 @@
     to { transform: rotate(360deg); }
   }
   
-  /* ---------- MAIN (Контент) ---------- */
+  /* ========== MAIN (Контент) ========== */
   main {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    padding-bottom: 80px; /* отступ снизу для навигации */
+    padding-bottom: 80px; /* Отступ снизу для навигации */
     -webkit-overflow-scrolling: touch;
   }
   
-  /* ---------- NAV (нижняя панель) ---------- */
+  /* ========== NAV (нижняя панель) ========== */
+  @import url('https://fonts.googleapis.com/css?family=Press+Start+2P');
+  
   nav {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--nav-bg);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -118,7 +191,7 @@
   nav button {
     width: 130px;
     height: 50px;
-    background: #ff6b6b;
+    background: var(--button-bg);
     border: none;
     color: #ffffff;
     font-family: 'Montserrat', sans-serif;
@@ -131,7 +204,7 @@
   }
   
   nav button:hover {
-    background: #ff7f7f;
+    background: var(--button-hover-bg);
   }
   
   nav button:active {
@@ -145,16 +218,16 @@
     filter: brightness(0) invert(1);
   }
   
-  /* ---------- СЕКЦИИ ---------- */
+  /* ========== СЕКЦИИ ========== */
   .section {
     display: none;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.4s ease, transform 0.4s ease;
-    background: rgba(30, 30, 30, 0.8);
+    background: var(--section-bg);
     padding: 40px;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 10px var(--section-shadow);
     margin: 20px auto;
     max-width: 800px;
   }
@@ -180,7 +253,7 @@
     color: #ffa500;
   }
   
-  /* ---------- GAMES CONTAINER и CARD ---------- */
+  /* ========== GAMES CONTAINER и CARD ========== */
   .games-container {
     position: relative;
     display: flex;
@@ -222,9 +295,9 @@
   }
   
   /* При выборе соответствующей карточки */
-  .main-games #mainGame1:checked ~ .game-cards-wrapper .game-card:nth-of-type(1),
-  .main-games #mainGame2:checked ~ .game-cards-wrapper .game-card:nth-of-type(2),
-  .main-games #mainGame3:checked ~ .game-cards-wrapper .game-card:nth-of-type(3) {
+  .main-games #mainGame1:checked ~ .game-cards-wrapper .game-card,
+  .main-games #mainGame2:checked ~ .game-cards-wrapper .game-card,
+  .main-games #mainGame3:checked ~ .game-cards-wrapper .game-card {
     opacity: 1;
     pointer-events: auto;
     animation: slideInCard 0.4s forwards;
@@ -232,7 +305,7 @@
   
   /* Стрелки для переключения карточек */
   .arrow-btn {
-    background: #ff6b6b;
+    background: var(--button-bg);
     border: 2px solid #aa4444;
     border-radius: 50%;
     width: 36px;
@@ -273,7 +346,7 @@
     display: flex;
   }
   
-  /* Стилизация карточки */
+  /* ========== CARD СТИЛИЗАЦИЯ ========== */
   .game-card {
     font-family: 'Montserrat', sans-serif;
     text-align: center;
@@ -290,14 +363,14 @@
   
   .game-card button {
     margin-top: 10px;
-    background: #ff6b6b;
+    background: var(--button-bg);
     border: none;
     color: #ffffff;
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    box-shadow: 0 3px 0 #aa4444;
+    box-shadow: 0 4px 0 #aa4444;
     transition: transform 0.2s;
   }
   
@@ -309,7 +382,7 @@
     animation: buttonPress 0.15s forwards;
   }
   
-  /* ---------- WHEEL (Колесо фортуны) ---------- */
+  /* ========== WHEEL (Колесо фортуны) ========== */
   .wheel-container {
     display: flex;
     flex-direction: column;
@@ -355,7 +428,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    box-shadow: 0 3px 0 #881f1f;
+    box-shadow: 0 4px 0 #881f1f;
     transition: transform 0.2s;
   }
   
@@ -367,7 +440,7 @@
     animation: buttonPress 0.15s forwards;
   }
   
-  /* ---------- ЛИДЕРБОРД, РЕФЕРАЛЫ ---------- */
+  /* ========== ЛИДЕРБОРД, РЕФЕРАЛЫ ========== */
   .leaderboard-container {
     margin-top: 30px;
   }
@@ -393,7 +466,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    box-shadow: 0 3px 0 #881f1f;
+    box-shadow: 0 4px 0 #881f1f;
     transition: transform 0.2s;
     margin-bottom: 12px;
   }
@@ -434,7 +507,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    box-shadow: 0 3px 0 #881f1f;
+    box-shadow: 0 4px 0 #881f1f;
     transition: transform 0.2s;
   }
   
@@ -446,14 +519,14 @@
     animation: buttonPress 0.15s forwards;
   }
   
-  /* ---------- ГЛОБАЛЬНЫЕ МОДАЛЫ ---------- */
+  /* ========== ГЛОБАЛЬНЫЕ МОДАЛЫ ========== */
   .modal-backdrop {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--modal-bg);
     display: none;
     align-items: center;
     justify-content: center;
@@ -495,7 +568,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    box-shadow: 0 3px 0 #881f1f;
+    box-shadow: 0 4px 0 #881f1f;
     transition: transform 0.2s;
   }
   
@@ -507,7 +580,7 @@
     animation: buttonPress 0.15s forwards;
   }
   
-  /* ---------- ПОЛНОЭКРАННОЕ ОКНО ИГРЫ ---------- */
+  /* ========== ПОЛНОЭКРАННОЕ ОКНО ИГРЫ ========== */
   .game-modal-backdrop {
     position: fixed;
     top: 60px;
@@ -542,7 +615,7 @@
     justify-content: center;
   }
   
-  /* ---------- МОДАЛ РЕЗУЛЬТАТОВ ИГРЫ ---------- */
+  /* ========== МОДАЛ РЕЗУЛЬТАТОВ ИГРЫ ========== */
   .endgame-backdrop {
     position: fixed;
     top: 0;
@@ -568,6 +641,7 @@
     width: 80%;
     max-width: 400px;
     text-align: center;
+    box-shadow: 0 0 15px #0ff;
   }
   
   .endgame-modal h2 {
@@ -591,7 +665,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    box-shadow: 0 3px 0 #881f1f;
+    box-shadow: 0 4px 0 #881f1f;
     transition: transform 0.2s;
   }
   
@@ -603,7 +677,7 @@
     animation: buttonPress 0.15s forwards;
   }
   
-  /* ---------- АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ---------- */
+  /* ========== АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ========== */
   @media (max-width: 480px) {
     header {
       flex-direction: column;
