@@ -22,14 +22,7 @@
 </head>
 <body>
   <!-- Настройки дизайна (расположены вверху по центру) -->
-  <div id="design-settings" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000;">
-    <button onclick="toggleDesignMenu()">Настройки дизайна</button>
-    <div id="design-options" style="display: none; background: rgba(255,255,255,0.9); padding: 10px; border: 1px solid #ccc; text-align: center;">
-      <p style="cursor: pointer; margin: 5px 0;" onclick="changeDesign('st1.css')">Дизайн (применен)</p>
-      <p style="cursor: pointer; margin: 5px 0;" onclick="changeDesign('st2.css')">Ретро дизайн</p>
-      <p style="cursor: pointer; margin: 5px 0;" onclick="changeDesign('st3.css')">Киберпанк дизайн</p>
-    </div>
-  </div>
+
 
   <!-- Header -->
   <header>
@@ -54,8 +47,24 @@
         <span id="pointCount">0</span>
       </span>
     </div>
+
+    <div class="header-left" id="design-settings">
+  <button onclick="toggleDesignMenu()">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
+  <!-- Дополнительные опции можно поместить внутри этого блока (при необходимости) -->
+  <div id="design-options">
+    <p onclick="changeDesign('st1.css')" style="cursor: pointer; margin: 5px 0;">Дизайн (применен)</p>
+    <p onclick="changeDesign('st2.css')" style="cursor: pointer; margin: 5px 0;">Ретро дизайн</p>
+    <p onclick="changeDesign('st3.css')" style="cursor: pointer; margin: 5px 0;">Киберпанк дизайн</p>
+  </div>
+</div>
+
   </header>
 
+ 
   <!-- Main Content -->
   <main>
     <!-- ============ PLAY SECTION ============ -->
@@ -156,9 +165,9 @@
         <table id="leaderboardTable">
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>User</th>
-              <th>Points</th>
+              <th></th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="leaderboardBody">
