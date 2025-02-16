@@ -1,16 +1,20 @@
-// Игра Breakout в стиле панк/ретро (game4.js)
+// game4.js — Breakout в стиле ретро-панк
 function initGame4() {
   const canvas = document.getElementById("game4Canvas");
   const ctx = canvas.getContext("2d");
 
+  // Переключатели для нажатий (клавиатура + мобильные кнопки)
+  let rightPressed = false;
+  let leftPressed = false;
+
   // Размеры и свойства мяча
   const ballRadius = 8;
   let ballX = canvas.width / 2;
-  let ballY = canvas.height - 30;
+  let ballY = canvas.height - 40;
   let ballDX = 2;
   let ballDY = -2;
 
-  // Свойства ракетки (paddle)
+  // Свойства ракетки
   const paddleHeight = 10;
   const paddleWidth = 75;
   let paddleX = (canvas.width - paddleWidth) / 2;
@@ -24,7 +28,7 @@ function initGame4() {
   const brickOffsetTop = 30;
   const brickOffsetLeft = 20;
 
-  // Создаем массив кирпичей
+  // Массив кирпичей
   const bricks = [];
   for (let c = 0; c < brickColumnCount; c++) {
     bricks[c] = [];
@@ -33,15 +37,11 @@ function initGame4() {
     }
   }
 
-  // Счет и жизни игрока
+  // Счет и жизни
   let score = 0;
   let lives = 3;
 
-  // Флаги нажатия клавиш
-  let rightPressed = false;
-  let leftPressed = false;
-
-  // Обработчики клавиатуры
+  // --- Обработчики клавиатуры ---
   function keyDownHandler(e) {
     if (e.key === "Right" || e.key === "ArrowRight") {
       rightPressed = true;
@@ -49,7 +49,6 @@ function initGame4() {
       leftPressed = true;
     }
   }
-
   function keyUpHandler(e) {
     if (e.key === "Right" || e.key === "ArrowRight") {
       rightPressed = false;
@@ -58,10 +57,37 @@ function initGame4() {
     }
   }
 
-  document.addEventListener("keydown", keyDownHandler, false);
-  document.addEventListener("keyup", keyUpHandler, false);
+  document.addEventListener("keydown", keyDownHandler);
+  document.addEventListener("keyup", keyUpHandler);
 
-  // Функция обнаружения столкновений мяча с кирпичами
+  // --- Обработчики мобильных кнопок ---
+  const btnLeft = document.getElementById("btnLeft");
+  const btnRight = document.getElementById("btnRight");
+
+  // Для плавного управления при удержании
+  btnLeft.addEventListener("mousedown", () => (leftPressed = true));
+  btnLeft.addEventListener("mouseup", () => (leftPressed = false));
+  btnLeft.addEventListener("touchstart", e => {
+    e.preventDefault();
+    leftPressed = true;
+  });
+  btnLeft.addEventListener("touchend", e => {
+    e.preventDefault();
+    leftPressed = false;
+  });
+
+  btnRight.addEventListener("mousedown", () => (rightPressed = true));
+  btnRight.addEventListener("mouseup", () => (rightPressed = false));
+  btnRight.addEventListener("touchstart", e => {
+    e.preventDefault();
+    rightPressed = true;
+  });
+  btnRight.addEventListener("touchend", e => {
+    e.preventDefault();
+    rightPressed = false;
+  });
+
+  // Функция столкновений мяча с кирпичами
   function collisionDetection() {
     for (let c = 0; c < brickColumnCount; c++) {
       for (let r = 0; r < brickRowCount; r++) {
@@ -77,8 +103,8 @@ function initGame4() {
             b.status = 0;
             score++;
             if (score === brickRowCount * brickColumnCount) {
-              alert("YOU WIN, CONGRATULATIONS!");
-              document.location.reload();
+              // Все кирпичи сбиты — победа
+              showEndGameModal("YOU WIN!", "Congratulations!");
             }
           }
         }
@@ -86,25 +112,25 @@ function initGame4() {
     }
   }
 
-  // Рисуем мяч (неоновый зеленый)
+  // Рисуем мяч
   function drawBall() {
     ctx.beginPath();
     ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "#39FF14"; // неоновый зеленый
+    ctx.fillStyle = "#39FF14"; // неоново‑зелёный
     ctx.fill();
     ctx.closePath();
   }
 
-  // Рисуем ракетку (неоновый красный)
+  // Рисуем ракетку
   function drawPaddle() {
     ctx.beginPath();
-    ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
-    ctx.fillStyle = "#FF073A"; // неоновый красный
+    ctx.rect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight);
+    ctx.fillStyle = "#FF073A"; // неоново‑красный
     ctx.fill();
     ctx.closePath();
   }
 
-  // Рисуем кирпичи (неоновый голубой)
+  // Рисуем кирпичи
   function drawBricks() {
     for (let c = 0; c < brickColumnCount; c++) {
       for (let r = 0; r < brickRowCount; r++) {
@@ -115,7 +141,7 @@ function initGame4() {
           bricks[c][r].y = brickY;
           ctx.beginPath();
           ctx.rect(brickX, brickY, brickWidth, brickHeight);
-          ctx.fillStyle = "#00FFFF"; // неоновый голубой (cyan)
+          ctx.fillStyle = "#00FFFF"; // неоново‑голубой (cyan)
           ctx.fill();
           ctx.closePath();
         }
@@ -123,25 +149,24 @@ function initGame4() {
     }
   }
 
-  // Рисуем счет и жизни в стиле ретро (шрифт Press Start 2P)
+  // Рисуем счёт и жизни в верхнем углу
   function drawScore() {
-    ctx.font = "16px 'Press Start 2P'";
+    ctx.font = "14px 'Press Start 2P'";
     ctx.fillStyle = "#FFFFFF";
     ctx.fillText("Score: " + score, 8, 20);
   }
 
   function drawLives() {
-    ctx.font = "16px 'Press Start 2P'";
+    ctx.font = "14px 'Press Start 2P'";
     ctx.fillStyle = "#FFFFFF";
     ctx.fillText("Lives: " + lives, canvas.width - 100, 20);
   }
 
   let animationFrameId;
-  // Основная функция отрисовки и логики игры
   function draw() {
-    // Заливаем фон – тёмный для панк-стиля
+    // Очищаем холст
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#000000"; // чёрный фон
+    ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     drawBricks();
@@ -151,27 +176,26 @@ function initGame4() {
     drawLives();
     collisionDetection();
 
-    // Отскок мяча от боковых стен
+    // Проверка столкновений со стенками
     if (ballX + ballDX > canvas.width - ballRadius || ballX + ballDX < ballRadius) {
       ballDX = -ballDX;
     }
-    // Отскок мяча от верхней стены
-    if (ballY + ballDY < ballRadius) {
+    if (ballY + ballDY < ballRadius + 20) {
+      // +20, чтобы не перекрывало строку счёта
       ballDY = -ballDY;
-    }
-    // Если мяч касается нижней границы
-    else if (ballY + ballDY > canvas.height - ballRadius) {
+    } else if (ballY + ballDY > canvas.height - ballRadius - paddleHeight - 10) {
+      // Учитываем высоту ракетки
       if (ballX > paddleX && ballX < paddleX + paddleWidth) {
         ballDY = -ballDY;
       } else {
+        // Потеря жизни
         lives--;
-        if (!lives) {
-          alert("GAME OVER");
-          document.location.reload();
+        if (lives <= 0) {
+          showEndGameModal("GAME OVER", "Try again!");
         } else {
-          // Перезапуск позиции мяча и ракетки
+          // Сбрасываем мяч и ракетку
           ballX = canvas.width / 2;
-          ballY = canvas.height - 30;
+          ballY = canvas.height - 40;
           ballDX = 2;
           ballDY = -2;
           paddleX = (canvas.width - paddleWidth) / 2;
@@ -184,30 +208,36 @@ function initGame4() {
 
     // Движение ракетки
     if (rightPressed && paddleX < canvas.width - paddleWidth) {
-      paddleX += 7;
+      paddleX += 5;
     } else if (leftPressed && paddleX > 0) {
-      paddleX -= 7;
+      paddleX -= 5;
     }
 
     animationFrameId = requestAnimationFrame(draw);
   }
 
-  // Запускаем игровой цикл
+  // Запуск игры
   animationFrameId = requestAnimationFrame(draw);
-  // Сохраняем id анимации для возможности остановить игру (resetGame4)
+  // Сохраняем id
   canvas.dataset.animationFrameId = animationFrameId;
 }
 
-// Функция для сброса/остановки игры Breakout
+// Функция сброса (остановки) игры
 function resetGame4() {
   const canvas = document.getElementById("game4Canvas");
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Отменяем анимацию
   if (canvas.dataset.animationFrameId) {
     cancelAnimationFrame(canvas.dataset.animationFrameId);
     canvas.dataset.animationFrameId = null;
   }
-  // Можно также удалить обработчики событий, если требуется:
+
+  // Сбрасываем слушатели клавиш/кнопок (по желанию)
   // document.removeEventListener("keydown", keyDownHandler);
   // document.removeEventListener("keyup", keyUpHandler);
+  
+  // Прячем кнопки управления
+  document.getElementById("breakoutControls").style.display = "none";
 }
