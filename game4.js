@@ -47,8 +47,8 @@ function initGame4() {
   const canvas = document.getElementById('game4Canvas');
 
   // Устанавливаем адаптивный размер канваса (немного меньше окна, чтобы всё было видно)
-  GAME4_WIDTH = canvas.width = window.innerWidth * 0.95;
-  GAME4_HEIGHT = canvas.height = window.innerHeight * 0.95;
+ canvas.width = window.innerWidth * 0.9;
+canvas.height = window.innerHeight * 0.9;
 
   game4Ctx = canvas.getContext('2d');
 
