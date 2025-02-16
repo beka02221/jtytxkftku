@@ -6,8 +6,6 @@
    При уничтожении кирпичей добавляем очки (localUserData.points).
    При проигрыше или полном прохождении — вызываем showEndGameModal.
 ========================= */
-// game4.js – Игра Breakout
-// game4.js – Игра Breakout (обновлённая версия)
 // game4.js – Игра Breakout (обновлённая версия)
 
 // Глобальные переменные для game4
@@ -20,6 +18,8 @@ let score;
 let gameRunning = false;   // Флаг работы игрового цикла
 let gameStarted = false;   // Игра стартует по первому движению платформы
 let animationFrameId;
+
+const DEATH_LINE_OFFSET = 20; // Дополнительный отступ ниже нижней границы
 
 // Инициализация игры
 function initGame4() {
@@ -87,6 +87,7 @@ function gameLoop() {
 // Обновление игрового состояния
 function updateGame4() {
   const paddleY = game4Canvas.height - paddleHeight - 10;
+  const deathLine = game4Canvas.height + DEATH_LINE_OFFSET;
 
   // Если игра ещё не запущена – мяч держится на платформе
   if (!gameStarted) {
@@ -120,8 +121,8 @@ function updateGame4() {
     }
   }
 
-  // Если мяч полностью ушёл за нижнюю границу игрового поля – проигрыш
-  if (ballY - ballRadius > game4Canvas.height) {
+  // Если мяч полностью ушёл ниже линии смерти – проигрыш
+  if (ballY - ballRadius > deathLine) {
     gameRunning = false;
     userRef.update({ points: localUserData.points });
     showEndGameModal("Game Over", "Your score: " + score);
