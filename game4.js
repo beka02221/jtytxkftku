@@ -8,6 +8,7 @@
 ========================= */
 // game4.js – Игра Breakout
 // game4.js – Игра Breakout (обновлённая версия)
+// game4.js – Игра Breakout (обновлённая версия)
 
 // Глобальные переменные для game4
 let game4Canvas, game4Ctx;
@@ -29,22 +30,22 @@ function initGame4() {
   ballRadius = 8;
   
   // Настройка платформы (ракетки)
-  paddleWidth = 40;
+  paddleWidth = 80;
   paddleHeight = 10;
   paddleX = (game4Canvas.width - paddleWidth) / 2;
-  // Вычисляем вертикальную позицию платформы (отступ от низа)
   const paddleY = game4Canvas.height - paddleHeight - 10;
   
   // Пока игра не запущена мяч «прилипает» к платформе
   ballX = paddleX + paddleWidth / 2;
   ballY = paddleY - ballRadius;
-  ballDX = 3;
-  ballDY = -3;
+  // Увеличена скорость мяча: 4 вместо 3
+  ballDX = 4;
+  ballDY = -4;
 
   // Настройка кирпичиков
-  brickRowCount = 3;
+  brickRowCount = 5;
   brickColumnCount = 7;
-  brickPadding = 8;
+  brickPadding = 10;
   brickOffsetTop = 30;
   brickOffsetLeft = 10;
   brickWidth = (game4Canvas.width - brickOffsetLeft * 2 - (brickColumnCount - 1) * brickPadding) / brickColumnCount;
@@ -99,31 +100,31 @@ function updateGame4() {
   ballY += ballDY;
 
   // Столкновение с боковыми стенками
-  if (ballX + ballDX > game4Canvas.width - ballRadius || ballX + ballDX < ballRadius) {
+  if (ballX + ballRadius > game4Canvas.width || ballX - ballRadius < 0) {
     ballDX = -ballDX;
   }
   // Столкновение с верхней стенкой
-  if (ballY + ballDY < ballRadius) {
+  if (ballY - ballRadius < 0) {
     ballDY = -ballDY;
   }
-  // Проверка нижней границы (в районе платформы)
-  else if (ballY + ballDY > paddleY - ballRadius) {
+
+  // Если мяч касается нижней части экрана (в районе платформы)
+  if (ballY + ballRadius >= paddleY) {
+    // Если мяч касается платформы – отскок
     if (ballX > paddleX && ballX < paddleX + paddleWidth) {
-      // Столкновение с платформой – отскок
       ballDY = -ballDY;
-      // Корректировка угла в зависимости от точки удара
       let hitPoint = ballX - (paddleX + paddleWidth / 2);
       ballDX = hitPoint * 0.1;
-      // Чтобы мяч не проваливался ниже, фиксируем его положение чуть выше платформы
+      // Обновляем позицию так, чтобы мяч не застревал в платформе
       ballY = paddleY - ballRadius;
-    } else {
-      // Промах: мяч не опускается ниже платформы, но игра заканчивается
-      ballY = paddleY - ballRadius;
-      gameRunning = false;
-      // Обновляем базовый баланс и записываем данные в базу (после проигрыша)
-      userRef.update({ points: localUserData.points });
-      showEndGameModal("Game Over", "Your score: " + score);
     }
+  }
+
+  // Если мяч полностью ушёл за нижнюю границу игрового поля – проигрыш
+  if (ballY - ballRadius > game4Canvas.height) {
+    gameRunning = false;
+    userRef.update({ points: localUserData.points });
+    showEndGameModal("Game Over", "Your score: " + score);
   }
 
   // Проверка столкновений с кирпичиками
@@ -149,7 +150,7 @@ function updateGame4() {
             // Добавляем очки сразу к балансу и обновляем шапку
             localUserData.points += 10;
             updateTopBar();
-            // Если все кирпичики сбиты – игра заканчивается
+            // Если все кирпичики сбиты – игрок выигрывает
             if (isAllBricksBroken()) {
               gameRunning = false;
               userRef.update({ points: localUserData.points });
