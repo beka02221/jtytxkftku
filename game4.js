@@ -25,12 +25,16 @@ const DEATH_LINE_OFFSET = 20; // Дополнительный отступ ни�
 function initGame4() {
   game4Canvas = document.getElementById('game4Canvas');
   game4Ctx = game4Canvas.getContext('2d');
+   // После получения game4Ctx, установите масштаб:
+const scaleFactor = 2; // увеличит всё в 2 раза
+game4Ctx.scale(scaleFactor, scaleFactor);
+
 
   // Настройка параметров мяча
   ballRadius = 8;
   
   // Настройка платформы (ракетки)
-  paddleWidth = 80;
+  paddleWidth = 40;
   paddleHeight = 10;
   paddleX = (game4Canvas.width - paddleWidth) / 2;
   const paddleY = game4Canvas.height - paddleHeight - 10;
