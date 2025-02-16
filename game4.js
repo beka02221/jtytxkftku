@@ -6,35 +6,35 @@
    При уничтожении кирпичей добавляем очки (localUserData.points).
    При проигрыше или полном прохождении — вызываем showEndGameModal.
 ========================= */
+/* =========================
+   game4.js — Breakout (Арканоид)
+   Управление:
+     - Мышь: движение ракетки по X
+     - Тач-события: движение пальцем по экрану (горизонтально)
+   Адаптивное масштабирование: канвас подстраивается под размер окна,
+   чтобы игра полностью помещалась на экране.
+========================= */
 
 let game4Interval = null;
 let game4Ctx = null;
 
-// Размер полотна (canvas) 400×800 из index.html
-const GAME4_WIDTH = 400;
-const GAME4_HEIGHT = 800;
+let GAME4_WIDTH, GAME4_HEIGHT;
 
 // Параметры ракетки
-let paddleWidth = 80;
-let paddleHeight = 15;
-let paddleX = (GAME4_WIDTH - paddleWidth) / 2;
-let paddleSpeed = 7;
+let paddleWidth, paddleHeight, paddleX;
+let paddleSpeed = 7; // если понадобится для расширения логики
 
 // Параметры мяча
-let ballRadius = 8;
-let ballX = GAME4_WIDTH / 2;
-let ballY = GAME4_HEIGHT - 50; // над ракеткой
-let ballDX = 3; // скорость по X
-let ballDY = -3; // скорость по Y (летит вверх)
+let ballRadius;
+let ballX, ballY;
+let ballDX, ballDY;
 
 // Параметры кирпичей
 let brickRowCount = 5;
 let brickColumnCount = 7;
-let brickWidth = 50;
-let brickHeight = 20;
 let brickPadding = 5;
-let brickOffsetTop = 50;
-let brickOffsetLeft = 15;
+let brickOffsetTop, brickOffsetLeft;
+let brickWidth, brickHeight;
 
 // Массив кирпичей
 let bricks = [];
@@ -45,9 +45,38 @@ let touchStartX = 0;
 
 function initGame4() {
   const canvas = document.getElementById('game4Canvas');
+
+  // Устанавливаем адаптивный размер канваса (немного меньше окна, чтобы всё было видно)
+  GAME4_WIDTH = canvas.width = window.innerWidth * 0.95;
+  GAME4_HEIGHT = canvas.height = window.innerHeight * 0.95;
+
   game4Ctx = canvas.getContext('2d');
 
-  // Инициализируем кирпичи
+  // Настройка параметров ракетки (20% ширины канваса, высота – 2% от высоты, минимум 15px)
+  paddleWidth = GAME4_WIDTH * 0.2;
+  paddleHeight = GAME4_HEIGHT * 0.02;
+  if (paddleHeight < 15) paddleHeight = 15;
+  paddleX = (GAME4_WIDTH - paddleWidth) / 2;
+
+  // Настройка параметров мяча (радиус – 2% от ширины, минимум 8px)
+  ballRadius = GAME4_WIDTH * 0.02;
+  if (ballRadius < 8) ballRadius = 8;
+  ballX = GAME4_WIDTH / 2;
+  // Мяч стартует чуть выше ракетки
+  ballY = GAME4_HEIGHT - paddleHeight - ballRadius - 10;
+  ballDX = 3;
+  ballDY = -3;
+
+  // Настройка параметров кирпичей
+  brickOffsetTop = GAME4_HEIGHT * 0.1; // отступ сверху – 10%
+  brickOffsetLeft = GAME4_WIDTH * 0.05; // отступ слева – 5%
+  // Вычисляем ширину кирпича так, чтобы они равномерно вписывались в канвас
+  brickWidth = (GAME4_WIDTH - 2 * brickOffsetLeft - (brickColumnCount - 1) * brickPadding) / brickColumnCount;
+  // Высоту можно задать как 3% от высоты канваса, минимум 20px
+  brickHeight = GAME4_HEIGHT * 0.03;
+  if (brickHeight < 20) brickHeight = 20;
+
+  // Инициализируем массив кирпичей
   bricks = [];
   for (let c = 0; c < brickColumnCount; c++) {
     bricks[c] = [];
@@ -56,42 +85,34 @@ function initGame4() {
     }
   }
 
-  // Задаём стартовые позиции
-  paddleX = (GAME4_WIDTH - paddleWidth) / 2;
-  ballX = GAME4_WIDTH / 2;
-  ballY = GAME4_HEIGHT - 50;
-  ballDX = 3;
-  ballDY = -3;
-
-  // Навешиваем слушатели событий
+  // Навешиваем обработчики событий
   window.addEventListener('mousemove', handleGame4MouseMove);
   canvas.addEventListener('touchstart', handleGame4TouchStart, { passive: false });
   canvas.addEventListener('touchmove', handleGame4TouchMove, { passive: false });
   canvas.addEventListener('touchend', handleGame4TouchEnd, { passive: false });
 
-  // Запуск анимационного цикла
+  // Запуск игрового цикла
   game4Interval = requestAnimationFrame(game4Loop);
 }
 
 function resetGame4() {
-  // Очищаем анимацию
+  // Останавливаем анимацию
   if (game4Interval) {
     cancelAnimationFrame(game4Interval);
     game4Interval = null;
   }
 
-  // Убираем слушатели, чтобы не дублировать при повторном запуске
+  // Убираем обработчики событий
   window.removeEventListener('mousemove', handleGame4MouseMove);
   const canvas = document.getElementById('game4Canvas');
   canvas.removeEventListener('touchstart', handleGame4TouchStart);
   canvas.removeEventListener('touchmove', handleGame4TouchMove);
   canvas.removeEventListener('touchend', handleGame4TouchEnd);
 
-  // Сбрасываем контекст
   game4Ctx = null;
 }
 
-// Основной игровой цикл
+// Главный игровой цикл
 function game4Loop() {
   if (!game4Ctx) return;
 
@@ -106,7 +127,7 @@ function updateGame4() {
   ballX += ballDX;
   ballY += ballDY;
 
-  // Столкновение со стенками слева/справа
+  // Отскок от боковых стен
   if (ballX + ballRadius > GAME4_WIDTH) {
     ballX = GAME4_WIDTH - ballRadius;
     ballDX = -ballDX;
@@ -115,31 +136,31 @@ function updateGame4() {
     ballDX = -ballDX;
   }
 
-  // Столкновение с верхом
+  // Отскок от верхней стены
   if (ballY - ballRadius < 0) {
     ballY = ballRadius;
     ballDY = -ballDY;
   }
 
-  // Столкновение с ракеткой
+  // Отскок от ракетки
   if (
     ballY + ballRadius >= GAME4_HEIGHT - paddleHeight &&
     ballX > paddleX &&
     ballX < paddleX + paddleWidth
   ) {
-    // Отскок
     ballDY = -ballDY;
-    ballY = GAME4_HEIGHT - paddleHeight - ballRadius; 
+    // Обеспечим, чтобы мяч не "застревал" в ракетке
+    ballY = GAME4_HEIGHT - paddleHeight - ballRadius;
   }
 
-  // Если мяч улетел вниз — игра закончена
+  // Если мяч улетел ниже канваса – игра окончена
   if (ballY - ballRadius > GAME4_HEIGHT) {
     showEndGameModal('Game Over', `Мяч улетел за пределы! Ваши очки: ${localUserData.points}`);
     resetGame4();
     return;
   }
 
-  // Проверяем столкновение с кирпичами
+  // Проверка столкновений с кирпичами
   for (let c = 0; c < brickColumnCount; c++) {
     for (let r = 0; r < brickRowCount; r++) {
       let b = bricks[c][r];
@@ -147,7 +168,7 @@ function updateGame4() {
         let brickX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
         let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
 
-        // Координаты кирпича
+        // Сохраняем координаты кирпича
         b.x = brickX;
         b.y = brickY;
 
@@ -158,15 +179,14 @@ function updateGame4() {
           ballY > brickY &&
           ballY < brickY + brickHeight
         ) {
-          // Отскок
           ballDY = -ballDY;
           b.destroyed = true;
 
           // Добавляем очки
           localUserData.points += 10;
-          updateTopBar(); // обновляем в "шапке"
+          updateTopBar();
 
-          // Проверяем, не уничтожены ли все кирпичи
+          // Если все кирпичи уничтожены – выигрываем
           if (checkAllBricksDestroyed()) {
             showEndGameModal('Победа!', `Вы разбили все кирпичи!\nВаш счёт: ${localUserData.points}`);
             resetGame4();
@@ -184,12 +204,12 @@ function drawGame4() {
 
   // Рисуем мяч
   game4Ctx.beginPath();
-  game4Ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
+  game4Ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
   game4Ctx.fillStyle = '#00FF00';
   game4Ctx.fill();
   game4Ctx.closePath();
 
-  // Рисуем ракетку
+  // Рисуем ракетку (платформу)
   game4Ctx.fillStyle = '#0095DD';
   game4Ctx.fillRect(paddleX, GAME4_HEIGHT - paddleHeight, paddleWidth, paddleHeight);
 
@@ -217,30 +237,21 @@ function checkAllBricksDestroyed() {
   return true;
 }
 
-/* =========================
-   Управление мышью
-========================= */
+/* ===== Управление мышью ===== */
 function handleGame4MouseMove(e) {
-  // Положение курсора в пределах canvas
-  // Получаем bounding rect
   const canvas = document.getElementById('game4Canvas');
   const rect = canvas.getBoundingClientRect();
   let mouseX = e.clientX - rect.left;
   
-  // Центрируем ракетку по X (попробуем просто "прилипать")
+  // Центрируем ракетку относительно курсора
   paddleX = mouseX - paddleWidth / 2;
-
-  // Проверка на границы
-  if (paddleX < 0) {
-    paddleX = 0;
-  } else if (paddleX + paddleWidth > GAME4_WIDTH) {
-    paddleX = GAME4_WIDTH - paddleWidth;
-  }
+  
+  // Ограничиваем движение в пределах канваса
+  if (paddleX < 0) paddleX = 0;
+  if (paddleX + paddleWidth > GAME4_WIDTH) paddleX = GAME4_WIDTH - paddleWidth;
 }
 
-/* =========================
-   Управление тач-событиями
-========================= */
+/* ===== Управление тач-событиями ===== */
 function handleGame4TouchStart(e) {
   isTouching = true;
   const touch = e.touches[0];
@@ -251,23 +262,15 @@ function handleGame4TouchStart(e) {
 
 function handleGame4TouchMove(e) {
   if (!isTouching) return;
-  e.preventDefault(); // отключим скролл страницы при движении пальцем
-
+  e.preventDefault(); // отключаем скролл страницы при движении пальцем
   const touch = e.touches[0];
   const canvas = document.getElementById('game4Canvas');
   const rect = canvas.getBoundingClientRect();
-
   let touchX = touch.clientX - rect.left;
-  // Двигаем ракетку так, чтобы "палец" совпадал с серединой ракетки
-  // Или можно двигать пропорционально смещению
+  
   paddleX = touchX - paddleWidth / 2;
-
-  // Проверяем границы
-  if (paddleX < 0) {
-    paddleX = 0;
-  } else if (paddleX + paddleWidth > GAME4_WIDTH) {
-    paddleX = GAME4_WIDTH - paddleWidth;
-  }
+  if (paddleX < 0) paddleX = 0;
+  if (paddleX + paddleWidth > GAME4_WIDTH) paddleX = GAME4_WIDTH - paddleWidth;
 }
 
 function handleGame4TouchEnd(e) {
