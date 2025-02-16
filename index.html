@@ -110,6 +110,20 @@
             cost: 1
           })">Подробнее</button>
         </div>
+
+        <!-- Новая карточка: Space Explorer -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/64/00FF00/rocket.png"
+               alt="Space Explorer">
+          <p>Space Explorer</p>
+          <button onclick="openGameInfoModal({
+            gameId: 'game4',
+            title: 'Space Explorer',
+            img: 'https://img.icons8.com/ios-filled/64/00FF00/rocket.png',
+            desc: 'Исследуй космос, избегай астероидов и собирай звезды.',
+            cost: 1
+          })">Подробнее</button>
+        </div>
       </div>
 
       <!-- ================== Special Games ================== -->
@@ -148,51 +162,49 @@
     </section>
 
     <!-- ============ TICKETS SECTION (Колесо) ============ -->
-    <!-- ============ TICKETS SECTION ============ -->
-<section id="ticketsSection" class="section">
-  <h2>Tickets</h2>
-  <div class="wheel-container">
-    <!-- Само колесо с 6 секторами -->
-    <div class="wheel" id="wheel">
-      <div class="slice slice1">
-        <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
-        <span>5</span>
-      </div>
-      <div class="slice slice2">
-        <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
-        <span>10</span>
-      </div>
-      <div class="slice slice3">
-        <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
-        <span>15</span>
-      </div>
-      <div class="slice slice4">
-        <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
-        <span>20</span>
-      </div>
-      <div class="slice slice5">
-        <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
-        <span>25</span>
-      </div>
-      <div class="slice slice6">
-        <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
-        <span>30</span>
-      </div>
-    </div>
+    <section id="ticketsSection" class="section">
+      <h2>Tickets</h2>
+      <div class="wheel-container">
+        <!-- Само колесо с 6 секторами -->
+        <div class="wheel" id="wheel">
+          <div class="slice slice1">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>5</span>
+          </div>
+          <div class="slice slice2">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>10</span>
+          </div>
+          <div class="slice slice3">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>15</span>
+          </div>
+          <div class="slice slice4">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>20</span>
+          </div>
+          <div class="slice slice5">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>25</span>
+          </div>
+          <div class="slice slice6">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>30</span>
+          </div>
+        </div>
 
-    <!-- Указатель (стоппер) -->
-    <div class="wheel-pointer"></div>
+        <!-- Указатель (стоппер) -->
+        <div class="wheel-pointer"></div>
 
-    <!-- Кнопки под колесом -->
-    <div class="tickets-actions">
-      <button onclick="spinWheel()">Spin (once every 24h)</button>
-      <button onclick="buyTickets()">Buy Tickets</button>
-    </div>
-    <!-- Старый блок результата (можно оставить/использовать как захотите) -->
-    <div class="spin-result" id="spinResult"></div>
-  </div>
-</section>
-
+        <!-- Кнопки под колесом -->
+        <div class="tickets-actions">
+          <button onclick="spinWheel()">Spin (once every 24h)</button>
+          <button onclick="buyTickets()">Buy Tickets</button>
+        </div>
+        <!-- Старый блок результата (можно оставить/использовать как захотите) -->
+        <div class="spin-result" id="spinResult"></div>
+      </div>
+    </section>
 
     <!-- Leaderboard Section -->
     <section id="leaderboardSection" class="section">
@@ -273,14 +285,14 @@
       <button onclick="closeGameInfoModal()">Закрыть</button>
     </div>
   </div>
-<!-- Spin Result Modal -->
-<div class="modal-backdrop" id="spinModalBackdrop">
-  <div class="modal">
-    <h2>You won!</h2>
-    <p id="spinModalMessage"></p>
-    <button class="close-modal" onclick="closeSpinModal()">OK</button>
+  <!-- Spin Result Modal -->
+  <div class="modal-backdrop" id="spinModalBackdrop">
+    <div class="modal">
+      <h2>You won!</h2>
+      <p id="spinModalMessage"></p>
+      <button class="close-modal" onclick="closeSpinModal()">OK</button>
+    </div>
   </div>
-</div>
 
   <!-- Fullscreen Game Modal -->
   <div class="game-modal-backdrop" id="gameModalBackdrop">
@@ -296,6 +308,8 @@
         <canvas id="specialGameCanvas" width="400" height="200" style="display: none;"></canvas>
         <!-- Canvas for Game 3 -->
         <canvas id="game3Canvas" width="300" height="800" style="display: none;"></canvas>
+        <!-- Canvas for Game 4: Space Explorer -->
+        <canvas id="game4Canvas" width="400" height="300" style="display: none;"></canvas>
       </div>
     </div>
   </div>
@@ -323,6 +337,7 @@
   <script src="partnergame1.js"></script>
   <script src="specialgame1.js"></script>
   <script src="game3.js"></script>
+  <script src="game4.js"></script>
 
   <script>
     /* ----------------------------------------------
@@ -476,6 +491,7 @@
       document.getElementById('partnerGameCanvas').style.display = 'none';
       document.getElementById('specialGameCanvas').style.display = 'none';
       document.getElementById('game3Canvas').style.display = 'none';
+      document.getElementById('game4Canvas').style.display = 'none';
 
       // Показываем модал
       document.getElementById('gameModalBackdrop').classList.add('active');
@@ -496,6 +512,9 @@
       } else if (gameName === 'game3') {
         document.getElementById('game3Canvas').style.display = 'block';
         initGame3();
+      } else if (gameName === 'game4') {
+        document.getElementById('game4Canvas').style.display = 'block';
+        initGame4();
       }
     }
 
@@ -535,6 +554,8 @@
         resetSpecialGame1();
       } else if (currentGame === 'game3') {
         resetGame3();
+      } else if (currentGame === 'game4') {
+        resetGame4();
       }
       currentGame = null;
       gameInProgress = false;
@@ -543,70 +564,57 @@
     /* ----------------------------------------------
        11. Wheel of Fortune / Tickets (обновлённая логика)
     ---------------------------------------------- */
-    
-let spinDuration = 4000; // 4 секунды, совпадает с CSS transition
+    let spinDuration = 4000; // 4 секунды, совпадает с CSS transition
 
-function spinWheel() {
-  if (!currentUser) return;
+    function spinWheel() {
+      if (!currentUser) return;
 
-  const now = Date.now();
-  // Проверка на 24 часа
-  if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
-    showGlobalModal('Wheel of Fortune', 'Free spin available once every 24 hours!');
-    return;
-  }
+      const now = Date.now();
+      // Проверка на 24 часа
+      if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
+        showGlobalModal('Wheel of Fortune', 'Free spin available once every 24 hours!');
+        return;
+      }
 
-  lastSpinTime = now; // обновляем время спина
+      lastSpinTime = now; // обновляем время спина
 
-  // Генерация случайного угла (минимум 3 полных оборота + 0..359 градусов)
-  let randomRotation = 1080 + Math.floor(Math.random() * 360); 
-  // Можешь увеличить кол-во оборотов, если хочешь более «долгую» прокрутку
+      // Генерация случайного угла (минимум 3 полных оборота + 0..359 градусов)
+      let randomRotation = 1080 + Math.floor(Math.random() * 360); 
 
-  const wheelEl = document.getElementById('wheel');
-  wheelEl.style.transform = `rotate(${randomRotation}deg)`;
+      const wheelEl = document.getElementById('wheel');
+      wheelEl.style.transform = `rotate(${randomRotation}deg)`;
 
-  // Чтобы после окончания анимации определить выигрыш:
-  setTimeout(() => {
-    // Найдём угол в пределах 0-360, чтобы понимать, на каком секторе остановились
-    let finalDeg = randomRotation % 360;
-
-    // Определяем, какой сектор: каждый сектор 60 градусов
-    // У нас 6 секторов: [0..60), [60..120), [120..180), [180..240), [240..300), [300..360)
-    let wonTickets = 0;
-    if (finalDeg < 60) {
-      wonTickets = 5;
-    } else if (finalDeg < 120) {
-      wonTickets = 10;
-    } else if (finalDeg < 180) {
-      wonTickets = 15;
-    } else if (finalDeg < 240) {
-      wonTickets = 20;
-    } else if (finalDeg < 300) {
-      wonTickets = 25;
-    } else {
-      wonTickets = 30;
+      setTimeout(() => {
+        let finalDeg = randomRotation % 360;
+        let wonTickets = 0;
+        if (finalDeg < 60) {
+          wonTickets = 5;
+        } else if (finalDeg < 120) {
+          wonTickets = 10;
+        } else if (finalDeg < 180) {
+          wonTickets = 15;
+        } else if (finalDeg < 240) {
+          wonTickets = 20;
+        } else if (finalDeg < 300) {
+          wonTickets = 25;
+        } else {
+          wonTickets = 30;
+        }
+        localUserData.tickets += wonTickets;
+        updateTopBar();
+        userRef.update({ tickets: localUserData.tickets });
+        showSpinModal(wonTickets);
+      }, spinDuration);
     }
 
-    // Обновляем билеты у пользователя
-    localUserData.tickets += wonTickets;
-    updateTopBar();
-    userRef.update({ tickets: localUserData.tickets });
+    function showSpinModal(amount) {
+      document.getElementById("spinModalMessage").textContent = `You won ${amount} tickets!`;
+      document.getElementById("spinModalBackdrop").classList.add("active");
+    }
 
-    // Показываем результат в модальном окне
-    showSpinModal(wonTickets);
-
-  }, spinDuration); // Ждём 4 секунды (столько же, сколько transition на колесе)
-}
-
-/* Модальное окно для спина */
-function showSpinModal(amount) {
-  document.getElementById("spinModalMessage").textContent = `You won ${amount} tickets!`;
-  document.getElementById("spinModalBackdrop").classList.add("active");
-}
-
-function closeSpinModal() {
-  document.getElementById("spinModalBackdrop").classList.remove("active");
-}
+    function closeSpinModal() {
+      document.getElementById("spinModalBackdrop").classList.remove("active");
+    }
 
     /* ----------------------------------------------
        12. Leaderboard
@@ -669,12 +677,6 @@ function closeSpinModal() {
       document.getElementById('themeStylesheet').setAttribute('href', theme);
       toggleDesignMenu();
     }
-
-
-    // Обновлённая часть уже включена выше:
-    // leaderboardRef для обработки таблицы + проверка currentUser + подсветка
   </script>
 </body>
 </html>
-
-
