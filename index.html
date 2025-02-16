@@ -21,9 +21,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-  <!-- Настройки дизайна (расположены вверху по центру) -->
-
-
   <!-- Header -->
   <header>
     <div class="user-info">
@@ -48,96 +45,104 @@
       </span>
     </div>
 
+    <!-- Кнопка и меню дизайна (гамбургер) -->
     <div class="header-left" id="design-settings">
-  <button onclick="toggleDesignMenu()">
-    <span class="hamburger-line"></span>
-    <span class="hamburger-line"></span>
-    <span class="hamburger-line"></span>
-  </button>
-  <!-- Дополнительные опции можно поместить внутри этого блока (при необходимости) -->
-  <div id="design-options">
-    <p onclick="changeDesign('st1.css')" style="cursor: pointer; margin: 5px 0;">Дизайн (применен)</p>
-    <p onclick="changeDesign('st2.css')" style="cursor: pointer; margin: 5px 0;">Ретро дизайн</p>
-    <p onclick="changeDesign('st3.css')" style="cursor: pointer; margin: 5px 0;">Киберпанк дизайн</p>
-  </div>
-</div>
-
+      <button onclick="toggleDesignMenu()">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      <div id="design-options">
+        <p onclick="changeDesign('st1.css')" style="cursor: pointer; margin: 5px 0;">Дизайн (применен)</p>
+        <p onclick="changeDesign('st2.css')" style="cursor: pointer; margin: 5px 0;">Ретро дизайн</p>
+        <p onclick="changeDesign('st3.css')" style="cursor: pointer; margin: 5px 0;">Киберпанк дизайн</p>
+      </div>
+    </div>
   </header>
 
- 
   <!-- Main Content -->
   <main>
-    <!-- ============ PLAY SECTION ============ -->
-    <section id="playSection" class="section active">
-      <h2>Play</h2>
+    <!-- ============ PLAY SECTION (Галерея игр) ============ -->
+    <section id="playSection" class="section active main-games">
+      <h2></h2>
 
       <!-- ================== Main Games ================== -->
       <h3>Main Games</h3>
-      <!-- Группа радиокнопок (type="radio") с одинаковым name="mainGameChoice".
-           По умолчанию checked у первой игры (game1). -->
-      <div class="games-container main-games">
-        <!-- Радиокнопки (скрытые) -->
-        <input type="radio" name="mainGameChoice" id="mainGame1" checked>
-        <input type="radio" name="mainGameChoice" id="mainGame2">
-        <input type="radio" name="mainGameChoice" id="mainGame3">
-
-        <!-- Обёртка для карточек -->
-        <div class="game-cards-wrapper">
-          <!-- Карточка №1: Dino Runner -->
-          <div class="game-card">
-            <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
-                 alt="Dino Runner">
-            <p>Dino Runner</p>
-            <button onclick="handleStartGame('game1', 1)">Play (1 ticket)</button>
-          </div>
-
-          <!-- Карточка №2: Match-3 -->
-          <div class="game-card">
-            <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
-                 alt="Match-3">
-            <p>Match-3</p>
-            <button onclick="handleStartGame('game2', 1)">Play (1 ticket)</button>
-          </div>
-
-          <!-- Карточка №3: Game 3 -->
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png"
-                 alt="Game 3">
-            <p>Game 3</p>
-            <button onclick="handleStartGame('game3', 1)">Play (1 ticket)</button>
-          </div>
+      <div class="games-gallery">
+        <!-- Карточка №1: Dino Runner -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png"
+               alt="Dino Runner">
+          <p>Dino Runner</p>
+          <button onclick="openGameInfoModal({
+            gameId: 'game1',
+            title: 'Dino Runner',
+            img: 'https://img.icons8.com/external-justicon-flat-justicon/64/00FF00/external-dinosaur-stuffed-animals-justicon-flat-justicon.png',
+            desc: 'Беги, динозавр, беги! Уклоняйся от препятствий и собирай бонусы.',
+            cost: 1
+          })">Подробнее</button>
         </div>
 
-        <!-- Стрелки для Main Games -->
-        <label class="arrow-btn arrow-left  arrow-for-1-left"  for="mainGame3">&lt;</label>
-        <label class="arrow-btn arrow-right arrow-for-1-right" for="mainGame2">&gt;</label>
+        <!-- Карточка №2: Match-3 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png"
+               alt="Match-3">
+          <p>Match-3</p>
+          <button onclick="openGameInfoModal({
+            gameId: 'game2',
+            title: 'Match-3',
+            img: 'https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png',
+            desc: 'Соединяйте три и более конфет в ряд, чтобы проходить уровни.',
+            cost: 1
+          })">Подробнее</button>
+        </div>
 
-        <label class="arrow-btn arrow-left  arrow-for-2-left"  for="mainGame1">&lt;</label>
-        <label class="arrow-btn arrow-right arrow-for-2-right" for="mainGame3">&gt;</label>
-
-        <label class="arrow-btn arrow-left  arrow-for-3-left"  for="mainGame2">&lt;</label>
-        <label class="arrow-btn arrow-right arrow-for-3-right" for="mainGame1">&gt;</label>
+        <!-- Карточка №3: Game 3 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png"
+               alt="Game 3">
+          <p>Game 3</p>
+          <button onclick="openGameInfoModal({
+            gameId: 'game3',
+            title: 'Game 3',
+            img: 'https://img.icons8.com/ios-filled/50/00FF00/controller.png',
+            desc: 'Описание третьей игры...',
+            cost: 1
+          })">Подробнее</button>
+        </div>
       </div>
 
       <!-- ================== Special Games ================== -->
       <h3>Special Games</h3>
-      <div class="games-container">
+      <div class="games-gallery">
         <div class="game-card">
           <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png"
                alt="Special Game">
           <p>Special Game</p>
-          <button onclick="handleStartGame('specialgame1', 1)">Play (1 ticket)</button>
+          <button onclick="openGameInfoModal({
+            gameId: 'specialgame1',
+            title: 'Special Game',
+            img: 'https://img.icons8.com/ios-filled/50/00FF00/flash-on.png',
+            desc: 'Особая игра с уникальными механиками.',
+            cost: 1
+          })">Подробнее</button>
         </div>
       </div>
 
       <!-- ================== Partner Games ================== -->
       <h3>Partner Games</h3>
-      <div class="games-container">
+      <div class="games-gallery">
         <div class="game-card">
           <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png"
                alt="Partner Game">
           <p>Partner Game</p>
-          <button onclick="handleStartGame('partnergame1', 1)">Play (1 ticket)</button>
+          <button onclick="openGameInfoModal({
+            gameId: 'partnergame1',
+            title: 'Partner Game',
+            img: 'https://img.icons8.com/ios-filled/50/00FF00/handshake.png',
+            desc: 'Игра от нашего партнёра.',
+            cost: 1
+          })">Подробнее</button>
         </div>
       </div>
     </section>
@@ -226,6 +231,17 @@
     </div>
   </div>
 
+  <!-- Game Info Modal (Подробнее) -->
+  <div class="modal-backdrop" id="gameInfoModal">
+    <div class="modal">
+      <img id="gameInfoImg" src="" alt="Game Image" style="max-width:100px; display:block; margin:0 auto 10px;" />
+      <h2 id="gameInfoTitle" style="text-align:center;"></h2>
+      <p id="gameInfoDesc"></p>
+      <button id="gameInfoPlayBtn">Играть</button>
+      <button onclick="closeGameInfoModal()">Закрыть</button>
+    </div>
+  </div>
+
   <!-- Fullscreen Game Modal -->
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
@@ -253,7 +269,7 @@
     </div>
   </div>
 
-  <!-- Game Scripts and Main Script -->
+  <!-- Подключаем скрипты игр и основной скрипт -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
   <script src="partnergame1.js"></script>
@@ -319,6 +335,7 @@
         if (!gameInProgress) {
           localUserData = data;
         } else {
+          // Если идёт игра, не перезаписываем все данные, а только обновляем балансы
           localUserData.tickets = data.tickets || 0;
           localUserData.coins   = data.coins   || 0;
         }
@@ -356,12 +373,38 @@
     }
 
     /* ----------------------------------------------
-       7. Start Game
+       7. Game Info Modal (Подробнее)
+    ---------------------------------------------- */
+    function openGameInfoModal(gameData) {
+      // Заполняем модал
+      document.getElementById('gameInfoImg').src = gameData.img;
+      document.getElementById('gameInfoTitle').textContent = gameData.title;
+      document.getElementById('gameInfoDesc').textContent = gameData.desc;
+
+      const playBtn = document.getElementById('gameInfoPlayBtn');
+      playBtn.textContent = `Играть (${gameData.cost} ticket)`;
+      playBtn.onclick = function() {
+        closeGameInfoModal();
+        handleStartGame(gameData.gameId, gameData.cost);
+      };
+
+      // Открываем модал
+      document.getElementById('gameInfoModal').classList.add('active');
+    }
+    function closeGameInfoModal() {
+      document.getElementById('gameInfoModal').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       8. Start Game
     ---------------------------------------------- */
     let lastSpinTime = 0;
     let currentGame = null;
 
     function handleStartGame(gameName, ticketCost) {
+      // Скрываем аватар + ник в header
+      document.querySelector('.user-info').style.display = 'none';
+
       if (!currentUser || !userRef) {
         showGlobalModal('Error', 'No user data available!');
         return;
@@ -378,14 +421,17 @@
       gameInProgress = true;
       document.getElementById('mainNav').classList.add('hidden');
 
+      // Скрываем все canvas
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
       document.getElementById('partnerGameCanvas').style.display = 'none';
       document.getElementById('specialGameCanvas').style.display = 'none';
       document.getElementById('game3Canvas').style.display = 'none';
 
+      // Показываем модал
       document.getElementById('gameModalBackdrop').classList.add('active');
 
+      // Инициализируем выбранную игру
       if (gameName === 'game1') {
         document.getElementById('gameCanvas').style.display = 'block';
         initGame1();
@@ -405,7 +451,7 @@
     }
 
     /* ----------------------------------------------
-       8. End Game Modal
+       9. End Game Modal
     ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = title;
@@ -413,12 +459,15 @@
       document.getElementById('endgameBackdrop').classList.add('active');
     }
     function finishGame() {
+      // Возвращаем аватар + ник
+      document.querySelector('.user-info').style.display = '';
+
       document.getElementById('endgameBackdrop').classList.remove('active');
       closeGameModal();
     }
 
     /* ----------------------------------------------
-       9. Close Game and Return
+       10. Close Game
     ---------------------------------------------- */
     function closeGameModal() {
       document.getElementById('gameModalBackdrop').classList.remove('active');
@@ -426,6 +475,7 @@
       if (userRef && currentGame) {
         userRef.update({ points: localUserData.points });
       }
+      // Сброс конкретной игры (если требуется)
       if (currentGame === 'game1') {
         resetGame1();
       } else if (currentGame === 'game2') {
@@ -442,11 +492,12 @@
     }
 
     /* ----------------------------------------------
-       10. Wheel of Fortune / Tickets
+       11. Wheel of Fortune / Tickets
     ---------------------------------------------- */
     function spinWheel() {
       if (!currentUser) return;
       const now = Date.now();
+      // Проверка 24 часа
       if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
         showGlobalModal('Wheel of Fortune', 'Free spin available once every 24 hours!');
         return;
@@ -454,7 +505,7 @@
       lastSpinTime = now;
 
       const wheelEl = document.getElementById('wheel');
-      wheelEl.classList.remove('spinning'); 
+      wheelEl.classList.remove('spinning');
       void wheelEl.offsetWidth; // сброс анимации
       wheelEl.classList.add('spinning');
 
@@ -485,7 +536,7 @@
     }
 
     /* ----------------------------------------------
-       11. Leaderboard
+       12. Leaderboard
     ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
@@ -517,7 +568,7 @@
     }
 
     /* ----------------------------------------------
-       12. Referral
+       13. Referral
     ---------------------------------------------- */
     function copyReferralLink() {
       const link = document.getElementById('referralLink').textContent;
@@ -527,7 +578,7 @@
     }
 
     /* ----------------------------------------------
-       13. Настройки дизайна
+       14. Настройки дизайна
     ---------------------------------------------- */
     function toggleDesignMenu() {
       var menu = document.getElementById('design-options');
@@ -542,6 +593,42 @@
       document.getElementById('themeStylesheet').setAttribute('href', theme);
       toggleDesignMenu();
     }
+
+
+
+
+    // Предположим, что currentUser.username содержит имя текущего пользователя
+leaderboardRef.on('value', snapshot => {
+  const usersData = snapshot.val() || {};
+  const usersArray = Object.entries(usersData).map(([uname, obj]) => ({
+    username: uname,
+    points: obj.points || 0
+  }));
+  
+  // Сортировка по убыванию очков
+  usersArray.sort((a, b) => b.points - a.points);
+  const topUsers = usersArray.slice(0, 10);
+  
+  const tbody = document.getElementById('leaderboardBody');
+  tbody.innerHTML = '';
+  
+  topUsers.forEach((user, i) => {
+    const tr = document.createElement('tr');
+    // Если имя пользователя совпадает с текущим, добавляем класс "current-user"
+    if (currentUser && user.username === currentUser.username) {
+      tr.classList.add('current-user');
+    }
+    
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>@${user.username}</td>
+      <td>${user.points}</td>
+    `;
+    
+    tbody.appendChild(tr);
+  });
+});
+
   </script>
 </body>
 </html>
