@@ -67,7 +67,7 @@ let player = {
   w: 50,
   h: 50,
   vy: 0,                
-  jumpPower: -5,   // Игрок подпрыгивает ниже
+  jumpPower: -5,   // Прыжок стал ниже (для более умеренного подъёма)
   gravity: 0.5     // Гравитация – игрок быстрее опускается
 };
 
@@ -81,10 +81,10 @@ let coinSpawnTimer = 0;
 let gameTime = 0;  // Количество кадров с начала игры
 
 // Очки и параметры сложности
-let currentScore = 0;             // Очки, набранные за монеты
-let basePoints = 0;               // Счёт до начала игры
-let difficultyLevel = 1;          // Уровень сложности (растёт постепенно)
-let maxEnemyType = 1;             // Допустимые типы врагов
+let currentScore = 0;   // Очки, набранные за монеты
+let basePoints = 0;     // Счёт до начала игры
+let difficultyLevel = 1;  // Уровень сложности (растёт постепенно)
+let maxEnemyType = 1;     // Допустимые типы врагов
 
 /* Инициализация игры.
    Вызывается из основного скрипта (например, handleStartGame('game3', ...))
@@ -209,8 +209,8 @@ function updatePlayer() {
 /* Обновление врагов с постепенным усложнением */
 function updateEnemies() {
   enemySpawnTimer++;
-  // Интервал спавна врагов (умножение теперь на 2 вместо 4)
-  let spawnInterval = Math.max((60 - difficultyLevel * 2) * 2, 30 * 2); // минимум 60 кадров
+  // Интервал спавна врагов: используем множитель 1, чтобы они появлялись быстрее
+  let spawnInterval = Math.max((60 - difficultyLevel * 2), 30); // минимум 30 кадров
   // Максимальное число врагов: каждые 600 кадров (~10 сек) +1 враг
   let maxEnemiesAllowed = Math.floor(gameTime / 600) + 1;
   
@@ -256,7 +256,7 @@ function spawnEnemy() {
   }
   enemies.push({
     type: type,
-    x: game3Canvas.width, // Теперь враг появляется сразу у правого края
+    x: game3Canvas.width, // Спавн у правого края
     y: enemyY,
     w: enemyW,
     h: enemyH,
@@ -269,8 +269,8 @@ function spawnEnemy() {
 /* Обновление монет */
 function updateCoins() {
   coinSpawnTimer++;
-  // Интервал спавна монет (умножение на 2 вместо 4)
-  let spawnInterval = Math.max((90 - difficultyLevel * 2) * 2, 40 * 2); // минимум 80 кадров
+  // Интервал спавна монет: множитель 1 (минимум 40 кадров)
+  let spawnInterval = Math.max((90 - difficultyLevel * 2), 40);
   if (coinSpawnTimer > spawnInterval) {
     spawnCoin();
     coinSpawnTimer = 0;
@@ -286,7 +286,7 @@ function spawnCoin() {
   let cW = 30, cH = 30;
   let yPos = Math.random() * (game3Canvas.height - cH);
   coins.push({
-    x: game3Canvas.width, // Монета появляется у правого края
+    x: game3Canvas.width, // Спавн у правого края
     y: yPos,
     w: cW,
     h: cH,
@@ -295,7 +295,7 @@ function spawnCoin() {
 }
 
 /* Постепенное увеличение сложности:
-   - Каждые 2400 кадров (~40 секунд при 60fps в замедленном режиме) увеличивается уровень сложности.
+   - Каждые 2400 кадров (~40 секунд при 60fps) увеличивается уровень сложности.
    - При повышении сложности интервалы спавна врагов/монет уменьшаются, а скорость увеличивается.
    - maxEnemyType: до уровня 3 – только тип 1, до уровня 6 – типы 1 и 2, затем – все 3 типа.
 */
@@ -426,3 +426,4 @@ function drawScene() {
 function drawBg(x, y) {
   ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
 }
+
