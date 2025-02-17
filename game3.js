@@ -68,7 +68,7 @@ let player = {
   w: 50,
   h: 50,
   vy: 0,                
-  jumpPower: -1   // -1.25
+  jumpPower: 2   // -1.25
   gravity: 0.1    // 0.0625
 };
 
