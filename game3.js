@@ -53,23 +53,23 @@ let enemyImage1;  // Враг типа 1
 let enemyImage2;  // Враг типа 2 (с вертикальными колебаниями)
 let enemyImage3;  // Враг типа 3
 
-// Параметры фона (игра замедлена в 4 раза)
-let bgSpeed = 1.5 / 4; // 0.375 пикселей за кадр
+// Параметры фона (увеличена скорость прокрутки)
+let bgSpeed = 1.5 / 2; // 0.75 пикселей за кадр (быстрее, чем 0.375)
 let bgX = 0;
 
 // Игровые переменные
 let gameLoopId;            // requestAnimationFrame ID
 let gameState = "ready";   // "ready" | "play" | "over"
 
-// Свойства игрока (изменены для более высокого прыжка и быстрого полёта)
+// Свойства игрока (изменены для меньшего прыжка)
 let player = {
   x: 50,
   y: 150,
   w: 50,
   h: 50,
   vy: 0,                
-  jumpPower: -8,   // Игрок теперь получает сильный импульс вверх
-  gravity: 0.5     // Гравитация увеличена – игрок быстрее ускоряется вниз
+  jumpPower: -5,   // Прыжок стал ниже (быстрее)
+  gravity: 0.5     // Гравитация остаётся, чтобы игрок быстрее опускался
 };
 
 // Массивы врагов и монет
@@ -210,9 +210,8 @@ function updatePlayer() {
 /* Обновление врагов с постепенным усложнением */
 function updateEnemies() {
   enemySpawnTimer++;
-  // Интервал спавна врагов замедлен в 4 раза
-  let spawnInterval = Math.max((60 - difficultyLevel * 2) * 4, 30 * 4); // минимум 120 кадров
-  
+  // Интервал спавна врагов (умножение теперь на 2 вместо 4)
+  let spawnInterval = Math.max((60 - difficultyLevel * 2) * 2, 30 * 2); // минимум 60 кадров
   // Максимальное число врагов: каждые 600 кадров (~10 сек) +1 враг
   let maxEnemiesAllowed = Math.floor(gameTime / 600) + 1;
   
@@ -258,7 +257,7 @@ function spawnEnemy() {
   }
   enemies.push({
     type: type,
-    x: game3Canvas.width + 50,
+    x: game3Canvas.width + 10, // Смещение уменьшено, чтобы враг появлялся быстрее
     y: enemyY,
     w: enemyW,
     h: enemyH,
@@ -271,8 +270,8 @@ function spawnEnemy() {
 /* Обновление монет */
 function updateCoins() {
   coinSpawnTimer++;
-  // Интервал спавна монет замедлен: умножаем на 4
-  let spawnInterval = Math.max((90 - difficultyLevel * 2) * 4, 40 * 4); // минимум 160 кадров
+  // Интервал спавна монет (умножение на 2 вместо 4)
+  let spawnInterval = Math.max((90 - difficultyLevel * 2) * 2, 40 * 2); // минимум 80 кадров
   if (coinSpawnTimer > spawnInterval) {
     spawnCoin();
     coinSpawnTimer = 0;
