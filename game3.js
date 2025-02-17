@@ -1,93 +1,26 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gifler/0.1.0/gifler.min.js"></script>
-```)
-
-2. **Постепенное увеличение количества врагов:** В функции `updateEnemies` теперь проверяется, чтобы на экране одновременно было не больше врагов, чем позволяет время игры – каждые 10 секунд максимум на 1 враг больше (в начале – 1 враг, через 10 сек – 2, через 20 сек – 3 и т.д.).
-
-3. **Смерть при падении:** Если игрок опускается ниже нижней границы канвы, сразу вызывается `onGameOver()`.
-
-4. **Корректировка хитбокса игрока:** При проверке столкновений с врагами используется уменьшённый хитбокс (с отступом 10 пикселей), чтобы избежать ложных столкновений из-за прозрачных краёв PNG/GIF.
-
-Ниже – весь код:
-
----
-
-```js
 /* Improved game3.js – "Flappy Bird–like" game (4x slower)
    Features:
    - Control: TAP (or SPACE) makes the player jump.
    - Enemies: Gradual introduction of enemy types (1 → then 2 → then 3)
    - Coins: Each coin gives +5 points.
    - Background scrolls to simulate forward motion.
-   - On collision (or if falling off bottom), game over modal is shown and score is saved.
+   - On collision or falling to the bottom, game over modal is shown and score is saved.
    
-   Дополнения и исправления:
-   - Анимация GIF: Используется класс AnimatedGif с библиотекой gifler для анимации GIF.
-   - Постепенное увеличение количества врагов: Начинается с 1 врага, каждые 10 секунд появляется на 1 враг больше.
-   - Если игрок падает ниже нижней границы канвы – игра заканчивается.
-   - Улучшенная проверка столкновений (уменьшённый хитбокс игрока) для избежания ложных столкновений.
-   
-   ВАЖНО: Убедитесь, что библиотека gifler подключена в HTML, например:
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/gifler/0.1.0/gifler.min.js"></script>
+   ⚠️ Note: Для анимации GIF в canvas используется gifler. Подключите библиотеку gifler (например, через CDN).
 */
 
 let game3Canvas;
 let ctx3;
 
-// Функция для отрисовки спрайта (статического или анимированного)
-function drawSprite(sprite, x, y, w, h) {
-  if (sprite && typeof sprite.draw === "function") {
-    sprite.draw(ctx3, x, y, w, h);
-  } else if (sprite) {
-    ctx3.drawImage(sprite, x, y, w, h);
-  }
-}
+// Фоновое изображение – статичное
+let bgImage      = new Image();
 
-// Класс для анимированных GIF с использованием gifler
-class AnimatedGif {
-  constructor(url, width, height, frameRate = 12) {
-    this.width = width;
-    this.height = height;
-    this.canvas = document.createElement("canvas");
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.ctx = this.canvas.getContext("2d");
-    this.loaded = false;
-    // Используем gifler для анимации GIF
-    gifler(url).frames(this.canvas, {
-      frameRate: frameRate,
-      onFrame: (ctx, frame) => {
-        // Фрейм автоматически отрисовывается на this.canvas
-      },
-      onLoad: () => {
-        this.loaded = true;
-      }
-    });
-  }
-  draw(ctx, x, y, width, height) {
-    ctx.drawImage(this.canvas, x, y, width, height);
-  }
-}
-
-// Изображения – фон остаётся статичным, остальные (игрок, монета, враги) – анимируются, если GIF
-let bgImage;      
+// Анимированные объекты создаём через createAnimatedGif()
 let playerImage;  
-let coinImage;    
-let enemyImage1;  // Враг типа 1
-let enemyImage2;  // Враг типа 2 (осциллирует по вертикали)
-let enemyImage3;  // Враг типа 3
-
-// Функция загрузки игровых ассетов
-function loadGameAssets() {
-  // Фон
-  bgImage = new Image();
-  bgImage.src = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg";
-  // Анимированные спрайты
-  playerImage = new AnimatedGif("spooky-halloween.gif", 50, 50, 12);
-  coinImage = new AnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif", 30, 30, 12);
-  enemyImage1 = new AnimatedGif("https://i.gifer.com/XOsa.gif", 60, 60, 12);
-  enemyImage2 = new AnimatedGif("https://i.gifer.com/Vp3M.gif", 60, 60, 12);
-  enemyImage3 = new AnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif", 60, 60, 12);
-}
+let coinImage;
+let enemyImage1;  // Enemy type 1
+let enemyImage2;  // Enemy type 2 (oscillates vertically)
+let enemyImage3;  // Enemy type 3
 
 // Background parameters (4x замедлено)
 let bgSpeed = 1.5 / 4; // 0.375 пикселей за кадр
@@ -123,9 +56,13 @@ let basePoints = 0;               // Очки пользователя до на
 let difficultyLevel = 1;          // Уровень сложности (растёт постепенно)
 let maxEnemyType = 1;             // На начальном этапе разрешены только враги типа 1
 
-/**********************/
-/*  Инициализация игры  */
-/**********************/
+/*********************/
+/*  ИНИЦИАЛИЗАЦИЯ  */
+/*********************/
+
+/* Инициализация игры.
+   Вызывается из главного скрипта (handleStartGame('game3', ...))
+*/
 function initGame3() {
   game3Canvas = document.getElementById("game3Canvas");
   if (!game3Canvas) {
@@ -134,13 +71,50 @@ function initGame3() {
   }
   ctx3 = game3Canvas.getContext("2d");
 
-  loadGameAssets(); // Загружаем ассеты
+  // Фоновое изображение – статичное
+  bgImage.src = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
+
+  // Анимированные изображения создаём через createAnimatedGif (требуется gifler)
+  playerImage   = createAnimatedGif("spooky-halloween.gif"); 
+  coinImage     = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
+  enemyImage1   = createAnimatedGif("https://i.gifer.com/XOsa.gif");
+  enemyImage2   = createAnimatedGif("https://i.gifer.com/Vp3M.gif");
+  enemyImage3   = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
 
   resetVars();
   addInputListeners();
 
   console.log("Game3 initialized");
   gameLoopId = requestAnimationFrame(updateGame3);
+}
+
+/* Функция создания анимированного объекта GIF.
+   Использует gifler для отрисовки анимации во внутреннем canvas.
+   Если gifler не подключён, отображается статичное изображение.
+*/
+function createAnimatedGif(url) {
+  let offscreenCanvas = document.createElement("canvas");
+  // Задаём произвольный размер; gifler обновит его после загрузки GIF
+  offscreenCanvas.width = 100;
+  offscreenCanvas.height = 100;
+  
+  if (typeof gifler !== "undefined") {
+    gifler(url).get(function(a) {
+      offscreenCanvas.width = a.width;
+      offscreenCanvas.height = a.height;
+      a.animateInCanvas(offscreenCanvas);
+    });
+  } else {
+    console.error("gifler library is not loaded. Animated GIFs will not animate.");
+    let img = new Image();
+    img.src = url;
+    img.onload = () => {
+      offscreenCanvas.width = img.width;
+      offscreenCanvas.height = img.height;
+      offscreenCanvas.getContext("2d").drawImage(img, 0, 0);
+    };
+  }
+  return { canvas: offscreenCanvas };
 }
 
 /* Сброс игровых переменных */
@@ -204,6 +178,10 @@ function onKeyDown(e) {
   }
 }
 
+/*********************/
+/*  ГЛАВНЫЙ ЦИКЛ    */
+/*********************/
+
 /* Основной игровой цикл */
 function updateGame3() {
   if (gameState === "play") {
@@ -226,13 +204,13 @@ function updatePlayer() {
   player.vy += player.gravity;
   player.y += player.vy;
 
-  // Ограничиваем движение игрока по верхней границе
+  // Ограничение сверху
   if (player.y < 0) {
     player.y = 0;
     player.vy = 0;
   }
-  // Если игрок падает ниже нижней границы, игра заканчивается
-  if (player.y + player.h > game3Canvas.height) {
+  // Если игрок падает до нижней границы, игра завершается
+  if (player.y + player.h >= game3Canvas.height) {
     onGameOver();
   }
 }
@@ -242,9 +220,11 @@ function updateEnemies() {
   enemySpawnTimer++;
   // Интервал спавна врагов замедлен в 4 раза: умножаем на 4
   let spawnInterval = Math.max((60 - difficultyLevel * 2) * 4, 30 * 4); // минимум 120 кадров
-  // Ограничение количества врагов: каждые 10 секунд появляется на 1 враг больше
-  let enemyLimit = Math.floor((gameTime / 60) / 10) + 1;
-  if (enemySpawnTimer > spawnInterval && enemies.length < enemyLimit) {
+  
+  // Расчёт максимально допустимого количества врагов:
+  let maxEnemiesAllowed = Math.floor(gameTime / 600) + 1; // каждые 600 кадров (около 10 сек) +1 враг
+  
+  if (enemySpawnTimer > spawnInterval && enemies.length < maxEnemiesAllowed) {
     spawnEnemy();
     enemySpawnTimer = 0;
   }
@@ -348,17 +328,17 @@ function updateDifficulty() {
 /* Проверка столкновений:
    - Если игрок сталкивается с врагом, игра заканчивается.
    - Если игрок касается монеты – монета исчезает, игрок получает +5 очков.
-   Используем уменьшенный хитбокс для игрока (отступ 10 пикселей), чтобы избежать ложных столкновений.
+   Для столкновений с врагами используется уменьшенная зона столкновения у игрока.
 */
 function checkCollisions() {
-  // Столкновение с врагами с уменьшенным хитбоксом игрока
+  // Столкновение с врагами (уменьшенная зона игрока)
   for (let en of enemies) {
-    if (isCollidingWithPadding(player, en, 10)) {
+    if (isPlayerCollidingWithEnemy(player, en)) {
       onGameOver();
       return;
     }
   }
-  // Столкновение с монетами (без изменения хитбокса)
+  // Столкновение с монетами (обычная AABB-проверка)
   for (let i = 0; i < coins.length; i++) {
     let c = coins[i];
     if (isColliding(player, c)) {
@@ -373,7 +353,7 @@ function checkCollisions() {
   }
 }
 
-/* Простая AABB-проверка столкновения для полного хитбокса */
+/* AABB-проверка столкновения (без уменьшения зоны) */
 function isColliding(a, b) {
   return !(
     a.x + a.w < b.x ||
@@ -383,22 +363,22 @@ function isColliding(a, b) {
   );
 }
 
-/* Проверка столкновения с уменьшенным хитбоксом для игрока */
-function isCollidingWithPadding(a, b, padding) {
-  let ax = a.x + padding;
-  let ay = a.y + padding;
-  let aw = a.w - 2 * padding;
-  let ah = a.h - 2 * padding;
-  return !(
-    ax + aw < b.x ||
-    ax > b.x + b.w ||
-    ay + ah < b.y ||
-    ay > b.y + b.h
-  );
+/* Проверка столкновения игрока с врагом с уменьшенной зоной для игрока */
+function isPlayerCollidingWithEnemy(player, enemy) {
+  const margin = 10; // отступ для уменьшения зоны столкновения игрока
+  const pLeft   = player.x + margin;
+  const pRight  = player.x + player.w - margin;
+  const pTop    = player.y + margin;
+  const pBottom = player.y + player.h - margin;
+  
+  return !(pRight < enemy.x ||
+           pLeft > enemy.x + enemy.w ||
+           pBottom < enemy.y ||
+           pTop > enemy.y + enemy.h);
 }
 
 /* Обработка конца игры.
-   При столкновении с врагом или падении за нижнюю границу игра переводится в состояние "over",
+   При столкновении с врагом или падении до низа игра переводится в состояние "over",
    показывается модальное окно с итоговым счётом,
    и игровой цикл останавливается.
 */
@@ -428,23 +408,23 @@ function drawScene() {
     ctx3.fillText("Collect coins, avoid enemies!", game3Canvas.width / 2, game3Canvas.height / 2 + 10);
   }
 
-  // Отрисовка игрока
-  drawSprite(playerImage, player.x, player.y, player.w, player.h);
+  // Отрисовка игрока (используем внутренний canvas анимированного объекта)
+  ctx3.drawImage(playerImage.canvas, player.x, player.y, player.w, player.h);
 
   // Отрисовка врагов
   enemies.forEach(en => {
     if (en.type === 1) {
-      drawSprite(enemyImage1, en.x, en.y, en.w, en.h);
+      ctx3.drawImage(enemyImage1.canvas, en.x, en.y, en.w, en.h);
     } else if (en.type === 2) {
-      drawSprite(enemyImage2, en.x, en.y, en.w, en.h);
+      ctx3.drawImage(enemyImage2.canvas, en.x, en.y, en.w, en.h);
     } else {
-      drawSprite(enemyImage3, en.x, en.y, en.w, en.h);
+      ctx3.drawImage(enemyImage3.canvas, en.x, en.y, en.w, en.h);
     }
   });
 
   // Отрисовка монет
   coins.forEach(c => {
-    drawSprite(coinImage, c.x, c.y, c.w, c.h);
+    ctx3.drawImage(coinImage.canvas, c.x, c.y, c.w, c.h);
   });
 
   // Если игра идёт, показываем текущий счёт
@@ -460,4 +440,5 @@ function drawScene() {
 function drawBg(x, y) {
   ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
 }
+
 
