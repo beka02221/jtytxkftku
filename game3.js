@@ -101,9 +101,9 @@ function initGame3() {
   // Задаём пути к изображениям
   bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
   playerImage       = createAnimatedGif("spooky-halloween.gif"); 
-  coinImage         = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
-  enemyImage1       = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
-  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif");
+  coinImage         = createAnimatedGif("spooky-halloween.gif");
+  enemyImage1       = createAnimatedGif("spooky-halloween.gif");
+  enemyImage2       = createAnimatedGif("spooky-halloween.gif");
   enemyImage3       = createAnimatedGif("enemyworld.gif");
 
   resetVars();
