@@ -1,244 +1,276 @@
-(function () {
-  // --- Глобальные переменные игры ---
-  let canvas, ctx;
-  let grid = [];
-  const cols = 6;
-  const rows = 10;
-  let blockWidth, blockHeight;
-  const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
-  let score = 0;
-  const gameDuration = 60; // 60 секунд
-  let startTime;
-  let animationFrameId;
-  let gameOver = false;
+// game4.js – Игра Color Blocks
 
-  // --- Инициализация игры ---
-  function initGame4() {
-    // Получаем холст и контекст
-    canvas = document.getElementById('game4Canvas');
-    ctx = canvas.getContext('2d');
+let colorBlocksInterval = null;
+let colorBlocksCtx = null;
 
-    // Рассчитываем размеры блока
-    blockWidth = canvas.width / cols;
-    // Оставляем сверху 50px для UI (ползунок времени и счёт)
-    blockHeight = (canvas.height - 50) / rows;
+// Параметры сетки
+const cols = 6;   // количество колонок
+const rows = 10;  // количество строк
+let blockWidth = 0;
+let blockHeight = 0;
+const colors = ['red', 'green', 'blue', 'yellow', 'purple'];
 
-    // Инициализируем сетку случайными цветами
-    grid = [];
-    for (let r = 0; r < rows; r++) {
-      let row = [];
-      for (let c = 0; c < cols; c++) {
-        row.push(colors[Math.floor(Math.random() * colors.length)]);
-      }
-      grid.push(row);
-    }
-    score = 0;
-    gameOver = false;
-    startTime = Date.now();
+// Игровые переменные
+let grid = [];
+let score = 0;
+const gameDuration = 60; // длительность игры в секундах
+let startTime = 0;
 
-    // Добавляем обработчики событий для клика и касания
-    canvas.addEventListener('click', handleClick);
-    canvas.addEventListener('touchstart', handleTouch);
+/**
+ * Инициализация игры. Вызывается при запуске game4.
+ */
+function initGame4() {
+  const canvas = document.getElementById('game4Canvas');
+  if (!canvas) return;
+  colorBlocksCtx = canvas.getContext('2d');
 
-    // Запускаем игровой цикл
-    gameLoop();
-  }
+  // Рассчитываем размеры блока
+  blockWidth = canvas.width / cols;
+  // Оставляем сверху 50px для UI (таймер и счет)
+  blockHeight = (canvas.height - 50) / rows;
 
-  // --- Сброс игры (вызывается при закрытии игры) ---
-  function resetGame4() {
-    if (canvas) {
-      canvas.removeEventListener('click', handleClick);
-      canvas.removeEventListener('touchstart', handleTouch);
-    }
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
-  }
-
-  // --- Игровой цикл ---
-  function gameLoop() {
-    // Очищаем холст
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Рисуем интерфейс: ползунок времени и счёт
-    drawUI();
-
-    // Рисуем сетку блоков
-    drawGrid();
-
-    // Проверяем истечение времени
-    let elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed >= gameDuration) {
-      endGame();
-      return;
-    }
-
-    animationFrameId = requestAnimationFrame(gameLoop);
-  }
-
-  // --- Рисуем верхний UI (ползунок времени и счёт) ---
-  function drawUI() {
-    // Вычисляем оставшееся время
-    let timeLeft = Math.max(gameDuration - (Date.now() - startTime) / 1000, 0);
-    let sliderWidth = (timeLeft / gameDuration) * canvas.width;
-
-    // Фон для ползунка (серый)
-    ctx.fillStyle = '#ccc';
-    ctx.fillRect(0, 0, canvas.width, 20);
-
-    // Заполненный участок ползунка (зелёный)
-    ctx.fillStyle = '#00FF00';
-    ctx.fillRect(0, 0, sliderWidth, 20);
-
-    // Выводим счёт
-    ctx.fillStyle = '#000';
-    ctx.font = '16px Arial';
-    ctx.fillText('Score: ' + score, 10, 40);
-  }
-
-  // --- Рисуем игровую сетку ---
-  function drawGrid() {
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        let cell = grid[r][c];
-        if (cell) {
-          ctx.fillStyle = cell;
-          ctx.fillRect(c * blockWidth, 50 + r * blockHeight, blockWidth, blockHeight);
-          // Рисуем белую границу вокруг блока
-          ctx.strokeStyle = '#fff';
-          ctx.strokeRect(c * blockWidth, 50 + r * blockHeight, blockWidth, blockHeight);
-        }
-      }
-    }
-  }
-
-  // --- Определяем, на какой ячейке произошло нажатие ---
-  function getCellFromCoordinates(x, y) {
-    if (y < 50) return null; // зона UI
-    let col = Math.floor(x / blockWidth);
-    let row = Math.floor((y - 50) / blockHeight);
-    if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
-    return { row, col };
-  }
-
-  // --- Обработчики событий (клик и касание) ---
-  function handleClick(e) {
-    const rect = canvas.getBoundingClientRect();
-    let x = e.clientX - rect.left;
-    let y = e.clientY - rect.top;
-    handleSelection(x, y);
-  }
-
-  function handleTouch(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    let touch = e.touches[0];
-    let x = touch.clientX - rect.left;
-    let y = touch.clientY - rect.top;
-    handleSelection(x, y);
-  }
-
-  // --- Обработка выбора ячейки ---
-  function handleSelection(x, y) {
-    let cellPos = getCellFromCoordinates(x, y);
-    if (!cellPos) return;
-    let { row, col } = cellPos;
-    let targetColor = grid[row][col];
-    if (!targetColor) return;
-
-    // Поиск смежных блоков того же цвета (алгоритм flood fill)
-    let connected = [];
-    let visited = Array(rows)
-      .fill(0)
-      .map(() => Array(cols).fill(false));
-
-    function floodFill(r, c) {
-      if (r < 0 || r >= rows || c < 0 || c >= cols) return;
-      if (visited[r][c]) return;
-      if (grid[r][c] !== targetColor) return;
-      visited[r][c] = true;
-      connected.push({ r, c });
-      floodFill(r - 1, c);
-      floodFill(r + 1, c);
-      floodFill(r, c - 1);
-      floodFill(r, c + 1);
-    }
-    floodFill(row, col);
-
-    // Если группа состоит менее чем из 2 блоков – ничего не делаем
-    if (connected.length < 2) return;
-
-    // Удаляем найденные блоки
-    connected.forEach(pos => {
-      grid[pos.r][pos.c] = null;
-    });
-
-    // Начисляем очки (например, квадратичный прирост)
-    score += connected.length * connected.length;
-
-    // Применяем гравитацию и сдвигаем колонки
-    applyGravity();
-    collapseColumns();
-  }
-
-  // --- Гравитация: блоки опускаются вниз ---
-  function applyGravity() {
+  // Инициализируем сетку случайными цветными блоками
+  grid = [];
+  for (let r = 0; r < rows; r++) {
+    let row = [];
     for (let c = 0; c < cols; c++) {
-      for (let r = rows - 1; r >= 0; r--) {
-        if (grid[r][c] === null) {
-          for (let nr = r - 1; nr >= 0; nr--) {
-            if (grid[nr][c] !== null) {
-              grid[r][c] = grid[nr][c];
-              grid[nr][c] = null;
-              break;
-            }
-          }
-        }
-      }
+      row.push(colors[Math.floor(Math.random() * colors.length)]);
     }
+    grid.push(row);
   }
 
-  // --- Сдвиг колонок: если колонка пуста, смещаем все справа налево ---
-  function collapseColumns() {
-    let targetCol = 0;
-    for (let c = 0; c < cols; c++) {
-      let isEmpty = true;
-      for (let r = 0; r < rows; r++) {
-        if (grid[r][c] !== null) {
-          isEmpty = false;
-          break;
-        }
-      }
-      if (!isEmpty) {
-        if (targetCol !== c) {
-          for (let r = 0; r < rows; r++) {
-            grid[r][targetCol] = grid[r][c];
-            grid[r][c] = null;
-          }
-        }
-        targetCol++;
-      }
-    }
-  }
+  score = 0;
+  startTime = Date.now();
 
-  // --- Завершение игры ---
-  function endGame() {
-    gameOver = true;
+  // Добавляем обработчики кликов и касаний
+  canvas.addEventListener('click', handleClick);
+  canvas.addEventListener('touchstart', handleTouch);
+
+  // Запускаем игровой цикл
+  colorBlocksInterval = requestAnimationFrame(gameLoop);
+}
+
+/**
+ * Сброс игры – вызывается при завершении игры.
+ */
+function resetGame4() {
+  const canvas = document.getElementById('game4Canvas');
+  if (canvas) {
     canvas.removeEventListener('click', handleClick);
     canvas.removeEventListener('touchstart', handleTouch);
+  }
+  if (colorBlocksInterval) {
+    cancelAnimationFrame(colorBlocksInterval);
+    colorBlocksInterval = null;
+  }
+}
 
-    // Обновляем баллы пользователя (глобальные переменные localUserData и userRef уже определены)
-    localUserData.points = (localUserData.points || 0) + score;
-    if (userRef) {
-      userRef.update({ points: localUserData.points });
-    }
+/**
+ * Игровой цикл: обновление состояния и отрисовка.
+ */
+function gameLoop() {
+  const canvas = document.getElementById('game4Canvas');
+  // Очищаем холст
+  colorBlocksCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Показываем модальное окно завершения игры (функция showEndGameModal определена в основном скрипте)
-    showEndGameModal("Game Over", "Your score: " + score);
+  // Рисуем верхний интерфейс (таймер и счет)
+  drawUI();
+  // Рисуем игровую сетку с блоками
+  drawGrid();
+
+  // Проверка времени игры
+  const elapsed = (Date.now() - startTime) / 1000;
+  if (elapsed >= gameDuration) {
+    endGame();
+    return;
   }
 
-  // --- Экспорт функций для вызова из основного скрипта ---
-  window.initGame4 = initGame4;
-  window.resetGame4 = resetGame4;
-})();
+  colorBlocksInterval = requestAnimationFrame(gameLoop);
+}
+
+/**
+ * Рисуем UI: ползунок времени и текущий счет.
+ */
+function drawUI() {
+  const canvas = document.getElementById('game4Canvas');
+  // Фон ползунка (серый)
+  colorBlocksCtx.fillStyle = '#ccc';
+  colorBlocksCtx.fillRect(0, 0, canvas.width, 20);
+
+  // Вычисляем оставшееся время и ширину заполненной части
+  const timeLeft = Math.max(gameDuration - (Date.now() - startTime) / 1000, 0);
+  const sliderWidth = (timeLeft / gameDuration) * canvas.width;
+  colorBlocksCtx.fillStyle = '#00FF00';
+  colorBlocksCtx.fillRect(0, 0, sliderWidth, 20);
+
+  // Рисуем счет
+  colorBlocksCtx.fillStyle = '#000';
+  colorBlocksCtx.font = '16px Arial';
+  colorBlocksCtx.fillText('Score: ' + score, 10, 40);
+}
+
+/**
+ * Отрисовка сетки блоков.
+ */
+function drawGrid() {
+  // Игровая область начинается с y = 50
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const block = grid[r][c];
+      if (block) {
+        colorBlocksCtx.fillStyle = block;
+        colorBlocksCtx.fillRect(c * blockWidth, 50 + r * blockHeight, blockWidth, blockHeight);
+        // Отрисовка белой рамки вокруг блока
+        colorBlocksCtx.strokeStyle = '#fff';
+        colorBlocksCtx.strokeRect(c * blockWidth, 50 + r * blockHeight, blockWidth, blockHeight);
+      }
+    }
+  }
+}
+
+/**
+ * По координатам клика/касания определяет, на какой ячейке мы находимся.
+ */
+function getCellFromCoords(x, y) {
+  if (y < 50) return null; // область UI
+  const col = Math.floor(x / blockWidth);
+  const row = Math.floor((y - 50) / blockHeight);
+  if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
+  return { row, col };
+}
+
+/**
+ * Обработчик клика мыши.
+ */
+function handleClick(e) {
+  const canvas = document.getElementById('game4Canvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  handleSelection(x, y);
+}
+
+/**
+ * Обработчик касания.
+ */
+function handleTouch(e) {
+  e.preventDefault();
+  const canvas = document.getElementById('game4Canvas');
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  handleSelection(x, y);
+}
+
+/**
+ * Обработка выбора блока: находим связную область одинаковых блоков и удаляем её.
+ */
+function handleSelection(x, y) {
+  const cell = getCellFromCoords(x, y);
+  if (!cell) return;
+  const { row, col } = cell;
+  const targetColor = grid[row][col];
+  if (!targetColor) return;
+
+  // Алгоритм flood fill для поиска соседних блоков того же цвета
+  const connected = [];
+  const visited = Array(rows).fill(null).map(() => Array(cols).fill(false));
+
+  function flood(r, c) {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (visited[r][c]) return;
+    if (grid[r][c] !== targetColor) return;
+    visited[r][c] = true;
+    connected.push({ r, c });
+    flood(r - 1, c);
+    flood(r + 1, c);
+    flood(r, c - 1);
+    flood(r, c + 1);
+  }
+  flood(row, col);
+
+  // Если найдено менее двух блоков, ничего не делаем
+  if (connected.length < 2) return;
+
+  // Удаляем найденные блоки
+  connected.forEach(pos => {
+    grid[pos.r][pos.c] = null;
+  });
+
+  // Начисляем очки (квадратично от количества удалённых блоков)
+  score += connected.length * connected.length;
+
+  // Применяем гравитацию и сдвигаем колонки
+  applyGravity();
+  collapseColumns();
+}
+
+/**
+ * Гравитация – блоки опускаются вниз, если под ними пусто.
+ */
+function applyGravity() {
+  for (let c = 0; c < cols; c++) {
+    for (let r = rows - 1; r >= 0; r--) {
+      if (grid[r][c] === null) {
+        for (let r2 = r - 1; r2 >= 0; r2--) {
+          if (grid[r2][c] !== null) {
+            grid[r][c] = grid[r2][c];
+            grid[r2][c] = null;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Сдвиг колонок – если колонка пуста, смещаем все колонки правее влево.
+ */
+function collapseColumns() {
+  let targetCol = 0;
+  for (let c = 0; c < cols; c++) {
+    let isEmpty = true;
+    for (let r = 0; r < rows; r++) {
+      if (grid[r][c] !== null) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (!isEmpty) {
+      if (targetCol !== c) {
+        for (let r = 0; r < rows; r++) {
+          grid[r][targetCol] = grid[r][c];
+          grid[r][c] = null;
+        }
+      }
+      targetCol++;
+    }
+  }
+}
+
+/**
+ * Завершение игры: убираем обработчики, сохраняем результат в Firebase и показываем окно результата.
+ */
+function endGame() {
+  const canvas = document.getElementById('game4Canvas');
+  canvas.removeEventListener('click', handleClick);
+  canvas.removeEventListener('touchstart', handleTouch);
+
+  // Обновляем баллы пользователя (глобальные localUserData и userRef определены в index.html)
+  localUserData.points = (localUserData.points || 0) + score;
+  if (userRef) {
+    userRef.update({ points: localUserData.points });
+  }
+
+  // Показываем итоговое окно (функция showEndGameModal определена в основном скрипте)
+  showEndGameModal("Игра окончена", "Ваш счет: " + score);
+
+  resetGame4();
+}
+
+// Экспортируем функции для вызова из основного скрипта
+window.initGame4 = initGame4;
+window.resetGame4 = resetGame4;
 
