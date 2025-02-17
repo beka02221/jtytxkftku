@@ -1,7 +1,7 @@
 /* ===============================
    game3.js — Tetris в стиле Матрицы
    Управление:
-    - Стрелки клавиатуры: ← → ↓ для перемещения, ↑ для поворота
+    - Стрелки клавиатуры: ←, →, ↓ для перемещения, ↑ для поворота
     - Мобильные кнопки (создаются динамически)
    Таймер игры — 1 минута (отображается в виде слайдера вверху)
    По завершении игры сумма набранных очков прибавляется к балансу
@@ -15,7 +15,7 @@
   const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 600px
   const DROP_INTERVAL = 1000; // интервал падения фигуры (мс)
   const GAME_DURATION = 60000; // длительность игры: 1 минута (60000 мс)
-  const PIECE_COLOR = "#00FF00"; // неоново-зелёный (Матрица)
+  const PIECE_COLOR = "#00FF00"; // неоново-зелёный (стиль Матрицы)
   
   // Глобальные переменные для игры
   let canvas, ctx;
@@ -27,7 +27,7 @@
   let score = 0;
   let game3Running = false;
   let game3AnimationFrameId;
-  let controlDiv; // для мобильных кнопок
+  let controlDiv; // контейнер мобильных кнопок
 
   // Определения тетрамино (все фигуры будут зелёного цвета)
   const tetrominoes = {
@@ -95,7 +95,7 @@
 
   // Рисуем игровое поле с заблокированными блоками
   function drawBoard() {
-    // Выравнивание поля по горизонтали (по центру canvas)
+    // Центрируем поле по горизонтали
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -117,7 +117,7 @@
   function drawPiece(piece) {
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     ctx.fillStyle = PIECE_COLOR;
-    // Добавляем эффект свечения
+    // Эффект свечения
     ctx.shadowColor = PIECE_COLOR;
     ctx.shadowBlur = 10;
     piece.shape.forEach((row, r) => {
@@ -132,7 +132,7 @@
     ctx.shadowBlur = 0;
   }
 
-  // Объединяем (фиксируем) фигуру в игровом поле
+  // Фиксируем фигуру на игровом поле
   function mergePiece(piece) {
     piece.shape.forEach((row, r) => {
       row.forEach((value, c) => {
@@ -143,7 +143,7 @@
     });
   }
 
-  // Проверка столкновений фигуры с границами или заблокированными ячейками
+  // Проверка столкновения фигуры с границами или другими блоками
   function collide(piece) {
     for (let r = 0; r < piece.shape.length; r++) {
       for (let c = 0; c < piece.shape[r].length; c++) {
@@ -162,7 +162,7 @@
     return false;
   }
 
-  // Функция поворота матрицы (на 90° по часовой стрелке)
+  // Поворот матрицы (на 90° по часовой стрелке)
   function rotate(matrix) {
     const N = matrix.length;
     const result = [];
@@ -175,7 +175,7 @@
     return result;
   }
 
-  // Создаём фигуру по типу (случайный выбор)
+  // Создаём фигуру по типу (согласно тетрамино)
   function createPiece(type) {
     return {
       shape: tetrominoes[type].shape,
@@ -205,14 +205,14 @@
       board.splice(r, 1);
       board.unshift(new Array(COLS).fill(0));
       linesCleared++;
-      r++; // Повторно проверяем ту же строку (так как строки сдвинулись)
+      r++; // повторная проверка той же строки (так как строки сдвинулись)
     }
     if (linesCleared > 0) {
       score += linesCleared * 100;
     }
   }
 
-  // Функция опускания фигуры
+  // Опускаем фигуру на одну строку
   function dropPiece() {
     currentPiece.y++;
     if (collide(currentPiece)) {
@@ -221,14 +221,14 @@
       clearLines();
       currentPiece = randomPiece();
       if (collide(currentPiece)) {
-        // Если новая фигура сразу сталкивается – игра окончена
+        // Если новая фигура сразу столкнулась – игра окончена
         endGame();
       }
     }
     dropCounter = 0;
   }
 
-  // Основной цикл игры
+  // Основной игровой цикл
   function updateGame3(time = 0) {
     const deltaTime = time - lastTime;
     lastTime = time;
@@ -237,7 +237,7 @@
       dropPiece();
     }
 
-    // Проверяем, истекло ли время игры (1 минута)
+    // Проверяем, истёк ли игровой таймер (1 минута)
     const elapsed = Date.now() - gameStartTime;
     if (elapsed >= GAME_DURATION) {
       endGame();
@@ -264,7 +264,7 @@
     drawBoard();
     drawPiece(currentPiece);
 
-    // Отображаем текущий счёт (стиль шрифта “Press Start 2P”)
+    // Отображаем текущий счёт (шрифт “Press Start 2P”)
     ctx.fillStyle = "#00FF00";
     ctx.font = "20px 'Press Start 2P'";
     ctx.fillText("Score: " + score, 10, 30);
@@ -291,7 +291,7 @@
       const oldShape = currentPiece.shape;
       currentPiece.shape = rotated;
       if (collide(currentPiece)) {
-        // Пробуем "wall kick"
+        // Пробуем сдвиг ("wall kick")
         if (!collide({ ...currentPiece, x: currentPiece.x - 1 })) {
           currentPiece.x--;
         } else if (!collide({ ...currentPiece, x: currentPiece.x + 1 })) {
@@ -304,19 +304,20 @@
     drawGame3();
   }
 
-  // Создаём мобильные кнопки управления (лево, право, поворот, вниз)
+  // Создаём мобильные кнопки управления (лево, поворот, вниз, право)
   function createMobileControls() {
     controlDiv = document.createElement("div");
     controlDiv.id = "tetrisControls";
-    // Стилизация (позиция внизу экрана, по центру)
+    // Стили для контейнера кнопок
     controlDiv.style.position = "fixed";
     controlDiv.style.bottom = "20px";
     controlDiv.style.left = "50%";
     controlDiv.style.transform = "translateX(-50%)";
     controlDiv.style.display = "flex";
+    controlDiv.style.justifyContent = "center";
     controlDiv.style.gap = "10px";
     controlDiv.style.zIndex = "1000";
-
+  
     // Функция для стилизации кнопки
     function styleControlButton(btn) {
       btn.style.width = "50px";
@@ -328,8 +329,8 @@
       btn.style.color = "#00FF00";
       btn.style.outline = "none";
     }
-
-    // Создаём кнопки
+  
+    // Кнопка влево
     const btnLeft = document.createElement("button");
     btnLeft.textContent = "←";
     styleControlButton(btnLeft);
@@ -340,7 +341,8 @@
     btnLeft.addEventListener("click", () => {
       simulateKey("ArrowLeft");
     });
-
+  
+    // Кнопка поворота
     const btnRotate = document.createElement("button");
     btnRotate.textContent = "⟳";
     styleControlButton(btnRotate);
@@ -351,7 +353,8 @@
     btnRotate.addEventListener("click", () => {
       simulateKey("ArrowUp");
     });
-
+  
+    // Кнопка вниз
     const btnDown = document.createElement("button");
     btnDown.textContent = "↓";
     styleControlButton(btnDown);
@@ -362,7 +365,8 @@
     btnDown.addEventListener("click", () => {
       simulateKey("ArrowDown");
     });
-
+  
+    // Кнопка вправо
     const btnRight = document.createElement("button");
     btnRight.textContent = "→";
     styleControlButton(btnRight);
@@ -373,13 +377,14 @@
     btnRight.addEventListener("click", () => {
       simulateKey("ArrowRight");
     });
-
+  
     // Добавляем кнопки в контейнер
     controlDiv.appendChild(btnLeft);
     controlDiv.appendChild(btnRotate);
     controlDiv.appendChild(btnDown);
     controlDiv.appendChild(btnRight);
-
+  
+    // Добавляем контейнер в тело документа
     document.body.appendChild(controlDiv);
   }
 
@@ -397,11 +402,11 @@
     handleKeyDown(event);
   }
 
-  // Инициализация игры (вызывается из main)
+  // Инициализация игры (вызывается из основного скрипта)
   function initGame3() {
     canvas = document.getElementById("game3Canvas");
     ctx = canvas.getContext("2d");
-    // Устанавливаем фон canvas через JS (стиль Матрицы)
+    // Задаём фон canvas (стиль Матрицы)
     canvas.style.background = "#000";
     createBoard();
     currentPiece = randomPiece();
@@ -412,7 +417,7 @@
     game3Running = true;
     // Добавляем обработчик клавиатуры
     document.addEventListener("keydown", handleKeyDown);
-    // Создаём мобильные кнопки, если устройство поддерживает touch
+    // Создаём мобильные кнопки
     createMobileControls();
     // Запускаем игровой цикл
     updateGame3();
@@ -449,4 +454,3 @@
   window.initGame3 = initGame3;
   window.resetGame3 = resetGame3;
 })();
-
