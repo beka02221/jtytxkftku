@@ -316,8 +316,8 @@
     controlDiv.style.display = "flex";
     controlDiv.style.justifyContent = "center";
     controlDiv.style.gap = "10px";
-    controlDiv.style.zIndex = "1000";
-  
+    controlDiv.style.zIndex = "9999"; // повышенный z-index, чтобы кнопки были поверх всего
+
     // Функция для стилизации кнопки
     function styleControlButton(btn) {
       btn.style.width = "50px";
@@ -329,7 +329,7 @@
       btn.style.color = "#00FF00";
       btn.style.outline = "none";
     }
-  
+
     // Кнопка влево
     const btnLeft = document.createElement("button");
     btnLeft.textContent = "←";
@@ -341,7 +341,7 @@
     btnLeft.addEventListener("click", () => {
       simulateKey("ArrowLeft");
     });
-  
+
     // Кнопка поворота
     const btnRotate = document.createElement("button");
     btnRotate.textContent = "⟳";
@@ -353,7 +353,7 @@
     btnRotate.addEventListener("click", () => {
       simulateKey("ArrowUp");
     });
-  
+
     // Кнопка вниз
     const btnDown = document.createElement("button");
     btnDown.textContent = "↓";
@@ -365,7 +365,7 @@
     btnDown.addEventListener("click", () => {
       simulateKey("ArrowDown");
     });
-  
+
     // Кнопка вправо
     const btnRight = document.createElement("button");
     btnRight.textContent = "→";
@@ -377,13 +377,13 @@
     btnRight.addEventListener("click", () => {
       simulateKey("ArrowRight");
     });
-  
+
     // Добавляем кнопки в контейнер
     controlDiv.appendChild(btnLeft);
     controlDiv.appendChild(btnRotate);
     controlDiv.appendChild(btnDown);
     controlDiv.appendChild(btnRight);
-  
+
     // Добавляем контейнер в тело документа
     document.body.appendChild(controlDiv);
   }
@@ -449,6 +449,11 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
+
+  // Экспорт функций в глобальную область, чтобы основной скрипт мог их вызвать
+  window.initGame3 = initGame3;
+  window.resetGame3 = resetGame3;
+})();
 
   // Экспорт функций в глобальную область, чтобы основной скрипт мог их вызвать
   window.initGame3 = initGame3;
