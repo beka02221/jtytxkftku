@@ -54,7 +54,7 @@ let enemyImage2;  // Враг типа 2 (с вертикальными коле
 let enemyImage3;  // Враг типа 3
 
 // Параметры фона (увеличена скорость прокрутки)
-let bgSpeed = 1.5 / 2; // 0.75 пикселей за кадр (быстрее, чем 0.375)
+let bgSpeed = 1.5 / 2; // 0.75 пикселей за кадр
 let bgX = 0;
 
 // Игровые переменные
@@ -68,7 +68,7 @@ let player = {
   w: 50,
   h: 50,
   vy: 0,                
-  jumpPower: -5,   // Прыжок стал ниже (быстрее)
+  jumpPower: -5,   // Игрок подпрыгивает ниже
   gravity: 0.5     // Гравитация остаётся, чтобы игрок быстрее опускался
 };
 
@@ -101,10 +101,10 @@ function initGame3() {
   // Задаём пути к изображениям
   bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
   playerImage       = createAnimatedGif("spooky-halloween.gif"); 
-  coinImage         = createAnimatedGif("spooky-halloween.gif");
-  enemyImage1       = createAnimatedGif("spooky-halloween.gif");
-  enemyImage2       = createAnimatedGif("spooky-halloween.gif");
-  enemyImage3       = createAnimatedGif("enemyworld.gif");
+  coinImage         = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
+  enemyImage1       = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
+  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif"); // Убраны лишние пробелы
+  enemyImage3       = createAnimatedGif("https://media.giphy.com/media/l4pTfx2qLszoacZRS/giphy.gif"); // Рабочий URL для третьего врага
 
   resetVars();
   addInputListeners();
@@ -257,7 +257,7 @@ function spawnEnemy() {
   }
   enemies.push({
     type: type,
-    x: game3Canvas.width + 10, // Смещение уменьшено, чтобы враг появлялся быстрее
+    x: game3Canvas.width + 10, // Враг появляется сразу ближе к краю
     y: enemyY,
     w: enemyW,
     h: enemyH,
@@ -427,3 +427,4 @@ function drawScene() {
 function drawBg(x, y) {
   ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
 }
+
