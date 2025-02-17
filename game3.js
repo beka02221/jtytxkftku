@@ -10,9 +10,9 @@
   // Размеры игрового поля и базовые константы
   const COLS = 10;
   const ROWS = 20;
-  const BLOCK_SIZE = 30; // размер клетки в пикселях
-  const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 300px
-  const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 600px
+  const BLOCK_SIZE = 20; // уменьшен размер клетки (было 30)
+  const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 200px
+  const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 400px
   const DROP_INTERVAL = 1000; // интервал падения фигуры (мс)
   const GAME_DURATION = 60000; // длительность игры: 1 минута (60000 мс)
   const PIECE_COLOR = "#00FF00"; // неоново-зелёный (стиль Матрицы)
