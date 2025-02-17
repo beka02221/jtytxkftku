@@ -1,472 +1,452 @@
-/* ========================= 
-   game4.js — Tetris в стиле «Матрицы»
+/* ===============================
+   game3.js — Tetris в стиле Матрицы
    Управление:
-     - Клавиатура: стрелки (влево, вправо, вниз, вверх — для поворота)
-     - On‑screen кнопки для мобильных устройств (касанием)
-   Таймер: игра идёт 1 минуту (отсчёт отображается в виде слайдера).
-   По окончании игры результат (score) сохраняется в Firebase.
-========================= */
+    - Стрелки клавиатуры: ← → ↓ для перемещения, ↑ для поворота
+    - Мобильные кнопки (создаются динамически)
+   Таймер игры — 1 минута (отображается в виде слайдера вверху)
+   По завершении игры сумма набранных очков прибавляется к балансу
+=============================== */
+(function () {
+  // Размеры игрового поля и базовые константы
+  const COLS = 10;
+  const ROWS = 20;
+  const BLOCK_SIZE = 30; // размер клетки в пикселях
+  const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 300px
+  const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 600px
+  const DROP_INTERVAL = 1000; // интервал падения фигуры (мс)
+  const GAME_DURATION = 60000; // длительность игры: 1 минута (60000 мс)
+  const PIECE_COLOR = "#00FF00"; // неоново-зелёный (Матрица)
+  
+  // Глобальные переменные для игры
+  let canvas, ctx;
+  let board;
+  let currentPiece;
+  let dropCounter = 0;
+  let lastTime = 0;
+  let gameStartTime = 0;
+  let score = 0;
+  let game3Running = false;
+  let game3AnimationFrameId;
+  let controlDiv; // для мобильных кнопок
 
-// Глобальные переменные для game4 (Тетрис)
-let game4Canvas, game4Ctx;
-let board = [];                 // игровое поле (матрица 20×10)
-const rows = 20, cols = 10;
-const cellSize = 30;            // размер клетки в пикселях
-let currentPiece = null;        // текущая движущаяся фигура
+  // Определения тетрамино (все фигуры будут зелёного цвета)
+  const tetrominoes = {
+    I: {
+      shape: [
+        [0, 0, 0, 0],
+        [1, 1, 1, 1],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+      ],
+    },
+    J: {
+      shape: [
+        [1, 0, 0],
+        [1, 1, 1],
+        [0, 0, 0],
+      ],
+    },
+    L: {
+      shape: [
+        [0, 0, 1],
+        [1, 1, 1],
+        [0, 0, 0],
+      ],
+    },
+    O: {
+      shape: [
+        [1, 1],
+        [1, 1],
+      ],
+    },
+    S: {
+      shape: [
+        [0, 1, 1],
+        [1, 1, 0],
+        [0, 0, 0],
+      ],
+    },
+    T: {
+      shape: [
+        [0, 1, 0],
+        [1, 1, 1],
+        [0, 0, 0],
+      ],
+    },
+    Z: {
+      shape: [
+        [1, 1, 0],
+        [0, 1, 1],
+        [0, 0, 0],
+      ],
+    },
+  };
 
-const dropInterval = 500;       // интервал падения фигуры (мс)
-let dropAccumulator = 0;
-let lastTime = 0;
-let score = 0;
-
-// Таймер игры: 1 минута = 60000 мс
-const timerTotal = 60000;
-let timerStart = 0;
-let timerElapsed = 0;
-
-// Флаги управления циклом
-let gameRunning = false;   // флаг работы игрового цикла
-let gameStarted = false;   // игра стартует при первом нажатии клавиши
-let animationFrameId;
-
-// Цветовая схема (стиль «Матрицы»)
-const backgroundColor = "black";
-const staticColor = "#00FF00";  // зафиксированные блоки (X)
-const activeColor = "#AAFFAA";  // движущаяся фигура (O)
-const gridColor = "#004400";    // линии сетки
-
-// Определение фигур (тетрамино)
-const tetrominoes = {
-  I: [
-    [1, 1, 1, 1]
-  ],
-  J: [
-    [1, 0, 0],
-    [1, 1, 1]
-  ],
-  L: [
-    [0, 0, 1],
-    [1, 1, 1]
-  ],
-  O: [
-    [1, 1],
-    [1, 1]
-  ],
-  S: [
-    [0, 1, 1],
-    [1, 1, 0]
-  ],
-  T: [
-    [0, 1, 0],
-    [1, 1, 1]
-  ],
-  Z: [
-    [1, 1, 0],
-    [0, 1, 1]
-  ]
-};
-const tetrominoTypes = Object.keys(tetrominoes);
-
-// UI-элементы для таймера и управления (on‑screen кнопки)
-let timerBarContainer, timerBar;
-let controlsContainer;
-
-/* =========================
-   Функции инициализации и логики игры
-========================= */
-
-// Инициализация игрового поля (матрица заполняется нулями)
-function initBoard() {
-  board = [];
-  for (let r = 0; r < rows; r++) {
-    board[r] = new Array(cols).fill(0);
-  }
-}
-
-// Проверка возможности разместить фигуру (без выхода за границы и столкновений)
-function isValidMove(x, y, shape) {
-  for (let r = 0; r < shape.length; r++) {
-    for (let c = 0; c < shape[r].length; c++) {
-      if (shape[r][c]) {
-        let newX = x + c;
-        let newY = y + r;
-        if (newX < 0 || newX >= cols || newY < 0 || newY >= rows) return false;
-        if (board[newY][newX] !== 0) return false;
-      }
-    }
-  }
-  return true;
-}
-
-// Поворот матрицы фигуры по часовой стрелке
-function rotateMatrix(matrix) {
-  const N = matrix.length;
-  const M = matrix[0].length;
-  let rotated = [];
-  for (let c = 0; c < M; c++) {
-    rotated[c] = [];
-    for (let r = N - 1; r >= 0; r--) {
-      rotated[c].push(matrix[r][c]);
-    }
-  }
-  return rotated;
-}
-
-// Создание новой фигуры (случайного типа) и размещение её сверху
-function spawnPiece() {
-  const type = tetrominoTypes[Math.floor(Math.random() * tetrominoTypes.length)];
-  const shape = tetrominoes[type];
-  let x = Math.floor((cols - shape[0].length) / 2);
-  let y = 0;
-  // Если разместить фигуру невозможно – игра окончена
-  if (!isValidMove(x, y, shape)) {
-    endGame();
-    return;
-  }
-  currentPiece = { x, y, shape, type };
-}
-
-// Фиксируем текущую фигуру в матрице поля
-function mergePiece() {
-  const { x, y, shape } = currentPiece;
-  for (let r = 0; r < shape.length; r++) {
-    for (let c = 0; c < shape[r].length; c++) {
-      if (shape[r][c]) {
-        board[y + r][x + c] = 1;
-      }
-    }
-  }
-  currentPiece = null;
-}
-
-// Проверка заполненных линий: если строка полностью заполнена, удаляем её и добавляем новую сверху
-function clearLines() {
-  for (let r = rows - 1; r >= 0; r--) {
-    if (board[r].every(cell => cell !== 0)) {
-      board.splice(r, 1);
-      board.unshift(new Array(cols).fill(0));
-      score += 100;  // 100 очков за строку
-    }
-  }
-}
-
-// Функции управления фигурой
-function moveDown() {
-  if (!currentPiece) return;
-  if (isValidMove(currentPiece.x, currentPiece.y + 1, currentPiece.shape)) {
-    currentPiece.y++;
-  } else {
-    mergePiece();
-    clearLines();
-    spawnPiece();
-  }
-}
-
-function moveLeft() {
-  if (!currentPiece) return;
-  if (isValidMove(currentPiece.x - 1, currentPiece.y, currentPiece.shape)) {
-    currentPiece.x--;
-  }
-}
-
-function moveRight() {
-  if (!currentPiece) return;
-  if (isValidMove(currentPiece.x + 1, currentPiece.y, currentPiece.shape)) {
-    currentPiece.x++;
-  }
-}
-
-function rotatePiece() {
-  if (!currentPiece) return;
-  const newShape = rotateMatrix(currentPiece.shape);
-  if (isValidMove(currentPiece.x, currentPiece.y, newShape)) {
-    currentPiece.shape = newShape;
-  }
-}
-
-/* =========================
-   Отрисовка игрового поля
-========================= */
-function drawGame4() {
-  // Очистка холста
-  game4Ctx.clearRect(0, 0, game4Canvas.width, game4Canvas.height);
-  // Фон
-  game4Ctx.fillStyle = backgroundColor;
-  game4Ctx.fillRect(0, 0, game4Canvas.width, game4Canvas.height);
-
-  // Вычисляем смещение для центрирования доски
-  const boardWidth = cols * cellSize;
-  const boardHeight = rows * cellSize;
-  const offsetX = (game4Canvas.width - boardWidth) / 2;
-  const offsetY = (game4Canvas.height - boardHeight) / 2;
-
-  // Рисуем зафиксированные блоки
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (board[r][c] !== 0) {
-        game4Ctx.fillStyle = staticColor;
-        game4Ctx.fillRect(offsetX + c * cellSize, offsetY + r * cellSize, cellSize, cellSize);
-        // Рисуем символ "X" для статичных блоков
-        game4Ctx.fillStyle = backgroundColor;
-        game4Ctx.font = `${cellSize * 0.6}px Courier New`;
-        game4Ctx.textAlign = "center";
-        game4Ctx.textBaseline = "middle";
-        game4Ctx.fillText("X", offsetX + c * cellSize + cellSize / 2, offsetY + r * cellSize + cellSize / 2);
+  // Создаём пустое игровое поле (матрица ROWS x COLS)
+  function createBoard() {
+    board = [];
+    for (let r = 0; r < ROWS; r++) {
+      board[r] = [];
+      for (let c = 0; c < COLS; c++) {
+        board[r][c] = 0;
       }
     }
   }
 
-  // Рисуем движущуюся (активную) фигуру
-  if (currentPiece) {
-    const { x, y, shape } = currentPiece;
-    for (let r = 0; r < shape.length; r++) {
-      for (let c = 0; c < shape[r].length; c++) {
-        if (shape[r][c]) {
-          game4Ctx.fillStyle = activeColor;
-          game4Ctx.fillRect(offsetX + (x + c) * cellSize, offsetY + (y + r) * cellSize, cellSize, cellSize);
-          game4Ctx.fillStyle = backgroundColor;
-          game4Ctx.font = `${cellSize * 0.6}px Courier New`;
-          game4Ctx.textAlign = "center";
-          game4Ctx.textBaseline = "middle";
-          game4Ctx.fillText("O", offsetX + (x + c) * cellSize + cellSize / 2, offsetY + (y + r) * cellSize + cellSize / 2);
+  // Рисуем игровое поле с заблокированными блоками
+  function drawBoard() {
+    // Выравнивание поля по горизонтали (по центру canvas)
+    const offsetX = (canvas.width - BOARD_WIDTH) / 2;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (board[r][c] !== 0) {
+          ctx.fillStyle = PIECE_COLOR;
+          ctx.fillRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#003300";
+          ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        } else {
+          // Рисуем тонкую сетку
+          ctx.strokeStyle = "#001100";
+          ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         }
       }
     }
   }
 
-  // Рисуем сетку
-  game4Ctx.strokeStyle = gridColor;
-  game4Ctx.lineWidth = 1;
-  for (let r = 0; r <= rows; r++) {
-    game4Ctx.beginPath();
-    game4Ctx.moveTo(offsetX, offsetY + r * cellSize);
-    game4Ctx.lineTo(offsetX + boardWidth, offsetY + r * cellSize);
-    game4Ctx.stroke();
+  // Рисуем текущую фигуру
+  function drawPiece(piece) {
+    const offsetX = (canvas.width - BOARD_WIDTH) / 2;
+    ctx.fillStyle = PIECE_COLOR;
+    // Добавляем эффект свечения
+    ctx.shadowColor = PIECE_COLOR;
+    ctx.shadowBlur = 10;
+    piece.shape.forEach((row, r) => {
+      row.forEach((value, c) => {
+        if (value) {
+          ctx.fillRect(offsetX + (piece.x + c) * BLOCK_SIZE, (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#003300";
+          ctx.strokeRect(offsetX + (piece.x + c) * BLOCK_SIZE, (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        }
+      });
+    });
+    ctx.shadowBlur = 0;
   }
-  for (let c = 0; c <= cols; c++) {
-    game4Ctx.beginPath();
-    game4Ctx.moveTo(offsetX + c * cellSize, offsetY);
-    game4Ctx.lineTo(offsetX + c * cellSize, offsetY + boardHeight);
-    game4Ctx.stroke();
+
+  // Объединяем (фиксируем) фигуру в игровом поле
+  function mergePiece(piece) {
+    piece.shape.forEach((row, r) => {
+      row.forEach((value, c) => {
+        if (value) {
+          board[piece.y + r][piece.x + c] = 1;
+        }
+      });
+    });
   }
 
-  // Отображаем счёт
-  game4Ctx.fillStyle = staticColor;
-  game4Ctx.font = "16px Courier New";
-  game4Ctx.textAlign = "left";
-  game4Ctx.fillText("Score: " + score, 10, 20);
-}
-
-/* =========================
-   Игровой цикл и обновление
-========================= */
-function updateGame4(time) {
-  if (!gameStarted) return; // до старта не обновляем
-  // Вычисляем время с прошлого кадра
-  const deltaTime = time - lastTime;
-  lastTime = time;
-  dropAccumulator += deltaTime;
-  if (dropAccumulator > dropInterval) {
-    moveDown();
-    dropAccumulator = 0;
+  // Проверка столкновений фигуры с границами или заблокированными ячейками
+  function collide(piece) {
+    for (let r = 0; r < piece.shape.length; r++) {
+      for (let c = 0; c < piece.shape[r].length; c++) {
+        if (piece.shape[r][c]) {
+          let newX = piece.x + c;
+          let newY = piece.y + r;
+          if (newX < 0 || newX >= COLS || newY >= ROWS) {
+            return true;
+          }
+          if (newY >= 0 && board[newY][newX] !== 0) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
-  // Обновляем таймер
-  timerElapsed = time - timerStart;
-  updateTimerBar();
-  if (timerElapsed >= timerTotal) {
-    endGame();
+
+  // Функция поворота матрицы (на 90° по часовой стрелке)
+  function rotate(matrix) {
+    const N = matrix.length;
+    const result = [];
+    for (let r = 0; r < N; r++) {
+      result[r] = [];
+      for (let c = 0; c < N; c++) {
+        result[r][c] = matrix[N - c - 1][r];
+      }
+    }
+    return result;
   }
-}
 
-function gameLoop(time) {
-  if (!gameStarted) return;
-  updateGame4(time);
-  drawGame4();
-  if (gameRunning) {
-    animationFrameId = requestAnimationFrame(gameLoop);
+  // Создаём фигуру по типу (случайный выбор)
+  function createPiece(type) {
+    return {
+      shape: tetrominoes[type].shape,
+      // Начальная позиция по горизонтали — по центру
+      x: Math.floor(COLS / 2) - Math.floor(tetrominoes[type].shape[0].length / 2),
+      y: 0,
+    };
   }
-}
 
-/* =========================
-   Обработка событий управления
-========================= */
-function handleKeyDown(e) {
-  if (!gameStarted) {
-    // При первом нажатии стартуем игру и запускаем игровой цикл
-    gameStarted = true;
-    gameRunning = true;
-    timerStart = performance.now();
-    lastTime = performance.now();
-    gameLoop(lastTime);
+  // Возвращает случайную фигуру
+  function randomPiece() {
+    const types = Object.keys(tetrominoes);
+    const rand = types[Math.floor(Math.random() * types.length)];
+    return createPiece(rand);
   }
-  switch (e.key) {
-    case "ArrowLeft":
-      moveLeft();
-      break;
-    case "ArrowRight":
-      moveRight();
-      break;
-    case "ArrowDown":
-      moveDown();
-      break;
-    case "ArrowUp":
-      rotatePiece();
-      break;
+
+  // Проверка и удаление заполненных строк
+  function clearLines() {
+    let linesCleared = 0;
+    outer: for (let r = ROWS - 1; r >= 0; r--) {
+      for (let c = 0; c < COLS; c++) {
+        if (board[r][c] === 0) {
+          continue outer;
+        }
+      }
+      // Если строка заполнена – удаляем её
+      board.splice(r, 1);
+      board.unshift(new Array(COLS).fill(0));
+      linesCleared++;
+      r++; // Повторно проверяем ту же строку (так как строки сдвинулись)
+    }
+    if (linesCleared > 0) {
+      score += linesCleared * 100;
+    }
   }
-  drawGame4();
-}
 
-// Создание on‑screen кнопок для мобильных устройств
-function createControls() {
-  controlsContainer = document.createElement("div");
-  controlsContainer.id = "game4Controls";
-  controlsContainer.style.position = "absolute";
-  controlsContainer.style.top = (game4Canvas.offsetTop + game4Canvas.height + 10) + "px";
-  controlsContainer.style.left = game4Canvas.offsetLeft + "px";
-  controlsContainer.style.width = game4Canvas.width + "px";
-  controlsContainer.style.display = "flex";
-  controlsContainer.style.justifyContent = "space-around";
-  controlsContainer.style.zIndex = 1000;
-
-  const btnLeft = document.createElement("button");
-  btnLeft.textContent = "←";
-  btnLeft.style.fontSize = "20px";
-  btnLeft.onclick = () => { moveLeft(); drawGame4(); };
-
-  const btnRotate = document.createElement("button");
-  btnRotate.textContent = "⟳";
-  btnRotate.style.fontSize = "20px";
-  btnRotate.onclick = () => { rotatePiece(); drawGame4(); };
-
-  const btnRight = document.createElement("button");
-  btnRight.textContent = "→";
-  btnRight.style.fontSize = "20px";
-  btnRight.onclick = () => { moveRight(); drawGame4(); };
-
-  const btnDown = document.createElement("button");
-  btnDown.textContent = "↓";
-  btnDown.style.fontSize = "20px";
-  btnDown.onclick = () => { moveDown(); drawGame4(); };
-
-  controlsContainer.appendChild(btnLeft);
-  controlsContainer.appendChild(btnRotate);
-  controlsContainer.appendChild(btnRight);
-  controlsContainer.appendChild(btnDown);
-
-  game4Canvas.parentNode.appendChild(controlsContainer);
-}
-
-// Удаление on‑screen кнопок
-function removeControls() {
-  if (controlsContainer && controlsContainer.parentNode) {
-    controlsContainer.parentNode.removeChild(controlsContainer);
-    controlsContainer = null;
+  // Функция опускания фигуры
+  function dropPiece() {
+    currentPiece.y++;
+    if (collide(currentPiece)) {
+      currentPiece.y--;
+      mergePiece(currentPiece);
+      clearLines();
+      currentPiece = randomPiece();
+      if (collide(currentPiece)) {
+        // Если новая фигура сразу сталкивается – игра окончена
+        endGame();
+      }
+    }
+    dropCounter = 0;
   }
-}
 
-// Создание слайдера таймера
-function createTimerBar() {
-  timerBarContainer = document.createElement("div");
-  timerBarContainer.id = "game4TimerBarContainer";
-  timerBarContainer.style.position = "absolute";
-  timerBarContainer.style.top = (game4Canvas.offsetTop - 30) + "px";
-  timerBarContainer.style.left = game4Canvas.offsetLeft + "px";
-  timerBarContainer.style.width = (cols * cellSize) + "px";
-  timerBarContainer.style.height = "20px";
-  timerBarContainer.style.border = "2px solid " + staticColor;
-  timerBarContainer.style.backgroundColor = backgroundColor;
-  timerBarContainer.style.zIndex = 1000;
+  // Основной цикл игры
+  function updateGame3(time = 0) {
+    const deltaTime = time - lastTime;
+    lastTime = time;
+    dropCounter += deltaTime;
+    if (dropCounter > DROP_INTERVAL) {
+      dropPiece();
+    }
 
-  timerBar = document.createElement("div");
-  timerBar.id = "game4TimerBar";
-  timerBar.style.height = "100%";
-  timerBar.style.width = "100%";
-  timerBar.style.backgroundColor = staticColor;
-  timerBarContainer.appendChild(timerBar);
+    // Проверяем, истекло ли время игры (1 минута)
+    const elapsed = Date.now() - gameStartTime;
+    if (elapsed >= GAME_DURATION) {
+      endGame();
+      return;
+    }
 
-  game4Canvas.parentNode.appendChild(timerBarContainer);
-}
-
-// Обновление слайдера таймера (уменьшение ширины)
-function updateTimerBar() {
-  if (timerBar) {
-    let remaining = Math.max(timerTotal - timerElapsed, 0);
-    let percentage = (remaining / timerTotal) * 100;
-    timerBar.style.width = percentage + "%";
+    drawGame3();
+    game3AnimationFrameId = requestAnimationFrame(updateGame3);
   }
-}
 
-/* =========================
-   Завершение и сброс игры
-========================= */
-function endGame() {
-  gameRunning = false;
-  window.removeEventListener("keydown", handleKeyDown);
-  removeControls();
-  if (timerBarContainer && timerBarContainer.parentNode) {
-    timerBarContainer.parentNode.removeChild(timerBarContainer);
-    timerBarContainer = null;
+  // Отрисовка всего игрового состояния
+  function drawGame3() {
+    // Заливаем фон (стиль Матрицы: чёрный)
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Рисуем таймер в виде слайдера вверху
+    const timeLeft = Math.max(GAME_DURATION - (Date.now() - gameStartTime), 0);
+    const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
+    ctx.fillStyle = "#00FF00";
+    ctx.fillRect(0, 0, sliderWidth, 5);
+
+    // Рисуем игровое поле и текущую фигуру
+    drawBoard();
+    drawPiece(currentPiece);
+
+    // Отображаем текущий счёт (стиль шрифта “Press Start 2P”)
+    ctx.fillStyle = "#00FF00";
+    ctx.font = "20px 'Press Start 2P'";
+    ctx.fillText("Score: " + score, 10, 30);
   }
-  // Сохранение результата в Firebase (при наличии глобальных userRef и localUserData)
-  if (typeof userRef !== "undefined" && userRef) {
-    let newPoints = (localUserData.points || 0) + score;
-    userRef.update({ points: newPoints });
+
+  // Обработчик клавиш для управления
+  function handleKeyDown(event) {
+    if (!game3Running) return;
+    if (event.key === "ArrowLeft") {
+      currentPiece.x--;
+      if (collide(currentPiece)) {
+        currentPiece.x++;
+      }
+    } else if (event.key === "ArrowRight") {
+      currentPiece.x++;
+      if (collide(currentPiece)) {
+        currentPiece.x--;
+      }
+    } else if (event.key === "ArrowDown") {
+      dropPiece();
+    } else if (event.key === "ArrowUp") {
+      // Поворот фигуры
+      const rotated = rotate(currentPiece.shape);
+      const oldShape = currentPiece.shape;
+      currentPiece.shape = rotated;
+      if (collide(currentPiece)) {
+        // Пробуем "wall kick"
+        if (!collide({ ...currentPiece, x: currentPiece.x - 1 })) {
+          currentPiece.x--;
+        } else if (!collide({ ...currentPiece, x: currentPiece.x + 1 })) {
+          currentPiece.x++;
+        } else {
+          currentPiece.shape = oldShape; // откат
+        }
+      }
+    }
+    drawGame3();
   }
-  if (typeof showEndGameModal === "function") {
-    showEndGameModal("Game Over", "Your score: " + score);
+
+  // Создаём мобильные кнопки управления (лево, право, поворот, вниз)
+  function createMobileControls() {
+    controlDiv = document.createElement("div");
+    controlDiv.id = "tetrisControls";
+    // Стилизация (позиция внизу экрана, по центру)
+    controlDiv.style.position = "fixed";
+    controlDiv.style.bottom = "20px";
+    controlDiv.style.left = "50%";
+    controlDiv.style.transform = "translateX(-50%)";
+    controlDiv.style.display = "flex";
+    controlDiv.style.gap = "10px";
+    controlDiv.style.zIndex = "1000";
+
+    // Функция для стилизации кнопки
+    function styleControlButton(btn) {
+      btn.style.width = "50px";
+      btn.style.height = "50px";
+      btn.style.fontSize = "24px";
+      btn.style.borderRadius = "5px";
+      btn.style.border = "2px solid #00FF00";
+      btn.style.background = "#000";
+      btn.style.color = "#00FF00";
+      btn.style.outline = "none";
+    }
+
+    // Создаём кнопки
+    const btnLeft = document.createElement("button");
+    btnLeft.textContent = "←";
+    styleControlButton(btnLeft);
+    btnLeft.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      simulateKey("ArrowLeft");
+    });
+    btnLeft.addEventListener("click", () => {
+      simulateKey("ArrowLeft");
+    });
+
+    const btnRotate = document.createElement("button");
+    btnRotate.textContent = "⟳";
+    styleControlButton(btnRotate);
+    btnRotate.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      simulateKey("ArrowUp");
+    });
+    btnRotate.addEventListener("click", () => {
+      simulateKey("ArrowUp");
+    });
+
+    const btnDown = document.createElement("button");
+    btnDown.textContent = "↓";
+    styleControlButton(btnDown);
+    btnDown.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      simulateKey("ArrowDown");
+    });
+    btnDown.addEventListener("click", () => {
+      simulateKey("ArrowDown");
+    });
+
+    const btnRight = document.createElement("button");
+    btnRight.textContent = "→";
+    styleControlButton(btnRight);
+    btnRight.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      simulateKey("ArrowRight");
+    });
+    btnRight.addEventListener("click", () => {
+      simulateKey("ArrowRight");
+    });
+
+    // Добавляем кнопки в контейнер
+    controlDiv.appendChild(btnLeft);
+    controlDiv.appendChild(btnRotate);
+    controlDiv.appendChild(btnDown);
+    controlDiv.appendChild(btnRight);
+
+    document.body.appendChild(controlDiv);
   }
-}
 
-function initGame4() {
-  game4Canvas = document.getElementById("game4Canvas");
-  if (!game4Canvas) return;
-  game4Ctx = game4Canvas.getContext("2d");
-  game4Canvas.style.backgroundColor = backgroundColor;
-  game4Canvas.style.border = "2px solid " + staticColor;
-
-  initBoard();
-  score = 0;
-  gameStarted = false;
-  gameRunning = false;
-  dropAccumulator = 0;
-  lastTime = 0;
-  timerStart = 0;
-  timerElapsed = 0;
-  currentPiece = null;
-  spawnPiece();
-  drawGame4();
-
-  window.addEventListener("keydown", handleKeyDown);
-  createControls();
-  createTimerBar();
-}
-
-function resetGame4() {
-  cancelAnimationFrame(animationFrameId);
-  gameRunning = false;
-  window.removeEventListener("keydown", handleKeyDown);
-  removeControls();
-  if (game4Ctx) {
-    game4Ctx.clearRect(0, 0, game4Canvas.width, game4Canvas.height);
+  // Удаляем мобильные кнопки (при завершении игры)
+  function removeMobileControls() {
+    if (controlDiv) {
+      document.body.removeChild(controlDiv);
+      controlDiv = null;
+    }
   }
-}
 
-    window.addEventListener("keydown", handleKeyDown);
-    createUIElements();
+  // Имитируем событие нажатия клавиши
+  function simulateKey(key) {
+    const event = new KeyboardEvent("keydown", { key: key });
+    handleKeyDown(event);
+  }
 
-    animationFrameId = requestAnimationFrame(gameLoop);
-  };
+  // Инициализация игры (вызывается из main)
+  function initGame3() {
+    canvas = document.getElementById("game3Canvas");
+    ctx = canvas.getContext("2d");
+    // Устанавливаем фон canvas через JS (стиль Матрицы)
+    canvas.style.background = "#000";
+    createBoard();
+    currentPiece = randomPiece();
+    score = 0;
+    dropCounter = 0;
+    lastTime = 0;
+    gameStartTime = Date.now();
+    game3Running = true;
+    // Добавляем обработчик клавиатуры
+    document.addEventListener("keydown", handleKeyDown);
+    // Создаём мобильные кнопки, если устройство поддерживает touch
+    createMobileControls();
+    // Запускаем игровой цикл
+    updateGame3();
+  }
 
-  /*************************************************************
-   * Сброс игры (вызывается при закрытии модального окна)
-   *************************************************************/
-  window.resetGame4 = function () {
-    cancelAnimationFrame(animationFrameId);
-    window.removeEventListener("keydown", handleKeyDown);
-    removeUIElements();
+  // Завершение игры
+  function endGame() {
+    if (!game3Running) return;
+    game3Running = false;
+    // Добавляем набранный счёт к балансу пользователя
+    localUserData.points += score;
+    if (userRef) {
+      userRef.update({ points: localUserData.points });
+    }
+    cancelAnimationFrame(game3AnimationFrameId);
+    document.removeEventListener("keydown", handleKeyDown);
+    removeMobileControls();
+    // Вызываем модальное окно завершения игры (функция определена в основном скрипте)
+    showEndGameModal("Time's up!", "Your score: " + score);
+  }
+
+  // Сброс игры (вызывается при закрытии игрового модала)
+  function resetGame3() {
+    cancelAnimationFrame(game3AnimationFrameId);
+    game3Running = false;
+    document.removeEventListener("keydown", handleKeyDown);
+    removeMobileControls();
     if (ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-  };
+  }
+
+  // Экспорт функций в глобальную область, чтобы основной скрипт мог их вызвать
+  window.initGame3 = initGame3;
+  window.resetGame3 = resetGame3;
 })();
 
