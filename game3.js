@@ -6,15 +6,14 @@
    - Background scrolls to simulate forward motion.
    - On collision or falling to the bottom, a game-over modal is shown and score is saved.
    
-   ⚠️ ВАЖНО:
+   ⚠️ IMPORTANT:
    1. Подключите библиотеку gifler, например, добавив в HTML:
       <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
    2. Функции showEndGameModal, updateTopBar и переменная localUserData должны быть определены в вашем проекте.
 */
 
 /* Функция создания анимированного объекта GIF.
-   Для каждого GIF создаётся скрытый offscreen canvas, в который gifler
-   отрисовывает анимацию.
+   Для каждого GIF создаётся скрытый offscreen canvas, в который gifler отрисовывает анимацию.
 */
 function createAnimatedGif(url) {
   let offscreenCanvas = document.createElement("canvas");
@@ -61,7 +60,7 @@ let bgX = 0;
 let gameLoopId;            // requestAnimationFrame ID
 let gameState = "ready";   // "ready" | "play" | "over"
 
-// Свойства игрока (изменены для меньшего прыжка)
+// Свойства игрока (прыжок ниже, но динамичный)
 let player = {
   x: 50,
   y: 150,
@@ -69,7 +68,7 @@ let player = {
   h: 50,
   vy: 0,                
   jumpPower: -5,   // Игрок подпрыгивает ниже
-  gravity: 0.5     // Гравитация остаётся, чтобы игрок быстрее опускался
+  gravity: 0.5     // Гравитация – игрок быстрее опускается
 };
 
 // Массивы врагов и монет
@@ -103,8 +102,8 @@ function initGame3() {
   playerImage       = createAnimatedGif("spooky-halloween.gif"); 
   coinImage         = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
   enemyImage1       = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
-  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif"); // Убраны лишние пробелы
-  enemyImage3       = createAnimatedGif("https://media.giphy.com/media/l4pTfx2qLszoacZRS/giphy.gif"); // Рабочий URL для третьего врага
+  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif");
+  enemyImage3       = createAnimatedGif("enemyworld.gif");
 
   resetVars();
   addInputListeners();
@@ -257,7 +256,7 @@ function spawnEnemy() {
   }
   enemies.push({
     type: type,
-    x: game3Canvas.width + 10, // Враг появляется сразу ближе к краю
+    x: game3Canvas.width, // Теперь враг появляется сразу у правого края
     y: enemyY,
     w: enemyW,
     h: enemyH,
@@ -287,7 +286,7 @@ function spawnCoin() {
   let cW = 30, cH = 30;
   let yPos = Math.random() * (game3Canvas.height - cH);
   coins.push({
-    x: game3Canvas.width + 10,
+    x: game3Canvas.width, // Монета появляется у правого края
     y: yPos,
     w: cW,
     h: cH,
@@ -427,4 +426,3 @@ function drawScene() {
 function drawBg(x, y) {
   ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
 }
-
