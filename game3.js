@@ -427,4 +427,3 @@ function drawScene() {
 function drawBg(x, y) {
   ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
 }
-
