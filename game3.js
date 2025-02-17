@@ -61,15 +61,15 @@ let bgX = 0;
 let gameLoopId;            // requestAnimationFrame ID
 let gameState = "ready";   // "ready" | "play" | "over"
 
-// Свойства игрока (скорости уменьшены в 4 раза)
+// Свойства игрока (изменены для более высокого прыжка и быстрого полёта)
 let player = {
   x: 50,
   y: 150,
   w: 50,
   h: 50,
   vy: 0,                
-  jumpPower: -3   // -1.25
-  gravity: 0.1    // 0.0625
+  jumpPower: -8,   // Игрок теперь получает сильный импульс вверх
+  gravity: 0.5     // Гравитация увеличена – игрок быстрее ускоряется вниз
 };
 
 // Массивы врагов и монет
@@ -103,7 +103,7 @@ function initGame3() {
   playerImage       = createAnimatedGif("spooky-halloween.gif"); 
   coinImage         = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
   enemyImage1       = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
-  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif  ");
+  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif");
   enemyImage3       = createAnimatedGif("enemyworld.gif");
 
   resetVars();
@@ -428,3 +428,4 @@ function drawScene() {
 function drawBg(x, y) {
   ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
 }
+
