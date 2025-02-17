@@ -10,9 +10,9 @@
   // Размеры игрового поля и базовые константы
   const COLS = 10;
   const ROWS = 20;
-  const BLOCK_SIZE = 20; // уменьшен размер клетки (было 30)
-  const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 200px
-  const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 400px
+  const BLOCK_SIZE = 30; // размер клетки в пикселях
+  const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 300px
+  const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 600px
   const DROP_INTERVAL = 1000; // интервал падения фигуры (мс)
   const GAME_DURATION = 60000; // длительность игры: 1 минута (60000 мс)
   const PIECE_COLOR = "#00FF00"; // неоново-зелёный (стиль Матрицы)
@@ -316,7 +316,7 @@
     controlDiv.style.display = "flex";
     controlDiv.style.justifyContent = "center";
     controlDiv.style.gap = "10px";
-    controlDiv.style.zIndex = "9999"; // повышенный z-index, чтобы кнопки были поверх всего
+    controlDiv.style.zIndex = "1100"; // чуть выше, чем у остальных элементов
 
     // Функция для стилизации кнопки
     function styleControlButton(btn) {
@@ -384,14 +384,19 @@
     controlDiv.appendChild(btnDown);
     controlDiv.appendChild(btnRight);
 
-    // Добавляем контейнер в тело документа
-    document.body.appendChild(controlDiv);
+    // Если модальное окно игры существует, добавляем контейнер внутрь него, иначе в body
+    const gameModal = document.getElementById("gameModalBackdrop");
+    if (gameModal) {
+      gameModal.appendChild(controlDiv);
+    } else {
+      document.body.appendChild(controlDiv);
+    }
   }
 
   // Удаляем мобильные кнопки (при завершении игры)
   function removeMobileControls() {
-    if (controlDiv) {
-      document.body.removeChild(controlDiv);
+    if (controlDiv && controlDiv.parentNode) {
+      controlDiv.parentNode.removeChild(controlDiv);
       controlDiv = null;
     }
   }
@@ -449,11 +454,6 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
-
-  // Экспорт функций в глобальную область, чтобы основной скрипт мог их вызвать
-  window.initGame3 = initGame3;
-  window.resetGame3 = resetGame3;
-})();
 
   // Экспорт функций в глобальную область, чтобы основной скрипт мог их вызвать
   window.initGame3 = initGame3;
