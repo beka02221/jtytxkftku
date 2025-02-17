@@ -1,429 +1,449 @@
-/* Improved game3.js – "Flappy Bird–like" game (4x slower)
-   Features:
-   - Control: TAP (or SPACE) makes the player jump.
-   - Enemies: Gradual introduction of enemy types (1 → then 2 → then 3), with a gradual increase in simultaneous enemies.
-   - Coins: Each coin gives +5 points.
-   - Background scrolls to simulate forward motion.
-   - On collision or falling to the bottom, a game-over modal is shown and score is saved.
-   
-   ⚠️ IMPORTANT:
-   1. Подключите библиотеку gifler, например, добавив в HTML:
-      <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
-   2. Функции showEndGameModal, updateTopBar и переменная localUserData должны быть определены в вашем проекте.
-*/
+// Глобальные переменные для canvas и анимации
+let ctx;
+let animationId;
+let isGameRunning = false;
 
-/* Функция создания анимированного объекта GIF.
-   Для каждого GIF создаётся скрытый offscreen canvas, в который gifler отрисовывает анимацию.
-*/
-function createAnimatedGif(url) {
-  let offscreenCanvas = document.createElement("canvas");
-  // Задаём произвольный размер – gifler обновит его после загрузки GIF
-  offscreenCanvas.width = 100;
-  offscreenCanvas.height = 100;
-  if (typeof gifler !== "undefined") {
-    gifler(url).get(function(anim) {
-      offscreenCanvas.width = anim.width;
-      offscreenCanvas.height = anim.height;
-      anim.animateInCanvas(offscreenCanvas);
-    });
-  } else {
-    console.error("gifler library is not loaded. Animated GIFs will not animate.");
-    let img = new Image();
-    img.src = url;
-    img.onload = () => {
-      offscreenCanvas.width = img.width;
-      offscreenCanvas.height = img.height;
-      offscreenCanvas.getContext("2d").drawImage(img, 0, 0);
-    };
-  }
-  return { canvas: offscreenCanvas };
-}
+let canvasWidth  = 0;
+let canvasHeight = 0;
 
-let game3Canvas;
-let ctx3;
-
-// Фоновое изображение – статичное
-let bgImage = new Image();
-
-// Анимированные объекты – создаются через createAnimatedGif()
-let playerImage;  
-let coinImage;
-let enemyImage1;  // Враг типа 1
-let enemyImage2;  // Враг типа 2 (с вертикальными колебаниями)
-let enemyImage3;  // Враг типа 3
-
-// Параметры фона (увеличена скорость прокрутки)
-let bgSpeed = 1.5 / 2; // 0.75 пикселей за кадр
-let bgX = 0;
-
-// Игровые переменные
-let gameLoopId;            // requestAnimationFrame ID
-let gameState = "ready";   // "ready" | "play" | "over"
-
-// Свойства игрока (прыжок ниже, но динамичный)
-let player = {
-  x: 50,
+// Кирби (игрок)
+const player = {
+  x: 100,
   y: 150,
-  w: 50,
-  h: 50,
-  vy: 0,                
-  jumpPower: -5,   // Прыжок стал ниже (для более умеренного подъёма)
-  gravity: 0.5     // Гравитация – игрок быстрее опускается
+  width: 45,
+  height: 45,
+  velocityY: 0,
+  gravity: 0.3,
+  lift: -5,
+  alive: true,
+  maxFallSpeed: 3,
+  el: null
 };
 
-// Массивы врагов и монет
+// Скорость скроллинга фона и движения врагов/монет
+const scrollSpeed = 1.8;
+
+// Враги
 let enemies = [];
+const enemyGif = "https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif";
+const enemyWidth  = 80;
+const enemyHeight = 80;
+const enemyInterval = 150; // интервал появления врагов (в кадрах)
+let enemyTimer = 0;
+
+// Монеты
 let coins = [];
+const coinSize = 40;
+const coinGifURL = "https://donatepay.ru/uploads/notification/images/830208_1664005822.gif";
+const coinInterval = 80; // интервал появления монет
+let coinTimer = 0;
 
-// Таймеры и счётчики
-let enemySpawnTimer = 0;
-let coinSpawnTimer = 0;
-let gameTime = 0;  // Количество кадров с начала игры
+// Счёт за забег
+let scoreThisRun = 0;
 
-// Очки и параметры сложности
-let currentScore = 0;   // Очки, набранные за монеты
-let basePoints = 0;     // Счёт до начала игры
-let difficultyLevel = 1;  // Уровень сложности (растёт постепенно)
-let maxEnemyType = 1;     // Допустимые типы врагов
+// Фон (side-scrolling)
+const bgImage = new Image();
+bgImage.src = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg";
+let bgX = 0;
 
-/* Инициализация игры.
-   Вызывается из основного скрипта (например, handleStartGame('game3', ...))
-*/
-function initGame3() {
-  game3Canvas = document.getElementById("game3Canvas");
-  if (!game3Canvas) {
-    console.error("game3Canvas not found!");
+// Отступ при столкновении (чтобы не умирать за «милиметр»)
+const collisionMargin = 10;
+
+/* === ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ === */
+window.addEventListener("load", () => {
+  // Предполагается, что элементы loginScreen, usernameInput и т.д. уже существуют в HTML
+  const savedUsername = localStorage.getItem("username");
+  if (savedUsername) {
+    autoLogin(savedUsername);
+  } else {
+    loginScreen.style.display = "flex";
+  }
+});
+
+async function autoLogin(username) {
+  const userRef = ref(db, `users/${username}`);
+  const snapshot = await get(userRef);
+  let coinsVal = 0;
+  if (snapshot.exists()) {
+    coinsVal = snapshot.val().coins || 0;
+  }
+  displayMainMenu(username, coinsVal);
+}
+
+loginButton.addEventListener("click", async () => {
+  const username = usernameInput.value.trim();
+  if (!username.startsWith("@")) {
     return;
   }
-  ctx3 = game3Canvas.getContext("2d");
+  await loginUser(username);
+});
 
-  // Задаём пути к изображениям
-  bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
-  playerImage       = createAnimatedGif("spooky-halloween.gif"); 
-  coinImage         = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
-  enemyImage1       = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
-  enemyImage2       = createAnimatedGif("https://i.gifer.com/XOsa.gif");
-  enemyImage3       = createAnimatedGif("enemyworld.gif");
-
-  resetVars();
-  addInputListeners();
-
-  console.log("Game3 initialized");
-  gameLoopId = requestAnimationFrame(updateGame3);
+async function loginUser(username) {
+  const userRef = ref(db, `users/${username}`);
+  const snapshot = await get(userRef);
+  let coinsVal = 0;
+  if (!snapshot.exists()) {
+    await set(userRef, { coins: 0 });
+  } else {
+    coinsVal = snapshot.val().coins || 0;
+  }
+  localStorage.setItem("username", username);
+  displayMainMenu(username, coinsVal);
 }
 
-/* Сброс игровых переменных */
-function resetVars() {
-  bgX = 0;
-  gameState = "ready";
-  enemySpawnTimer = 0;
-  coinSpawnTimer = 0;
-  gameTime = 0;
-  difficultyLevel = 1;
-  maxEnemyType = 1;
+function displayMainMenu(username, coinsVal) {
+  currentUsername = username;
+  currentCoins = coinsVal;
 
-  player.x = 50;
-  player.y = game3Canvas.height / 2 - player.h / 2;
-  player.vy = 0;
+  loginScreen.style.display = "none";
+  gameContainer.style.display = "none";
+  leaderboardContainer.style.display = "none";
+  storeContainer.style.display = "none";
+  infoContainer.style.display = "none";
+
+  mainMenu.style.display = "block";
+  userDisplay.textContent  = `Username: ${username}`;
+  coinsDisplay.textContent = `Монет: ${coinsVal}`;
+}
+
+/* === КНОПКИ МЕНЮ === */
+startGameBtn.addEventListener("click", () => {
+  mainMenu.style.display = "none";
+  startGame();
+});
+leaderboardBtn.addEventListener("click", () => {
+  mainMenu.style.display = "none";
+  leaderboardContainer.style.display = "block";
+  loadLeaderboard();
+});
+storeBtn.addEventListener("click", () => {
+  mainMenu.style.display = "none";
+  storeContainer.style.display = "block";
+});
+infoBtn.addEventListener("click", () => {
+  mainMenu.style.display = "none";
+  infoContainer.style.display = "block";
+});
+
+async function loadLeaderboard() {
+  leaderboardBody.innerHTML = "";
+  const usersRef = ref(db, "users/");
+  const snapshot = await get(usersRef);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    const usersArray = Object.keys(data).map(key => {
+      return { username: key, coins: data[key].coins || 0 };
+    });
+    usersArray.sort((a, b) => b.coins - a.coins);
+    usersArray.forEach(user => {
+      const tr = document.createElement("tr");
+      const tdName = document.createElement("td");
+      const tdCoins = document.createElement("td");
+      tdName.textContent = user.username;
+      tdCoins.textContent = user.coins;
+      tr.appendChild(tdName);
+      tr.appendChild(tdCoins);
+      leaderboardBody.appendChild(tr);
+    });
+  }
+}
+leaderboardBackBtn.addEventListener("click", () => {
+  leaderboardContainer.style.display = "none";
+  displayMainMenu(currentUsername, currentCoins);
+});
+storeBackBtn.addEventListener("click", () => {
+  storeContainer.style.display = "none";
+  displayMainMenu(currentUsername, currentCoins);
+});
+infoBackBtn.addEventListener("click", () => {
+  infoContainer.style.display = "none";
+  displayMainMenu(currentUsername, currentCoins);
+});
+
+/* === СТАРТ ИГРЫ === */
+function startGame() {
+  gameContainer.style.display = "block";
+  ctx = gameCanvas.getContext("2d");
+  resizeCanvas();
+
+  // Сброс игровых переменных
+  isGameRunning = true;
+  player.y = canvasHeight / 2;
+  player.velocityY = 0;
+  player.alive = true;
 
   enemies = [];
+  enemyTimer = 0;
   coins = [];
+  coinTimer = 0;
 
-  // Запоминаем базовый счёт (если localUserData.points существует)
-  basePoints = localUserData.points || 0;
-  currentScore = 0;
-}
+  scoreThisRun = 0;
+  bgX = 0;
 
-/* Отключение событий и остановка игрового цикла */
-function resetGame3() {
-  removeInputListeners();
-  cancelAnimationFrame(gameLoopId);
-  console.log("Game3 reset");
-}
+  // Создание (или показ) Кирби
+  if (!player.el) {
+    const kirby = document.createElement("img");
+    kirby.src = "kirby.gif";
+    kirby.style.position = "absolute";
+    kirby.style.width  = player.width + "px";
+    kirby.style.height = player.height + "px";
+    kirby.style.left   = player.x + "px";
+    kirby.style.top    = player.y + "px";
+    kirby.style.zIndex = "900";
+    gameContainer.appendChild(kirby);
+    player.el = kirby;
+  } else {
+    player.el.style.display = "block";
+  }
 
-/* Подключение событий ввода (mousedown/touchstart и keydown) */
-function addInputListeners() {
-  game3Canvas.addEventListener("mousedown", onUserInput);
-  game3Canvas.addEventListener("touchstart", onUserInput);
   document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("mousedown", onClickOrTouch);
+  document.addEventListener("touchstart", onClickOrTouch);
+
+  animationId = requestAnimationFrame(updateGame);
 }
 
-/* Удаление событий ввода */
-function removeInputListeners() {
-  game3Canvas.removeEventListener("mousedown", onUserInput);
-  game3Canvas.removeEventListener("touchstart", onUserInput);
-  document.removeEventListener("keydown", onKeyDown);
+/* АДАПТАЦИЯ CANVAS */
+window.addEventListener("resize", () => {
+  if (isGameRunning) {
+    resizeCanvas();
+  }
+});
+function resizeCanvas() {
+  canvasWidth  = window.innerWidth;
+  canvasHeight = window.innerHeight;
+  gameCanvas.width  = canvasWidth;
+  gameCanvas.height = canvasHeight;
 }
 
-/* Обработка ввода: tap или нажатие SPACE */
-function onUserInput() {
-  if (gameState === "ready") {
-    gameState = "play";
-    player.vy = player.jumpPower;
-  } else if (gameState === "play") {
-    player.vy = player.jumpPower;
+/* ГЛАВНЫЙ ЦИКЛ ИГРЫ */
+function updateGame() {
+  if (!isGameRunning) return;
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+  // Фон
+  drawScrollingBackground();
+
+  // Генерация врагов
+  enemyTimer++;
+  if (enemyTimer > enemyInterval) {
+    createEnemy();
+    enemyTimer = 0;
+  }
+  // Обновление врагов
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    e.x -= scrollSpeed;
+    e.el.style.left = e.x + "px";
+    e.el.style.top  = e.y + "px";
+    if (checkCollision(player, e)) {
+      gameOver();
+    }
+  }
+  enemies = enemies.filter(e => {
+    if (e.x + e.width < 0) {
+      gameContainer.removeChild(e.el);
+      return false;
+    }
+    return true;
+  });
+
+  // Генерация монет
+  coinTimer++;
+  if (coinTimer > coinInterval) {
+    createCoin();
+    coinTimer = 0;
+  }
+  // Обновление монет
+  for (let i = 0; i < coins.length; i++) {
+    const c = coins[i];
+    c.x -= scrollSpeed;
+    c.el.style.left = c.x + "px";
+    c.el.style.top  = c.y + "px";
+    if (checkCollision(player, c)) {
+      scoreThisRun++;
+      c.collected = true;
+    }
+  }
+  coins = coins.filter(c => {
+    if (c.collected || (c.x + c.size < 0)) {
+      gameContainer.removeChild(c.el);
+      return false;
+    }
+    return true;
+  });
+
+  // Обновление позиции Кирби
+  updatePlayer();
+
+  // Отображение счёта
+  ctx.fillStyle = "white";
+  ctx.font = "24px Arial";
+  ctx.fillText(`Монет за забег: ${scoreThisRun}`, 20, 40);
+
+  if (player.alive) {
+    animationId = requestAnimationFrame(updateGame);
   }
 }
 
-/* Обработка нажатия клавиши SPACE */
-function onKeyDown(e) {
-  if (e.code === "Space") {
-    e.preventDefault();
-    onUserInput();
+/* ФУНКЦИЯ СКРОЛЛА ФОНА */
+function drawScrollingBackground() {
+  bgX -= 1;
+  if (bgX <= -canvasWidth) {
+    bgX = 0;
   }
+  ctx.drawImage(bgImage, bgX, 0, canvasWidth, canvasHeight);
+  ctx.drawImage(bgImage, bgX + canvasWidth, 0, canvasWidth, canvasHeight);
 }
 
-/* Основной игровой цикл */
-function updateGame3() {
-  if (gameState === "play") {
-    updatePlayer();
-    updateEnemies();
-    updateCoins();
-    updateDifficulty();
-    checkCollisions();
-    gameTime++;
-  }
-  drawScene();
+/* СОЗДАНИЕ ВРАГА */
+function createEnemy() {
+  const randY = Math.random() * (canvasHeight - enemyHeight - 20) + 10;
+  const enemyEl = document.createElement("img");
+  enemyEl.src = enemyGif;
+  enemyEl.style.position = "absolute";
+  enemyEl.style.width  = enemyWidth + "px";
+  enemyEl.style.height = enemyHeight + "px";
+  enemyEl.style.left   = canvasWidth + "px";
+  enemyEl.style.top    = randY + "px";
+  enemyEl.style.zIndex = "850";
+  gameContainer.appendChild(enemyEl);
 
-  if (gameState !== "over") {
-    gameLoopId = requestAnimationFrame(updateGame3);
-  }
+  enemies.push({
+    x: canvasWidth,
+    y: randY,
+    width: enemyWidth,
+    height: enemyHeight,
+    el: enemyEl
+  });
 }
 
-/* Обновление позиции игрока */
+/* СОЗДАНИЕ МОНЕТЫ */
+function createCoin() {
+  const randY = Math.random() * (canvasHeight - coinSize - 20) + 10;
+  const coinEl = document.createElement("img");
+  coinEl.src = coinGifURL;
+  coinEl.style.position = "absolute";
+  coinEl.style.width  = coinSize + "px";
+  coinEl.style.height = coinSize + "px";
+  coinEl.style.left   = canvasWidth + "px";
+  coinEl.style.top    = randY + "px";
+  coinEl.style.zIndex = "800";
+  gameContainer.appendChild(coinEl);
+
+  coins.push({
+    x: canvasWidth,
+    y: randY,
+    size: coinSize,
+    collected: false,
+    el: coinEl
+  });
+}
+
+/* ОБНОВЛЕНИЕ ПОЛЁТА КИРБИ */
 function updatePlayer() {
-  player.vy += player.gravity;
-  player.y += player.vy;
+  player.velocityY += player.gravity;
+  if (player.velocityY > player.maxFallSpeed) {
+    player.velocityY = player.maxFallSpeed;
+  }
+  player.y += player.velocityY;
 
-  // Ограничение движения по верхней границе
   if (player.y < 0) {
     player.y = 0;
-    player.vy = 0;
+    player.velocityY = 0;
   }
-  // Если игрок упал до нижней границы, игра завершается
-  if (player.y + player.h >= game3Canvas.height) {
-    onGameOver();
+  if (player.y + player.height > canvasHeight) {
+    gameOver();
   }
+  player.el.style.left = player.x + "px";
+  player.el.style.top  = player.y + "px";
 }
 
-/* Обновление врагов с постепенным усложнением */
-function updateEnemies() {
-  enemySpawnTimer++;
-  // Интервал спавна врагов: используем множитель 1, чтобы они появлялись быстрее
-  let spawnInterval = Math.max((60 - difficultyLevel * 2), 30); // минимум 30 кадров
-  // Максимальное число врагов: каждые 600 кадров (~10 сек) +1 враг
-  let maxEnemiesAllowed = Math.floor(gameTime / 600) + 1;
-  
-  if (enemySpawnTimer > spawnInterval && enemies.length < maxEnemiesAllowed) {
-    spawnEnemy();
-    enemySpawnTimer = 0;
-  }
-  enemies.forEach(en => {
-    // Для врагов типа 2 – вертикальное колебание
-    if (en.type === 2) {
-      en.y += Math.sin(en.moveAngle) * en.moveRange;
-      en.moveAngle += 0.1;
-    }
-    en.x -= en.speed;
-  });
-  enemies = enemies.filter(en => en.x + en.w > 0);
-}
-
-/* Спавн врага.
-   Случайный тип от 1 до maxEnemyType.
-*/
-function spawnEnemy() {
-  let type = Math.floor(Math.random() * maxEnemyType) + 1;
-  let speed, enemyW, enemyH, enemyY, moveAngle, moveRange;
-  enemyW = 60;
-  enemyH = 60;
-  enemyY = Math.random() * (game3Canvas.height - enemyH);
-  moveAngle = 0;
-  moveRange = 0.5;
-
-  switch (type) {
-    case 1:
-      speed = (3 + difficultyLevel * 0.3) / 4;
-      break;
-    case 2:
-      speed = (2.5 + difficultyLevel * 0.25) / 4;
-      moveAngle = Math.random() * Math.PI * 2;
-      moveRange = 1.0 + difficultyLevel * 0.1;
-      break;
-    case 3:
-      speed = (4 + difficultyLevel * 0.4) / 4;
-      break;
-  }
-  enemies.push({
-    type: type,
-    x: game3Canvas.width, // Спавн у правого края
-    y: enemyY,
-    w: enemyW,
-    h: enemyH,
-    speed: speed,
-    moveAngle: moveAngle,
-    moveRange: moveRange
-  });
-}
-
-/* Обновление монет */
-function updateCoins() {
-  coinSpawnTimer++;
-  // Интервал спавна монет: множитель 1 (минимум 40 кадров)
-  let spawnInterval = Math.max((90 - difficultyLevel * 2), 40);
-  if (coinSpawnTimer > spawnInterval) {
-    spawnCoin();
-    coinSpawnTimer = 0;
-  }
-  coins.forEach(c => {
-    c.x -= c.speed;
-  });
-  coins = coins.filter(c => c.x + c.w > 0);
-}
-
-/* Спавн монеты */
-function spawnCoin() {
-  let cW = 30, cH = 30;
-  let yPos = Math.random() * (game3Canvas.height - cH);
-  coins.push({
-    x: game3Canvas.width, // Спавн у правого края
-    y: yPos,
-    w: cW,
-    h: cH,
-    speed: 3 / 4
-  });
-}
-
-/* Постепенное увеличение сложности:
-   - Каждые 2400 кадров (~40 секунд при 60fps) увеличивается уровень сложности.
-   - При повышении сложности интервалы спавна врагов/монет уменьшаются, а скорость увеличивается.
-   - maxEnemyType: до уровня 3 – только тип 1, до уровня 6 – типы 1 и 2, затем – все 3 типа.
-*/
-function updateDifficulty() {
-  if (gameTime % 2400 === 0 && gameTime !== 0) {
-    difficultyLevel++;
-    console.log("Difficulty increased to", difficultyLevel);
-  }
-  if (difficultyLevel < 3) {
-    maxEnemyType = 1;
-  } else if (difficultyLevel < 6) {
-    maxEnemyType = 2;
-  } else {
-    maxEnemyType = 3;
+/* УПРАВЛЕНИЕ (ПРЫЖОК) */
+function onKeyDown(e) {
+  if (e.code === "Space") {
+    flap();
   }
 }
-
-/* Проверка столкновений:
-   - Столкновение с врагом завершает игру.
-   - Столкновение с монетой увеличивает счёт.
-   Для врагов используется уменьшённая зона столкновения у игрока.
-*/
-function checkCollisions() {
-  for (let en of enemies) {
-    if (isPlayerCollidingWithEnemy(player, en)) {
-      onGameOver();
-      return;
-    }
-  }
-  for (let i = 0; i < coins.length; i++) {
-    let c = coins[i];
-    if (isColliding(player, c)) {
-      coins.splice(i, 1);
-      i--;
-      currentScore += 5;
-      localUserData.points = basePoints + currentScore;
-      if (typeof updateTopBar === "function") {
-        updateTopBar();
-      }
-    }
-  }
+function onClickOrTouch() {
+  flap();
+}
+function flap() {
+  player.velocityY = player.lift;
 }
 
-/* Простая AABB-проверка столкновения */
-function isColliding(a, b) {
+/* ПРОВЕРКА СТОЛКНОВЕНИЯ (с отступом) */
+function checkCollision(pl, obj) {
+  const pr = {
+    x: pl.x + collisionMargin,
+    y: pl.y + collisionMargin,
+    width: pl.width - collisionMargin * 2,
+    height: pl.height - collisionMargin * 2
+  };
+  const ow = (obj.width || obj.size) - collisionMargin * 2;
+  const oh = (obj.height || obj.size) - collisionMargin * 2;
+  const or = {
+    x: obj.x + collisionMargin,
+    y: obj.y + collisionMargin,
+    width: ow > 0 ? ow : 0,
+    height: oh > 0 ? oh : 0
+  };
+
   return !(
-    a.x + a.w < b.x ||
-    a.x > b.x + b.w ||
-    a.y + a.h < b.y ||
-    a.y > b.y + b.h
+    or.x > pr.x + pr.width ||
+    or.x + or.width < pr.x ||
+    or.y > pr.y + pr.height ||
+    or.y + or.height < pr.y
   );
 }
 
-/* Проверка столкновения игрока с врагом с уменьшенной зоной */
-function isPlayerCollidingWithEnemy(player, enemy) {
-  const margin = 10;
-  const pLeft   = player.x + margin;
-  const pRight  = player.x + player.w - margin;
-  const pTop    = player.y + margin;
-  const pBottom = player.y + player.h - margin;
-  
-  return !(pRight < enemy.x ||
-           pLeft > enemy.x + enemy.w ||
-           pBottom < enemy.y ||
-           pTop > enemy.y + enemy.h);
+/* GAME OVER */
+function gameOver() {
+  player.alive = false;
+  cancelAnimationFrame(animationId);
+  document.removeEventListener("keydown", onKeyDown);
+  document.removeEventListener("mousedown", onClickOrTouch);
+  document.removeEventListener("touchstart", onClickOrTouch);
+  isGameRunning = false;
+
+  currentCoins += scoreThisRun;
+  updateCoinsInDB();
+
+  endGameAndReturn();
 }
 
-/* Обработка конца игры.
-   При столкновении с врагом или падении до низа игра переводится в состояние "over",
-   показывается модальное окно с итоговым счётом,
-   и игровой цикл останавливается.
-*/
-function onGameOver() {
-  gameState = "over";
-  showEndGameModal("Game Over", `You scored ${currentScore} points!\nCoins collected: ${currentScore / 5}.`);
-  cancelAnimationFrame(gameLoopId);
-  console.log("Game Over – Score:", currentScore);
-}
+/* ВЫХОД ИЗ ИГРЫ */
+function endGameAndReturn() {
+  if (isGameRunning) {
+    cancelAnimationFrame(animationId);
+    document.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("mousedown", onClickOrTouch);
+    document.removeEventListener("touchstart", onClickOrTouch);
+    isGameRunning = false;
 
-/* Отрисовка игрового поля */
-function drawScene() {
-  // Прокручивающийся фон
-  bgX -= bgSpeed;
-  if (bgX <= -game3Canvas.width) {
-    bgX = 0;
+    currentCoins += scoreThisRun;
+    updateCoinsInDB();
   }
-  drawBg(bgX, 0);
-  drawBg(bgX + game3Canvas.width, 0);
-
-  // Если игра ещё не началась – показываем инструкции
-  if (gameState === "ready") {
-    ctx3.fillStyle = "#fff";
-    ctx3.font = "16px sans-serif";
-    ctx3.textAlign = "center";
-    ctx3.fillText("TAP or PRESS SPACE to start", game3Canvas.width / 2, game3Canvas.height / 2 - 20);
-    ctx3.fillText("Collect coins, avoid enemies!", game3Canvas.width / 2, game3Canvas.height / 2 + 10);
+  if (player.el) {
+    player.el.style.display = "none";
   }
-
-  // Отрисовка игрока (анимированный canvas)
-  ctx3.drawImage(playerImage.canvas, player.x, player.y, player.w, player.h);
-
-  // Отрисовка врагов
-  enemies.forEach(en => {
-    if (en.type === 1) {
-      ctx3.drawImage(enemyImage1.canvas, en.x, en.y, en.w, en.h);
-    } else if (en.type === 2) {
-      ctx3.drawImage(enemyImage2.canvas, en.x, en.y, en.w, en.h);
-    } else {
-      ctx3.drawImage(enemyImage3.canvas, en.x, en.y, en.w, en.h);
-    }
-  });
-
-  // Отрисовка монет
-  coins.forEach(c => {
-    ctx3.drawImage(coinImage.canvas, c.x, c.y, c.w, c.h);
-  });
-
-  // Если игра идёт, показываем текущий счёт
-  if (gameState === "play") {
-    ctx3.fillStyle = "#fff";
-    ctx3.font = "16px sans-serif";
-    ctx3.textAlign = "left";
-    ctx3.fillText(`Score: ${currentScore}`, 10, 30);
+  for (const e of enemies) {
+    if (e.el) gameContainer.removeChild(e.el);
   }
+  enemies = [];
+  for (const c of coins) {
+    if (c.el) gameContainer.removeChild(c.el);
+  }
+  coins = [];
+
+  gameContainer.style.display = "none";
+  displayMainMenu(currentUsername, currentCoins);
 }
 
-/* Функция отрисовки фона */
-function drawBg(x, y) {
-  ctx3.drawImage(bgImage, x, y, game3Canvas.width, game3Canvas.height);
+/* СОХРАНЕНИЕ МОНЕТ В FIREBASE */
+async function updateCoinsInDB() {
+  if (!currentUsername) return;
+  const userRef = ref(db, `users/${currentUsername}`);
+  await update(userRef, { coins: currentCoins });
+  coinsDisplay.textContent = `Монет: ${currentCoins}`;
 }
-
