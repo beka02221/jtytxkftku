@@ -1,29 +1,59 @@
 /* Improved game3.js – "Flappy Bird–like" game (4x slower)
    Features:
    - Control: TAP (or SPACE) makes the player jump.
-   - Enemies: Gradual introduction of enemy types (1 → then 2 → then 3), with gradual increase in simultaneous enemies.
+   - Enemies: Gradual introduction of enemy types (1 → then 2 → then 3), with a gradual increase in simultaneous enemies.
    - Coins: Each coin gives +5 points.
    - Background scrolls to simulate forward motion.
-   - On collision or falling to the bottom, game over modal is shown and score is saved.
+   - On collision or falling to the bottom, a game-over modal is shown and score is saved.
    
-   В проекте предполагается наличие функций:
-   - showEndGameModal(title, message)
-   - updateTopBar()
-   - объекта localUserData с полем points
+   ⚠️ ВАЖНО:
+   1. Подключите библиотеку gifler, например, добавив в HTML:
+      <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
+   2. Функции showEndGameModal, updateTopBar и переменная localUserData должны быть определены в вашем проекте.
 */
+
+/* Функция создания анимированного объекта GIF.
+   Для каждого GIF создаётся скрытый offscreen canvas, в который gifler
+   отрисовывает анимацию.
+*/
+function createAnimatedGif(url) {
+  let offscreenCanvas = document.createElement("canvas");
+  // Задаём произвольный размер – gifler обновит его после загрузки GIF
+  offscreenCanvas.width = 100;
+  offscreenCanvas.height = 100;
+  if (typeof gifler !== "undefined") {
+    gifler(url).get(function(anim) {
+      offscreenCanvas.width = anim.width;
+      offscreenCanvas.height = anim.height;
+      anim.animateInCanvas(offscreenCanvas);
+    });
+  } else {
+    console.error("gifler library is not loaded. Animated GIFs will not animate.");
+    let img = new Image();
+    img.src = url;
+    img.onload = () => {
+      offscreenCanvas.width = img.width;
+      offscreenCanvas.height = img.height;
+      offscreenCanvas.getContext("2d").drawImage(img, 0, 0);
+    };
+  }
+  return { canvas: offscreenCanvas };
+}
 
 let game3Canvas;
 let ctx3;
 
-// Изображения
+// Фоновое изображение – статичное
 let bgImage = new Image();
-let playerImage = new Image();
-let coinImage = new Image();
-let enemyImage1 = new Image(); // Enemy type 1
-let enemyImage2 = new Image(); // Enemy type 2 (oscillates vertically)
-let enemyImage3 = new Image(); // Enemy type 3
 
-// Параметры фона (замедление в 4 раза)
+// Анимированные объекты – создаются через createAnimatedGif()
+let playerImage;  
+let coinImage;
+let enemyImage1;  // Враг типа 1
+let enemyImage2;  // Враг типа 2 (с вертикальными колебаниями)
+let enemyImage3;  // Враг типа 3
+
+// Параметры фона (игра замедлена в 4 раза)
 let bgSpeed = 1.5 / 4; // 0.375 пикселей за кадр
 let bgX = 0;
 
@@ -37,7 +67,7 @@ let player = {
   y: 150,
   w: 50,
   h: 50,
-  vy: 0,
+  vy: 0,                
   jumpPower: -5 / 4,   // -1.25
   gravity: 0.25 / 4    // 0.0625
 };
@@ -52,8 +82,8 @@ let coinSpawnTimer = 0;
 let gameTime = 0;  // Количество кадров с начала игры
 
 // Очки и параметры сложности
-let currentScore = 0;             // Очки за монеты
-let basePoints = 0;               // Счёт игрока до начала игры
+let currentScore = 0;             // Очки, набранные за монеты
+let basePoints = 0;               // Счёт до начала игры
 let difficultyLevel = 1;          // Уровень сложности (растёт постепенно)
 let maxEnemyType = 1;             // Допустимые типы врагов
 
@@ -70,11 +100,11 @@ function initGame3() {
 
   // Задаём пути к изображениям
   bgImage.src       = "https://i.pinimg.com/736x/20/e9/cf/20e9cf219337614640886180cc5d1c34.jpg"; 
-  playerImage.src   = "spooky-halloween.gif"; 
-  coinImage.src     = "https://donatepay.ru/uploads/notification/images/830208_1664005822.gif";
-  enemyImage1.src   = "https://i.gifer.com/XOsa.gif";
-  enemyImage2.src   = "https://i.gifer.com/Vp3M.gif";
-  enemyImage3.src   = "https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif";
+  playerImage       = createAnimatedGif("spooky-halloween.gif"); 
+  coinImage         = createAnimatedGif("https://donatepay.ru/uploads/notification/images/830208_1664005822.gif");
+  enemyImage1       = createAnimatedGif("https://i.gifer.com/XOsa.gif");
+  enemyImage2       = createAnimatedGif("https://i.gifer.com/Vp3M.gif");
+  enemyImage3       = createAnimatedGif("https://i.pinimg.com/originals/4b/4f/a1/4b4fa16fff0d9782b6e53db976f89f78.gif");
 
   resetVars();
   addInputListeners();
@@ -183,7 +213,7 @@ function updateEnemies() {
   // Интервал спавна врагов замедлен в 4 раза
   let spawnInterval = Math.max((60 - difficultyLevel * 2) * 4, 30 * 4); // минимум 120 кадров
   
-  // Рассчитываем максимально допустимое число врагов: каждые 600 кадров (~10 секунд) +1 враг
+  // Максимальное число врагов: каждые 600 кадров (~10 сек) +1 враг
   let maxEnemiesAllowed = Math.floor(gameTime / 600) + 1;
   
   if (enemySpawnTimer > spawnInterval && enemies.length < maxEnemiesAllowed) {
@@ -202,7 +232,7 @@ function updateEnemies() {
 }
 
 /* Спавн врага.
-   Выбирается случайный тип от 1 до maxEnemyType.
+   Случайный тип от 1 до maxEnemyType.
 */
 function spawnEnemy() {
   let type = Math.floor(Math.random() * maxEnemyType) + 1;
@@ -215,7 +245,6 @@ function spawnEnemy() {
 
   switch (type) {
     case 1:
-      // Базовый враг, скорость замедлена в 4 раза
       speed = (3 + difficultyLevel * 0.3) / 4;
       break;
     case 2:
@@ -269,7 +298,7 @@ function spawnCoin() {
 
 /* Постепенное увеличение сложности:
    - Каждые 2400 кадров (~40 секунд при 60fps в замедленном режиме) увеличивается уровень сложности.
-   - При повышении сложности уменьшаются интервалы спавна врагов/монет и увеличивается скорость.
+   - При повышении сложности интервалы спавна врагов/монет уменьшаются, а скорость увеличивается.
    - maxEnemyType: до уровня 3 – только тип 1, до уровня 6 – типы 1 и 2, затем – все 3 типа.
 */
 function updateDifficulty() {
@@ -292,14 +321,12 @@ function updateDifficulty() {
    Для врагов используется уменьшённая зона столкновения у игрока.
 */
 function checkCollisions() {
-  // Столкновение с врагами (уменьшенная зона игрока)
   for (let en of enemies) {
     if (isPlayerCollidingWithEnemy(player, en)) {
       onGameOver();
       return;
     }
   }
-  // Столкновение с монетами (обычная AABB-проверка)
   for (let i = 0; i < coins.length; i++) {
     let c = coins[i];
     if (isColliding(player, c)) {
@@ -326,7 +353,7 @@ function isColliding(a, b) {
 
 /* Проверка столкновения игрока с врагом с уменьшенной зоной */
 function isPlayerCollidingWithEnemy(player, enemy) {
-  const margin = 10; // отступ для уменьшения зоны столкновения игрока
+  const margin = 10;
   const pLeft   = player.x + margin;
   const pRight  = player.x + player.w - margin;
   const pTop    = player.y + margin;
@@ -352,7 +379,7 @@ function onGameOver() {
 
 /* Отрисовка игрового поля */
 function drawScene() {
-  // Отрисовка прокручивающегося фона
+  // Прокручивающийся фон
   bgX -= bgSpeed;
   if (bgX <= -game3Canvas.width) {
     bgX = 0;
@@ -369,23 +396,23 @@ function drawScene() {
     ctx3.fillText("Collect coins, avoid enemies!", game3Canvas.width / 2, game3Canvas.height / 2 + 10);
   }
 
-  // Отрисовка игрока
-  ctx3.drawImage(playerImage, player.x, player.y, player.w, player.h);
+  // Отрисовка игрока (анимированный canvas)
+  ctx3.drawImage(playerImage.canvas, player.x, player.y, player.w, player.h);
 
   // Отрисовка врагов
   enemies.forEach(en => {
     if (en.type === 1) {
-      ctx3.drawImage(enemyImage1, en.x, en.y, en.w, en.h);
+      ctx3.drawImage(enemyImage1.canvas, en.x, en.y, en.w, en.h);
     } else if (en.type === 2) {
-      ctx3.drawImage(enemyImage2, en.x, en.y, en.w, en.h);
+      ctx3.drawImage(enemyImage2.canvas, en.x, en.y, en.w, en.h);
     } else {
-      ctx3.drawImage(enemyImage3, en.x, en.y, en.w, en.h);
+      ctx3.drawImage(enemyImage3.canvas, en.x, en.y, en.w, en.h);
     }
   });
 
   // Отрисовка монет
   coins.forEach(c => {
-    ctx3.drawImage(coinImage, c.x, c.y, c.w, c.h);
+    ctx3.drawImage(coinImage.canvas, c.x, c.y, c.w, c.h);
   });
 
   // Если игра идёт, показываем текущий счёт
