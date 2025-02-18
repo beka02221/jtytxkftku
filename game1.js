@@ -1,7 +1,7 @@
 /* game1.js - Раннер с динозавром (обновленный)
-   - Все объекты масштабируются пропорционально базовому разрешению (400×600)
-   - Добавлена настройка crossOrigin для корректной загрузки GIF
-   - Если гиф не готов, отображается fallback (серый прямоугольник)
+   - Объекты масштабируются пропорционально базовому разрешению (400×600)
+   - Для персонажа и монет используется анимация через gifler с обработкой ошибок
+   - Платформы имеют высоту равную высоте игрока, чтобы по ним можно было забраться
 */
 
 let dinoInterval = null;
@@ -43,13 +43,13 @@ let bgX = 0;
 // Гифки для игрока и монет
 let playerImg = new Image();
 playerImg.crossOrigin = "anonymous";
-playerImg.src = "https://images.gaming-legion.net/products/spoofing/features/autowalk2.gif"; // URL гифки игрока
+playerImg.src = "https://cdn.masto.host/rigczclub/accounts/avatars/000/000/001/original/7a2c1ce45c8f8d02.gif"; // ваш gif персонажа
 
 let coinImg = new Image();
 coinImg.crossOrigin = "anonymous";
 coinImg.src = "https://media.tenor.com/4oO9Ztxk2sEAAAAd/coin-spin-coin.gif"; // URL гифки монеты
 
-// Offscreen canvas для анимации (с помощью gifler)
+// Offscreen canvas для анимации (через gifler)
 let playerAnimCanvas, playerAnimCtx, playerAnimReady = false;
 let coinAnimCanvas, coinAnimCtx, coinAnimReady = false;
 
@@ -70,7 +70,7 @@ function initGame1() {
   playerHeight   = 60 * scale;
   obstacleWidth  = 20 * scale;
   obstacleHeight = 20 * scale;
-  platformHeight = 10 * scale;
+  platformHeight = playerHeight; // платформа по высоте равна игроку
   coinWidth      = 30 * scale;
   coinHeight     = 30 * scale;
   groundHeight   = 10 * scale;
@@ -86,7 +86,7 @@ function initGame1() {
   obstacles = [];
   platforms = [];
   coins = [];
-  obstacleSpeed = 3 * scale; // скорость тоже масштабируем
+  obstacleSpeed = 3 * scale; // скорость масштабируется
   frameCount = 0;
   bgX = 0;
   
@@ -106,6 +106,9 @@ function initGame1() {
         playerAnimCtx.drawImage(ctx.canvas, 0, 0, playerWidth, playerHeight);
         playerAnimReady = true;
       };
+      anim.onError = function(err) {
+        console.error("Ошибка загрузки GIF персонажа:", err);
+      };
       anim.play();
     });
   }
@@ -121,6 +124,9 @@ function initGame1() {
         coinAnimCtx.clearRect(0, 0, coinWidth, coinHeight);
         coinAnimCtx.drawImage(ctx.canvas, 0, 0, coinWidth, coinHeight);
         coinAnimReady = true;
+      };
+      anim.onError = function(err) {
+        console.error("Ошибка загрузки GIF монеты:", err);
       };
       anim.play();
     });
@@ -223,7 +229,7 @@ function dinoUpdate() {
   }
   
   frameCount++;
-  // Спавним объекты через определенные интервалы (с учетом FPS)
+  // Спавним объекты через интервалы
   if (frameCount % 100 === 0) {
     spawnObstacle();
   }
@@ -318,9 +324,13 @@ function dinoDraw() {
     }
   });
   
-  // Игрок (с анимацией, если готов)
+  // Игрок: если анимация готова – отрисовываем её,
+  // иначе, если gif загружен, пробуем отрисовать сам Image,
+  // в крайнем случае – fallback (серый прямоугольник)
   if (playerAnimReady) {
     dinoCtx.drawImage(playerAnimCanvas, dinoX, dinoY, playerWidth, playerHeight);
+  } else if (playerImg.complete) {
+    dinoCtx.drawImage(playerImg, dinoX, dinoY, playerWidth, playerHeight);
   } else {
     dinoCtx.fillStyle = '#00FF00';
     dinoCtx.fillRect(dinoX, dinoY, playerWidth, playerHeight);
