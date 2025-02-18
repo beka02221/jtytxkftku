@@ -1,4 +1,3 @@
-*/
 
 let dinoInterval = null;
 let dinoCtx = null;
