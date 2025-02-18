@@ -43,7 +43,7 @@
   /* ---------- Кнопка дизайна (гамбургер) ---------- */
   #design-settings {
     position: fixed;
-    top: 30px;
+    top: 20px;
     left: 10px;
     z-index: 1100;
   }
@@ -319,7 +319,7 @@
     font-size: 10px;
   }
   .close-modal {
-    background: #d0dab4;
+    background: #06C1DE;
     color: #262626;
     padding: 4px 8px;
     border: 1px solid #4b4b4b;
@@ -346,7 +346,7 @@
     left: 0;
     width: 100%;
     height: calc(100% - 60px);
-    background: #8c946a;
+    background: #6d4fba;
     display: none;
     flex-direction: column;
     z-index: 10000;
@@ -387,7 +387,7 @@
     display: flex;
   }
   .endgame-modal {
-    background-color: #b6c9a0;
+    background-color: #6d4fba;
     border: 2px solid #3b3b3b;
     border-radius: 4px;
     padding: 16px;
@@ -405,8 +405,8 @@
     font-size: 10px;
   }
   .endgame-modal button {
-    background: #d0dab4;
-    color: #262626;
+    background: #6d4fba;
+    color: #0ff;
     border: 1px solid #4b4b4b;
     border-radius: 4px;
     padding: 4px 8px;
@@ -448,7 +448,7 @@
   }
   table th {
     background-color: #1f1c2c;
-    color: #ffcc00;
+    color: #FF00FF;
     font-weight: bold;
   }
   table tr:nth-child(even) {
@@ -463,7 +463,7 @@
   }
   /* Строка текущего пользователя */
   table tr.current-user {
-    background-color: #ffcc00;
+    background-color: #FF00FF;
     color: #000;
   }
   
