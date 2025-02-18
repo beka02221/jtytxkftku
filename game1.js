@@ -337,3 +337,4 @@ function dinoGameLoop() {
   dinoDraw();
   dinoInterval = requestAnimationFrame(dinoGameLoop);
 }
+
