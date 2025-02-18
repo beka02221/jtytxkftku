@@ -40,7 +40,7 @@ let obstacleSpeed = 3; // будет масштабироваться в initGam
 // Фоновое изображение
 let bgImg = new Image();
 bgImg.crossOrigin = "anonymous";
-bgImg.src = "https://img.ixbt.site/live/images/original/31/98/97/2023/08/22/13847b747e.jpg";
+bgImg.src = "https://cdnb.artstation.com/p/assets/images/images/029/816/375/medium/jakub-wulkowicz-post69-3.jpg?1598728411";
 let bgX = 0;
 
 // GIF для персонажа
