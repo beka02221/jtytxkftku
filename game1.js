@@ -1,4 +1,10 @@
 
+/* game1.js - Раннер с динозавром
+   Здесь мы во время игры "накручиваем" локальные очки localUserData.points,
+   чтобы пользователь видел растущее число в шапке. 
+   При столкновении - показываем итоговое окно, очки записываются в БД после закрытия итогового окна.
+*/
+
 let dinoInterval = null;
 let dinoCtx = null;
 
@@ -11,11 +17,9 @@ let isJumping = false;
 let obstacles = [];
 let obstacleSpeed = 3;
 let frameCount = 0;
-
 function initGame1() {
   const canvas = document.getElementById('gameCanvas');
   dinoCtx = canvas.getContext('2d');
-
   // Сброс
   dinoX = 50;
   dinoY = 180;
@@ -76,25 +80,21 @@ function dinoUpdate() {
     dinoY = 180;
     isJumping = false;
   }
-
   frameCount++;
   // Каждые 100 кадров - новое препятствие
   if (frameCount % 100 === 0) {
     spawnObstacle();
   }
-
   // Двигаем препятствия
   obstacles.forEach(obs => {
     obs.x -= obstacleSpeed;
   });
-
   // Увеличиваем локальные очки (например, 1 очко за кадр)
   // localUserData.points += 1 - но лучше делать это реже, чтобы не вызывать лишнюю нагрузку.
   // Для простоты: 1 очко за каждый кадр
   localUserData.points++;
   // Обновляем шапку (чтобы игрок видел, как растут очки)
   updateTopBar();
-
   // Проверяем столкновения
   obstacles.forEach(obs => {
     if (
@@ -107,12 +107,11 @@ function dinoUpdate() {
       // Покажем итоговое окно (из index.html)
       showEndGameModal(
         'Игра окончена',
-        Вы врезались в препятствие!\nНабрано очков: ${localUserData.points}
+        `Вы врезались в препятствие!\nНабрано очков: ${localUserData.points}`
       );
       resetGame1();
     }
   });
-
   // Удаляем пройденные препятствия
   obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 }
@@ -124,18 +123,15 @@ function dinoDraw() {
   // Динозавр
   dinoCtx.fillStyle = '#00FF00';
   dinoCtx.fillRect(dinoX, dinoY, 20, 20);
-
   // Препятствия
   dinoCtx.fillStyle = 'red';
   obstacles.forEach(obs => {
     dinoCtx.fillRect(obs.x, obs.y, obs.width, obs.height);
   });
-
   // Пол
   dinoCtx.fillStyle = '#555';
   dinoCtx.fillRect(0, 190, 400, 10);
 }
-
 function dinoGameLoop() {
   if (!dinoCtx) return; 
   dinoUpdate();
