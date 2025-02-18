@@ -1,30 +1,6 @@
-/* game1.js - Раннер с динозавром с расширенным функционалом */
+/* game1.js – Улучшенный динозавр-раннер */
 
-/* Предполагается, что существуют глобальные объекты:
-   localUserData.points – текущие очки/прогресс пользователя,
-   updateTopBar(points, timeLeft) – обновляет интерфейс (очки, таймер и слайдер времени),
-   showEndGameModal(title, message) – отображает окно окончания игры.
-*/
-
-// Пример глобальных переменных и функций (их можно заменить на свои)
-let localUserData = { points: 0 };
-
-function updateTopBar(points, timeLeft) {
-  // Обновление счётчика очков и таймера (элементы должны быть в index.html)
-  document.getElementById('scoreDisplay').innerText = `Очки: ${points}`;
-  document.getElementById('timerDisplay').innerText = `Время: ${timeLeft} с`;
-  let slider = document.getElementById('timeSlider');
-  if (slider) {
-    slider.value = timeLeft;
-  }
-}
-
-function showEndGameModal(title, message) {
-  // Пример простого модального окна
-  alert(`${title}\n${message}`);
-}
-
-// ================= Классы игры =================
+/* ===================== Классы ===================== */
 
 // Класс игрока (динозавра)
 class Player {
@@ -36,56 +12,65 @@ class Player {
     this.velocityY = 0;
     this.gravity = 0.5;
     this.jumpCount = 0;
-    this.maxJumps = 2; // двойной прыжок
-    // Спрайт игрока
+    this.maxJumps = 2; // разрешён двойной прыжок
+
+    // Настройка спрайта
     this.sprite = new Image();
-    this.sprite.src = 'dinoSprite.png'; // укажите путь к изображению динозавра
-    // Для анимации можно использовать дополнительные поля:
-    this.frameIndex = 0;
-    this.frameRate = 10;
+    this.sprite.src = 'dino_sprite.png'; // спрайт-лист динозавра
+    this.frameWidth = 20;
+    this.frameHeight = 20;
+    this.frameCount = 4; // кол-во кадров анимации
+    this.currentFrame = 0;
     this.frameTimer = 0;
+    this.frameInterval = 0.1; // время между кадрами (сек)
   }
-  
+
   update(deltaTime) {
-    // Применяем гравитацию
-    this.velocityY += this.gravity;
+    // Анимация спрайта
+    this.frameTimer += deltaTime;
+    if (this.frameTimer >= this.frameInterval) {
+      this.currentFrame = (this.currentFrame + 1) % this.frameCount;
+      this.frameTimer = 0;
+    }
+    // Физика движения
     this.y += this.velocityY;
-    
-    // Проверка на землю (y = 180)
+    this.velocityY += this.gravity;
+    // Столкновение с землёй (земля на y = 180)
     if (this.y >= 180) {
       this.y = 180;
       this.velocityY = 0;
-      this.jumpCount = 0;
-    }
-    
-    // Обновление анимации спрайта (если используется спрайт-лист)
-    this.frameTimer += deltaTime;
-    if (this.frameTimer > 1000 / this.frameRate) {
-      this.frameIndex = (this.frameIndex + 1) % 4; // допустим, 4 кадра в спрайт-листе
-      this.frameTimer = 0;
+      this.jumpCount = 0; // сброс прыжков, когда на земле
     }
   }
-  
-  draw(ctx) {
-    // Если изображение загружено, рисуем спрайт, иначе – прямоугольник
-    if (this.sprite.complete) {
-      let frameWidth = this.sprite.width / 4;
-      ctx.drawImage(
-        this.sprite,
-        this.frameIndex * frameWidth, 0,
-        frameWidth, this.sprite.height,
-        this.x, this.y, this.width, this.height
-      );
-    } else {
-      ctx.fillStyle = '#00FF00';
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-    }
-  }
-  
+
   jump() {
     if (this.jumpCount < this.maxJumps) {
-      this.velocityY = -10;
+      this.velocityY = -10; // можно добавить зависимость от длительности нажатия
       this.jumpCount++;
+      if (jumpSound) {
+        jumpSound.currentTime = 0;
+        jumpSound.play();
+      }
+    }
+  }
+
+  draw(ctx) {
+    if (this.sprite.complete) {
+      ctx.drawImage(
+        this.sprite,
+        this.currentFrame * this.frameWidth,
+        0,
+        this.frameWidth,
+        this.frameHeight,
+        this.x,
+        this.y,
+        this.width,
+        this.height
+      );
+    } else {
+      // запасной вариант — простой прямоугольник
+      ctx.fillStyle = '#00FF00';
+      ctx.fillRect(this.x, this.y, this.width, this.height);
     }
   }
 }
@@ -94,19 +79,21 @@ class Player {
 class Obstacle {
   constructor(x, y, width, height, speed) {
     this.x = x;
-    this.y = y; // обычно на уровне земли (180)
+    this.y = y;
     this.width = width;
     this.height = height;
-    this.speed = speed;
-    // Спрайт препятствия
+    this.speed = speed; // в пикселях/сек
+
+    // Случайный тип препятствия для разнообразия
+    this.type = Math.random() < 0.5 ? 0 : 1;
     this.sprite = new Image();
-    this.sprite.src = 'obstacleSprite.png'; // укажите путь к изображению препятствия
+    this.sprite.src = this.type === 0 ? 'obstacle1.png' : 'obstacle2.png';
   }
-  
+
   update(deltaTime) {
-    this.x -= this.speed;
+    this.x -= this.speed * deltaTime;
   }
-  
+
   draw(ctx) {
     if (this.sprite.complete) {
       ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
@@ -117,261 +104,337 @@ class Obstacle {
   }
 }
 
-// Класс бонуса – монеты
-class Coin {
-  constructor(x, y, width, height, speed) {
+// Класс бонуса (монеты)
+class Bonus {
+  constructor(x, y, size, speed) {
     this.x = x;
     this.y = y;
-    this.width = width;
-    this.height = height;
+    this.size = size;
     this.speed = speed;
-    // Анимированная монета (можно использовать GIF или спрайт-лист)
+    this.collected = false;
     this.sprite = new Image();
-    this.sprite.src = 'coin.gif'; // укажите путь к анимированному изображению монеты
+    this.sprite.src = 'coin.gif'; // анимированный gif монеты
   }
-  
+
   update(deltaTime) {
-    this.x -= this.speed;
+    this.x -= this.speed * deltaTime;
   }
-  
+
   draw(ctx) {
     if (this.sprite.complete) {
-      ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
+      ctx.drawImage(this.sprite, this.x, this.y, this.size, this.size);
     } else {
       ctx.fillStyle = 'gold';
       ctx.beginPath();
-      ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/2, 0, Math.PI * 2);
+      ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 }
 
-// Класс фонового слоя с параллакс-эффектом
+// Класс фонового слоя для параллакса
 class BackgroundLayer {
-  constructor(imageSrc, speedModifier) {
+  constructor(imageSrc, speedMultiplier) {
     this.image = new Image();
     this.image.src = imageSrc;
-    this.speedModifier = speedModifier;
+    this.speedMultiplier = speedMultiplier;
     this.x = 0;
-    this.y = 0;
   }
-  
+
   update(deltaTime, baseSpeed) {
-    this.x -= baseSpeed * this.speedModifier;
-    if (this.x <= -this.image.width) {
-      this.x = 0;
+    this.x -= baseSpeed * this.speedMultiplier * deltaTime;
+    if (this.x <= -400) {
+      this.x += 400; // повторяем изображение (ширина канвы = 400)
     }
   }
-  
-  draw(ctx, canvasWidth, canvasHeight) {
+
+  draw(ctx) {
     if (this.image.complete) {
-      // Рисуем два изображения для плавного повторения
-      ctx.drawImage(this.image, this.x, this.y, this.image.width, canvasHeight);
-      ctx.drawImage(this.image, this.x + this.image.width, this.y, this.image.width, canvasHeight);
+      ctx.drawImage(this.image, this.x, 0, 400, 200);
+      ctx.drawImage(this.image, this.x + 400, 0, 400, 200);
+    } else {
+      // запасной фон — сплошной цвет
+      ctx.fillStyle = '#87CEEB'; // небесно-голубой
+      ctx.fillRect(this.x, 0, 400, 200);
+      ctx.fillRect(this.x + 400, 0, 400, 200);
     }
   }
 }
 
-// Главный класс игры
-class Game {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.player = new Player(50, 180);
-    this.obstacles = [];
-    this.coins = [];
-    this.backgroundLayers = [];
-    // Добавляем слои фона (можно добавить больше для лучшего эффекта)
-    this.backgroundLayers.push(new BackgroundLayer('bgLayer1.png', 0.2));
-    this.backgroundLayers.push(new BackgroundLayer('bgLayer2.png', 0.5));
-    
-    this.isPaused = false;
-    this.gameTime = 300; // 5 минут = 300 секунд
-    this.lastTime = performance.now();
-    this.frameCount = 0;
-    
-    // Звуковые эффекты и музыка
-    this.jumpSound = new Audio('jump.mp3');
-    this.collisionSound = new Audio('collision.mp3');
-    this.coinSound = new Audio('coin.mp3');
-    this.bgMusic = new Audio('background.mp3');
-    this.bgMusic.loop = true;
-    
-    // Привязываем обработчики событий
-    this.handleKeyDown = this.handleKeyDown.bind(this);
-    this.handleClick = this.handleClick.bind(this);
-    window.addEventListener('keydown', this.handleKeyDown);
-    this.canvas.addEventListener('click', this.handleClick);
+/* ===================== Глобальные переменные ===================== */
+
+let canvas, ctx;
+let player;
+let obstacles = [];
+let bonuses = [];
+let backgroundLayers = [];
+let obstacleSpawnTimer = 0;
+let obstacleSpawnInterval = 1.5; // начальный интервал спавна препятствий (сек)
+let bonusSpawnTimer = 0;
+let bonusSpawnInterval = 3; // интервал спавна бонусов (сек)
+let lastTime = 0;
+let gameTime = 300; // 5 минут = 300 сек
+let paused = false;
+let gameOver = false;
+let gameLoopId;
+let baseObstacleSpeed = 200; // базовая скорость препятствий (пикс/сек)
+let difficultyFactor = 0; // фактор динамической сложности
+
+// Аудиоэффекты
+let jumpSound, collisionSound, coinSound, bgMusic;
+
+/* ===================== Инициализация игры ===================== */
+
+function initGame1() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+
+  // Сброс глобальных переменных
+  obstacles = [];
+  bonuses = [];
+  gameTime = 300;
+  paused = false;
+  gameOver = false;
+  obstacleSpawnTimer = 0;
+  bonusSpawnTimer = 0;
+  difficultyFactor = 0;
+
+  // Инициализируем игрока
+  player = new Player(50, 180);
+
+  // Инициализируем фон (два слоя с разной скоростью)
+  backgroundLayers = [
+    new BackgroundLayer('background_far.png', 0.2),
+    new BackgroundLayer('background_near.png', 0.5)
+  ];
+
+  // Загружаем аудио
+  jumpSound = new Audio('jump.mp3');
+  collisionSound = new Audio('collision.mp3');
+  coinSound = new Audio('coin.mp3');
+  bgMusic = new Audio('bg_music.mp3');
+  bgMusic.loop = true;
+  bgMusic.volume = 0.5; // можно добавить управление громкостью
+  bgMusic.play();
+
+  // Назначаем обработчики событий
+  window.addEventListener('keydown', handleKeyDown);
+  canvas.addEventListener('click', handleCanvasClick);
+
+  lastTime = performance.now();
+  gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+/* ===================== Игровой цикл ===================== */
+
+function gameLoop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  let deltaTime = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  if (!paused && !gameOver) {
+    update(deltaTime);
   }
-  
-  init() {
-    localUserData.points = 0;
-    this.bgMusic.play();
-    this.lastTime = performance.now();
-    requestAnimationFrame(this.gameLoop.bind(this));
-  }
-  
-  handleKeyDown(e) {
-    if (e.code === 'Space') {
-      this.player.jump();
-      this.jumpSound.play();
-    }
-    if (e.code === 'KeyP') {
-      this.togglePause();
-    }
-  }
-  
-  handleClick(e) {
-    this.player.jump();
-    this.jumpSound.play();
-  }
-  
-  togglePause() {
-    this.isPaused = !this.isPaused;
-  }
-  
-  spawnObstacle() {
-    // Рандомизируем размеры и скорость препятствия
-    let width = 20 + Math.random() * 20;
-    let height = 20 + Math.random() * 20;
-    let x = this.canvas.width;
-    let y = 180; // на уровне земли
-    let speed = 3 + localUserData.points / 500; // сложность растёт с очками
-    this.obstacles.push(new Obstacle(x, y, width, height, speed));
-  }
-  
-  spawnCoin() {
-    let width = 15;
-    let height = 15;
-    let x = this.canvas.width;
-    let y = 120 + Math.random() * 60; // монета может появляться выше земли
-    let speed = 3;
-    this.coins.push(new Coin(x, y, width, height, speed));
-  }
-  
-  update(deltaTime) {
-    if (this.isPaused) return;
-    
-    // Обновляем таймер игры
-    this.gameTime -= deltaTime / 1000;
-    if (this.gameTime <= 0) {
-      // Если время вышло – игрок получает бонус +500 и игра завершается
-      localUserData.points += 500;
-      showEndGameModal(
-        'Победа',
-        `Время вышло!\nПолучено бонусных очков: 500\nИтоговый прогресс: ${localUserData.points}`
-      );
-      this.reset();
-      return;
-    }
-    
-    // Обновляем игрока
-    this.player.update(deltaTime);
-    
-    // Обновляем препятствия
-    this.obstacles.forEach(obs => obs.update(deltaTime));
-    this.obstacles = this.obstacles.filter(obs => obs.x + obs.width > 0);
-    
-    // Обновляем монеты
-    this.coins.forEach(coin => coin.update(deltaTime));
-    this.coins = this.coins.filter(coin => coin.x + coin.width > 0);
-    
-    // Обновляем фон
-    this.backgroundLayers.forEach(layer => layer.update(deltaTime, 3));
-    
-    // Каждые несколько кадров спавним препятствие или монету
-    this.frameCount++;
-    if (this.frameCount % 100 === 0) {
-      this.spawnObstacle();
-    }
-    if (this.frameCount % 150 === 0) {
-      if (Math.random() < 0.5) {
-        this.spawnCoin();
-      }
-    }
-    
-    // Проверка столкновений с препятствиями
-    for (let obs of this.obstacles) {
-      if (this.checkCollision(this.player, obs)) {
-        this.collisionSound.play();
-        showEndGameModal(
-          'Игра окончена',
-          `Вы врезались в препятствие!\nНабрано очков: ${localUserData.points}`
-        );
-        this.reset();
-        return;
-      }
-    }
-    
-    // Проверка столкновений с монетами
-    for (let i = 0; i < this.coins.length; i++) {
-      let coin = this.coins[i];
-      if (this.checkCollision(this.player, coin)) {
-        this.coinSound.play();
-        // За сбор монеты даётся +5 к прогрессу
-        localUserData.points += 5;
-        this.coins.splice(i, 1);
-        i--;
-      }
-    }
-    
-    // Обновляем UI (очки и оставшееся время)
-    updateTopBar(localUserData.points, Math.floor(this.gameTime));
-  }
-  
-  checkCollision(a, b) {
-    return a.x < b.x + b.width &&
-           a.x + a.width > b.x &&
-           a.y < b.y + b.height &&
-           a.y + a.height > b.y;
-  }
-  
-  draw() {
-    // Очищаем канвас
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
-    // Рисуем фон
-    this.backgroundLayers.forEach(layer => layer.draw(this.ctx, this.canvas.width, this.canvas.height));
-    
-    // Рисуем бонусы (монеты)
-    this.coins.forEach(coin => coin.draw(this.ctx));
-    
-    // Рисуем препятствия
-    this.obstacles.forEach(obs => obs.draw(this.ctx));
-    
-    // Рисуем игрока
-    this.player.draw(this.ctx);
-    
-    // Рисуем пол
-    this.ctx.fillStyle = '#555';
-    this.ctx.fillRect(0, 190, this.canvas.width, 10);
-  }
-  
-  gameLoop(timestamp) {
-    let deltaTime = timestamp - this.lastTime;
-    this.lastTime = timestamp;
-    if (!this.isPaused) {
-      this.update(deltaTime);
-      this.draw();
-    }
-    requestAnimationFrame(this.gameLoop.bind(this));
-  }
-  
-  reset() {
-    // Остановка игры, очистка объектов и событий (можно добавить анимацию завершения)
-    this.bgMusic.pause();
-    window.removeEventListener('keydown', this.handleKeyDown);
-    this.canvas.removeEventListener('click', this.handleClick);
-    // Дополнительно можно перезапустить игру или перейти в меню
+  draw();
+
+  if (!gameOver) {
+    gameLoopId = requestAnimationFrame(gameLoop);
   }
 }
 
-// ================ Инициализация игры =================
+/* ===================== Обновление состояния ===================== */
 
-// При загрузке страницы получаем канвас и запускаем игру.
-// В HTML должны присутствовать элементы с id="gameCanvas", "scoreDisplay", "timerDisplay" и "timeSlider".
-window.addEventListener('load', () => {
-  const canvas = document.getElementById('gameCanvas');
-  const game = new Game(canvas);
-  game.init();
-});
+function update(deltaTime) {
+  // Обновляем игровой таймер
+  gameTime -= deltaTime;
+  if (gameTime <= 0) {
+    gameTime = 0;
+    // По окончании времени даём бонус 500 "прогресса"
+    localUserData.points += 500;
+    endGame("Время вышло", "Вы получили бонус 500 прогресса!");
+    return;
+  }
+
+  // Фактор сложности растёт с прошедшим временем
+  difficultyFactor = (300 - gameTime) / 300;
+
+  // Обновляем игрока
+  player.update(deltaTime);
+
+  // Спавн препятствий
+  obstacleSpawnTimer += deltaTime;
+  let currentSpawnInterval = obstacleSpawnInterval - difficultyFactor * 0.8; // уменьшение интервала со сложностью
+  if (obstacleSpawnTimer >= currentSpawnInterval) {
+    spawnObstacle();
+    obstacleSpawnTimer = 0;
+  }
+  obstacles.forEach(obs => obs.update(deltaTime));
+  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+  // Спавн бонусов (монеты)
+  bonusSpawnTimer += deltaTime;
+  if (bonusSpawnTimer >= bonusSpawnInterval) {
+    spawnBonus();
+    bonusSpawnTimer = 0;
+  }
+  bonuses.forEach(bonus => bonus.update(deltaTime));
+  bonuses = bonuses.filter(bonus => bonus.x + bonus.size > 0 && !bonus.collected);
+
+  // Обновляем фон
+  backgroundLayers.forEach(layer => layer.update(deltaTime, baseObstacleSpeed / 3));
+
+  // Проверка столкновений с препятствиями
+  obstacles.forEach(obs => {
+    if (isColliding(player, obs)) {
+      if (collisionSound) {
+        collisionSound.currentTime = 0;
+        collisionSound.play();
+      }
+      endGame("Игра окончена", "Вы врезались в препятствие!");
+    }
+  });
+
+  // Проверка столкновений с бонусами
+  bonuses.forEach(bonus => {
+    if (isColliding(player, { x: bonus.x, y: bonus.y, width: bonus.size, height: bonus.size })) {
+      bonus.collected = true;
+      if (coinSound) {
+        coinSound.currentTime = 0;
+        coinSound.play();
+      }
+      // За монету начисляем 5 прогресса
+      localUserData.points += 5;
+    }
+  });
+}
+
+/* ===================== Функции спавна ===================== */
+
+function spawnObstacle() {
+  // Случайные параметры препятствия
+  let width = 20 + Math.random() * 20; // 20–40 пикселей
+  let height = 20 + Math.random() * 30; // 20–50 пикселей
+  let x = 400;
+  // Располагаем препятствие на земле (земля условно на y = 180)
+  let y = 180 - (height - 20);
+  let speed = baseObstacleSpeed + difficultyFactor * 100;
+  obstacles.push(new Obstacle(x, y, width, height, speed));
+}
+
+function spawnBonus() {
+  let size = 15;
+  let x = 400;
+  // Монета появляется в диапазоне высоты от 100 до 160 пикселей
+  let y = 100 + Math.random() * 60;
+  let speed = baseObstacleSpeed;
+  bonuses.push(new Bonus(x, y, size, speed));
+}
+
+/* ===================== Функция проверки столкновений ===================== */
+
+function isColliding(a, b) {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+/* ===================== Рисование ===================== */
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Рисуем фон (слои)
+  backgroundLayers.forEach(layer => layer.draw(ctx));
+
+  // Рисуем землю с градиентом
+  let groundGradient = ctx.createLinearGradient(0, 180, 0, 200);
+  groundGradient.addColorStop(0, '#555');
+  groundGradient.addColorStop(1, '#333');
+  ctx.fillStyle = groundGradient;
+  ctx.fillRect(0, 180, 400, 20);
+
+  // Рисуем препятствия и бонусы
+  obstacles.forEach(obs => obs.draw(ctx));
+  bonuses.forEach(bonus => bonus.draw(ctx));
+
+  // Рисуем игрока
+  player.draw(ctx);
+
+  // Рисуем таймер (палзунок времени)
+  drawTimeSlider();
+
+  // Если игра на паузе – затемняем экран и выводим надпись
+  if (paused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.fillText('ПАУЗА', 150, 100);
+  }
+}
+
+// Функция отрисовки таймера вверху (прогресс-бар)
+function drawTimeSlider() {
+  let sliderWidth = 300;
+  let sliderHeight = 10;
+  let x = 50;
+  let y = 10;
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(x, y, sliderWidth, sliderHeight);
+  let percent = gameTime / 300; // 300 сек – исходное время
+  ctx.fillStyle = '#0F0';
+  ctx.fillRect(x, y, sliderWidth * percent, sliderHeight);
+  ctx.strokeStyle = '#000';
+  ctx.strokeRect(x, y, sliderWidth, sliderHeight);
+}
+
+/* ===================== Обработка событий ===================== */
+
+function handleKeyDown(e) {
+  if (e.code === 'Space') {
+    if (!paused && !gameOver) {
+      player.jump();
+    }
+  } else if (e.code === 'KeyP') {
+    // Пауза по клавише "P"
+    paused = !paused;
+    if (!paused) {
+      lastTime = performance.now();
+      gameLoopId = requestAnimationFrame(gameLoop);
+    }
+  }
+}
+
+function handleCanvasClick(e) {
+  if (!paused && !gameOver) {
+    player.jump();
+  }
+}
+
+/* ===================== Завершение игры ===================== */
+
+function endGame(title, message) {
+  gameOver = true;
+  bgMusic.pause();
+  // Позволяем проиграть анимацию (например, fade-out) и затем показать итоговое окно
+  setTimeout(() => {
+    showEndGameModal(title, `${message}\nНабрано прогресса: ${localUserData.points}`);
+    resetGame1();
+  }, 1000);
+}
+
+/* ===================== Сброс игры ===================== */
+
+function resetGame1() {
+  if (gameLoopId) {
+    cancelAnimationFrame(gameLoopId);
+    gameLoopId = null;
+  }
+  window.removeEventListener('keydown', handleKeyDown);
+  canvas.removeEventListener('click', handleCanvasClick);
+  ctx = null;
+}
+
