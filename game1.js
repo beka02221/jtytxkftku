@@ -61,7 +61,7 @@ let coins = [];     // каждый объект: { x, y, size }
 // ========== Ресурсы ==========
 const bgImg = new Image();
 bgImg.crossOrigin = "anonymous";
-bgImg.src = "https://cdnb.artstation.com/p/assets/images/images/029/816/375/medium/jakub-wulkowicz-post69-3.jpg";
+bgImg.src = "https://i.pinimg.com/736x/43/32/70/4332709543f30f2788a581ce5653d029.jpg";
 
 const platformImg = new Image();
 platformImg.crossOrigin = "anonymous";
