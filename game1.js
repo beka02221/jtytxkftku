@@ -58,7 +58,7 @@ let obstacleSpeed = 3; // масштабируется в initGame1
 // Фоновое изображение
 let bgImg = new Image();
 bgImg.crossOrigin = "anonymous";
-bgImg.src = "https://i.pinimg.com/736x/43/32/70/4332709543f30f2788a581ce5653d029.jpg";
+bgImg.src = "https://cdn-edge.kwork.ru/pics/t3/01/17643818-1636742001.jpg";
 let bgX = 0;
 
 // GIF для персонажа
