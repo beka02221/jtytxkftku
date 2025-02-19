@@ -142,9 +142,9 @@ function updateGame5() {
 
   // Если еда съедена
   if (newHead.x === food.x && newHead.y === food.y) {
-    score5 += 10;
+    score5 += 2;
     if (typeof localUserData !== 'undefined') {
-      localUserData.points += 10;
+      localUserData.points += 2;
       updateTopBar();
     }
     placeFood();
