@@ -17,7 +17,6 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
 
-
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -113,7 +112,7 @@
           })">Подробнее</button>
         </div>
 
-        <!-- Новая карточка: Space Explorer -->
+        <!-- Карточка №4: Space Explorer -->
         <div class="game-card">
           <img src="https://img.icons8.com/ios-filled/64/00FF00/rocket.png"
                alt="Space Explorer">
@@ -123,6 +122,32 @@
             title: 'Space Explorer',
             img: 'https://img.icons8.com/ios-filled/64/00FF00/rocket.png',
             desc: 'Исследуй космос, избегай астероидов и собирай звезды.',
+            cost: 1
+          })">Подробнее</button>
+        </div>
+
+        <!-- Карточка №5: Game 5 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/64/00FF00/controller.png" alt="Game 5">
+          <p>Game 5</p>
+          <button onclick="openGameInfoModal({
+            gameId: 'game5',
+            title: 'Game 5',
+            img: 'https://img.icons8.com/ios-filled/64/00FF00/controller.png',
+            desc: 'Описание игры 5...',
+            cost: 1
+          })">Подробнее</button>
+        </div>
+
+        <!-- Карточка №6: Game 6 -->
+        <div class="game-card">
+          <img src="https://img.icons8.com/ios-filled/64/00FF00/arcade.png" alt="Game 6">
+          <p>Game 6</p>
+          <button onclick="openGameInfoModal({
+            gameId: 'game6',
+            title: 'Game 6',
+            img: 'https://img.icons8.com/ios-filled/64/00FF00/arcade.png',
+            desc: 'Описание игры 6...',
             cost: 1
           })">Подробнее</button>
         </div>
@@ -309,12 +334,13 @@
         <!-- Canvas for Special Game -->
         <canvas id="specialGameCanvas" width="400" height="200" style="display: none;"></canvas>
         <!-- Canvas for Game 3 -->
-    <canvas id="game3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-
-
+        <canvas id="game3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
         <!-- Canvas for Game 4: Space Explorer -->
-      <canvas id="game4Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-
+        <canvas id="game4Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+        <!-- Canvas for Game 5 -->
+        <canvas id="game5Canvas" width="400" height="650" style="display: none;"></canvas>
+        <!-- Canvas for Game 6 -->
+        <canvas id="game6Canvas" width="400" height="650" style="display: none;"></canvas>
       </div>
     </div>
   </div>
@@ -343,6 +369,8 @@
   <script src="specialgame1.js"></script>
   <script src="game3.js"></script>
   <script src="game4.js"></script>
+  <script src="game5.js"></script>
+  <script src="game6.js"></script>
 
   <script>
     /* ----------------------------------------------
@@ -497,6 +525,8 @@
       document.getElementById('specialGameCanvas').style.display = 'none';
       document.getElementById('game3Canvas').style.display = 'none';
       document.getElementById('game4Canvas').style.display = 'none';
+      document.getElementById('game5Canvas').style.display = 'none';
+      document.getElementById('game6Canvas').style.display = 'none';
 
       // Показываем модал
       document.getElementById('gameModalBackdrop').classList.add('active');
@@ -520,6 +550,12 @@
       } else if (gameName === 'game4') {
         document.getElementById('game4Canvas').style.display = 'block';
         initGame4();
+      } else if (gameName === 'game5') {
+        document.getElementById('game5Canvas').style.display = 'block';
+        initGame5();
+      } else if (gameName === 'game6') {
+        document.getElementById('game6Canvas').style.display = 'block';
+        initGame6();
       }
     }
 
@@ -561,6 +597,10 @@
         resetGame3();
       } else if (currentGame === 'game4') {
         resetGame4();
+      } else if (currentGame === 'game5') {
+        resetGame5();
+      } else if (currentGame === 'game6') {
+        resetGame6();
       }
       currentGame = null;
       gameInProgress = false;
