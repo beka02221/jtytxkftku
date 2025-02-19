@@ -1,9 +1,7 @@
-/* game1.js - Обновлённый Раннер
+/* game1.js - Обновлённый Раннер для Telegram Web App
    - Пропорциональное масштабирование (базовое разрешение 400×600)
-   - Анимация персонажа и монет реализована через HTML overlay элементы (работает в Telegram Web App)
-   - Платформы с текстурой (wall1.jpg), состоящие из 1–3 блоков
-   - Шипы (obstacles) отрисовываются как чёрные треугольники, спавнятся только вне платформ
-   - Увеличена сила прыжка
+   - Анимация персонажа и монет реализована через overlay‑элементы (чтобы GIF анимировались в Telegram)
+   - Отрисовка фона, платформ, шипов и земли происходит на canvas
 */
 
 let dinoInterval = null;
@@ -40,7 +38,7 @@ let obstacleSpeed = 3; // будет масштабироваться в initGam
 // Фоновое изображение
 let bgImg = new Image();
 bgImg.crossOrigin = "anonymous";
-bgImg.src = "https://cdnb.artstation.com/p/assets/images/images/029/816/375/medium/jakub-wulkowicz-post69-3.jpg?1598728411";
+bgImg.src = "https://img.ixbt.site/live/images/original/31/98/97/2023/08/22/13847b747e.jpg";
 let bgX = 0;
 
 // GIF для персонажа
@@ -62,14 +60,14 @@ platformImg.src = "wall1.jpg";
 // Для игрока – один overlay-элемент
 let playerOverlay;
 
-// Для монет будем хранить их overlay внутри объекта монеты (свойство overlay)
-// (overlay создаётся при спавне монеты)
+// Для монет – каждый спавнённый объект получает overlay в своем свойстве overlay
 
 // Функция для обновления позиций overlay элементов (игрока и монет)
 function updateOverlays() {
-  // Предполагаем, что canvas и overlay'ы находятся в одном контейнере с одинаковой системой координат
-  playerOverlay.style.left = dinoX + "px";
-  playerOverlay.style.top = dinoY + "px";
+  if(playerOverlay){
+    playerOverlay.style.left = dinoX + "px";
+    playerOverlay.style.top = dinoY + "px";
+  }
   coins.forEach(coin => {
     if (coin.overlay) {
       coin.overlay.style.left = coin.x + "px";
@@ -82,8 +80,11 @@ function initGame1() {
   const canvas = document.getElementById('gameCanvas');
   dinoCtx = canvas.getContext('2d');
   canvas.style.display = 'block';
+  // Задаём позиционирование для canvas и устанавливаем z-index
+  canvas.style.position = "relative";
+  canvas.style.zIndex = "0";
   
-  // Обеспечим, чтобы родительский контейнер имел position: relative
+  // Обеспечиваем, чтобы родительский контейнер имел position: relative
   let container = canvas.parentElement;
   if (getComputedStyle(container).position === "static") {
     container.style.position = "relative";
@@ -105,7 +106,7 @@ function initGame1() {
   coinHeight     = 30 * scale;
   groundHeight   = 10 * scale;
   groundY        = canvasHeight - groundHeight;
-  platformBlockSize = playerHeight; // каждый блок платформы — квадрат размера игрока
+  platformBlockSize = playerHeight; // каждый блок платформы – квадрат размера игрока
   
   // Начальное положение игрока (на земле)
   dinoX = 50 * scale;
@@ -116,7 +117,7 @@ function initGame1() {
   // Сброс игровых объектов
   obstacles = [];
   platforms = [];
-  // Если остались overlay монет от предыдущей игры – удалим их
+  // Удаляем overlay монет, если остались от предыдущей игры
   coins.forEach(coin => {
     if (coin.overlay && coin.overlay.parentElement) {
       coin.overlay.parentElement.removeChild(coin.overlay);
@@ -136,9 +137,10 @@ function initGame1() {
     playerOverlay.style.width = playerWidth + "px";
     playerOverlay.style.height = playerHeight + "px";
     playerOverlay.style.pointerEvents = "none";
+    playerOverlay.style.zIndex = "1";
     container.appendChild(playerOverlay);
   } else {
-    // Обновим размеры overlay, если игра перезапускается
+    // Обновляем размеры overlay, если игра перезапускается
     playerOverlay.style.width = playerWidth + "px";
     playerOverlay.style.height = playerHeight + "px";
   }
@@ -167,7 +169,7 @@ function resetGame1() {
     }
   });
   coins = [];
-  // (playerOverlay можно оставить для повторных запусков)
+  // (playerOverlay оставляем для повторных запусков)
 }
 
 function handleDinoKeyDown(e) {
@@ -208,7 +210,7 @@ function spawnObstacle() {
   }
 }
 
-// Спавн платформы: платформа состоит из 1–3 блоков (блок — квадрат размера игрока)
+// Спавн платформы: платформа состоит из 1–3 блоков (блок – квадрат размера игрока)
 function spawnPlatform() {
   const blocksCount = Math.floor(Math.random() * 3) + 1; // от 1 до 3 блоков
   const platformWidth = blocksCount * platformBlockSize;
@@ -221,7 +223,7 @@ function spawnPlatform() {
   });
 }
 
-// Спавн монеты: при спавне создаётся overlay-элемент для анимации
+// Спавн монеты: создаётся overlay-элемент для анимации
 let coinCounter = 0;
 function spawnCoin() {
   const offset = (50 + Math.random() * 100) * scale;
@@ -233,14 +235,13 @@ function spawnCoin() {
     height: coinHeight,
     type: 'coin'
   };
-  // Создаём overlay для монеты
   let coinOverlay = document.createElement("img");
   coinOverlay.src = coinImg.src;
   coinOverlay.style.position = "absolute";
   coinOverlay.style.width = coinWidth + "px";
   coinOverlay.style.height = coinHeight + "px";
   coinOverlay.style.pointerEvents = "none";
-  // Добавляем overlay в тот же контейнер, что и canvas
+  coinOverlay.style.zIndex = "1";
   let container = dinoCtx.canvas.parentElement;
   container.appendChild(coinOverlay);
   coin.overlay = coinOverlay;
@@ -292,7 +293,6 @@ function dinoUpdate() {
     spawnCoin();
   }
   
-  // Сдвиг объектов влево
   obstacles.forEach(obs => { obs.x -= obstacleSpeed; });
   platforms.forEach(plat => { plat.x -= obstacleSpeed; });
   coins.forEach(coin => { coin.x -= obstacleSpeed; });
@@ -301,7 +301,7 @@ function dinoUpdate() {
   localUserData.points++;
   updateTopBar();
   
-  // Проверка столкновения с шипами: если нижняя центральная точка игрока попадает в треугольник
+  // Проверка столкновения с шипами (если нижняя центральная точка игрока попадает в треугольник)
   const playerCenterX = dinoX + playerWidth / 2;
   const playerBottomY = dinoY + playerHeight;
   obstacles.forEach(obs => {
@@ -335,12 +335,10 @@ function dinoUpdate() {
     return true;
   });
   
-  // Удаляем вышедшие за левую границу объекты
   obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
   platforms = platforms.filter(plat => plat.x + plat.width > 0);
   coins = coins.filter(coin => coin.x + coin.width > 0);
   
-  // Обновляем позиции overlay элементов (игрока и монет)
   updateOverlays();
 }
 
@@ -349,20 +347,24 @@ function dinoDraw() {
   const canvasHeight = dinoCtx.canvas.height;
   dinoCtx.clearRect(0, 0, canvasWidth, canvasHeight);
   
-  // Рисуем фон (две копии для плавного цикла)
-  dinoCtx.drawImage(bgImg, bgX, 0, canvasWidth, canvasHeight);
-  dinoCtx.drawImage(bgImg, bgX + canvasWidth, 0, canvasWidth, canvasHeight);
+  // Фон – если изображение загружено, рисуем его, иначе заливаем цветом
+  if (bgImg.complete) {
+    dinoCtx.drawImage(bgImg, bgX, 0, canvasWidth, canvasHeight);
+    dinoCtx.drawImage(bgImg, bgX + canvasWidth, 0, canvasWidth, canvasHeight);
+  } else {
+    dinoCtx.fillStyle = "#87CEEB";
+    dinoCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+  }
   
-  // Рисуем платформы: для каждого блока платформы отрисовываем текстуру
+  // Рисуем платформы: для каждого блока платформы отрисовываем текстуру или заливку, если не загрузилась
   platforms.forEach(platform => {
     for (let i = 0; i < platform.blocks; i++) {
-      dinoCtx.drawImage(
-        platformImg,
-        platform.x + i * platformBlockSize,
-        platform.y,
-        platformBlockSize,
-        platformHeight
-      );
+      if(platformImg.complete){
+        dinoCtx.drawImage(platformImg, platform.x + i * platformBlockSize, platform.y, platformBlockSize, platformHeight);
+      } else {
+        dinoCtx.fillStyle = "#8B4513";
+        dinoCtx.fillRect(platform.x + i * platformBlockSize, platform.y, platformBlockSize, platformHeight);
+      }
     }
   });
   
@@ -377,8 +379,6 @@ function dinoDraw() {
     dinoCtx.fill();
   });
   
-  // Игрок и монеты не отрисовываются на canvas – их анимация осуществляется через overlay элементы
-  
   // Рисуем землю
   dinoCtx.fillStyle = '#555';
   dinoCtx.fillRect(0, groundY, canvasWidth, groundHeight);
@@ -390,4 +390,3 @@ function dinoGameLoop() {
   dinoDraw();
   dinoInterval = requestAnimationFrame(dinoGameLoop);
 }
-
