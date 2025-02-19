@@ -18,11 +18,11 @@ const ATTEMPT_SOUND_URL   = 'https://example.com/attempt.mp3';
 
 // Ссылки на неоновые иконки
 const ICON_URLS = [
-  'https://img.icons8.com/neon/100/password.png',
-  'https://img.icons8.com/neon/100/fingerprint.png',
-  'https://img.icons8.com/neon/100/password1.png',
-  'https://img.icons8.com/neon/100/warning-shield.png',
-  'https://img.icons8.com/neon/100/face-id.png'
+  'https://img.icons8.com/water-color/50/lock-2.png',
+  'https://img.icons8.com/water-color/50/grand-master-key.png',
+  'https://img.icons8.com/water-color/50/globe.png',
+  'https://img.icons8.com/water-color/50/error.png',
+  'https://img.icons8.com/water-color/50/keyhole-shield.png'
 ];
 
 // ========== Глобальные переменные ==========
