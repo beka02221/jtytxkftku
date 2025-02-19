@@ -1,227 +1,384 @@
-// Получаем холст и контекст
-var C = document.querySelector("canvas"),
-    c = C.getContext("2d");
+/* game1.js - Бесконечный уровень в стиле Geometry Dash
+   Основные изменения:
+   - Земля поднята: groundY = canvasHeight * 0.8 (вместо canvasHeight - groundHeight)
+   - Персонаж, платформы и прочее располагаются выше, чтобы не оказаться под землей
+   - Платформы (кубы) спавнятся как на земле, так и в приподнятом виде (эмуляция Geometry Dash)
+   - Монеты увеличены до 50×50×scale
+   - Шипы (обstacles) остаются на одном уровне с землёй
+   - Сила прыжка увеличена до -14×scale
+*/
 
-// Масштабирование (S=2 для ретро эффекта, можно менять)
-var S = 2; 
-// Устанавливаем базовые размеры (400×600)
-C.width = 400 * S;
-C.height = 600 * S;
-c.scale(S, S);
+let dinoInterval = null;
+let dinoCtx = null;
 
-var W = 400, H = 600; // базовые координаты (без учета масштаба)
-var cell = 40;       // базовый размер ячейки (размер куба платформы)
-var stroke = 2;
-var gravity = 0.98;
-var rand = (min, max) => Math.round(Math.random() * (max - min)) + min;
-var score = 0, frame = 0, framesPerPt = 5, difficulty = 1;
+// Базовое разрешение для масштабирования
+const baseWidth = 400;
+const baseHeight = 600;
+let scale = 1; // рассчитывается в initGame1
 
-// Задаем уровень земли – верхняя граница земли на 80% высоты холста
-var groundY = H * 0.8;
-var groundHeight = H - groundY; // толщина земли
+// Размеры игровых объектов (рассчитываются в initGame1)
+let playerWidth, playerHeight;
+let obstacleWidth, obstacleHeight;
+let platformHeight;
+let coinWidth, coinHeight;
+let groundHeight;
+let groundY;
+let platformBlockSize; // размер одного куба платформы
 
-// Объект игрока (игрок – квадрат размером cell)
-var player = {
-    x: cell * 2,
-    y: groundY - cell,
-    w: cell,
-    h: cell,
-    xVel: 4,       // горизонтальная скорость (для имитации движения)
-    yVel: 0,
-    minYVel: -15,  // сила прыжка (можно увеличить для динамичности)
-    onGrnd: true,
-    dead: false,
-    jump: function() {
-        if(this.onGrnd && !this.dead){
-            this.yVel = this.minYVel; 
-            this.onGrnd = false;
-        }
-    }
-};
+// Параметры игрока
+let dinoX = 50;
+let dinoY = 0; // установится в initGame1
+let velocityY = 0;
+const gravity = 0.5;
+let isJumping = false;
 
-// Массивы объектов: платформ (наборы кубов), шипов и монет
-var platforms = []; // каждая платформа: {x, y, blocks, w, h}
-// Шипы будут рисоваться как треугольники на уровне земли
-var spikes = [];    // каждый шип: {x, size}
-// Монеты (увеличены до 50×50)
-var coins = [];     // каждый объект: {x, y, size}
+// Массивы игровых объектов
+let obstacles = [];   // шипы
+let platforms = [];   // платформы (наборы кубов)
+let coins = [];       // монеты (с overlay для анимации)
+let frameCount = 0;
+let obstacleSpeed = 3; // будет масштабироваться в initGame1
 
-// Фон – создаем линейный градиент от верха до уровня земли
-var bgFill = c.createLinearGradient(W/2, 0, W/2, groundY);
-bgFill.addColorStop(0, "#0c48db");
-bgFill.addColorStop(1, "#5785f6");
+// Фоновое изображение
+let bgImg = new Image();
+bgImg.crossOrigin = "anonymous";
+bgImg.src = "https://img.ixbt.site/live/images/original/31/98/97/2023/08/22/13847b747e.jpg";
+let bgX = 0;
 
-// Заливка земли (возвышенная земля)
-var floorFill = c.createLinearGradient(W/2, groundY, W/2, H);
-floorFill.addColorStop(0, "#0c48db");
-floorFill.addColorStop(1, "#171717");
+// GIF для персонажа
+let playerImg = new Image();
+playerImg.crossOrigin = "anonymous";
+playerImg.src = "https://cdn.masto.host/rigczclub/accounts/avatars/000/000/001/original/7a2c1ce45c8f8d02.gif";
 
-// Загрузка текстуры для кубов платформ (изображение wall1.jpg размером 300×300)
-var platformImg = new Image();
+// GIF для монеты
+let coinImg = new Image();
+coinImg.crossOrigin = "anonymous";
+coinImg.src = "https://donatepay.ru/uploads/notification/images/830208_1664005822.gif";
+
+// Текстура для платформ (wall1.jpg, 300×300)
+let platformImg = new Image();
 platformImg.crossOrigin = "anonymous";
 platformImg.src = "wall1.jpg";
 
-// --- Основной цикл рендеринга ---
-function render() {
-    frame++;
-    // Отрисовка фона (только до земли)
-    c.fillStyle = bgFill;
-    c.fillRect(0, 0, W, groundY);
-    
-    // Отрисовка земли (возвышенной, толстый пол)
-    c.fillStyle = floorFill;
-    c.fillRect(0, groundY, W, groundHeight);
-    
-    // Физика игрока
-    if(!player.dead) {
-        player.y += player.yVel;
-        player.yVel += gravity;
-        if(player.y + player.h >= groundY){
-            player.y = groundY - player.h;
-            player.yVel = 0;
-            player.onGrnd = true;
-        }
+// --- Overlay элементы для анимации ---
+// Для персонажа – один overlay-элемент
+let playerOverlay;
+// Для монет – каждому объекту монеты создаётся overlay при спавне
+
+// Функция для обновления позиций overlay элементов (персонажа и монет)
+function updateOverlays() {
+  if (playerOverlay) {
+    playerOverlay.style.left = dinoX + "px";
+    playerOverlay.style.top = dinoY + "px";
+  }
+  coins.forEach(coin => {
+    if (coin.overlay) {
+      coin.overlay.style.left = coin.x + "px";
+      coin.overlay.style.top = coin.y + "px";
     }
-    
-    // Обновляем и отрисовываем платформы (каждая платформа – набор кубов)
-    for(var i = 0; i < platforms.length; i++){
-        var plat = platforms[i];
-        plat.x -= player.xVel; // движение платформ влево
-        // Рисуем каждый куб платформы с текстурой
-        for(var j = 0; j < plat.blocks; j++){
-            var cubeX = plat.x + j * cell;
-            if(platformImg.complete){
-                // Масштабируем текстуру: берем исходный размер (300×300) и рисуем в размере cell×cell
-                c.drawImage(platformImg, 0, 0, 300, 300, cubeX, plat.y, cell, cell);
-            } else {
-                c.fillStyle = "#8B4513";
-                c.fillRect(cubeX, plat.y, cell, cell);
-            }
-        }
-    }
-    // Удаляем платформы, вышедшие за левую границу
-    platforms = platforms.filter(plat => plat.x + plat.blocks * cell > 0);
-    
-    // Обновляем и отрисовываем шипы (спайки)
-    for(var i = 0; i < spikes.length; i++){
-        var sp = spikes[i];
-        sp.x -= player.xVel;
-        // Рисуем шип как черный треугольник (вершина направлена вверх)
-        c.fillStyle = "black";
-        c.beginPath();
-        c.moveTo(sp.x, groundY - sp.size);       // вершина
-        c.lineTo(sp.x + sp.size/2, groundY);       // нижний правый угол
-        c.lineTo(sp.x - sp.size/2, groundY);       // нижний левый угол
-        c.closePath();
-        c.fill();
-    }
-    spikes = spikes.filter(sp => sp.x + sp.size > 0);
-    
-    // Обновляем и отрисовываем монеты
-    for(var i = 0; i < coins.length; i++){
-        var coin = coins[i];
-        coin.x -= player.xVel;
-        // Рисуем монету как желтый круг
-        c.fillStyle = "yellow";
-        c.beginPath();
-        c.arc(coin.x, coin.y, coin.size/2, 0, Math.PI*2);
-        c.fill();
-    }
-    coins = coins.filter(coin => coin.x + coin.size > 0);
-    
-    // Проверка столкновения игрока с шипами
-    for(var i = 0; i < spikes.length; i++){
-        var sp = spikes[i];
-        // Простейшая проверка по прямоугольнику вокруг шипа
-        if(player.x < sp.x + sp.size &&
-           player.x + player.w > sp.x - sp.size/2 &&
-           player.y + player.h > groundY - sp.size){
-            player.dead = true;
-        }
-    }
-    
-    // Проверка подбора монет (прямоугольное пересечение)
-    for(var i = 0; i < coins.length; i++){
-        var coin = coins[i];
-        if(player.x < coin.x + coin.size &&
-           player.x + player.w > coin.x - coin.size &&
-           player.y < coin.y + coin.size &&
-           player.y + player.h > coin.y - coin.size){
-               score++;
-               coins.splice(i, 1);
-               i--;
-        }
-    }
-    
-    // Отрисовка игрока (простой квадрат, можно добавить вращение по yVel)
-    c.fillStyle = "#f2b826";
-    c.save();
-    // Опциональное вращение: угол зависит от скорости прыжка
-    var rot = (player.yVel / player.minYVel) * -90;
-    c.translate(player.x + player.w/2, player.y + player.h/2);
-    c.rotate(rot * Math.PI/180);
-    c.fillRect(-player.w/2, -player.h/2, player.w, player.h);
-    c.restore();
-    
-    // Обновление счета и сложности
-    if(frame % framesPerPt === framesPerPt - 1 && !player.dead) score++;
-    if(frame % (100 * framesPerPt) === 0 && difficulty <= 9) difficulty++;
-    
-    // Генерация новых объектов
-    // Если последняя платформа далеко от правого края, создаем новую
-    if(platforms.length === 0 || (platforms[platforms.length - 1].x + platforms[platforms.length - 1].blocks * cell < W)){
-        // Задаем случайный промежуток (в клетках)
-        var gap = rand(0, 3) * cell;
-        // Количество кубов платформы от 1 до 3
-        var blocks = rand(1, 3);
-        // В 70% случаев платформа на земле, в 30% – немного приподнятая (до 3 клеток вверх)
-        var pY = (Math.random() < 0.7) ? groundY - cell : groundY - cell - rand(1,3) * cell;
-        platforms.push({x: W + gap, y: pY, blocks: blocks, w: blocks * cell, h: cell});
-        
-        // Шипы: с вероятностью 50% добавляем шип, расположенный на уровне земли
-        if(Math.random() < 0.5){
-            spikes.push({x: W + gap + rand(0, blocks * cell), size: 30});
-        }
-        
-        // Монеты: с вероятностью 70% добавляем монету выше платформы
-        if(Math.random() < 0.7){
-            coins.push({x: W + gap + rand(0, blocks * cell), y: pY - cell, size: 50});
-        }
-    }
-    
-    // Отрисовка счета
-    c.fillStyle = "#f1f1f1";
-    c.font = "bold 40px Calibri, sans-serif";
-    c.textAlign = "center";
-    c.fillText(score, W/2, cell * 1.5);
-    
-    requestAnimationFrame(render);
+  });
 }
 
-// Обработчики прыжка (клик по холсту или пробел)
-C.addEventListener("click", function(){
-    if(player.onGrnd && !player.dead) player.jump();
-});
-document.addEventListener("keydown", function(e){
-    if(e.code === "Space" && player.onGrnd && !player.dead) player.jump();
-});
-
-// Функция сброса игры
-function resetGame() {
-    score = 0;
-    frame = 0;
-    difficulty = 1;
-    player.x = cell * 2;
-    player.y = groundY - cell;
-    player.xVel = 4;
-    player.yVel = 0;
-    player.dead = false;
-    platforms = [];
-    spikes = [];
-    coins = [];
-    // Создаем начальную платформу, которая покрывает весь экран (чтобы игрок сразу стоял на чем-то)
-    platforms.push({x: -1, y: groundY - cell, blocks: 10, w: W + 2, h: cell});
+function initGame1() {
+  const canvas = document.getElementById('gameCanvas');
+  dinoCtx = canvas.getContext('2d');
+  canvas.style.display = 'block';
+  // Задаём позиционирование для canvas
+  canvas.style.position = "relative";
+  canvas.style.zIndex = "0";
+  
+  // Убедимся, что родительский контейнер имеет position: relative
+  let container = canvas.parentElement;
+  if (getComputedStyle(container).position === "static") {
+    container.style.position = "relative";
+  }
+  
+  const canvasWidth = canvas.width;
+  const canvasHeight = canvas.height;
+  
+  // Расчёт масштаба
+  scale = canvasWidth / baseWidth;
+  
+  // Размеры объектов с учётом scale
+  playerWidth    = 60 * scale;
+  playerHeight   = 60 * scale;
+  obstacleWidth  = 30 * scale; // шипы
+  obstacleHeight = 30 * scale;
+  platformBlockSize = 60 * scale; // каждый куб платформы равен размеру игрока
+  platformHeight = platformBlockSize; // высота платформы равна размеру одного куба
+  coinWidth      = 50 * scale; // увеличенные монеты
+  coinHeight     = 50 * scale;
+  groundHeight   = 40 * scale; // толще земля
+  // Поднимаем землю: её верхняя граница на 80% высоты canvas
+  groundY = canvasHeight * 0.8;
+  
+  // Начальное положение игрока – на земле
+  dinoX = 50 * scale;
+  dinoY = groundY - playerHeight;
+  velocityY = 0;
+  isJumping = false;
+  
+  // Сброс игровых объектов
+  obstacles = [];
+  platforms = [];
+  coins.forEach(coin => {
+    if (coin.overlay && coin.overlay.parentElement) {
+      coin.overlay.parentElement.removeChild(coin.overlay);
+    }
+  });
+  coins = [];
+  
+  frameCount = 0;
+  obstacleSpeed = 3 * scale;
+  bgX = 0;
+  
+  // Создаём overlay для персонажа, если его ещё нет
+  if (!playerOverlay) {
+    playerOverlay = document.createElement("img");
+    playerOverlay.src = playerImg.src;
+    playerOverlay.style.position = "absolute";
+    playerOverlay.style.width = playerWidth + "px";
+    playerOverlay.style.height = playerHeight + "px";
+    playerOverlay.style.pointerEvents = "none";
+    playerOverlay.style.zIndex = "1";
+    container.appendChild(playerOverlay);
+  } else {
+    playerOverlay.style.width = playerWidth + "px";
+    playerOverlay.style.height = playerHeight + "px";
+  }
+  
+  window.addEventListener('keydown', handleDinoKeyDown);
+  canvas.addEventListener('click', handleDinoJump);
+  
+  dinoInterval = requestAnimationFrame(dinoGameLoop);
 }
 
-resetGame();
-render();
+function resetGame1() {
+  if (dinoInterval) {
+    cancelAnimationFrame(dinoInterval);
+    dinoInterval = null;
+  }
+  window.removeEventListener('keydown', handleDinoKeyDown);
+  const canvas = document.getElementById('gameCanvas');
+  canvas.removeEventListener('click', handleDinoJump);
+  dinoCtx = null;
+  
+  coins.forEach(coin => {
+    if (coin.overlay && coin.overlay.parentElement) {
+      coin.overlay.parentElement.removeChild(coin.overlay);
+    }
+  });
+  coins = [];
+  // playerOverlay оставляем для повторных запусков
+}
+
+function handleDinoKeyDown(e) {
+  if (e.code === 'Space') {
+    handleDinoJump();
+  }
+}
+function handleDinoJump() {
+  if (!isJumping) {
+    velocityY = -14 * scale; // увеличенная сила прыжка
+    isJumping = true;
+  }
+}
+
+// Проверка попадания точки (px,py) в треугольник, заданный точками A, B, C
+function pointInTriangle(px, py, ax, ay, bx, by, cx, cy) {
+  const areaOrig = Math.abs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay));
+  const area1 = Math.abs((ax - px) * (by - py) - (bx - px) * (ay - py));
+  const area2 = Math.abs((bx - px) * (cy - py) - (cx - px) * (by - py));
+  const area3 = Math.abs((cx - px) * (ay - py) - (ax - px) * (cy - py));
+  return Math.abs(area1 + area2 + area3 - areaOrig) < 0.1;
+}
+
+// Спавн шипа (obstacle) – появляется только если в этой точке нет платформы
+function spawnObstacle() {
+  let spawnX = dinoCtx.canvas.width;
+  let overlap = platforms.some(plat => (plat.x < spawnX + obstacleWidth && plat.x + plat.width > spawnX));
+  if (!overlap) {
+    obstacles.push({
+      x: spawnX,
+      y: groundY - obstacleHeight,
+      width: obstacleWidth,
+      height: obstacleHeight,
+      type: 'deadly'
+    });
+  }
+}
+
+// Спавн платформы: создаётся набор из 1–3 кубов. В 70% случаев платформа на земле, в 30% – чуть приподнятая.
+function spawnPlatform() {
+  const blocksCount = Math.floor(Math.random() * 3) + 1;
+  let y;
+  if (Math.random() < 0.7) {
+    y = groundY - platformHeight;
+  } else {
+    y = groundY - platformHeight - (Math.random() * 100 * scale); // приподнятая платформа
+  }
+  const platformWidth = blocksCount * platformBlockSize;
+  platforms.push({
+    x: dinoCtx.canvas.width,
+    y: y,
+    width: platformWidth,
+    height: platformHeight,
+    blocks: blocksCount
+  });
+}
+
+// Спавн монеты: создаётся overlay для анимации монеты
+let coinCounter = 0;
+function spawnCoin() {
+  const offset = (50 + Math.random() * 100) * scale;
+  let coin = {
+    id: coinCounter++,
+    x: dinoCtx.canvas.width,
+    y: groundY - coinHeight - offset,
+    width: coinWidth,
+    height: coinHeight,
+    type: 'coin'
+  };
+  let coinOverlay = document.createElement("img");
+  coinOverlay.src = coinImg.src;
+  coinOverlay.style.position = "absolute";
+  coinOverlay.style.width = coinWidth + "px";
+  coinOverlay.style.height = coinHeight + "px";
+  coinOverlay.style.pointerEvents = "none";
+  coinOverlay.style.zIndex = "1";
+  let container = dinoCtx.canvas.parentElement;
+  container.appendChild(coinOverlay);
+  coin.overlay = coinOverlay;
+  coins.push(coin);
+}
+
+function dinoUpdate() {
+  const canvasWidth = dinoCtx.canvas.width;
+  
+  // Обновление фона (движется влево)
+  bgX -= obstacleSpeed / 2;
+  if (bgX <= -canvasWidth) bgX = 0;
+  
+  // Физика игрока
+  dinoY += velocityY;
+  velocityY += gravity * scale;
+  if (dinoY >= groundY - playerHeight) {
+    dinoY = groundY - playerHeight;
+    isJumping = false;
+    velocityY = 0;
+  }
+  
+  // Проверка столкновения с платформами (при падении)
+  if (velocityY >= 0) {
+    platforms.forEach(platform => {
+      if (dinoX + playerWidth > platform.x && dinoX < platform.x + platform.width) {
+        if (dinoY + playerHeight >= platform.y && dinoY + playerHeight - velocityY < platform.y) {
+          dinoY = platform.y - playerHeight;
+          velocityY = 0;
+          isJumping = false;
+        }
+      }
+    });
+  }
+  
+  frameCount++;
+  if (frameCount % 100 === 0) spawnObstacle();
+  if (frameCount % 150 === 0) spawnPlatform();
+  if (frameCount % 120 === 0) spawnCoin();
+  
+  obstacles.forEach(obs => { obs.x -= obstacleSpeed; });
+  platforms.forEach(plat => { plat.x -= obstacleSpeed; });
+  coins.forEach(coin => { coin.x -= obstacleSpeed; });
+  
+  localUserData.points++;
+  updateTopBar();
+  
+  // Проверка столкновения с шипами (если центральная нижняя точка игрока попадает в треугольник)
+  const playerCenterX = dinoX + playerWidth / 2;
+  const playerBottomY = dinoY + playerHeight;
+  obstacles.forEach(obs => {
+    const ax = obs.x, ay = obs.y + obs.height;
+    const bx = obs.x + obs.width / 2, by = obs.y;
+    const cx = obs.x + obs.width, cy = obs.y + obs.height;
+    if (pointInTriangle(playerCenterX, playerBottomY, ax, ay, bx, by, cx, cy)) {
+      showEndGameModal(
+        'Игра окончена',
+        `Вы врезались в препятствие!\nНабрано очков: ${localUserData.points}`
+      );
+      resetGame1();
+    }
+  });
+  
+  // Проверка подбора монет (прямоугольная коллизия)
+  coins = coins.filter(coin => {
+    if (
+      dinoX < coin.x + coin.width &&
+      dinoX + playerWidth > coin.x &&
+      dinoY < coin.y + coin.height &&
+      dinoY + playerHeight > coin.y
+    ) {
+      localUserData.coins = (localUserData.coins || 0) + 1;
+      updateTopBar();
+      if (coin.overlay && coin.overlay.parentElement) {
+        coin.overlay.parentElement.removeChild(coin.overlay);
+      }
+      return false;
+    }
+    return true;
+  });
+  
+  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+  platforms = platforms.filter(plat => plat.x + plat.width > 0);
+  coins = coins.filter(coin => coin.x + coin.width > 0);
+  
+  updateOverlays();
+}
+
+function dinoDraw() {
+  const canvasWidth = dinoCtx.canvas.width;
+  const canvasHeight = dinoCtx.canvas.height;
+  dinoCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+  
+  // Рисуем фон – только до уровня земли (без зазоров)
+  if (bgImg.complete) {
+    dinoCtx.drawImage(bgImg, bgX, 0, canvasWidth, groundY);
+    dinoCtx.drawImage(bgImg, bgX + canvasWidth, 0, canvasWidth, groundY);
+  } else {
+    dinoCtx.fillStyle = "#87CEEB";
+    dinoCtx.fillRect(0, 0, canvasWidth, groundY);
+  }
+  
+  // Рисуем платформы: для каждого куба отрисовываем текстуру или заливку, если текстура не загрузилась
+  platforms.forEach(platform => {
+    for (let i = 0; i < platform.blocks; i++) {
+      if (platformImg.complete) {
+        dinoCtx.drawImage(platformImg, platform.x + i * platformBlockSize, platform.y, platformBlockSize, platformHeight);
+      } else {
+        dinoCtx.fillStyle = "#8B4513";
+        dinoCtx.fillRect(platform.x + i * platformBlockSize, platform.y, platformBlockSize, platformHeight);
+      }
+    }
+  });
+  
+  // Рисуем шипы как чёрные треугольники
+  dinoCtx.fillStyle = 'black';
+  obstacles.forEach(obs => {
+    dinoCtx.beginPath();
+    dinoCtx.moveTo(obs.x, obs.y + obs.height);
+    dinoCtx.lineTo(obs.x + obs.width / 2, obs.y);
+    dinoCtx.lineTo(obs.x + obs.width, obs.y + obs.height);
+    dinoCtx.closePath();
+    dinoCtx.fill();
+  });
+  
+  // Рисуем землю (массивная, для ощущения возвышенности)
+  dinoCtx.fillStyle = '#555';
+  dinoCtx.fillRect(0, groundY, canvasWidth, groundHeight);
+}
+
+function dinoGameLoop() {
+  if (!dinoCtx) return;
+  dinoUpdate();
+  dinoDraw();
+  dinoInterval = requestAnimationFrame(dinoGameLoop);
+}
