@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -9,14 +9,13 @@
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  
+
   <!-- Подключение темы (по умолчанию st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
 
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
-
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -310,11 +309,8 @@
         <canvas id="specialGameCanvas" width="400" height="200" style="display: none;"></canvas>
         <!-- Canvas for Game 3 -->
     <canvas id="game3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-
-
         <!-- Canvas for Game 4: Space Explorer -->
       <canvas id="game4Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-
       </div>
     </div>
   </div>
@@ -451,7 +447,7 @@
       document.getElementById('gameInfoDesc').textContent = gameData.desc;
 
       const playBtn = document.getElementById('gameInfoPlayBtn');
-      playBtn.textContent = Играть (${gameData.cost} ticket);
+      playBtn.textContent = `Играть (${gameData.cost} ticket)`;
       playBtn.onclick = function() {
         closeGameInfoModal();
         handleStartGame(gameData.gameId, gameData.cost);
@@ -587,7 +583,7 @@
       let randomRotation = 1080 + Math.floor(Math.random() * 360); 
 
       const wheelEl = document.getElementById('wheel');
-      wheelEl.style.transform = rotate(${randomRotation}deg);
+      wheelEl.style.transform = `rotate(${randomRotation}deg)`;
 
       setTimeout(() => {
         let finalDeg = randomRotation % 360;
@@ -613,7 +609,7 @@
     }
 
     function showSpinModal(amount) {
-      document.getElementById("spinModalMessage").textContent = You won ${amount} tickets!;
+      document.getElementById("spinModalMessage").textContent = `You won ${amount} tickets!`;
       document.getElementById("spinModalBackdrop").classList.add("active");
     }
 
@@ -640,11 +636,11 @@
         if (currentUser && user.username === currentUser.username) {
           tr.classList.add('current-user');
         }
-        tr.innerHTML = 
+        tr.innerHTML = `
           <td>${i + 1}</td>
           <td>@${user.username}</td>
           <td>${user.points}</td>
-        ;
+        `;
         tbody.appendChild(tr);
       });
     });
