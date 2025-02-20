@@ -67,8 +67,11 @@
     <section id="playSection" class="section active main-games">
       <h2></h2>
 
-      <!-- ================== Main Games ================== -->
-      <h3>Main Games</h3>
+      <!-- ================== Мини Игры ================== -->
+      <h3>
+        Мини Игры 
+        <button class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
+      </h3>
       <div class="games-gallery">
         <!-- Карточка №1: Dino Runner -->
         <div class="game-card">
@@ -153,8 +156,8 @@
         </div>
       </div>
 
-      <!-- ================== Special Games ================== -->
-      <h3>Special Games</h3>
+      <!-- ================== Основные игры (Special Games) ================== -->
+      <h3>Основные игры (Special Games)</h3>
       <div class="games-gallery">
         <div class="game-card">
           <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png"
@@ -164,7 +167,7 @@
             gameId: 'specialgame1',
             title: 'Special Game',
             img: 'https://img.icons8.com/ios-filled/50/00FF00/flash-on.png',
-            desc: 'Особая игра с уникальными механиками.',
+            desc: 'Особая игра с 1 на 1 PvP-механикой и ставками в монетах.',
             cost: 1
           })">Подробнее</button>
         </div>
@@ -312,6 +315,7 @@
       <button onclick="closeGameInfoModal()">Закрыть</button>
     </div>
   </div>
+
   <!-- Spin Result Modal -->
   <div class="modal-backdrop" id="spinModalBackdrop">
     <div class="modal">
@@ -338,7 +342,7 @@
         <!-- Canvas for Game 4: Space Explorer -->
         <canvas id="game4Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
         <!-- Canvas for Game 5 -->
-         <canvas id="game5Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+        <canvas id="game5Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
         <!-- Canvas for Game 6 -->
         <canvas id="game6Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
       </div>
@@ -354,7 +358,29 @@
     </div>
   </div>
 
-  <!-- === Новое модальное окно для результата вращения колеса === -->
+  <!-- === Новое модальное окно для информации о мини-играх === -->
+  <div class="modal-backdrop" id="miniGamesInfoModal">
+    <div class="modal">
+      <h2>Информация о мини-играх</h2>
+      <p>
+        Игроки участвуют в мини-играх, зарабатывая очки за свою активность.
+        Раз в 3 дня топ-10 игроки в лидерборде получают кейсы с наградами.
+      </p>
+      <button onclick="closeMiniGamesInfoModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- === Модальное окно для пополнения баланса (если нет монет) === -->
+  <div class="modal-backdrop" id="depositModal">
+    <div class="modal">
+      <h2>Недостаточно монет</h2>
+      <p>У вас недостаточно монет для участия. Пожалуйста, пополните баланс.</p>
+      <!-- Кнопка / ссылка для пополнения или просто закрыть -->
+      <button onclick="closeDepositModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- === Новое модальное окно результата вращения колеса (необязательное) === -->
   <div class="modal-backdrop" id="wheelResultModal">
     <div class="modal">
       <h2>Вы выиграли <span id="wheelTicketCount"></span> билетов!</h2>
@@ -371,6 +397,8 @@
   <script src="game4.js"></script>
   <script src="game5.js"></script>
   <script src="game6.js"></script>
+  <!-- Подключаем скрипт с наградами (кейсы) -->
+  <script src="case.js"></script>
 
   <script>
     /* ----------------------------------------------
@@ -607,7 +635,7 @@
     }
 
     /* ----------------------------------------------
-       11. Wheel of Fortune / Tickets (обновлённая логика)
+       11. Wheel of Fortune / Tickets
     ---------------------------------------------- */
     let spinDuration = 4000; // 4 секунды, совпадает с CSS transition
 
@@ -721,6 +749,33 @@
     function changeDesign(theme) {
       document.getElementById('themeStylesheet').setAttribute('href', theme);
       toggleDesignMenu();
+    }
+
+    /* ----------------------------------------------
+       15. Модалка мини-игр
+    ---------------------------------------------- */
+    function openMiniGamesInfoModal() {
+      document.getElementById('miniGamesInfoModal').classList.add('active');
+    }
+    function closeMiniGamesInfoModal() {
+      document.getElementById('miniGamesInfoModal').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       16. Модалка депозита (если нет монет)
+    ---------------------------------------------- */
+    function openDepositModal() {
+      document.getElementById('depositModal').classList.add('active');
+    }
+    function closeDepositModal() {
+      document.getElementById('depositModal').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       17. (опционально) Колесо результатов
+    ---------------------------------------------- */
+    function closeWheelResult() {
+      document.getElementById("wheelResultModal").classList.remove('active');
     }
   </script>
 </body>
