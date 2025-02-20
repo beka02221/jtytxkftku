@@ -741,6 +741,6 @@ function setupSwipeControls(canvas) {
 // Дополнительно: случайный цвет (если понадобится)
 ////////////////////////
 function getRandomSnakeColor() {
-  const colors = ['#ff1493', '#f0f', '#ff0', '#0ff', '#84c3be', '#32cd32'];
+  const colors = ['#ff1493', '#f0f', '#ff0', '#0ff', '#84c3be', '#ffbcad'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
