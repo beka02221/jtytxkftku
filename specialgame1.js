@@ -67,7 +67,7 @@ function initSpecialGame1() {
   sg1_ctx    = sg1_canvas.getContext('2d');
 
   // Стили "Матрицы": чёрный фон, зелёные тексты
-  sg1_canvas.style.backgroundColor = '#000';
+  sg1_canvas.style.backgroundColor = '#5a0075';
   sg1_ctx.textAlign = 'center';
   sg1_ctx.fillStyle = '#0f0';
   sg1_ctx.font = '10px "Press Start 2P", monospace';
@@ -336,8 +336,8 @@ function createReadyButton() {
   sg1_readyButton.style.padding = '10px 20px';
   sg1_readyButton.style.fontFamily = '"Press Start 2P", monospace';
   sg1_readyButton.style.fontSize = '14px';
-  sg1_readyButton.style.color = '#0f0';
-  sg1_readyButton.style.backgroundColor = '#000';
+  sg1_readyButton.style.color = '#ffffff';
+  sg1_readyButton.style.backgroundColor = '#543964';
   sg1_readyButton.style.border = '2px solid #0f0';
   sg1_readyButton.style.borderRadius = '8px';
   sg1_readyButton.style.cursor = 'pointer';
