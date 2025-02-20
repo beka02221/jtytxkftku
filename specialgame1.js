@@ -744,3 +744,4 @@ function getRandomSnakeColor() {
   const colors = ['#ff1493', '#f0f', '#ff0', '#0ff', '#84c3be', '#ffbcad'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
+
