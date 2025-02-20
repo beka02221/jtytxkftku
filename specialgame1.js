@@ -1,79 +1,96 @@
 /********************************************************
   specialgame1.js
 
-  Изменения по сравнению с предыдущим:
-    - Уменьшен BALL_SPEED (примерно в 2 раза)
-    - Убрано случайное направление при старте:
-      вместо этого мяч стоит, пока владелец его не "толкнёт".
-    - Реализован флик (свайп) по мячу для запуска:
-      если мяч не движется и вы владелец,
-      касание начинается на мяче -> при отрыве
-      вычисляем вектор и даём мячу скорость.
-    - Если касание НЕ на мяче, или вы не владелец,
-      то двигается ваша шайба (как раньше).
+  Онлайн-игра «Змейка» в стиле «Матрицы» с поиском соперника:
+  - Экран ожидания с тёмным фоном и пиксельным шрифтом.
+  - После нахождения соперника появляется кнопка "Приготовиться".
+  - Когда оба игрока готовы, на тёмном экране зелёными цифрами 
+    (5,4,3,2,1) идёт обратный отсчёт, затем игра начинается.
+  - Управление осуществляется свайпами: смена направления змейки.
+  - Каждая змейка имеет свой цвет; яблоки появляются красными.
+  - Имя соперника выводится над его змейкой и следует за ней.
+  - Если змейка сталкивается с краями, со своим хвостом или со змейкой соперника – проигрыш.
+  
+  Для корректной работы предполагается, что глобально заданы:
+    • db              – firebase.database()
+    • currentUser     – объект пользователя (свойство username)
+    • showEndGameModal(title, message) – функция показа окна результата
+    • finishGame()    – функция завершения игры
+    • В HTML имеется <canvas id="specialGameCanvas" width="400" height="600"></canvas>
+  
+  Структура данных в Firebase (пример):
+  games/specialgame1/rooms/<roomKey> = {
+    status: "waiting" | "ready" | "countdown" | "playing" | "finished",
+    countdownValue: 5,  // при статусе "countdown"
+    ready: { player1: false, player2: false },
+    apple: { x: 200, y: 200 },
+    player1: {
+      username: "User1",
+      color: "#00FF00",
+      direction: "right",   // "up", "down", "left", "right"
+      snake: [ {x, y}, {x, y}, ... ], // массив сегментов
+      alive: true
+    },
+    player2: {
+      username: "User2",
+      color: "#FFFF00",
+      direction: "left",
+      snake: [ {x, y}, {x, y}, ... ],
+      alive: true
+    }
+  }
 ********************************************************/
-
-/* 
-  Предполагаем, что глобально у нас есть:
-  - db              : firebase.database()
-  - currentUser     : объект {username, ...}
-  - userRef         : firebase-ссылка на /users/<username>
-  - localUserData   : {photo, tickets, coins, points}
-  - showEndGameModal(title, msg)
-  - finishGame()
-
-  HTML:
-    <canvas id="specialGameCanvas" width="400" height="650"></canvas>
-*/
 
 /********************************************************
   ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 ********************************************************/
 let specialGameCanvas;
 let specialCtx;
-let specialGameRoomRef = null;
-let specialGameKey     = null;
-let localPlayerId      = null;    // 'player1' или 'player2'
-let gameState          = null;    // Данные из Firebase
-let animationFrameId   = null;
 
-// Размеры поля (canvas)
+let specialGameRoomRef = null;   // Ссылка на комнату в Firebase
+let specialGameKey = null;       // Идентификатор комнаты
+let localPlayerId = null;        // "player1" или "player2"
+let gameState = null;            // Текущее состояние игры (из Firebase)
+let animationFrameId = null;     // Для requestAnimationFrame
+
+// Размеры игрового поля (canvas)
 const FIELD_WIDTH  = 400;
-const FIELD_HEIGHT = 650;
-const MIDDLE_LINE  = FIELD_HEIGHT / 2;
+const FIELD_HEIGHT = 600;  // можно изменить по необходимости
 
-// Параметры шайбы (игрока)
-const PLAYER_RADIUS = 30;
+// Размер сегмента змейки (ширина/высота)
+const CELL_SIZE = 20;
 
-// Параметры мяча
-const BALL_RADIUS = 15;
-// Базовая макс. скорость (ниже, чем раньше)
-const BALL_SPEED  = 3;
+// Интервал обновления змейки (в мс)
+const GAME_SPEED = 150;  // примерно 150 мс между шагами
 
-// Время отсчёта (если нужно 5 секунд до начала)
-let countdownInterval = null; // Счётчик
+// Для обратного отсчёта
+let countdownInterval = null;
 
-// Переменные для "флика" (запуска мяча)
-let isFlickingBall  = false;   // мы начали касание по мячу?
-let flickStartX     = 0;       // начальная точка
-let flickStartY     = 0;       
-let flickStartTime  = 0;       // для расчёта силы (при желании)
+// Переменные для определения свайпа
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX   = 0;
+let touchEndY   = 0;
 
 /********************************************************
-  ИНИЦИАЛИЗАЦИЯ
+  ИНИЦИАЛИЗАЦИЯ ИГРЫ
 ********************************************************/
 function initSpecialGame1() {
   specialGameCanvas = document.getElementById("specialGameCanvas");
   specialCtx = specialGameCanvas.getContext("2d");
 
+  // Поиск или создание комнаты
   findOrCreateRoom()
     .then(() => {
+      // Добавляем обработчики свайпов для управления
       addTouchListeners();
+      // Слушаем изменения в комнате (Firebase)
       listenToGameRoom();
+      // Запускаем цикл анимации (игровой цикл)
       startGameLoop();
     })
     .catch(err => {
-      console.error("Ошибка при инициализации игры:", err);
+      console.error("Ошибка при инициализации комнаты:", err);
     });
 }
 
@@ -83,7 +100,7 @@ function initSpecialGame1() {
 async function findOrCreateRoom() {
   const roomsRef = db.ref("games/specialgame1/rooms");
 
-  // Поищем комнату "waiting"
+  // Поищем комнату со статусом "waiting"
   const snapshot = await roomsRef.orderByChild("status").equalTo("waiting").once("value");
   const roomsData = snapshot.val() || {};
 
@@ -96,413 +113,313 @@ async function findOrCreateRoom() {
   }
 
   if (foundRoomKey) {
-    // Подключаемся как player2
+    // Присоединяемся как player2
     specialGameKey = foundRoomKey;
     specialGameRoomRef = roomsRef.child(specialGameKey);
-
-    // Запускаем отсчёт 5 сек
+    // Обновляем: задаём player2 и переход в режим "ready"
     await specialGameRoomRef.update({
       "player2/username": currentUser.username,
-      status: "countdown",
-      countdownValue: 5
+      ready: { player1: false, player2: false },
+      status: "ready"
     });
     localPlayerId = "player2";
-
   } else {
-    // Создаём новую
+    // Создаём новую комнату, присваиваем себе player1
     specialGameKey = roomsRef.push().key;
     specialGameRoomRef = roomsRef.child(specialGameKey);
 
-    // Рандом, кто будет владельцем мяча
-    const startWithBall = Math.random() < 0.5 ? "player1" : "player2";
+    // Задаём начальное состояние комнаты:
+    // — статус "waiting" (ожидание соперника)
+    // — пустой объект ready
+    // — яблоко в случайном месте
+    // — змейки: стартовые позиции, направление, длина 3 сегмента
+    const startX = Math.floor(FIELD_WIDTH / 2 / CELL_SIZE) * CELL_SIZE;
+    const startY1 = FIELD_HEIGHT - CELL_SIZE * 3;  // player1 снизу
+    const startY2 = CELL_SIZE * 2;                   // player2 сверху
 
-    const initData = {
-      status: "waiting", 
+    const initialState = {
+      status: "waiting",
       countdownValue: 0,
-      ball: {
-        x: FIELD_WIDTH / 2,
-        y: FIELD_HEIGHT / 2,
-        vx: 0,
-        vy: 0
+      ready: { player1: false, player2: false },
+      apple: {
+        x: Math.floor(Math.random() * (FIELD_WIDTH / CELL_SIZE)) * CELL_SIZE,
+        y: Math.floor(Math.random() * (FIELD_HEIGHT / CELL_SIZE)) * CELL_SIZE
       },
       player1: {
         username: currentUser.username,
-        x: FIELD_WIDTH / 2,
-        y: FIELD_HEIGHT - 80,
-        score: 0
+        color: "#00FF00",  // зеленая змейка
+        direction: "right",
+        snake: [
+          { x: startX, y: startY1 },
+          { x: startX - CELL_SIZE, y: startY1 },
+          { x: startX - 2 * CELL_SIZE, y: startY1 }
+        ],
+        alive: true
       },
       player2: {
         username: "",
-        x: FIELD_WIDTH / 2,
-        y: 80,
-        score: 0
-      },
-      startWithBall: startWithBall
+        color: "#FFFF00",  // жёлтая змейка
+        direction: "left",
+        snake: [
+          { x: startX, y: startY2 },
+          { x: startX + CELL_SIZE, y: startY2 },
+          { x: startX + 2 * CELL_SIZE, y: startY2 }
+        ],
+        alive: true
+      }
     };
-    await specialGameRoomRef.set(initData);
+
+    await specialGameRoomRef.set(initialState);
     localPlayerId = "player1";
   }
 }
 
 /********************************************************
-  ПРОСЛУШКА Firebase
+  СЛУШАТЕЛЬ ИЗМЕНЕНИЙ В КОМНАТЕ (Firebase)
 ********************************************************/
 function listenToGameRoom() {
   if (!specialGameRoomRef) return;
-
   specialGameRoomRef.on("value", (snapshot) => {
     if (!snapshot.exists()) return;
     gameState = snapshot.val();
 
-    checkForWinCondition();
-
-    // Если player1 и status="countdown", запускаем локальный отсчёт
-    if (localPlayerId === "player1" && gameState.status === "countdown") {
-      if (!countdownInterval) {
-        startCountdownTimer();
+    // Если комната в статусе "ready", показываем кнопку "Приготовиться"
+    // (Эту кнопку можно реализовать вне canvas в HTML)
+    // Если оба игрока нажали, обновляем статус в Firebase в "countdown"
+    // (Обработку готовности запускает игрок, у которого localPlayerId === "player1")
+    // Если статус "countdown", запускаем обратный отсчёт
+    if (gameState.status === "ready") {
+      // Если оба уже готовы – переведём статус в "countdown"
+      if (gameState.ready.player1 && gameState.ready.player2) {
+        specialGameRoomRef.update({ status: "countdown", countdownValue: 5 });
       }
     }
+
+    // Если статус "playing", запускается игровой процесс (в gameLoop)
+    checkForWinCondition();
   });
 }
 
 /********************************************************
-  ОТСЧЁТ 5 СЕК
+  ОБРАТНЫЙ ОТСЧЁТ (5-1)
 ********************************************************/
 function startCountdownTimer() {
   countdownInterval = setInterval(() => {
-    const currentValue = (gameState && gameState.countdownValue) || 0;
-    if (currentValue <= 1) {
+    const curVal = (gameState && gameState.countdownValue) || 0;
+    if (curVal <= 1) {
       clearInterval(countdownInterval);
       countdownInterval = null;
-      // Ставим 0 и статус "playing"
-      specialGameRoomRef.update({
-        countdownValue: 0,
-        status: "playing"
-      });
+      specialGameRoomRef.update({ countdownValue: 0, status: "playing" });
     } else {
-      specialGameRoomRef.update({
-        countdownValue: currentValue - 1
-      });
+      specialGameRoomRef.update({ countdownValue: curVal - 1 });
     }
   }, 1000);
 }
 
 /********************************************************
-  ПРОВЕРКА ПОБЕДЫ (3 гола)
+  РЕЖИМ ГОТОВНОСТИ (Нажатие кнопки "Приготовиться")
 ********************************************************/
-function checkForWinCondition() {
-  if (!gameState || !gameState.player1 || !gameState.player2) return;
-  const score1 = gameState.player1.score;
-  const score2 = gameState.player2.score;
-
-  if (score1 >= 3 || score2 >= 3) {
-    let title, msg;
-    if (score1 > score2) {
-      title = "Победа!";
-      msg   = `${gameState.player1.username} выиграл со счётом ${score1}:${score2}`;
-    } else {
-      title = "Победа!";
-      msg   = `${gameState.player2.username} выиграл со счётом ${score2}:${score1}`;
-    }
-    if (specialGameRoomRef && gameState.status !== "finished") {
-      specialGameRoomRef.update({ status: "finished" });
-    }
-    showEndGameModal(title, msg);
-  }
-}
-
-/********************************************************
-  ЦИКЛ АНИМАЦИИ
-********************************************************/
-function startGameLoop() {
-  function gameLoop() {
-    // Двигаем мяч (только player1) если status="playing"
-    if (localPlayerId === "player1" && gameState && gameState.status === "playing") {
-      updateBallPosition();
-      detectCollisions();
-    }
-
-    render();
-    animationFrameId = requestAnimationFrame(gameLoop);
-  }
-  animationFrameId = requestAnimationFrame(gameLoop);
-}
-
-/********************************************************
-  ОБНОВЛЕНИЕ МЯЧА (Только у player1)
-********************************************************/
-function updateBallPosition() {
+function onReadyButtonPressed() {
+  // Вызывается при нажатии кнопки "Приготовиться"
   if (!specialGameRoomRef || !gameState) return;
-  if (gameState.status !== "playing") return;
-
-  const ball = gameState.ball;
-  if (!ball) return;
-
-  let { x, y, vx, vy } = ball;
-  if (vx === 0 && vy === 0) return; // мяч не двигается
-
-  x += vx;
-  y += vy;
-
-  // Проверка гола
-  if (y < 0) {
-    // Гол player1
-    const newScore = (gameState.player1.score || 0) + 1;
-    specialGameRoomRef.child("player1").update({ score: newScore });
-    resetBall("player1");
-    return;
-  }
-  if (y > FIELD_HEIGHT) {
-    // Гол player2
-    const newScore = (gameState.player2.score || 0) + 1;
-    specialGameRoomRef.child("player2").update({ score: newScore });
-    resetBall("player2");
-    return;
-  }
-
-  // Отскоки слева/справа
-  if (x < BALL_RADIUS) {
-    x = BALL_RADIUS;
-    vx = -vx;
-  }
-  if (x > FIELD_WIDTH - BALL_RADIUS) {
-    x = FIELD_WIDTH - BALL_RADIUS;
-    vx = -vx;
-  }
-
-  // Обновим в БД
-  specialGameRoomRef.child("ball").update({ x, y, vx, vy });
+  // Обновляем готовность для своего игрока
+  const update = {};
+  update["ready/" + localPlayerId] = true;
+  specialGameRoomRef.update(update);
+  // Если localPlayerId === "player1" и оба готовы, то можно запустить обратный отсчёт
+  // Остальные клиенты увидят обновление через listenToGameRoom
 }
 
 /********************************************************
-  СБРОС МЯЧА ПОСЛЕ ГОЛА
+  ИГРОВОЙ ЦИКЛ
 ********************************************************/
-function resetBall(scoringPlayerId) {
-  if (!specialGameRoomRef || !gameState) return;
-  // Ставим мяч по центру, останавливаем
-  specialGameRoomRef.child("ball").update({
-    x: FIELD_WIDTH / 2,
-    y: FIELD_HEIGHT / 2,
-    vx: 0,
-    vy: 0
-  });
-  // Владение переходит к другому
-  const nextOwner = (scoringPlayerId === "player1") ? "player2" : "player1";
-  specialGameRoomRef.update({ startWithBall: nextOwner });
+let lastUpdateTime = 0;
+function startGameLoop(timestamp) {
+  // Если статус не "playing", продолжаем анимацию, но не двигаем змейки
+  if (!lastUpdateTime) lastUpdateTime = timestamp;
+  const delta = timestamp - lastUpdateTime;
+
+  if (gameState && gameState.status === "playing" && delta > GAME_SPEED) {
+    // Для каждого игрока обновляем позицию змейки, если он alive
+    updateSnake("player1");
+    updateSnake("player2");
+
+    // Проверяем столкновения
+    checkCollisions();
+
+    lastUpdateTime = timestamp;
+  }
+
+  render();
+  animationFrameId = requestAnimationFrame(startGameLoop);
 }
 
 /********************************************************
-  СТОЛКНОВЕНИЯ МЯЧА С ИГРОКАМИ
+  ОБНОВЛЕНИЕ ЗМЕЙКИ
 ********************************************************/
-function detectCollisions() {
+function updateSnake(playerId) {
+  if (!gameState || !gameState[playerId] || !gameState[playerId].alive) return;
+
+  const snake = gameState[playerId].snake;
+  const direction = gameState[playerId].direction;
+  const head = snake[0];
+
+  // Вычисляем новую голову
+  let newHead = { x: head.x, y: head.y };
+  if (direction === "up") newHead.y -= CELL_SIZE;
+  else if (direction === "down") newHead.y += CELL_SIZE;
+  else if (direction === "left") newHead.x -= CELL_SIZE;
+  else if (direction === "right") newHead.x += CELL_SIZE;
+
+  // Добавляем новую голову в начало массива
+  const newSnake = [newHead, ...snake];
+
+  // Если яблоко съедено, не удаляем хвост
+  if (newHead.x === gameState.apple.x && newHead.y === gameState.apple.y) {
+    // Пересоздаём яблоко в случайном месте
+    const newApple = {
+      x: Math.floor(Math.random() * (FIELD_WIDTH / CELL_SIZE)) * CELL_SIZE,
+      y: Math.floor(Math.random() * (FIELD_HEIGHT / CELL_SIZE)) * CELL_SIZE
+    };
+    specialGameRoomRef.update({ apple: newApple });
+  } else {
+    // Иначе удаляем последний сегмент
+    newSnake.pop();
+  }
+
+  // Обновляем змейку в Firebase
+  const update = {};
+  update[playerId + "/snake"] = newSnake;
+  specialGameRoomRef.update(update);
+}
+
+/********************************************************
+  ПРОВЕРКА СТОЛКНОВЕНИЙ
+********************************************************/
+function checkCollisions() {
   if (!gameState) return;
-  checkCollisionWithPlayer("player1");
-  checkCollisionWithPlayer("player2");
-}
 
-function checkCollisionWithPlayer(playerId) {
-  const ball = gameState.ball;
-  const player = gameState[playerId];
-  if (!ball || !player) return;
+  // Для каждого игрока проверяем столкновения
+  ["player1", "player2"].forEach((playerId) => {
+    const player = gameState[playerId];
+    if (!player || !player.alive) return;
+    const head = player.snake[0];
 
-  const dx = ball.x - player.x;
-  const dy = ball.y - player.y;
-  const dist = Math.sqrt(dx*dx + dy*dy);
+    // Проверка на столкновение со стенами
+    if (head.x < 0 || head.x >= FIELD_WIDTH || head.y < 0 || head.y >= FIELD_HEIGHT) {
+      onPlayerLose(playerId);
+    }
 
-  if (dist < (BALL_RADIUS + PLAYER_RADIUS)) {
-    // Столкнулись
-    const overlap = (BALL_RADIUS + PLAYER_RADIUS) - dist;
-    const nx = dx / dist;
-    const ny = dy / dist;
+    // Столкновение с собственным хвостом
+    for (let i = 1; i < player.snake.length; i++) {
+      if (head.x === player.snake[i].x && head.y === player.snake[i].y) {
+        onPlayerLose(playerId);
+      }
+    }
 
-    let newBallX = ball.x + nx * overlap;
-    let newBallY = ball.y + ny * overlap;
-
-    let vx = ball.vx;
-    let vy = ball.vy;
-
-    // Отражение
-    const dot = vx*nx + vy*ny;
-    vx = vx - 2*dot*nx;
-    vy = vy - 2*dot*ny;
-
-    // Чуть увеличим
-    vx *= 1.05;
-    vy *= 1.05;
-
-    specialGameRoomRef.child("ball").update({
-      x: newBallX,
-      y: newBallY,
-      vx, vy
-    });
-  }
+    // Столкновение с противником
+    const otherPlayerId = (playerId === "player1") ? "player2" : "player1";
+    const other = gameState[otherPlayerId];
+    if (other && other.alive) {
+      // Если голова игрока пересекается с любым сегментом змейки противника
+      other.snake.forEach(segment => {
+        if (head.x === segment.x && head.y === segment.y) {
+          onPlayerLose(playerId);
+        }
+      });
+    }
+  });
 }
 
 /********************************************************
-  ОТРИСОВКА
+  ОБРАБОТКА ПРОИГРЫША
+********************************************************/
+function onPlayerLose(playerId) {
+  // Если игрок проиграл, помечаем его как не alive
+  const update = {};
+  update[playerId + "/alive"] = false;
+  specialGameRoomRef.update(update);
+  // И показываем окно результата (победитель – другой)
+  let winner = (playerId === "player1") ? gameState.player2.username : gameState.player1.username;
+  showEndGameModal("Проигрыш", `Вы проиграли! Победил ${winner}`);
+}
+
+/********************************************************
+  РИСОВКА (Render)
 ********************************************************/
 function render() {
-  if (!gameState) {
-    // Нет ничего
+  // Рисуем тёмный фон с эффектом "Матрицы"
+  specialCtx.fillStyle = "#000";
+  specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+
+  // Если статус "waiting" – экран ожидания
+  if (gameState && gameState.status === "waiting") {
+    specialCtx.fillStyle = "#0F0";
+    specialCtx.font = "24px 'Press Start 2P', monospace";
+    specialCtx.textAlign = "center";
+    specialCtx.fillText("Поиск соперника...", FIELD_WIDTH/2, FIELD_HEIGHT/2);
+    return;
+  }
+
+  // Если статус "ready" – показываем кнопку "Приготовиться"
+  if (gameState && gameState.status === "ready") {
+    specialCtx.fillStyle = "#0F0";
+    specialCtx.font = "24px 'Press Start 2P', monospace";
+    specialCtx.textAlign = "center";
+    specialCtx.fillText("Нажмите 'Приготовиться'", FIELD_WIDTH/2, FIELD_HEIGHT/2);
+    return;
+  }
+
+  // Если статус "countdown" – показываем обратный отсчёт
+  if (gameState && gameState.status === "countdown") {
     specialCtx.fillStyle = "#000";
     specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+    specialCtx.fillStyle = "#0F0";
+    specialCtx.font = "60px 'Press Start 2P', monospace";
+    specialCtx.textAlign = "center";
+    specialCtx.fillText(String(gameState.countdownValue), FIELD_WIDTH/2, FIELD_HEIGHT/2);
     return;
   }
 
-  // Статусы
-  if (gameState.status === "waiting") {
-    drawWaitingScreen();
-    return;
-  }
-  if (gameState.status === "countdown") {
-    drawCountdownScreen();
-    return;
-  }
-  if (gameState.status === "finished") {
-    drawFinishedScreen();
+  // Если статус "finished"
+  if (gameState && gameState.status === "finished") {
+    specialCtx.fillStyle = "rgba(0,0,0,0.7)";
+    specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+    specialCtx.fillStyle = "#0F0";
+    specialCtx.font = "30px 'Press Start 2P', monospace";
+    specialCtx.textAlign = "center";
+    specialCtx.fillText("Игра завершена", FIELD_WIDTH/2, FIELD_HEIGHT/2);
     return;
   }
 
-  // Иначе playing
-  specialCtx.fillStyle = "#000";
-  specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-  drawField();
-  drawPlayers();
-  drawBall();
-  drawScore();
-}
-
-/********************************************************
-  ЭКРАН ОЖИДАНИЯ
-********************************************************/
-function drawWaitingScreen() {
-  specialCtx.fillStyle = "#000";
-  specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-  specialCtx.fillStyle = "#FFF";
-  specialCtx.font = "24px Arial";
-  specialCtx.textAlign = "center";
-  specialCtx.fillText("Поиск соперника...", FIELD_WIDTH/2, FIELD_HEIGHT/2);
-}
-
-/********************************************************
-  ЭКРАН ОТСЧЁТА
-********************************************************/
-function drawCountdownScreen() {
-  specialCtx.fillStyle = "#000";
-  specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-  
-  // (По желанию) Рисуем поле/игроков:
-  drawField();
-  drawPlayers();
-  drawBall();
-  drawScore();
-
-  // Поверх — цифра
-  const val = gameState.countdownValue || 0;
-  specialCtx.fillStyle = "#FFF";
-  specialCtx.font = "60px Arial";
-  specialCtx.textAlign = "center";
-  specialCtx.fillText(String(val), FIELD_WIDTH/2, FIELD_HEIGHT/2);
-}
-
-/********************************************************
-  ЭКРАН ИГРА ЗАВЕРШЕНА
-********************************************************/
-function drawFinishedScreen() {
-  drawField();
-  drawPlayers();
-  drawBall();
-  drawScore();
-  // Тёмная плашка
-  specialCtx.fillStyle = "rgba(0,0,0,0.7)";
-  specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-  specialCtx.fillStyle = "#FFF";
-  specialCtx.font = "30px Arial";
-  specialCtx.textAlign = "center";
-  specialCtx.fillText("Игра завершена", FIELD_WIDTH/2, FIELD_HEIGHT/2);
-}
-
-/********************************************************
-  РИСУЕМ ПОЛЕ
-********************************************************/
-function drawField() {
-  specialCtx.strokeStyle = "#FFF";
-  specialCtx.lineWidth = 3;
-  specialCtx.strokeRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-  // Средняя линия
-  specialCtx.beginPath();
-  specialCtx.moveTo(0, MIDDLE_LINE);
-  specialCtx.lineTo(FIELD_WIDTH, MIDDLE_LINE);
-  specialCtx.stroke();
-}
-
-/********************************************************
-  РИСУЕМ ИГРОКОВ
-********************************************************/
-function drawPlayers() {
-  const p1 = gameState.player1;
-  const p2 = gameState.player2;
-
-  // player1 (нижний)
-  if (p1) {
-    specialCtx.fillStyle = "#00FF00";
-    specialCtx.beginPath();
-    specialCtx.arc(p1.x, p1.y, PLAYER_RADIUS, 0, Math.PI*2);
-    specialCtx.fill();
-
-    // Имя снизу
-    if (p1.username) {
-      specialCtx.fillStyle = "#FFF";
-      specialCtx.font = "16px Arial";
-      specialCtx.textAlign = "center";
-      specialCtx.fillText(p1.username, FIELD_WIDTH/2, FIELD_HEIGHT - 10);
-    }
+  // Статус "playing": рисуем яблоко, змейки и имя соперника над его головой
+  // Рисуем яблоко (красное)
+  if (gameState && gameState.apple) {
+    specialCtx.fillStyle = "#F00";
+    specialCtx.fillRect(gameState.apple.x, gameState.apple.y, CELL_SIZE, CELL_SIZE);
   }
 
-  // player2 (верхний)
-  if (p2) {
-    specialCtx.fillStyle = "#FFFF00";
-    specialCtx.beginPath();
-    specialCtx.arc(p2.x, p2.y, PLAYER_RADIUS, 0, Math.PI*2);
-    specialCtx.fill();
-
-    // Имя сверху
-    if (p2.username) {
-      specialCtx.fillStyle = "#FFF";
-      specialCtx.font = "16px Arial";
-      specialCtx.textAlign = "center";
-      specialCtx.fillText(p2.username, FIELD_WIDTH/2, 20);
-    }
-  }
+  // Рисуем змейки
+  ["player1", "player2"].forEach(playerId => {
+    const player = gameState[playerId];
+    if (!player) return;
+    // Рисуем каждую клетку змейки
+    specialCtx.fillStyle = player.color;
+    player.snake.forEach((segment, index) => {
+      specialCtx.fillRect(segment.x, segment.y, CELL_SIZE, CELL_SIZE);
+      // Если это голова, и это не наш игрок, выводим его username над головой
+      if (index === 0 && playerId !== localPlayerId && player.username) {
+        specialCtx.fillStyle = "#0F0";
+        specialCtx.font = "16px 'Press Start 2P', monospace";
+        specialCtx.textAlign = "center";
+        specialCtx.fillText(player.username, segment.x + CELL_SIZE/2, segment.y - 5);
+      }
+    });
+  });
 }
 
 /********************************************************
-  РИСУЕМ МЯЧ
-********************************************************/
-function drawBall() {
-  const ball = gameState.ball;
-  if (!ball) return;
-
-  specialCtx.fillStyle = "#FF0000";
-  specialCtx.beginPath();
-  specialCtx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI*2);
-  specialCtx.fill();
-}
-
-/********************************************************
-  РИСУЕМ СЧЁТ
-********************************************************/
-function drawScore() {
-  const s1 = gameState.player1.score || 0;
-  const s2 = gameState.player2.score || 0;
-  specialCtx.fillStyle = "#FFF";
-  specialCtx.font = "24px Arial";
-  specialCtx.textAlign = "center";
-  specialCtx.fillText(`${s2} : ${s1}`, FIELD_WIDTH/2, FIELD_HEIGHT/2 - 10);
-}
-
-/********************************************************
-  TOUCH УПРАВЛЕНИЕ
+  УПРАВЛЕНИЕ СВАЙПАМИ (Touch Events)
 ********************************************************/
 function addTouchListeners() {
   if (!specialGameCanvas) return;
@@ -511,144 +428,59 @@ function addTouchListeners() {
   specialGameCanvas.addEventListener("touchend", onTouchEnd, false);
 }
 
-/********************************************************
-  TOUCH START
-********************************************************/
 function onTouchStart(e) {
   e.preventDefault();
-  if (!gameState) return;
-
   const touch = e.touches[0];
-  const rect = specialGameCanvas.getBoundingClientRect();
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-
-  // Проверяем, не хотим ли мы "запустить мяч"
-  // Условия:
-  //   1) Мы владелец мяча (gameState.startWithBall == localPlayerId)
-  //   2) Мяч не двигается (vx=0, vy=0)
-  //   3) Касание близко к мячу (dist <= BALL_RADIUS)
-  if (gameState.status === "playing" || gameState.status === "countdown") {
-    const ball = gameState.ball;
-    if (gameState.startWithBall === localPlayerId && ball && ball.vx === 0 && ball.vy === 0) {
-      const dx = x - ball.x;
-      const dy = y - ball.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist <= BALL_RADIUS) {
-        // Начинаем флик по мячу
-        isFlickingBall = true;
-        flickStartX = x;
-        flickStartY = y;
-        flickStartTime = performance.now();
-        return; // выходим, не двигаем шайбу
-      }
-    }
-  }
-
-  // Иначе — двигаем шайбу игрока, если статус позволяет
-  movePlayerTo(x, y);
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
 }
 
-/********************************************************
-  TOUCH MOVE
-********************************************************/
 function onTouchMove(e) {
+  // Здесь можно добавить визуальный эффект, если нужно
   e.preventDefault();
-  if (!gameState) return;
-
-  const touch = e.touches[0];
-  const rect = specialGameCanvas.getBoundingClientRect();
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-
-  if (isFlickingBall) {
-    // Пока "тянем" для будущего флика, можем ничего не делать
-    // или можно визуально показать линию. Сейчас — пропускаем.
-    return;
-  }
-
-  // Иначе двигаем свою шайбу
-  movePlayerTo(x, y);
 }
 
-/********************************************************
-  TOUCH END
-********************************************************/
 function onTouchEnd(e) {
   e.preventDefault();
-  if (!gameState) return;
+  const touch = e.changedTouches[0];
+  touchEndX = touch.clientX;
+  touchEndY = touch.clientY;
 
-  // Если мы фликали мяч
-  if (isFlickingBall) {
-    const touch = e.changedTouches[0]; // touchend
-    const rect = specialGameCanvas.getBoundingClientRect();
-    const endX = touch.clientX - rect.left;
-    const endY = touch.clientY - rect.top;
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
 
-    // Рассчитываем вектор
-    const dx = endX - flickStartX;
-    const dy = endY - flickStartY;
-    const dt = performance.now() - flickStartTime; // мс
-
-    // Можно рассчитывать скорость от длины свайпа.
-    // Для упрощения: scale = 0.01 (поиграйте с цифрой)
-    const scale = 0.01;
-    let vx = dx * scale;
-    let vy = dy * scale;
-
-    // Ограничим макс скорость
-    const maxSpeed = 5; 
-    const speed = Math.sqrt(vx*vx + vy*vy);
-    if (speed > maxSpeed) {
-      vx = vx * (maxSpeed/speed);
-      vy = vy * (maxSpeed/speed);
+  // Определяем преобладающее направление свайпа
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Горизонтальный свайп
+    if (dx > 0) {
+      changeDirection("right");
+    } else {
+      changeDirection("left");
     }
-
-    // Записываем в Firebase
-    if (specialGameRoomRef && (gameState.status === "countdown" || gameState.status === "playing")) {
-      specialGameRoomRef.child("ball").update({
-        vx, vy
-      });
+  } else {
+    // Вертикальный свайп
+    if (dy > 0) {
+      changeDirection("down");
+    } else {
+      changeDirection("up");
     }
-
-    isFlickingBall = false;
-    return;
   }
-
-  // Иначе — закончился тап для перемещения шайбы, ничего особого
 }
 
 /********************************************************
-  ПЕРЕМЕЩЕНИЕ ШАЙБЫ
+  СМЕНА НАПРАВЛЕНИЯ ЗМЕЙКИ
 ********************************************************/
-function movePlayerTo(x, y) {
+function changeDirection(newDirection) {
   if (!specialGameRoomRef || !gameState) return;
-  const player = gameState[localPlayerId];
-  if (!player) return;
-
-  // Ограничиваем половиной поля
-  let newX = x;
-  let newY = y;
-
-  if (localPlayerId === "player1") {
-    // Не выше середины
-    if (newY < MIDDLE_LINE + PLAYER_RADIUS) newY = MIDDLE_LINE + PLAYER_RADIUS;
-    // Не выходит за нижнюю
-    if (newY > FIELD_HEIGHT - PLAYER_RADIUS) newY = FIELD_HEIGHT - PLAYER_RADIUS;
-  } else {
-    // player2 — верхняя
-    if (newY > MIDDLE_LINE - PLAYER_RADIUS) newY = MIDDLE_LINE - PLAYER_RADIUS;
-    if (newY < PLAYER_RADIUS) newY = PLAYER_RADIUS;
+  // Обновляем только свою змейку; запретим обратное направление
+  const currentDir = gameState[localPlayerId].direction;
+  if ((currentDir === "up" && newDirection === "down") ||
+      (currentDir === "down" && newDirection === "up") ||
+      (currentDir === "left" && newDirection === "right") ||
+      (currentDir === "right" && newDirection === "left")) {
+    return;
   }
-
-  // Лев/прав
-  if (newX < PLAYER_RADIUS) newX = PLAYER_RADIUS;
-  if (newX > FIELD_WIDTH - PLAYER_RADIUS) newX = FIELD_WIDTH - PLAYER_RADIUS;
-
-  // Запишем
-  if (gameState.status === "playing" || gameState.status === "countdown") {
-    specialGameRoomRef.child(localPlayerId).update({ x: newX, y: newY });
-  }
+  specialGameRoomRef.child(localPlayerId).update({ direction: newDirection });
 }
 
 /********************************************************
@@ -671,22 +503,18 @@ function resetSpecialGame1() {
     clearInterval(countdownInterval);
     countdownInterval = null;
   }
-
-  // Завершаем комнату, если не finished
   if (specialGameRoomRef && gameState && gameState.status !== "finished") {
     specialGameRoomRef.update({ status: "finished" });
   }
-
   specialGameRoomRef = null;
   specialGameKey = null;
   localPlayerId = null;
   gameState = null;
-
-  isFlickingBall = false;
 }
 
 /********************************************************
-  Экспорт
+  Экспорт функций для основного скрипта
 ********************************************************/
 window.initSpecialGame1 = initSpecialGame1;
 window.resetSpecialGame1 = resetSpecialGame1;
+window.onReadyButtonPressed = onReadyButtonPressed;
