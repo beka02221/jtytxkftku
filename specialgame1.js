@@ -1,18 +1,19 @@
 /********************************************************
   specialgame1.js
   ----------------
-  Реализация PvP-игры в стиле Glow Hockey:
-  - Вертикальное поле, сверху ворота противника, снизу — ваши.
-  - Каждый игрок управляет круглой «шайбой».
-  - Мяч (puck/ball) отскакивает от стен и шайб игроков.
-  - Счёт до 3 голов. Кто первым забьёт 3, тот и победил.
-  - Синхронизация через Firebase Realtime Database.
+  PvP-игра в стиле Glow Hockey (аэрохоккей), с:
+    - Поиском соперника (экран "ожидание")
+    - Случайным определением, кому достаётся мяч первым
+    - Игра до 3 голов
+    - Управление шайбами с клавиатуры и/или виртуальными кнопками
+    - Отображение имени соперника над его воротами
+    - Чёрный фон игрового поля
+    - Синхронизация через Firebase Realtime Database
 ********************************************************/
 
 /* 
-  Важно: предположим, что в основном файле index.html у нас уже
-  есть следующие глобальные переменные:
-  
+  ПРЕДПОЛОЖЕНИЯ ОКРУЖАЮЩЕГО КОДА (из вашего index.html и основного скрипта):
+
   1) db               - ссылка на firebase.database()
   2) currentUser      - объект пользователя Telegram (tg.initDataUnsafe.user)
   3) userRef          - ссылка на узел 'users/username' в Firebase
@@ -22,8 +23,20 @@
   7) Canvas с id="specialGameCanvas" в HTML
   8) requestAnimationFrame используется для анимации
 
-  Функции для инициализации и сброса (initSpecialGame1 и resetSpecialGame1)
-  нужно вызвать из вашего основного кода (например, в handleStartGame)
+  И также предполагается, что в HTML (или CSS) у вас есть элементы
+  для виртуальных стрелок. Например:
+
+    <div id="virtualControls">
+      <button id="btnUp">▲</button>
+      <div class="middle-row">
+        <button id="btnLeft">◀</button>
+        <button id="btnRight">▶</button>
+      </div>
+      <button id="btnDown">▼</button>
+    </div>
+
+  Стили и расположение кнопок (абсолютное, фиксированное и т.д.) вы
+  можете сделать по своему вкусу.
 */
 
 /********************************************************
@@ -43,14 +56,21 @@ const FIELD_HEIGHT = 650;  // должно совпадать с canvas.height
 
 // Параметры шайбы-игрока
 const PLAYER_RADIUS = 30;   
+const PLAYER_SPEED  = 5;   // скорость передвижения шайбы (по клавишам)
+
 // Мяч
 const BALL_RADIUS   = 15;
-const BALL_SPEED    = 6;  // базовая скорость для начального удара
+const BALL_SPEED    = 6;   // базовая скорость для начального удара
 
 // Половина поля для каждого игрока
 // Предположим: player1 - нижний, player2 - верхний
-// (Можно по-другому, но для примера используем такой вариант.)
 const MIDDLE_LINE = FIELD_HEIGHT / 2;
+
+// Состояние нажатых клавиш / виртуальных кнопок
+let moveLeft  = false;
+let moveRight = false;
+let moveUp    = false;
+let moveDown  = false;
 
 /********************************************************
   ИНИЦИАЛИЗАЦИЯ ИГРЫ
@@ -60,17 +80,20 @@ function initSpecialGame1() {
   specialGameCanvas = document.getElementById("specialGameCanvas");
   specialCtx = specialGameCanvas.getContext("2d");
 
-  // При инициализации пытаемся найти свободную комнату
-  // или создаём новую и ждём второго игрока.
+  // Назначаем обработчики клавиатуры
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
+
+  // Подключим виртуальные кнопки (если они есть в HTML)
+  addVirtualButtonsListeners();
+
+  // Ищем / создаём комнату
   findOrCreateRoom()
     .then(() => {
-      // Навешиваем обработчики для управления шайбой (касания)
-      addTouchListeners();
-
-      // Запускаем прослушку изменений в Firebase (onValue)
+      // Подключаемся к обновлениям в Firebase
       listenToGameRoom();
 
-      // Запускаем цикл анимации
+      // Запускаем анимационный цикл
       startGameLoop();
     })
     .catch(err => {
@@ -83,10 +106,9 @@ function initSpecialGame1() {
   ПОИСК ИЛИ СОЗДАНИЕ КОМНАТЫ
 ********************************************************/
 async function findOrCreateRoom() {
-  // Идём в узел rooms для specialgame1
   const roomsRef = db.ref("games/specialgame1/rooms");
 
-  // 1) Поищем любую комнату, где статус "waiting" (ждёт второго игрока).
+  // 1) Поищем комнату со статусом "waiting"
   const snapshot = await roomsRef.orderByChild("status").equalTo("waiting").once("value");
   const roomsData = snapshot.val() || {};
 
@@ -117,9 +139,9 @@ async function findOrCreateRoom() {
     // Случайно определим, кто начнёт с мячом
     const startWithBall = Math.random() < 0.5 ? "player1" : "player2";
 
-    // Начальное состояние игры
+    // Начальное состояние
     const initialState = {
-      status: "waiting",   // ждём второго игрока
+      status: "waiting", // ждём второго игрока
       ball: {
         x: FIELD_WIDTH / 2,
         y: FIELD_HEIGHT / 2,
@@ -152,25 +174,16 @@ async function findOrCreateRoom() {
 function listenToGameRoom() {
   if (!specialGameRoomRef) return;
 
-  // onValue — при любом изменении в комнате
   specialGameRoomRef.on("value", (snapshot) => {
     if (!snapshot.exists()) return;
     const data = snapshot.val();
 
-    // Обновляем локальный gameState
     gameState = data;
-
-    // Проверим, не завершена ли игра (счёт до 3)
     checkForWinCondition();
 
-    // Если игра в статусе 'playing', а у нас есть "startWithBall"
-    // и мяч ещё не двигается (vx=0, vy=0), то запускаем мяч
-    // только если мы хозяева (player1). Иначе можно сделать,
-    // что владелец мяча — тот, кто стартует (startWithBall).
+    // Если статус "playing", а мяч не двигается (vx=0, vy=0),
+    // и если мы — владелец, то запуск мяч.
     if (data.status === "playing") {
-      // Запускаем мяч (только у «владельца»? или только у player1?)
-      // Здесь упрощённо: мяч стартует, если тот игрок, который
-      // указан в startWithBall, совпадает с localPlayerId
       if (data.ball.vx === 0 && data.ball.vy === 0) {
         if (data.startWithBall === localPlayerId) {
           launchBall(localPlayerId);
@@ -189,9 +202,8 @@ function checkForWinCondition() {
   const score1 = gameState.player1.score;
   const score2 = gameState.player2.score;
 
-  // Игра длится до достижения любым игроком 3 очков
+  // Игра до 3 голов
   if (score1 >= 3 || score2 >= 3) {
-    // Формируем сообщение
     let title = "";
     let message = "";
     if (score1 > score2) {
@@ -202,12 +214,10 @@ function checkForWinCondition() {
       message = `Игрок ${gameState.player2.username} выиграл со счётом ${score2}:${score1}`;
     }
 
-    // Ставим статус = "finished"
     if (specialGameRoomRef) {
       specialGameRoomRef.update({ status: "finished" });
     }
 
-    // Показываем финальное окно
     showEndGameModal(title, message);
   }
 }
@@ -218,14 +228,10 @@ function checkForWinCondition() {
 function launchBall(ownerPlayerId) {
   if (!specialGameRoomRef || !gameState) return;
 
-  // Зададим случайное направление (приблизительно вверх/вниз)
-  // Если владелец мяч — player1, мяч полетит вверх, иначе вниз
+  // Случайное направление
   let vx = (Math.random() * 4) - 2;  // -2..2
-  let vy = ownerPlayerId === "player1" 
-             ? -BALL_SPEED 
-             : BALL_SPEED;
+  let vy = (ownerPlayerId === "player1") ? -BALL_SPEED : BALL_SPEED;
 
-  // Обновим ball в Firebase
   specialGameRoomRef.child("ball").update({
     vx: vx,
     vy: vy
@@ -237,16 +243,18 @@ function launchBall(ownerPlayerId) {
 ********************************************************/
 function startGameLoop() {
   function gameLoop() {
-    // 1) Только один из игроков должен обрабатывать физику мяча.
-    //    Для упрощения — player1 (хозяин комнаты).
-    //    Или можно свериться с gameState.startWithBall.
+    // 1) Двигаем шайбу локального игрока (по нажатым клавишам) и пишем в Firebase
+    if (gameState && gameState.status === "playing") {
+      updateLocalPlayerPosition();
+    }
+
+    // 2) Физика мяча (отскоки, голы) — только у хозяина (player1)
     if (localPlayerId === "player1" && gameState && gameState.status === "playing") {
       updateBallPosition();
       detectCollisions();
     }
 
-    // 2) Отрисовка (оба игрока могут отрисовывать локально
-    //    по полученным из БД координатам).
+    // 3) Отрисовка
     render();
 
     animationFrameId = requestAnimationFrame(gameLoop);
@@ -255,7 +263,61 @@ function startGameLoop() {
 }
 
 /********************************************************
-  ОБНОВЛЕНИЕ ПОЛОЖЕНИЯ МЯЧА (ТОЛЬКО У «ХОЗЯИНА»)
+  ОБНОВЛЕНИЕ ПОЛОЖЕНИЯ ЛОКАЛЬНОГО ИГРОКА
+********************************************************/
+function updateLocalPlayerPosition() {
+  if (!specialGameRoomRef || !gameState) return;
+  const player = gameState[localPlayerId];
+  if (!player) return;
+
+  let { x, y } = player;
+
+  // Движение по клавишам / виртуальным кнопкам
+  if (moveLeft)  x -= PLAYER_SPEED;
+  if (moveRight) x += PLAYER_SPEED;
+  if (moveUp)    y -= PLAYER_SPEED;
+  if (moveDown)  y += PLAYER_SPEED;
+
+  // Ограничиваем игрока своей половиной
+  if (localPlayerId === "player1") {
+    // Не выше середины
+    if (y < MIDDLE_LINE + PLAYER_RADIUS) {
+      y = MIDDLE_LINE + PLAYER_RADIUS;
+    }
+  } else {
+    // localPlayerId === "player2": не ниже середины
+    if (y > MIDDLE_LINE - PLAYER_RADIUS) {
+      y = MIDDLE_LINE - PLAYER_RADIUS;
+    }
+  }
+
+  // Не выходим за левую/правую границы
+  if (x < PLAYER_RADIUS) {
+    x = PLAYER_RADIUS;
+  }
+  if (x > FIELD_WIDTH - PLAYER_RADIUS) {
+    x = FIELD_WIDTH - PLAYER_RADIUS;
+  }
+
+  // Не выходим за верх/низ поля (для своей половины достаточно)
+  if (localPlayerId === "player1") {
+    // нижняя часть поля
+    if (y > FIELD_HEIGHT - PLAYER_RADIUS) {
+      y = FIELD_HEIGHT - PLAYER_RADIUS;
+    }
+  } else {
+    // верхняя часть поля
+    if (y < PLAYER_RADIUS) {
+      y = PLAYER_RADIUS;
+    }
+  }
+
+  // Запишем новые координаты в Firebase
+  specialGameRoomRef.child(localPlayerId).update({ x, y });
+}
+
+/********************************************************
+  ОБНОВЛЕНИЕ ПОЛОЖЕНИЯ МЯЧА (ТОЛЬКО У player1)
 ********************************************************/
 function updateBallPosition() {
   if (!specialGameRoomRef || !gameState) return;
@@ -269,26 +331,23 @@ function updateBallPosition() {
   y += vy;
 
   // Проверка на гол
-  // В верхних воротах: y < 0 (пересёк границу)
-  // В нижних воротах: y > FIELD_HEIGHT
-  // Простая проверка, можно усложнить (учитывая ширину ворот).
-  // Здесь: считаем, что ворота по всей ширине (упрощённо).
+  // Упрощение: ворота по всей ширине, верхнее = y < 0, нижнее = y > FIELD_HEIGHT
   if (y < 0) {
-    // ГОЛ player1 (снизу)
+    // Гол player1
     const newScore = (gameState.player1.score || 0) + 1;
     specialGameRoomRef.child("player1").update({ score: newScore });
     resetBall("player1");
     return;
   }
   if (y > FIELD_HEIGHT) {
-    // ГОЛ player2 (сверху)
+    // Гол player2
     const newScore = (gameState.player2.score || 0) + 1;
     specialGameRoomRef.child("player2").update({ score: newScore });
     resetBall("player2");
     return;
   }
 
-  // Ограничим движение мяча по стенкам слева/справа
+  // Отскоки от стен слева/справа
   if (x < BALL_RADIUS) {
     x = BALL_RADIUS;
     vx = -vx;
@@ -308,12 +367,12 @@ function updateBallPosition() {
 }
 
 /********************************************************
-  СБРОС МЯЧА ПОСЛЕ ГОЛА
+  СБРОС МЯЧА (после гола)
 ********************************************************/
 function resetBall(scoringPlayerId) {
   if (!specialGameRoomRef) return;
 
-  // Ставим мяч в центр, скорость 0 (пока не перезапустят)
+  // Ставим мяч в центр, останавливаем
   specialGameRoomRef.child("ball").update({
     x: FIELD_WIDTH / 2,
     y: FIELD_HEIGHT / 2,
@@ -321,21 +380,16 @@ function resetBall(scoringPlayerId) {
     vy: 0
   });
 
-  // Теперь владелец мяча — тот, кто пропустил гол
-  // и именно он при следующем update может «запустить» мяч.
+  // Мяч переходит к тому, кто пропустил
   const nextOwner = (scoringPlayerId === "player1") ? "player2" : "player1";
   specialGameRoomRef.update({ startWithBall: nextOwner });
 }
 
 /********************************************************
-  ОБНАРУЖЕНИЕ СТОЛКНОВЕНИЙ МЯЧА С ШАЙБАМИ ИГРОКОВ
+  СТОЛКНОВЕНИЯ МЯЧА С ШАЙБАМИ
 ********************************************************/
 function detectCollisions() {
   if (!gameState) return;
-  const ball = gameState.ball;
-  if (!ball) return;
-
-  // проверяем столкновения с player1 и player2
   checkCollisionWithPlayer("player1");
   checkCollisionWithPlayer("player2");
 }
@@ -351,32 +405,25 @@ function checkCollisionWithPlayer(playerId) {
 
   if (dist < (BALL_RADIUS + PLAYER_RADIUS)) {
     // Столкнулись
-    // Простейшая реакция: отбрасываем мяч в направлении от центра игрока
     const overlap = (BALL_RADIUS + PLAYER_RADIUS) - dist;
-    // Нормаль
     const nx = dx / dist;
     const ny = dy / dist;
 
-    // Сдвинем мяч, чтобы не было overlap
     let newBallX = ball.x + nx * overlap;
     let newBallY = ball.y + ny * overlap;
 
-    // А скорость развернём по нормали (упрощённо)
     let vx = ball.vx;
     let vy = ball.vy;
 
-    // Отражение вектора (vx,vy) относительно нормали (nx, ny)
     // Формула отражения: v' = v - 2(v·n)*n
     const dot = vx*nx + vy*ny;
     vx = vx - 2 * dot * nx;
     vy = vy - 2 * dot * ny;
 
-    // Увеличим скорость чуть-чуть (или оставим как есть)
-    // чтобы мяч не «залипал» в игроке
+    // Чуть увеличим скорость, чтобы "выпихнуть" мяч
     vx *= 1.05;
     vy *= 1.05;
 
-    // Обновим в БД
     specialGameRoomRef.child("ball").update({
       x: newBallX,
       y: newBallY,
@@ -387,43 +434,61 @@ function checkCollisionWithPlayer(playerId) {
 }
 
 /********************************************************
-  РЕНДЕР ИГРЫ
+  ОТРИСОВКА ИГРЫ
 ********************************************************/
 function render() {
-  if (!gameState) return;
-
-  // Очищаем поле
-  specialCtx.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-
-  // Рисуем границы поля (можно оформить как хотите)
-  drawFieldBorders();
-
-  // Рисуем зоны ворот (верх и низ) другим цветом
-  drawGoals();
-
-  // Рисуем мяч
-  const ball = gameState.ball;
-  if (ball) {
-    specialCtx.fillStyle = "#FF0000";
-    specialCtx.beginPath();
-    specialCtx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI*2);
-    specialCtx.fill();
+  if (!gameState) {
+    // Пока нет состояния, просто очистим
+    specialCtx.clearRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+    return;
   }
 
-  // Рисуем игрока1
-  drawPlayer("player1", "#00FF00");
+  // Если статус "waiting", показываем чёрный экран и надпись "Поиск соперника..."
+  if (gameState.status === "waiting") {
+    specialCtx.fillStyle = "#000000";
+    specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
 
-  // Рисуем игрока2
-  drawPlayer("player2", "#FFFF00");
+    specialCtx.fillStyle = "#FFFFFF";
+    specialCtx.font = "24px Arial";
+    specialCtx.textAlign = "center";
+    specialCtx.fillText("Поиск соперника...", FIELD_WIDTH / 2, FIELD_HEIGHT / 2);
+    return;
+  }
 
-  // Рисуем счёт
+  // Если статус "finished", можно просто зафризить картинку или тоже затенить
+  if (gameState.status === "finished") {
+    // Нарисуем чёрный экран с полупрозрачностью
+    specialCtx.fillStyle = "rgba(0,0,0,0.7)";
+    specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+
+    specialCtx.fillStyle = "#FFFFFF";
+    specialCtx.font = "24px Arial";
+    specialCtx.textAlign = "center";
+    specialCtx.fillText("Игра завершена", FIELD_WIDTH / 2, FIELD_HEIGHT / 2);
+    return;
+  }
+
+  // status === "playing"
+
+  // Фон чёрный
+  specialCtx.fillStyle = "#000000";
+  specialCtx.fillRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+
+  drawField();
+  drawBall();
+  drawPlayers();
   drawScore();
 }
 
-function drawFieldBorders() {
+/********************************************************
+  РИСУЕМ ПОЛЕ
+********************************************************/
+function drawField() {
+  // Границы поля (линии)
   specialCtx.strokeStyle = "#FFFFFF";
   specialCtx.lineWidth = 3;
   specialCtx.strokeRect(0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+
   // Средняя линия
   specialCtx.beginPath();
   specialCtx.moveTo(0, MIDDLE_LINE);
@@ -431,129 +496,177 @@ function drawFieldBorders() {
   specialCtx.stroke();
 }
 
-function drawGoals() {
-  // Допустим, закрасим полосы вверху и внизу
-  // Ворота (примитивно) — по всей ширине
-  specialCtx.fillStyle = "rgba(255, 0, 255, 0.2)"; // полупрозрачный
-  // Верхняя зона
-  specialCtx.fillRect(0, 0, FIELD_WIDTH, 30);
-  // Нижняя зона
-  specialCtx.fillRect(0, FIELD_HEIGHT - 30, FIELD_WIDTH, 30);
-}
+/********************************************************
+  РИСУЕМ МЯЧ
+********************************************************/
+function drawBall() {
+  const ball = gameState.ball;
+  if (!ball) return;
 
-function drawPlayer(playerId, color) {
-  const player = gameState[playerId];
-  if (!player) return;
-
-  specialCtx.fillStyle = color;
+  specialCtx.fillStyle = "#FF0000";
   specialCtx.beginPath();
-  specialCtx.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI*2);
+  specialCtx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI*2);
   specialCtx.fill();
 }
 
-function drawScore() {
-  specialCtx.fillStyle = "#FFFFFF";
-  specialCtx.font = "24px Arial";
-  specialCtx.textAlign = "center";
+/********************************************************
+  РИСУЕМ ИГРОКОВ + ИМЯ СОПЕРНИКА
+********************************************************/
+function drawPlayers() {
+  // player1 (нижний)
+  const p1 = gameState.player1;
+  if (p1) {
+    specialCtx.fillStyle = "#00FF00";
+    specialCtx.beginPath();
+    specialCtx.arc(p1.x, p1.y, PLAYER_RADIUS, 0, Math.PI*2);
+    specialCtx.fill();
+  }
 
+  // player2 (верхний)
+  const p2 = gameState.player2;
+  if (p2) {
+    specialCtx.fillStyle = "#FFFF00";
+    specialCtx.beginPath();
+    specialCtx.arc(p2.x, p2.y, PLAYER_RADIUS, 0, Math.PI*2);
+    specialCtx.fill();
+
+    // Отобразим имя игрока player2 над воротами (для наглядности)
+    if (p2.username) {
+      specialCtx.fillStyle = "#FFFFFF";
+      specialCtx.font = "20px Arial";
+      specialCtx.textAlign = "center";
+      // Пишем над верхними воротами (примерно на 30px от верха)
+      specialCtx.fillText(p2.username, FIELD_WIDTH / 2, 30);
+    }
+  }
+
+  // Хотите — добавьте отображение и собственного имени у нижних ворот
+  // (например):
+  const p1name = p1 && p1.username ? p1.username : "";
+  specialCtx.fillStyle = "#FFFFFF";
+  specialCtx.font = "20px Arial";
+  specialCtx.textAlign = "center";
+  specialCtx.fillText(p1name, FIELD_WIDTH / 2, FIELD_HEIGHT - 10);
+}
+
+/********************************************************
+  РИСУЕМ СЧЁТ
+********************************************************/
+function drawScore() {
   const p1Score = gameState.player1.score || 0;
   const p2Score = gameState.player2.score || 0;
 
-  // Выводим счёт в центре
+  specialCtx.fillStyle = "#FFFFFF";
+  specialCtx.font = "24px Arial";
+  specialCtx.textAlign = "center";
   specialCtx.fillText(`${p2Score} : ${p1Score}`, FIELD_WIDTH / 2, FIELD_HEIGHT / 2 - 10);
 }
 
 /********************************************************
-  ОБРАБОТКА ТАЧ-СОБЫТИЙ (УПРАВЛЕНИЕ ШАЙБОЙ)
+  УПРАВЛЕНИЕ (КЛАВИАТУРА)
 ********************************************************/
-function addTouchListeners() {
-  // Позволим игроку двигать свою шайбу, пока он не пересекает
-  // центральную линию (если player1, то нельзя выше MIDDLE_LINE,
-  // если player2, то нельзя ниже MIDDLE_LINE).
-  if (!specialGameCanvas) return;
-
-  specialGameCanvas.addEventListener("touchstart", onTouchStart, false);
-  specialGameCanvas.addEventListener("touchmove", onTouchMove, false);
-  specialGameCanvas.addEventListener("touchend", onTouchEnd, false);
-}
-
-function onTouchStart(e) {
-  // Для простоты можно просто предотвратить скролл
-  e.preventDefault();
-}
-
-function onTouchMove(e) {
-  e.preventDefault();
-  if (!gameState) return;
-  const player = gameState[localPlayerId];
-  if (!player) return;
-
-  // Берём координаты касания
-  const touch = e.touches[0];
-  const rect = specialGameCanvas.getBoundingClientRect();
-  
-  const x = touch.clientX - rect.left;
-  const y = touch.clientY - rect.top;
-
-  // Ограничим перемещение игрока только своей половиной
-  let newY = y;
-  if (localPlayerId === "player1") {
-    // Не поднимаемся выше середины
-    if (newY < MIDDLE_LINE + PLAYER_RADIUS) {
-      newY = MIDDLE_LINE + PLAYER_RADIUS;
-    }
-  } else {
-    // localPlayerId === "player2"
-    // Не опускаемся ниже середины
-    if (newY > MIDDLE_LINE - PLAYER_RADIUS) {
-      newY = MIDDLE_LINE - PLAYER_RADIUS;
-    }
-  }
-
-  // Также не выходим за границы поля
-  let newX = Math.max(PLAYER_RADIUS, Math.min(x, FIELD_WIDTH - PLAYER_RADIUS));
-
-  // Обновляем координаты в Firebase
-  // (Если статус игры — playing, имеет смысл обновлять)
-  if (specialGameRoomRef && gameState.status === "playing") {
-    specialGameRoomRef.child(localPlayerId).update({
-      x: newX,
-      y: newY
-    });
+function onKeyDown(e) {
+  switch(e.code) {
+    case "ArrowLeft":
+    case "KeyA":
+      moveLeft = true;
+      break;
+    case "ArrowRight":
+    case "KeyD":
+      moveRight = true;
+      break;
+    case "ArrowUp":
+    case "KeyW":
+      moveUp = true;
+      break;
+    case "ArrowDown":
+    case "KeyS":
+      moveDown = true;
+      break;
+    default:
+      break;
   }
 }
 
-function onTouchEnd(e) {
-  e.preventDefault();
-  // Можно ничего не делать
+function onKeyUp(e) {
+  switch(e.code) {
+    case "ArrowLeft":
+    case "KeyA":
+      moveLeft = false;
+      break;
+    case "ArrowRight":
+    case "KeyD":
+      moveRight = false;
+      break;
+    case "ArrowUp":
+    case "KeyW":
+      moveUp = false;
+      break;
+    case "ArrowDown":
+    case "KeyS":
+      moveDown = false;
+      break;
+    default:
+      break;
+  }
 }
 
 /********************************************************
-  СБРОС ИГРЫ (resetSpecialGame1)
-  Вызывается при выходе / закрытии модалки
+  УПРАВЛЕНИЕ (ВИРТУАЛЬНЫЕ КНОПКИ)
+********************************************************/
+function addVirtualButtonsListeners() {
+  // Пример: кнопки с id="btnLeft", "btnRight", "btnUp", "btnDown".
+  // Если их нет в HTML, просто ничего не делаем.
+  const btnLeft  = document.getElementById("btnLeft");
+  const btnRight = document.getElementById("btnRight");
+  const btnUp    = document.getElementById("btnUp");
+  const btnDown  = document.getElementById("btnDown");
+
+  if (!btnLeft || !btnRight || !btnUp || !btnDown) return;
+
+  // Для мобильных: touchstart/touchend
+  btnLeft.addEventListener("touchstart",  () => { moveLeft = true; });
+  btnLeft.addEventListener("touchend",    () => { moveLeft = false; });
+  btnRight.addEventListener("touchstart", () => { moveRight = true; });
+  btnRight.addEventListener("touchend",   () => { moveRight = false; });
+  btnUp.addEventListener("touchstart",    () => { moveUp = true; });
+  btnUp.addEventListener("touchend",      () => { moveUp = false; });
+  btnDown.addEventListener("touchstart",  () => { moveDown = true; });
+  btnDown.addEventListener("touchend",    () => { moveDown = false; });
+
+  // Также можем поддержать mouse events (mousedown/mouseup),
+  // если хотим, чтобы в десктопе эти кнопки тоже работали.
+  btnLeft.addEventListener("mousedown",  () => { moveLeft = true; });
+  btnLeft.addEventListener("mouseup",    () => { moveLeft = false; });
+  btnRight.addEventListener("mousedown", () => { moveRight = true; });
+  btnRight.addEventListener("mouseup",   () => { moveRight = false; });
+  btnUp.addEventListener("mousedown",    () => { moveUp = true; });
+  btnUp.addEventListener("mouseup",      () => { moveUp = false; });
+  btnDown.addEventListener("mousedown",  () => { moveDown = true; });
+  btnDown.addEventListener("mouseup",    () => { moveDown = false; });
+}
+
+/********************************************************
+  СБРОС ИГРЫ
 ********************************************************/
 function resetSpecialGame1() {
-  // Отключаем слушатель комнаты
+  // Убираем слушатели
   if (specialGameRoomRef) {
     specialGameRoomRef.off();
   }
-
-  // Отменяем анимацию
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
 
-  // Убираем слушатели событий на canvas
-  if (specialGameCanvas) {
-    specialGameCanvas.removeEventListener("touchstart", onTouchStart);
-    specialGameCanvas.removeEventListener("touchmove", onTouchMove);
-    specialGameCanvas.removeEventListener("touchend", onTouchEnd);
-  }
+  // Убираем клавиатурные слушатели
+  window.removeEventListener("keydown", onKeyDown);
+  window.removeEventListener("keyup", onKeyUp);
 
-  // При желании можем очистить данные комнаты или выйти из неё
-  // чтобы в следующий раз пользователь создавал/находил новую комнату.
-  // Но часто лучше просто ставить статус "finished".
+  // (Опционально) можно отключить слушатели с виртуальных кнопок,
+  // если нужно, но чаще всего можно оставить.
+
+  // Помечаем статус комнаты "finished", если она ещё в игре
   if (specialGameRoomRef && gameState && gameState.status !== "finished") {
     specialGameRoomRef.update({ status: "finished" });
   }
@@ -562,6 +675,9 @@ function resetSpecialGame1() {
   specialGameKey = null;
   localPlayerId = null;
   gameState = null;
+
+  // Сброс флагов движения
+  moveLeft = moveRight = moveUp = moveDown = false;
 }
 
 /********************************************************
@@ -570,3 +686,4 @@ function resetSpecialGame1() {
 ********************************************************/
 window.initSpecialGame1 = initSpecialGame1;
 window.resetSpecialGame1 = resetSpecialGame1;
+SpecialGame1 = resetSpecialGame1;
