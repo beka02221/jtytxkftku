@@ -16,8 +16,8 @@ let specialCtx;
 // Позиция и размеры «игровой зоны» по центру канваса
 const GAME_AREA_X = 50;
 const GAME_AREA_Y = 175;
-const GAME_AREA_WIDTH = 300;
-const GAME_AREA_HEIGHT = 300;
+const GAME_AREA_WIDTH = 350;
+const GAME_AREA_HEIGHT = 400;
 
 // Размер клетки
 const gridSize = 20;
