@@ -1,107 +1,118 @@
+/* ============================================================
+   specialgame1.js (оптимизированная версия)
 
-    /* ============================================================
-   specialgame1.js
-   PvP-змейка (1 на 1) в стиле "Матрицы" с:
-   - Поиском соперника и выводом имени
-   - Отсчётом после 2с паузы
-   - Полем по центру Canvas
-   - Телепортом (сквозь стены)
-   - Таймером и синхронизацией через Firebase
-   - Свайпы (без закрытия Telegram WebApp)
+   Особенности:
+   1. Постоянный слушатель для соперника (нет лишних once() в render).
+   2. Отделены Game Logic (каждые 150 мс) и Render (requestAnimationFrame).
+   3. Замедлена скорость змейки (150 мс вместо 100 мс).
+   4. Убрали вывод имени соперника из "Соперник найден".
+   5. Состояние (змейки, счёт, яблоко) хранится локально и 
+      обновляется при изменениях в Firebase (декуплировано).
  ============================================================ */
 
 let specialGameCanvas;
 let specialCtx;
 
 // Позиция и размеры «игровой зоны» по центру канваса
-const GAME_AREA_X = 50;       // Отступ слева
-const GAME_AREA_Y = 175;      // Отступ сверху
+const GAME_AREA_X = 50;
+const GAME_AREA_Y = 175;
 const GAME_AREA_WIDTH = 300;
 const GAME_AREA_HEIGHT = 300;
 
 // Размер клетки
 const gridSize = 20;
+// Число клеток
+const tileCountX = GAME_AREA_WIDTH / gridSize;  
+const tileCountY = GAME_AREA_HEIGHT / gridSize; 
 
-// Считаем количество клеток по горизонтали/вертикали
-const tileCountX = GAME_AREA_WIDTH / gridSize;  // 15
-const tileCountY = GAME_AREA_HEIGHT / gridSize; // 15
-
-// Основные глобальные переменные
-let roomId = null;            // ID комнаты в БД Firebase
+// Глобальные переменные для комнаты / игроков
+let roomId = null;            
 let playerId = null;          // "player1" или "player2"
-let opponentId = null;        // "player2" или "player1"
-let gameStateRef = null;      // Ссылка на данные игры (Firebase)
-let localSnake = [];          // Координаты тела нашей змейки
-let localDirection = 'right'; // Текущее направление
-let applePos = { x: 0, y: 0 }; 
-let gameInterval = null;      // setInterval для игрового цикла
-let countdownInterval = null; // setInterval для обратного отсчёта
-let countdownValue = 5;       
+let opponentId = null;        
+let gameStateRef = null;      
+
+// Локальное состояние нашей змейки
+let localSnake = [];
+let localDirection = 'right';
+let score = 0;
+
+// Локальное состояние соперника (заполняется через .on() Firebase)
+let opponentSnake = [];
+let opponentScore = 0;
+let opponentName = 'Opponent';
+
+// Яблоко
+let applePos = { x: 0, y: 0 };
+
+// Флаги
 let isGameRunning = false;    
 let isGameOver = false;       
-let score = 0;                
-let opponentScore = 0;        
-let timerTotal = 120;         // 2 минуты (секунд)
+let countdownValue = 5;       
+let showOpponentNameTimeout = null;
+
+// Таймер
+let timerTotal = 120;         // сек
 let timerCurrent = 120;       
+
+// Интервалы
+let logicTimer = null;        // для игрового цикла (logics) каждые 150 мс
+let countdownInterval = null; 
 
 // Цвета змейки: player1 — фиолетовый, player2 — жёлтый
 const snakeColors = {
-  player1: '#800080', // фиолетовый
-  player2: '#FFFF00'  // жёлтый
+  player1: '#800080',
+  player2: '#FFFF00'
 };
 
-// Будем хранить username соперника, чтобы отобразить после поиска.
-let opponentUsername = 'Opponent';
+// Скорость логики (интервал в мс)
+const LOGIC_INTERVAL = 150;
 
-// Флаг, чтобы показать «Нашли соперника: XXX» и подождать 2с
-let showOpponentNameTimeout = null;
-
-// =========== ИНИЦИАЛИЗАЦИЯ ===========
-
+/* ======================================
+   ИНИЦИАЛИЗАЦИЯ И СБРОС
+====================================== */
 function initSpecialGame1() {
   specialGameCanvas = document.getElementById('specialGameCanvas');
   specialCtx = specialGameCanvas.getContext('2d');
 
-  resetSpecialGame1(); // Сброс предыдущих состояний
-  drawWaitingScreen(); // Пока — пустой экран
-
-  // Стартуем поиск соперника
+  resetSpecialGame1();
+  drawWaitingScreen();
   findOrCreateRoom();
 }
 
-// =========== СБРОС (при закрытии/выходе) ===========
-
 function resetSpecialGame1() {
-  clearInterval(gameInterval);
+  stopLogicLoop();
   clearInterval(countdownInterval);
   if (showOpponentNameTimeout) {
     clearTimeout(showOpponentNameTimeout);
     showOpponentNameTimeout = null;
   }
-
   roomId = null;
   playerId = null;
   opponentId = null;
   gameStateRef = null;
+
   localSnake = [];
   localDirection = 'right';
+  score = 0;
+
+  opponentSnake = [];
+  opponentScore = 0;
+  opponentName = 'Opponent';
+
   applePos = { x: 0, y: 0 };
-  gameInterval = null;
-  countdownInterval = null;
-  countdownValue = 5;
+
   isGameRunning = false;
   isGameOver = false;
-  score = 0;
-  opponentScore = 0;
+  countdownValue = 5;
   timerTotal = 120;
   timerCurrent = 120;
-  opponentUsername = 'Opponent';
 
   removeSwipeListeners();
 }
 
-// =========== ПОИСК / СОЗДАНИЕ КОМНАТЫ ===========
-
+// ================================
+//   ПОИСК / СОЗДАНИЕ КОМНАТЫ
+// ================================
 function findOrCreateRoom() {
   const queueRef = firebase.database().ref('snakeQueue');
   queueRef.once('value', (snapshot) => {
@@ -120,25 +131,30 @@ function findOrCreateRoom() {
       roomId = openRoomKey;
       playerId = 'player2';
       opponentId = 'player1';
-      firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' });
+      firebase.database().ref('snakeQueue/' + roomId)
+        .update({ status: 'ready' })
+        .catch((err) => console.error('Error updating room status:', err));
+      
       setupGameReferences();
     } else {
       // Создаём новую комнату как player1
       roomId = queueRef.push().key; 
       playerId = 'player1';
       opponentId = 'player2';
+
       queueRef.child(roomId).set({
         status: 'waiting',
         createdAt: firebase.database.ServerValue.TIMESTAMP
-      });
+      }).catch((err) => console.error('Error creating room:', err));
+
       setupGameReferences();
     }
 
     waitForOpponent();
+  }, (err) => {
+    console.error('Error reading queue:', err);
   });
 }
-
-// =========== ОЖИДАНИЕ СОПЕРНИКА ===========
 
 function waitForOpponent() {
   drawSearchScreen();
@@ -147,37 +163,27 @@ function waitForOpponent() {
   statusRef.on('value', (snapshot) => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
-      // Нашли соперника!
       statusRef.off();
-
-      // Получим username соперника для отображения
-      const oppRef = gameStateRef.child('players').child(opponentId).child('username');
-      oppRef.once('value', (snap) => {
-        if (snap.exists()) {
-          opponentUsername = snap.val();
-        }
-        // Сначала выводим имя соперника на 2 секунды
-        drawOpponentFoundScreen(opponentUsername);
-        showOpponentNameTimeout = setTimeout(() => {
-          // Затем запускаем обратный отсчёт
-          startCountdown();
-        }, 2000);
-      });
+      // Показываем экран «Соперник найден» (без имени)
+      drawOpponentFoundScreen(); 
+      // 2 секунды пауза, потом обратный отсчёт
+      showOpponentNameTimeout = setTimeout(() => {
+        startCountdown();
+      }, 2000);
     }
   });
 }
 
-// =========== НАСТРОЙКА ССЫЛОК В БД (gameStateRef) ===========
-
+// ================================
+//   НАСТРОЙКА .on() ДЛЯ ИГРЫ
+// ================================
 function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
 
-  // Инициализируем начальные данные змейки текущего игрока
+  // Инициализируем данные нашего игрока (если нет)
   const playerRef = gameStateRef.child('players').child(playerId);
   playerRef.once('value', (snapshot) => {
     if (!snapshot.exists()) {
-      // Разные стартовые точки:
-      // player1 — слева, player2 — справа
       let startX, startY;
       if (playerId === 'player1') {
         startX = 3;
@@ -190,7 +196,7 @@ function setupGameReferences() {
       const initialSnake = [
         { x: startX,   y: startY },
         { x: startX-1, y: startY },
-        { x: startX-2, y: startY },
+        { x: startX-2, y: startY }
       ];
 
       playerRef.set({
@@ -198,26 +204,21 @@ function setupGameReferences() {
         direction: 'right',
         score: 0,
         username: window.currentUser ? window.currentUser.username : 'Unknown'
-      });
+      }).catch((err) => console.error('Error init player data:', err));
     }
   });
 
-  // Слушаем игроков — чтобы обновлять счёт соперника
-  gameStateRef.child('players').on('value', (snapshot) => {
-    const playersData = snapshot.val() || {};
-    if (playersData[opponentId]) {
-      opponentScore = playersData[opponentId].score || 0;
-      // Если у нас вдруг не было имени соперника, подхватим
-      if (playersData[opponentId].username) {
-        opponentUsername = playersData[opponentId].username;
-      }
-    }
-    if (playersData[playerId]) {
-      score = playersData[playerId].score || 0;
-    }
+  // Подписка на наши данные не так критична — мы храним локально
+  // Подписка на соперника
+  const oppRef = gameStateRef.child('players').child(opponentId);
+  oppRef.on('value', (snap) => {
+    const oppData = snap.val() || {};
+    opponentSnake = oppData.snake || [];
+    opponentScore = oppData.score || 0;
+    opponentName  = oppData.username || 'Opponent';
   });
 
-  // Слушаем позицию яблока
+  // Подписка на наше яблоко
   gameStateRef.child('apple').on('value', (snapshot) => {
     const aData = snapshot.val() || {};
     if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -226,7 +227,7 @@ function setupGameReferences() {
     }
   });
 
-  // Слушаем глобальный флаг gameOver
+  // Глобальный флаг gameOver
   gameStateRef.child('gameOver').on('value', (snapshot) => {
     if (snapshot.val() === true && !isGameOver) {
       isGameOver = true;
@@ -235,8 +236,9 @@ function setupGameReferences() {
   });
 }
 
-// =========== ОБРАТНЫЙ ОТСЧЁТ (5...1) ===========
-
+// ================================
+//   ОТСЧЁТ (5...1) И СТАРТ ИГРЫ
+// ================================
 function startCountdown() {
   countdownValue = 5;
   countdownInterval = setInterval(() => {
@@ -249,21 +251,20 @@ function startCountdown() {
   }, 1000);
 }
 
-// =========== ЗАПУСК ИГРЫ (главный цикл) ===========
-
 function launchGame() {
   isGameRunning = true;
   isGameOver = false;
 
-  // Инициализируем локальную копию змейки и направления
+  // Считываем своё начальное состояние, чтобы заполнить localSnake
   gameStateRef.child('players').child(playerId).once('value', (snapshot) => {
     const data = snapshot.val();
     if (data && data.snake) {
       localSnake = data.snake;
     }
-    localDirection = data && data.direction ? data.direction : 'right';
+    localDirection = (data && data.direction) ? data.direction : 'right';
+    score = (data && data.score) ? data.score : 0;
 
-    // Генерируем яблоко, если его нет
+    // Проверим, есть ли яблоко — если нет, сгенерируем
     gameStateRef.child('apple').once('value', (appleSnap) => {
       if (!appleSnap.exists()) {
         spawnApple();
@@ -271,58 +272,82 @@ function launchGame() {
     });
 
     addSwipeListeners();
-    // Игровой цикл ~10 раз/сек
-    gameInterval = setInterval(gameLoop, 100);
+
+    // Запускаем логику
+    startLogicLoop();
 
     // Запускаем таймер
     startTimer();
+
+    // Запускаем отрисовку через requestAnimationFrame
+    requestAnimationFrame(renderLoop);
   });
 }
 
-// =========== ГЛАВНАЯ ФУНКЦИЯ ИГРОВОГО ЦИКЛА ===========
+// ================================
+//   ОТДЕЛЯЕМ ЛОГИКУ И РЕНДЕР
+// ================================
 
-function gameLoop() {
+// Игровая логика с фиксированным шагом ~150 мс
+function startLogicLoop() {
+  logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
+}
+
+function stopLogicLoop() {
+  if (logicTimer) {
+    clearInterval(logicTimer);
+    logicTimer = null;
+  }
+}
+
+// Каждые 150 мс
+function gameLogicUpdate() {
   if (!isGameRunning || isGameOver) return;
 
   moveLocalSnake();
-  // Столкновение со своим хвостом или соперником?
+
+  // Проверяем столкновения
   if (checkSelfCollision() || checkOpponentCollision()) {
     setGameOver();
     return;
   }
 
-  // Съели яблоко?
-  if (localSnake[0].x === applePos.x && localSnake[0].y === applePos.y) {
+  // Проверяем яблоко
+  const head = localSnake[0];
+  if (head.x === applePos.x && head.y === applePos.y) {
     score++;
-    updatePlayerState(true); // растём
+    updatePlayerState(true);
     spawnApple();
   } else {
-    updatePlayerState(false); // обычное движение
+    updatePlayerState(false);
   }
-
-  renderGame();
 }
 
-// =========== ДВИЖЕНИЕ + ПРОХОЖДЕНИЕ СКВОЗЬ СТЕНЫ ===========
+// requestAnimationFrame для отрисовки
+function renderLoop() {
+  // Отрисовываем текущее состояние
+  renderGame();
+
+  // Если игра всё ещё идёт, продолжаем
+  if (!isGameOver) {
+    requestAnimationFrame(renderLoop);
+  }
+}
+
+// ================================
+//   ДВИЖЕНИЕ И ПРОВЕРКИ
+// ================================
 
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
   switch (localDirection) {
-    case 'left':
-      head.x--;
-      break;
-    case 'right':
-      head.x++;
-      break;
-    case 'up':
-      head.y--;
-      break;
-    case 'down':
-      head.y++;
-      break;
+    case 'left':  head.x--; break;
+    case 'right': head.x++; break;
+    case 'up':    head.y--; break;
+    case 'down':  head.y++; break;
   }
 
-  // Проверяем выход за границы (wrap-around)
+  // Телепорт сквозь стены
   if (head.x < 0) head.x = tileCountX - 1;
   if (head.x >= tileCountX) head.x = 0;
   if (head.y < 0) head.y = tileCountY - 1;
@@ -330,11 +355,9 @@ function moveLocalSnake() {
 
   // Добавляем новую голову
   localSnake.unshift(head);
-  // Убираем хвост (если не съели яблоко — удалим позже)
+  // Убираем хвост (если не едим яблоко — pop делаем сразу, если едим — "вернём" потом)
   localSnake.pop();
 }
-
-// =========== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СВОИМ ХВОСТОМ ===========
 
 function checkSelfCollision() {
   const head = localSnake[0];
@@ -346,29 +369,22 @@ function checkSelfCollision() {
   return false;
 }
 
-// =========== ПРОВЕРКА СТОЛКНОВЕНИЯ С ОППОНЕНТОМ ===========
-
 function checkOpponentCollision() {
   const head = localSnake[0];
-  let collided = false;
-  gameStateRef.child('players').child(opponentId).once('value', (snap) => {
-    const oppData = snap.val() || {};
-    const oppSnake = oppData.snake || [];
-    for (let seg of oppSnake) {
-      if (seg.x === head.x && seg.y === head.y) {
-        collided = true;
-        break;
-      }
+  for (let seg of opponentSnake) {
+    if (seg.x === head.x && seg.y === head.y) {
+      return true;
     }
-  });
-  return collided;
+  }
+  return false;
 }
 
-// =========== СОХРАНЕНИЕ СОСТОЯНИЯ (ПОСЛЕ ДВИЖЕНИЯ) ===========
-
+// ================================
+//   ОБНОВЛЕНИЕ В FIREBASE
+// ================================
 function updatePlayerState(ateApple) {
   if (ateApple) {
-    // Мы уже удалили хвост (pop), значит сейчас нужно вернуть
+    // Мы уже удалили хвост. Нужно его вернуть (змейка растёт)
     const lastSegment = localSnake[localSnake.length - 1];
     localSnake.push({ ...lastSegment });
   }
@@ -377,29 +393,30 @@ function updatePlayerState(ateApple) {
     snake: localSnake,
     direction: localDirection,
     score: score
-  });
+  }).catch((err) => console.error('Error updating player state:', err));
 }
-
-// =========== СОЗДАНИЕ НОВОГО ЯБЛОКА ===========
 
 function spawnApple() {
   const newApple = {
     x: Math.floor(Math.random() * tileCountX),
-    y: Math.floor(Math.random() * tileCountY),
+    y: Math.floor(Math.random() * tileCountY)
   };
-  gameStateRef.child('apple').set(newApple);
+  gameStateRef.child('apple').set(newApple)
+    .catch((err) => console.error('Error setting apple:', err));
 }
 
-// =========== УСТАНОВКА gameOver И ЗАВЕРШЕНИЕ ===========
-
+// ================================
+//   ЗАВЕРШЕНИЕ ИГРЫ
+// ================================
 function setGameOver() {
   isGameOver = true;
-  gameStateRef.update({ gameOver: true });
+  gameStateRef.update({ gameOver: true })
+    .catch((err) => console.error('Error setting gameOver:', err));
   endGame();
 }
 
 function endGame() {
-  clearInterval(gameInterval);
+  stopLogicLoop();
   clearInterval(countdownInterval);
 
   let resultTitle = 'Игра окончена';
@@ -414,8 +431,9 @@ function endGame() {
   window.showEndGameModal(resultTitle, msg);
 }
 
-// =========== ТАЙМЕР 2 МИНУТЫ ===========
-
+// ================================
+//   ТАЙМЕР (2 МИНУТЫ)
+// ================================
 function startTimer() {
   timerCurrent = timerTotal;
   const timerInterval = setInterval(() => {
@@ -425,26 +443,27 @@ function startTimer() {
     }
     timerCurrent--;
     if (timerCurrent <= 0) {
-      // Время вышло
       setGameOver();
       clearInterval(timerInterval);
     }
   }, 1000);
 }
 
-// =========== ОТРИСОВКА (RENDER) ===========
-
+// ================================
+//   ОТРИСОВКА
+// ================================
 function renderGame() {
+  // Очищаем весь канвас
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-
-  // Тёмный фон для всего канваса
-  specialCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  
+  // Заливка фона
+  specialCtx.fillStyle = 'rgba(0,0,0,0.8)';
   specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
 
-  // Рисуем сетку только в зоне [GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT]
+  // Рисуем "зону игры" (стиль «Матрица»)
   drawMatrixGrid();
 
-  // Яблоко (красное)
+  // Рисуем яблоко (красное)
   specialCtx.fillStyle = '#FF0000';
   specialCtx.fillRect(
     GAME_AREA_X + applePos.x * gridSize,
@@ -453,48 +472,41 @@ function renderGame() {
     gridSize
   );
 
-  // Наша змейка
+  // Наша змея
   specialCtx.fillStyle = snakeColors[playerId] || '#800080';
-  for (let seg of localSnake) {
+  localSnake.forEach(seg => {
     specialCtx.fillRect(
       GAME_AREA_X + seg.x * gridSize,
       GAME_AREA_Y + seg.y * gridSize,
       gridSize,
       gridSize
     );
-  }
-
-  // Соперник (запрашиваем snake из БД один раз — лучше хранить локально, но для примера)
-  gameStateRef.child('players').child(opponentId).once('value', (snap) => {
-    const oppData = snap.val() || {};
-    const oppSnake = oppData.snake || [];
-    const oppName = oppData.username || 'Opponent';
-
-    // Желтая змея (или другой цвет)
-    specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
-    for (let seg of oppSnake) {
-      specialCtx.fillRect(
-        GAME_AREA_X + seg.x * gridSize,
-        GAME_AREA_Y + seg.y * gridSize,
-        gridSize,
-        gridSize
-      );
-    }
-
-    // Имя соперника над головой
-    if (oppSnake.length > 0) {
-      const head = oppSnake[0];
-      specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.fillText(
-        oppName,
-        GAME_AREA_X + head.x * gridSize,
-        GAME_AREA_Y + head.y * gridSize - 5
-      );
-    }
   });
 
-  // Имя игрока над головой его змейки
+  // Соперник
+  specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
+  opponentSnake.forEach(seg => {
+    specialCtx.fillRect(
+      GAME_AREA_X + seg.x * gridSize,
+      GAME_AREA_Y + seg.y * gridSize,
+      gridSize,
+      gridSize
+    );
+  });
+
+  // Имя соперника над головой
+  if (opponentSnake.length > 0) {
+    const oppHead = opponentSnake[0];
+    specialCtx.fillStyle = '#00FF00';
+    specialCtx.font = '12px "Press Start 2P", sans-serif';
+    specialCtx.fillText(
+      opponentName,
+      GAME_AREA_X + oppHead.x * gridSize,
+      GAME_AREA_Y + oppHead.y * gridSize - 5
+    );
+  }
+
+  // Имя игрока над головой
   if (localSnake.length > 0) {
     const myHead = localSnake[0];
     specialCtx.fillStyle = '#00FF00';
@@ -507,64 +519,52 @@ function renderGame() {
     );
   }
 
-  // Счёт в правом верхнем углу "игровой зоны"
+  // Счет в правом верхнем углу игровой зоны
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '12px "Press Start 2P", sans-serif';
-  specialCtx.fillText(
-    `Score: ${score}`,
-    GAME_AREA_X + GAME_AREA_WIDTH - 100,
-    GAME_AREA_Y + 15
-  );
-  specialCtx.fillText(
-    `Opp: ${opponentScore}`,
-    GAME_AREA_X + GAME_AREA_WIDTH - 100,
-    GAME_AREA_Y + 30
-  );
+  specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
+  specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
 
-  // Рисуем тайм-бар (горизонтальная полоска) в самом верху канваса или над сеткой
+  // Тайм-бар
   const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
   specialCtx.fillStyle = '#00FF00';
-  // Пусть будет прямо над сеткой
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
 }
 
-// =========== ДОП. ФУНКЦИИ ОТРИСОВКИ ===========
-
-// Сетка/рамка в зоне [GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT]
 function drawMatrixGrid() {
-  // Полупрозрачная заливка
+  // Полупрозрачная заливка "игровой зоны"
   specialCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
 
-  // Зелёные линии (горизонтальные / вертикальные)
-  specialCtx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+  // Зелёные линии (горизонт / вертикаль)
+  specialCtx.strokeStyle = 'rgba(0,255,0,0.3)';
   for (let i = 0; i <= tileCountX; i++) {
-    // Вертикаль
-    const x = GAME_AREA_X + i * gridSize;
+    let x = GAME_AREA_X + i * gridSize;
     specialCtx.beginPath();
     specialCtx.moveTo(x, GAME_AREA_Y);
     specialCtx.lineTo(x, GAME_AREA_Y + GAME_AREA_HEIGHT);
     specialCtx.stroke();
   }
   for (let j = 0; j <= tileCountY; j++) {
-    // Горизонталь
-    const y = GAME_AREA_Y + j * gridSize;
+    let y = GAME_AREA_Y + j * gridSize;
     specialCtx.beginPath();
     specialCtx.moveTo(GAME_AREA_X, y);
     specialCtx.lineTo(GAME_AREA_X + GAME_AREA_WIDTH, y);
     specialCtx.stroke();
   }
 
-  // Яркая зелёная рамка по периметру
-  specialCtx.strokeStyle = 'rgb(0, 255, 0)';
+  // Яркая зелёная рамка
+  specialCtx.strokeStyle = 'rgb(0,255,0)';
   specialCtx.lineWidth = 2;
   specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
 }
 
-// Рисуем экран "Поиск соперника..."
+// ================================
+//   ЭКРАНЫ ОЖИДАНИЯ / ПОИСКА
+// ================================
 function drawSearchScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-  specialCtx.fillStyle = '#000000';
+  specialCtx.fillStyle = '#000';
   specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
 
   specialCtx.fillStyle = '#00FF00';
@@ -577,15 +577,13 @@ function drawSearchScreen() {
   );
 }
 
-// Простой экран "Ожидание..."
 function drawWaitingScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
   specialCtx.fillStyle = '#000';
   specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
 }
 
-// Когда нашли соперника, показываем его имя 2с
-function drawOpponentFoundScreen(name) {
+function drawOpponentFoundScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
   specialCtx.fillStyle = '#000000';
   specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -594,13 +592,15 @@ function drawOpponentFoundScreen(name) {
   specialCtx.font = '16px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
   specialCtx.fillText(
-    `Соперник найден: @${name}`,
+    'Соперник найден',
     specialGameCanvas.width / 2,
     specialGameCanvas.height / 2
   );
 }
 
-// Отрисовка обратного отсчёта
+// ================================
+//   ОБРАТНЫЙ ОТСЧЁТ (5..1)
+// ================================
 function drawCountdownScreen(value) {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
   specialCtx.fillStyle = '#000000';
@@ -616,8 +616,9 @@ function drawCountdownScreen(value) {
   );
 }
 
-// =========== СВАЙПЫ / КЛАВИШИ УПРАВЛЕНИЯ ===========
-
+// ================================
+//   УПРАВЛЕНИЕ (СВАЙПЫ, КЛАВИШИ)
+// ================================
 function addSwipeListeners() {
   let touchStartX = null;
   let touchStartY = null;
@@ -638,14 +639,14 @@ function addSwipeListeners() {
     const dy = touch.clientY - touchStartY;
 
     if (Math.abs(dx) > Math.abs(dy)) {
-      // Горизонтальный свайп
+      // Горизонталь
       if (dx > 0 && localDirection !== 'left') {
         localDirection = 'right';
       } else if (dx < 0 && localDirection !== 'right') {
         localDirection = 'left';
       }
     } else {
-      // Вертикальный свайп
+      // Вертикаль
       if (dy > 0 && localDirection !== 'up') {
         localDirection = 'down';
       } else if (dy < 0 && localDirection !== 'down') {
@@ -678,7 +679,7 @@ function addSwipeListeners() {
   }
   window.addEventListener('keydown', onKeyDown);
 
-  // Сохраняем ссылки, чтобы потом снять подписки
+  // Сохраняем для remove
   window.__special_onKeyDown = onKeyDown;
   window.__special_onTouchStart = onTouchStart;
   window.__special_onTouchMove = onTouchMove;
@@ -699,7 +700,9 @@ function removeSwipeListeners() {
   window.__special_onKeyDown = null;
 }
 
-/* =============================================
-   Экспортируем (если нужно), иначе достаточно
-   просто подключить <script src="specialgame1.js">
-============================================= */
+/* 
+========================================================
+Подключение:
+<script src="specialgame1.js"></script>
+========================================================
+*/
