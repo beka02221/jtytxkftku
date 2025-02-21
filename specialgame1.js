@@ -1,775 +1,651 @@
-// ====== specialgame1.js ======
-/**
- * PvP-змейка в стиле "Матрицы" с реалтайм синхронизацией через Firebase.
- *
- * Что нового:
- * 1) Интервал отправки данных о змейке уменьшен до 80мс (чаще -> меньше лагов).
- * 2) Во время поиска внизу показывается ссылка ?gameId=XXX для приглашения друга.
- *    Если открыть её на другом устройстве, тот игрок станет player2 именно в этой игре.
- * 3) Остальной функционал: wrap-around, столкновения, анимации, 2-минутный таймер, 
- *    отключение прокрутки свайпами и т.д.
- */
+/* ============================================================
+   specialgame1.js
+   Реализация онлайн-змейки (1 на 1) в стиле "Матрицы" с:
+   1) Поиском соперника
+   2) Обратным отсчётом 5...1
+   3) 2-минутным таймером с прогресс-баром
+   4) Синхронизацией позиций через Firebase Realtime Database
+   5) Свайпы для управления (и отключение "свайпа вниз" в TG)
+   6) Модалкой результата по окончании
+   7) Разным цветом змей для игроков, красными яблоками
+   8) Полупрозрачным полем в стиле "Матрицы" и зелёной рамкой
+ ============================================================ */
 
-// ---------------------------------------
-// ПАРАМЕТРЫ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
-// ---------------------------------------
-const GAME_DURATION = 120;   // 2 минуты
-const SG1_COLS = 20;         // ширина поля в клетках
-const SG1_ROWS = 20;         // высота поля в клетках
-const SG1_CELL_SIZE = 20;    // размер клетки (px)
+let specialGameCanvas;
+let specialCtx;
 
-// Состояния игры
-// "searching" -> "foundAnimation" -> "showOpponent" -> "countdown" -> "playing" -> "finished"
-let sg1_gameState = 'searching';
+// Основные глобальные переменные
+let roomId = null;             // ID комнаты в БД Firebase
+let playerId = null;           // "player1" или "player2"
+let opponentId = null;         // Кто соперник
+let gameStateRef = null;       // Ссылка на данные игры (Firebase)
+let localSnake = [];           // Массив с координатами тела нашей змейки
+let localDirection = 'right';  // Текущее направление (начальное)
+let applePos = { x: 0, y: 0 }; // Позиция яблока
+let gridSize = 20;             // Размер одного "квадратика" (пикселей)
+let tileCountX = 20;           // Сколько клеток по горизонтали (400 / 20 = 20)
+let tileCountY = 10;           // Сколько клеток по вертикали   (200 / 20 = 10)
+let gameInterval = null;       // setInterval для игрового цикла
+let countdownInterval = null;  // setInterval для обратного отсчёта
+let countdownValue = 5;        // Начальный отсчёт перед стартом
+let isGameRunning = false;     // Игра запущена или нет
+let isGameOver = false;        // Флаг окончания
+let score = 0;                 // Наш счёт
+let opponentScore = 0;         // Счёт соперника
+let timerTotal = 120;          // Всего секунд (2 минуты)
+let timerCurrent = 120;        // Оставшееся время
 
-let sg1_canvas       = null;
-let sg1_ctx          = null;
-let sg1_gameRef      = null;   // Ссылка на Firebase
-let sg1_gameId       = null;   // ID матча
-let sg1_localPlayer  = null;   // 'player1' или 'player2'
-
-// Интервалы
-let sg1_countdownInterval = null;
-let sg1_mainTimerInterval = null;
-let sg1_gameLoopInterval  = null;
-let sg1_sendDataInterval  = null;
-let fadeInterval          = null;
-
-// Для анимации "Соперник найден"
-let foundTextAlpha = 0; // 0..1
-let fadeMode = 'in';    // 'in' | 'out' | 'pause'
-
-// Остаток времени (после countdown) — рисуется в полоске
-let timeLeft = GAME_DURATION;
-
-// Змейка локального игрока
-let sg1_snake = {
-  segments: [],
-  direction: 'right',
-  color: '#0f0',
-  username: '',
-  score: 0
+// Цвета змейки для каждого игрока
+// player1 — зелёная, player2 — салатовая (пример)
+const snakeColors = {
+  player1: '#00FF00',
+  player2: '#ADFF2F'
 };
 
-// Змейка противника
-let sg1_enemySnake = {
-  segments: [],
-  direction: 'right',
-  color: '#f0f',
-  username: 'Opponent',
-  score: 0
-};
-
-// Яблоко
-let sg1_apple = { x: 10, y: 10 };
-
-// ---------------------------------------
-// 1. ИНИЦИАЛИЗАЦИЯ
-// ---------------------------------------
+// === ИНИЦИАЛИЗАЦИЯ (вызывается из основного кода) ===
 function initSpecialGame1() {
-  sg1_canvas = document.getElementById('specialGameCanvas');
-  sg1_ctx    = sg1_canvas.getContext('2d');
+  specialGameCanvas = document.getElementById('specialGameCanvas');
+  specialCtx = specialGameCanvas.getContext('2d');
 
-  // Стили
-  sg1_canvas.style.display = 'block';
-  sg1_canvas.style.margin  = '0 auto';
+  // Обнуляем
+  resetSpecialGame1();
 
-  sg1_ctx.fillStyle   = '#0f0';
-  sg1_ctx.font        = '14px "Press Start 2P", monospace';
-  sg1_ctx.textAlign   = 'center';
+  // Очищаем поле
+  drawWaitingScreen();
 
-  // Имя игрока из Telegram (если есть)
-  if (typeof currentUser !== 'undefined' && currentUser?.username) {
-    sg1_snake.username = '@' + currentUser.username;
-  } else {
-    sg1_snake.username = 'Me';
-  }
-
-  // Отключить прокрутку + свайпы
-  setupSwipeControls(sg1_canvas);
-
-  // Сначала покажем "Поиск соперника..."
-  drawSearchingScreen();
-
-  // Проверим, есть ли в URL ?gameId=...
-  const urlParams = new URLSearchParams(window.location.search);
-  const customGameId = urlParams.get('gameId');
-
-  if (customGameId) {
-    // Попробуем присоединиться к конкретной игре
-    joinSpecifiedGame(customGameId);
-  } else {
-    // Иначе обычный поиск/создание
-    matchMakeSnakeGame();
-  }
+  // Запускаем поиск комнаты (или создание)
+  findOrCreateRoom();
 }
 
-// ---------------------------------------
-// 2. ПОДКЛЮЧЕНИЕ К УКАЗАННОЙ ИГРЕ
-//    (если в URL есть ?gameId=xxx)
-// ---------------------------------------
-function joinSpecifiedGame(gameIdFromURL) {
-  const gamesRef = db.ref('snakeGames/' + gameIdFromURL);
-  gamesRef.once('value', snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-      // Игры с таким gameId нет -> создаём новую
-      matchMakeSnakeGame();
-      return;
-    }
-    // Проверяем, свободно ли место (нет player2)
-    if (!data.player2 && !data.winner) {
-      // Присоединяемся как player2
-      sg1_gameId      = gameIdFromURL;
-      sg1_localPlayer = 'player2';
-      sg1_gameRef     = db.ref('snakeGames/' + sg1_gameId);
+// === СБРОС (вызывается при выходе из игры/закрытии модалки) ===
+function resetSpecialGame1() {
+  clearInterval(gameInterval);
+  clearInterval(countdownInterval);
+  roomId = null;
+  playerId = null;
+  opponentId = null;
+  gameStateRef = null;
+  localSnake = [];
+  localDirection = 'right';
+  applePos = { x: 0, y: 0 };
+  gameInterval = null;
+  countdownInterval = null;
+  countdownValue = 5;
+  isGameRunning = false;
+  isGameOver = false;
+  score = 0;
+  opponentScore = 0;
+  timerTotal = 120;
+  timerCurrent = 120;
 
-      // Цвет player2
-      sg1_snake.color = '#f0f';
-      sg1_snake.segments = [{x: SG1_COLS - 3, y: SG1_ROWS - 3}, {x: SG1_COLS - 2, y: SG1_ROWS - 3}];
-      sg1_snake.direction = 'left';
-
-      sg1_gameRef.update({
-        player2: {
-          username: sg1_snake.username,
-          color: sg1_snake.color,
-          score: 0
-        }
-      });
-
-      listenSnakeGameChanges();
-    } else {
-      // Игра уже занята или закончена -> создаём новую
-      matchMakeSnakeGame();
-    }
-  });
+  // Удалим слушатели (чтобы не плодились)
+  removeSwipeListeners();
 }
 
-// ---------------------------------------
-// 3. СТАНДАРТНЫЙ ПОИСК/СОЗДАНИЕ
-// ---------------------------------------
-function matchMakeSnakeGame() {
-  const gamesRef = db.ref('snakeGames');
-  gamesRef.once('value', snapshot => {
-    const gamesData = snapshot.val() || {};
-    let foundGame   = null;
+// === ПОИСК / СОЗДАНИЕ КОМНАТЫ ===
+function findOrCreateRoom() {
+  // Создадим ссылку на "очередь" в Firebase
+  const queueRef = firebase.database().ref('snakeQueue');
+  queueRef.once('value', (snapshot) => {
+    const queueData = snapshot.val() || {};
 
-    // Ищем, где нет player2
-    for (let gId in gamesData) {
-      let g = gamesData[gId];
-      if (!g.player2 && !g.winner) {
-        foundGame = { id: gId, data: g };
+    // Ищем существующую комнату, которая в статусе waiting
+    let openRoomKey = null;
+    for (const key in queueData) {
+      if (queueData[key].status === 'waiting') {
+        openRoomKey = key;
         break;
       }
     }
 
-    if (foundGame) {
-      // Становимся player2
-      sg1_gameId      = foundGame.id;
-      sg1_localPlayer = 'player2';
-      sg1_gameRef     = db.ref('snakeGames/' + sg1_gameId);
+    if (openRoomKey) {
+      // Нашли открытую комнату, присоединяемся
+      roomId = openRoomKey;
+      playerId = 'player2';
+      opponentId = 'player1';
 
-      sg1_snake.color = '#f0f';
-      sg1_snake.segments = [{x: SG1_COLS - 3, y: SG1_ROWS - 3}, {x: SG1_COLS - 2, y: SG1_ROWS - 3}];
-      sg1_snake.direction = 'left';
-
-      sg1_gameRef.update({
-        player2: {
-          username: sg1_snake.username,
-          color: sg1_snake.color,
-          score: 0
-        }
+      // Обновим статус комнаты в БД
+      firebase.database().ref('snakeQueue/' + roomId).update({
+        status: 'ready'
       });
+
+      // Переходим к настройке самой игры
+      setupGameReferences();
     } else {
-      // Создаём новую игру -> player1
-      sg1_gameId      = db.ref().child('snakeGames').push().key;
-      sg1_localPlayer = 'player1';
-      sg1_gameRef     = db.ref('snakeGames/' + sg1_gameId);
+      // Нет доступных комнат — создаём новую
+      roomId = queueRef.push().key; // генерируем unique key
+      playerId = 'player1';
+      opponentId = 'player2';
 
-      sg1_snake.color = '#0f0';
-      sg1_snake.segments = [{x: 2, y: 2}, {x:1, y:2}];
-      sg1_snake.direction = 'right';
+      // Запишем "waiting" в эту комнату
+      const newRoomData = {
+        status: 'waiting',
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      };
+      // Сохраняем в snakeQueue
+      firebase.database().ref('snakeQueue/' + roomId).set(newRoomData);
 
-      sg1_gameRef.set({
-        player1: {
-          username: sg1_snake.username,
-          color: sg1_snake.color,
-          score: 0
-        },
-        player2: null,
-        state: 'searching',
-        countdown: 0,
-        winner: null,
-        snake1: sg1_snake.segments,
-        snake2: [],
-        apple: { x: sg1_apple.x, y: sg1_apple.y },
-        score1: 0,
-        score2: 0
-      });
+      // Настраиваем игру
+      setupGameReferences();
     }
 
-    listenSnakeGameChanges();
+    // Запускаем экран "Поиск соперника..."
+    // (на случай, если мы player1 и ждём, пока придёт player2)
+    waitForOpponent();
   });
 }
 
-// ---------------------------------------
-// 4. ПОДПИСКА НА ИЗМЕНЕНИЯ МАТЧА (Firebase)
-// ---------------------------------------
-function listenSnakeGameChanges() {
-  if (!sg1_gameRef) return;
+// === ОЖИДАНИЕ СОПЕРНИКА ===
+function waitForOpponent() {
+  // Рисуем экран ожидания
+  drawSearchScreen();
 
-  sg1_gameRef.on('value', snapshot => {
+  // Подпишемся на изменения статуса комнаты
+  const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
+  statusRef.on('value', (snapshot) => {
+    const currentStatus = snapshot.val();
+    if (currentStatus === 'ready') {
+      // Соперник найден!
+      // Снимаем слушатель, чтобы не повторялось
+      statusRef.off();
+
+      startCountdown();
+    }
+  });
+}
+
+// === НАСТРАИВАЕМ ССЫЛКИ В БД ДЛЯ СОСТОЯНИЯ ИГРЫ ===
+function setupGameReferences() {
+  // gameStateRef — отдельная ветка для конкретной комнаты
+  gameStateRef = firebase.database().ref('snakeGames/' + roomId);
+
+  // Записываем начальные данные для каждого игрока (если их нет)
+  // Запись делаем в формате: snakeGames/<roomId>/players/player1 ...
+  const playerRef = gameStateRef.child('players').child(playerId);
+  playerRef.once('value', (snapshot) => {
+    if (!snapshot.exists()) {
+      // Инициализируем начальное состояние змейки
+      const startX = playerId === 'player1' ? 3 : tileCountX - 4;
+      const startY = Math.floor(tileCountY / 2);
+
+      const initialSnake = [
+        { x: startX, y: startY },
+        { x: startX - 1, y: startY },
+        { x: startX - 2, y: startY }
+      ];
+
+      playerRef.set({
+        snake: initialSnake,
+        direction: 'right',
+        score: 0,
+        username: window.currentUser ? window.currentUser.username : 'Guest'
+      });
+    }
+  });
+
+  // Слушаем обновления общего состояния (позиции змейки соперника, яблока и т.д.)
+  gameStateRef.child('players').on('value', (snapshot) => {
+    const playersData = snapshot.val() || {};
+    if (playersData[opponentId]) {
+      opponentScore = playersData[opponentId].score || 0;
+    }
+    if (playersData[playerId]) {
+      score = playersData[playerId].score || 0;
+    }
+  });
+
+  // Слушаем позицию яблока
+  gameStateRef.child('apple').on('value', (snapshot) => {
+    const aData = snapshot.val() || {};
+    if (typeof aData.x === 'number' && typeof aData.y === 'number') {
+      applePos.x = aData.x;
+      applePos.y = aData.y;
+    }
+  });
+
+  // Слушаем глобальный флаг окончания игры
+  gameStateRef.child('gameOver').on('value', (snapshot) => {
+    if (snapshot.val() === true && !isGameOver) {
+      // Если кто-то уже завершил, просто "завершаемся"
+      isGameOver = true;
+      endGame();
+    }
+  });
+}
+
+// === СТАРТ ОБРАТНОГО ОТСЧЁТА (5...1) ===
+function startCountdown() {
+  countdownValue = 5;
+  countdownInterval = setInterval(() => {
+    drawCountdownScreen(countdownValue);
+
+    countdownValue--;
+    if (countdownValue < 1) {
+      clearInterval(countdownInterval);
+      // Готово, запускаем игру
+      launchGame();
+    }
+  }, 1000);
+}
+
+// === ЗАПУСК ИГРЫ (главный цикл) ===
+function launchGame() {
+  isGameRunning = true;
+  isGameOver = false;
+
+  // Инициализируем локальные данные змейки (чтобы мы могли двигать её)
+  gameStateRef.child('players').child(playerId).once('value', (snapshot) => {
     const data = snapshot.val();
-    if (!data) return;
-
-    sg1_gameState = data.state || 'searching';
-
-    // Яблоко
-    if (data.apple) {
-      sg1_apple.x = data.apple.x;
-      sg1_apple.y = data.apple.y;
+    if (data && data.snake) {
+      localSnake = data.snake;
     }
+    // Запишем начальное направление
+    localDirection = data && data.direction ? data.direction : 'right';
 
-    // Очки
-    sg1_snake.score       = (sg1_localPlayer === 'player1') ? (data.score1 || 0) : (data.score2 || 0);
-    sg1_enemySnake.score  = (sg1_localPlayer === 'player1') ? (data.score2 || 0) : (data.score1 || 0);
-
-    // Противник
-    if (sg1_localPlayer === 'player1') {
-      if (data.player2) {
-        sg1_enemySnake.username = data.player2.username || 'Opponent';
-        sg1_enemySnake.color    = data.player2.color    || '#f0f';
+    // Если яблока нет — сгенерируем
+    gameStateRef.child('apple').once('value', (appleSnap) => {
+      if (!appleSnap.exists()) {
+        spawnApple();
       }
-      if (data.snake2) {
-        sg1_enemySnake.segments = data.snake2;
-      }
-    } else {
-      if (data.player1) {
-        sg1_enemySnake.username = data.player1.username || 'Opponent';
-        sg1_enemySnake.color    = data.player1.color || '#0f0';
-      }
-      if (data.snake1) {
-        sg1_enemySnake.segments = data.snake1;
-      }
-    }
-
-    // Состояния
-    if (sg1_gameState === 'searching') {
-      // Рисуем "Поиск соперника..."
-      drawSearchingScreen();
-      // Показываем/обновляем invite-link (если мы player1)
-      showInviteLinkIfPlayer1();
-      // Если уже есть оба игрока => анимация "Соперник найден"
-      if (data.player1 && data.player2 && !fadeInterval) {
-        startFoundAnimation();
-      }
-      return;
-    }
-    else if (sg1_gameState === 'foundAnimation') {
-      // Отрисовывается в foundAnimationTick()
-      hideInviteLink(); 
-      return;
-    }
-    else if (sg1_gameState === 'showOpponent') {
-      // 2 секунды имя соперника
-      hideInviteLink();
-      return;
-    }
-    else if (sg1_gameState === 'countdown') {
-      hideInviteLink();
-      drawCountdown(data.countdown);
-      return;
-    }
-    else if (sg1_gameState === 'playing') {
-      hideInviteLink();
-      if (!sg1_gameLoopInterval) {
-        startSnakeGameLoop();
-      }
-    }
-
-    // Если победитель
-    if (data.winner && sg1_gameState !== 'finished') {
-      sg1_gameState = 'finished';
-      showWinnerModal(data.winner);
-    }
-  });
-}
-
-// ---------------------------------------
-// 4.1 - Показ/скрытие ссылки приглашения
-// ---------------------------------------
-function showInviteLinkIfPlayer1() {
-  const inviteBlock = document.getElementById('inviteLinkBlock');
-  if (!inviteBlock) return; // элемент не существует в HTML
-  // Показываем ссылку, если мы player1 и ещё нет player2
-  if (sg1_localPlayer === 'player1' && sg1_gameId) {
-    const link = window.location.origin + window.location.pathname + '?gameId=' + sg1_gameId;
-    inviteBlock.style.display = 'block';
-    inviteBlock.innerHTML = `
-      Пригласить друга: 
-      <a href="${link}" target="_blank" style="color:#0f0; text-decoration: underline;">
-        ${link}
-      </a>
-    `;
-  }
-}
-
-function hideInviteLink() {
-  const inviteBlock = document.getElementById('inviteLinkBlock');
-  if (inviteBlock) {
-    inviteBlock.style.display = 'none';
-  }
-}
-
-// ---------------------------------------
-// 5. ЭКРАН "ПОИСК СОПЕРНИКА..."
-// ---------------------------------------
-function drawSearchingScreen() {
-  sg1_ctx.clearRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-  sg1_ctx.fillStyle = '#000';
-  sg1_ctx.fillRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-
-  sg1_ctx.fillStyle = '#0f0';
-  sg1_ctx.font = '16px "Press Start 2P", monospace';
-  sg1_ctx.fillText('Поиск соперника...', sg1_canvas.width/2, sg1_canvas.height/2);
-}
-
-// ---------------------------------------
-// 6. АНИМАЦИЯ "СОПЕРНИК НАЙДЕН"
-// ---------------------------------------
-function startFoundAnimation() {
-  sg1_gameRef.update({ state: 'foundAnimation' });
-  sg1_gameState  = 'foundAnimation';
-  foundTextAlpha = 0;
-  fadeMode       = 'in';
-  fadeInterval   = setInterval(foundAnimationTick, 50);
-}
-
-function foundAnimationTick() {
-  if (fadeMode === 'in') {
-    foundTextAlpha += 0.05;
-    if (foundTextAlpha >= 1) {
-      foundTextAlpha = 1;
-      fadeMode = 'pause';
-      setTimeout(() => { fadeMode = 'out'; }, 500);
-    }
-  }
-  else if (fadeMode === 'out') {
-    foundTextAlpha -= 0.05;
-    if (foundTextAlpha <= 0) {
-      foundTextAlpha = 0;
-      clearInterval(fadeInterval);
-      fadeInterval = null;
-      sg1_gameRef.update({ state: 'showOpponent' });
-      sg1_gameState = 'showOpponent';
-      startShowOpponentNamePhase();
-    }
-  }
-  drawFoundAnimation();
-}
-
-function drawFoundAnimation() {
-  sg1_ctx.clearRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-  sg1_ctx.fillStyle = '#000';
-  sg1_ctx.fillRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-
-  sg1_ctx.save();
-  sg1_ctx.globalAlpha = foundTextAlpha;
-  sg1_ctx.fillStyle = '#0f0';
-  sg1_ctx.font = '20px "Press Start 2P", monospace';
-  sg1_ctx.fillText('Соперник найден', sg1_canvas.width/2, sg1_canvas.height/2);
-  sg1_ctx.restore();
-}
-
-// ---------------------------------------
-// 7. ПОКАЗ ИМЕНИ СОПЕРНИКА (2 СЕКУНДЫ)
-// ---------------------------------------
-function startShowOpponentNamePhase() {
-  drawShowOpponentName();
-  setTimeout(() => {
-    // только player1 запускает отсчёт
-    if (sg1_localPlayer === 'player1') {
-      startCountdown(10);
-    }
-  }, 2000);
-}
-
-function drawShowOpponentName() {
-  sg1_ctx.clearRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-  sg1_ctx.fillStyle = '#000';
-  sg1_ctx.fillRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-
-  const oppName = sg1_enemySnake.username || 'Opponent';
-
-  sg1_ctx.fillStyle = '#0f0';
-  sg1_ctx.font = '20px "Press Start 2P", monospace';
-  sg1_ctx.fillText(oppName, sg1_canvas.width/2, sg1_canvas.height/2);
-}
-
-// ---------------------------------------
-// 8. ОТСЧЁТ 10 СЕКУНД (COUNTDOWN)
-// ---------------------------------------
-function startCountdown(sec) {
-  sg1_gameRef.update({ state: 'countdown', countdown: sec });
-
-  let count = sec;
-  sg1_countdownInterval = setInterval(() => {
-    count--;
-    if (count >= 0) {
-      sg1_gameRef.update({ countdown: count });
-    } else {
-      clearInterval(sg1_countdownInterval);
-      sg1_countdownInterval = null;
-      sg1_gameRef.update({ state: 'playing', countdown: 0 });
-    }
-  }, 1000);
-}
-
-function drawCountdown(num) {
-  sg1_ctx.clearRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-  sg1_ctx.fillStyle = '#000';
-  sg1_ctx.fillRect(0, 0, sg1_canvas.width, sg1_canvas.height);
-
-  sg1_ctx.fillStyle = '#0f0';
-  sg1_ctx.font = '40px "Press Start 2P", monospace';
-  sg1_ctx.fillText(num.toString(), sg1_canvas.width/2, sg1_canvas.height/2);
-}
-
-// ---------------------------------------
-// 9. ЗАПУСК ИГРЫ (PLAYING)
-// ---------------------------------------
-function startSnakeGameLoop() {
-  if (sg1_gameLoopInterval) return;
-  timeLeft = GAME_DURATION;
-
-  // Быстрее отправляем данные (80мс) для минимизации "лага"
-  sg1_gameLoopInterval = setInterval(gameTick, 80);
-  sg1_sendDataInterval = setInterval(sendLocalSnakeData, 80);
-
-  sg1_mainTimerInterval = setInterval(() => {
-    timeLeft--;
-    if (timeLeft <= 0) {
-      clearInterval(sg1_mainTimerInterval);
-      sg1_mainTimerInterval = null;
-      // По истечении 2 минут -> сравниваем score
-      if (sg1_localPlayer === 'player1') {
-        finishGameByTime();
-      }
-    }
-  }, 1000);
-}
-
-// Когда время вышло, определяем победителя
-function finishGameByTime() {
-  if (!sg1_gameRef) return;
-  sg1_gameRef.once('value').then(snap => {
-    const val = snap.val();
-    if (!val) return;
-    const s1 = val.score1 || 0;
-    const s2 = val.score2 || 0;
-    let winner = null;
-    if (s1 > s2) winner = 'player1';
-    else if (s2 > s1) winner = 'player2';
-    else winner = 'player1'; // в случае ничьей выберем player1
-
-    sg1_gameRef.update({
-      winner: winner,
-      state: 'finished'
     });
+
+    // Добавим обработчики свайпов/клавиш
+    addSwipeListeners();
+
+    // Запускаем игровой цикл ~ 10 раз/сек
+    gameInterval = setInterval(gameLoop, 100);
+
+    // Запускаем таймер 2 минуты
+    startTimer();
   });
 }
 
-// Каждый тик ~80мс
-function gameTick() {
-  updateSnake(sg1_snake);
-  if (checkCollisions(sg1_snake, sg1_enemySnake)) {
-    // столкновение => объявлен победитель
+// === ГЛАВНАЯ ФУНКЦИЯ ИГРОВОГО ЦИКЛА ===
+function gameLoop() {
+  if (!isGameRunning || isGameOver) return;
+
+  // 1) Обновляем локальное состояние (змейку) на основе направления
+  moveLocalSnake();
+
+  // 2) Проверяем столкновения
+  if (checkCollision()) {
+    // Завершаем игру (мы проиграли)
+    setGameOver();
     return;
   }
-  drawGame();
+
+  // 3) Проверяем съедение яблока
+  if (localSnake[0].x === applePos.x && localSnake[0].y === applePos.y) {
+    // Увеличиваем счёт
+    score++;
+    // Увеличиваем длину змейки (не удаляем хвост)
+    updatePlayerState(true);
+    // Генерируем новое яблоко
+    spawnApple();
+  } else {
+    // Обычное движение (без роста)
+    updatePlayerState(false);
+  }
+
+  // 4) Отрисовываем всё
+  renderGame();
 }
 
-// ---------------------------------------
-// 10. СТОЛКНОВЕНИЯ: С СВОИМ ХВОСТОМ И ЗМЕЁЙ ОППОНЕНТА
-// ---------------------------------------
-function checkCollisions(snake, enemy) {
-  const head = snake.segments[0];
-  // Столкновение с собственным хвостом (начиная со 2-го сегмента)
-  for (let i = 1; i < snake.segments.length; i++) {
-    if (head.x === snake.segments[i].x && head.y === snake.segments[i].y) {
-      // Проигрыш
-      declareWinner(opponentOf(sg1_localPlayer));
+// === ДВИЖЕНИЕ ЛОКАЛЬНОЙ ЗМЕЙКИ ===
+function moveLocalSnake() {
+  const head = { ...localSnake[0] };
+
+  switch (localDirection) {
+    case 'left':
+      head.x--;
+      break;
+    case 'right':
+      head.x++;
+      break;
+    case 'up':
+      head.y--;
+      break;
+    case 'down':
+      head.y++;
+      break;
+  }
+
+  // Добавляем новую голову
+  localSnake.unshift(head);
+  // Убираем хвост (если не съедено яблоко — это сделаем позже)
+  localSnake.pop();
+}
+
+// === ПРОВЕРКА СТОЛКНОВЕНИЙ ===
+function checkCollision() {
+  const head = localSnake[0];
+
+  // 1) Столкновение с границами
+  if (
+    head.x < 0 ||
+    head.x >= tileCountX ||
+    head.y < 0 ||
+    head.y >= tileCountY
+  ) {
+    return true;
+  }
+
+  // 2) Столкновение со своим хвостом
+  for (let i = 1; i < localSnake.length; i++) {
+    if (localSnake[i].x === head.x && localSnake[i].y === head.y) {
       return true;
     }
   }
-  // Столкновение с любым сегментом противника
-  for (let seg of enemy.segments) {
-    if (head.x === seg.x && head.y === seg.y) {
-      declareWinner(opponentOf(sg1_localPlayer));
-      return true;
+
+  // 3) Столкновение с соперником (требуется соперника загрузить из БД)
+  //   Можно хранить копию соперника локально,
+  //   но здесь для простоты сделаем синхронный вызов once (не очень эффективно).
+  //   Для продакшена лучше подписаться на on('value'), хранить локально.
+  let collidedWithOpponent = false;
+  gameStateRef.child('players').child(opponentId).once('value', (snap) => {
+    const oppData = snap.val() || {};
+    const oppSnake = oppData.snake || [];
+    for (let segment of oppSnake) {
+      if (segment.x === head.x && segment.y === head.y) {
+        collidedWithOpponent = true;
+        break;
+      }
     }
-  }
+  });
+  if (collidedWithOpponent) return true;
+
   return false;
 }
 
-function declareWinner(winnerPlayer) {
-  if (!sg1_gameRef) return;
-  sg1_gameRef.update({
-    winner: winnerPlayer,
-    state: 'finished'
+// === ОБНОВЛЕНИЕ СОСТОЯНИЯ В БД (POS, SCORE) ===
+function updatePlayerState(ateApple) {
+  // Если съели яблоко — не удаляем хвост
+  if (ateApple) {
+    // Добавили голову (moveLocalSnake), значит нужно вернуть удалённый "pop"
+    // Но здесь мы уже "pop" сделали, поэтому просто добавим один сегмент в хвост
+    const lastSegment = localSnake[localSnake.length - 1];
+    localSnake.push({ ...lastSegment });
+  }
+
+  // Обновляем в БД
+  gameStateRef.child('players').child(playerId).update({
+    snake: localSnake,
+    direction: localDirection,
+    score: score
   });
 }
 
-function opponentOf(player) {
-  return (player === 'player1') ? 'player2' : 'player1';
-}
-
-// ---------------------------------------
-// 11. ДВИЖЕНИЕ С ЗАВЕРТЫВАНИЕМ (WRAP-AROUND)
-// ---------------------------------------
-function updateSnake(snake) {
-  const head = { ...snake.segments[0] };
-  switch (snake.direction) {
-    case 'up':    head.y--; break;
-    case 'down':  head.y++; break;
-    case 'left':  head.x--; break;
-    case 'right': head.x++; break;
-  }
-  // Проверка выхода за границы
-  if (head.x < 0) head.x = SG1_COLS - 1;
-  if (head.x >= SG1_COLS) head.x = 0;
-  if (head.y < 0) head.y = SG1_ROWS - 1;
-  if (head.y >= SG1_ROWS) head.y = 0;
-
-  snake.segments.unshift(head);
-
-  // Яблоко?
-  if (head.x === sg1_apple.x && head.y === sg1_apple.y) {
-    // Увеличиваем score
-    if (sg1_localPlayer === 'player1') {
-      sg1_gameRef.transaction(curr => {
-        if (curr) {
-          curr.score1 = (curr.score1 || 0) + 1;
-          curr.apple  = randomApple();
-        }
-        return curr;
-      });
-    } else {
-      sg1_gameRef.transaction(curr => {
-        if (curr) {
-          curr.score2 = (curr.score2 || 0) + 1;
-          curr.apple  = randomApple();
-        }
-        return curr;
-      });
-    }
-  } else {
-    snake.segments.pop();
-  }
-}
-
-function randomApple() {
-  return {
-    x: Math.floor(Math.random() * SG1_COLS),
-    y: Math.floor(Math.random() * SG1_ROWS)
+// === СОЗДАНИЕ ЯБЛОКА В СЛУЧАЙНОЙ ТОЧКЕ ===
+function spawnApple() {
+  const newApple = {
+    x: Math.floor(Math.random() * tileCountX),
+    y: Math.floor(Math.random() * tileCountY)
   };
+  gameStateRef.child('apple').set(newApple);
 }
 
-// ---------------------------------------
-// 12. ОТРИСОВКА (полоска + поле + змейки + яблоко)
-// ---------------------------------------
-function drawGame() {
-  sg1_ctx.clearRect(0, 0, sg1_canvas.width, sg1_canvas.height);
+// === УСТАНОВКА ФЛАГА ОКОНЧАНИЯ ИГРЫ ===
+function setGameOver() {
+  isGameOver = true;
+  gameStateRef.update({
+    gameOver: true
+  });
+  endGame();
+}
 
-  // Сначала полоска времени
-  sg1_ctx.save();
-  drawTimeBar();
-  sg1_ctx.restore();
+// === ДОПОЛНИТЕЛЬНАЯ ФУНКЦИЯ ЗАВЕРШЕНИЯ (ОТОБРАЗИТ МОДАЛКУ) ===
+function endGame() {
+  clearInterval(gameInterval);
+  clearInterval(countdownInterval);
 
-  // Сдвигаем поле на 8 пикселей вниз
-  sg1_ctx.save();
-  sg1_ctx.translate(0, 8);
-
-  // Заливка поля
-  sg1_ctx.fillStyle = '#000';
-  sg1_ctx.fillRect(0, 0, sg1_canvas.width, sg1_canvas.height - 8);
-
-  // Сетка
-  sg1_ctx.strokeStyle = 'rgba(0,255,0,0.2)';
-  for (let x = 0; x <= SG1_COLS; x++) {
-    sg1_ctx.beginPath();
-    sg1_ctx.moveTo(x * SG1_CELL_SIZE, 0);
-    sg1_ctx.lineTo(x * SG1_CELL_SIZE, SG1_ROWS * SG1_CELL_SIZE);
-    sg1_ctx.stroke();
-  }
-  for (let y = 0; y <= SG1_ROWS; y++) {
-    sg1_ctx.beginPath();
-    sg1_ctx.moveTo(0, y * SG1_CELL_SIZE);
-    sg1_ctx.lineTo(SG1_COLS * SG1_CELL_SIZE, y * SG1_CELL_SIZE);
-    sg1_ctx.stroke();
+  // Вычислим итог: кто победил
+  let resultTitle = 'Игра окончена';
+  if (score > opponentScore) {
+    resultTitle = 'Вы победили!';
+  } else if (score < opponentScore) {
+    resultTitle = 'Вы проиграли...';
+  } else {
+    resultTitle = 'Ничья';
   }
 
-  // Яблоко
-  sg1_ctx.fillStyle = '#f00';
-  sg1_ctx.fillRect(
-    sg1_apple.x * SG1_CELL_SIZE,
-    sg1_apple.y * SG1_CELL_SIZE,
-    SG1_CELL_SIZE,
-    SG1_CELL_SIZE
+  // Показываем глобальную модалку конца игры
+  // (Используем уже готовую функцию showEndGameModal из основного кода)
+  const resultMessage = `Ваш счёт: ${score} | Счёт соперника: ${opponentScore}`;
+  window.showEndGameModal(resultTitle, resultMessage);
+}
+
+// === ТАЙМЕР 2 МИНУТЫ ===
+function startTimer() {
+  timerCurrent = timerTotal;
+  const timerInterval = setInterval(() => {
+    if (!isGameRunning || isGameOver) {
+      clearInterval(timerInterval);
+      return;
+    }
+
+    timerCurrent--;
+    if (timerCurrent <= 0) {
+      // Время вышло — завершаем
+      setGameOver();
+      clearInterval(timerInterval);
+    }
+  }, 1000);
+}
+
+// === ОТРИСОВКА ИГРЫ ===
+function renderGame() {
+  // Очищаем канвас
+  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  // Фон в стиле "Матрица" (тёмный + чуть прозрачный)
+  specialCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  // Сетка / "Матрица": рисуем зелёные линии
+  specialCtx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+  for (let i = 0; i < tileCountX; i++) {
+    specialCtx.beginPath();
+    specialCtx.moveTo(i * gridSize, 0);
+    specialCtx.lineTo(i * gridSize, specialGameCanvas.height);
+    specialCtx.stroke();
+  }
+  for (let j = 0; j < tileCountY; j++) {
+    specialCtx.beginPath();
+    specialCtx.moveTo(0, j * gridSize);
+    specialCtx.lineTo(specialGameCanvas.width, j * gridSize);
+    specialCtx.stroke();
+  }
+
+  // Границы (зелёная рамка)
+  specialCtx.strokeStyle = 'rgba(0, 255, 0, 1)';
+  specialCtx.lineWidth = 2;
+  specialCtx.strokeRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  // Рисуем яблоко (красным)
+  specialCtx.fillStyle = '#FF0000';
+  specialCtx.fillRect(applePos.x * gridSize, applePos.y * gridSize, gridSize, gridSize);
+
+  // Рисуем нашу змейку
+  specialCtx.fillStyle = snakeColors[playerId] || '#00FF00';
+  for (let seg of localSnake) {
+    specialCtx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
+  }
+
+  // Рисуем змейку соперника (запросим из БД)
+  // (лучше хранить локально через on('value'), но сделаем упрощённо)
+  gameStateRef.child('players').child(opponentId).once('value', (snap) => {
+    const oppData = snap.val() || {};
+    const oppSnake = oppData.snake || [];
+    const oppName = oppData.username || 'Opponent';
+    specialCtx.fillStyle = snakeColors[opponentId] || '#ADFF2F';
+    for (let seg of oppSnake) {
+      specialCtx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
+    }
+
+    // Имя соперника над "головой"
+    if (oppSnake.length > 0) {
+      const oppHead = oppSnake[0];
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '12px "Press Start 2P", sans-serif';
+      specialCtx.fillText(
+        oppName,
+        oppHead.x * gridSize,
+        oppHead.y * gridSize - 5
+      );
+    }
+  });
+
+  // Имя игрока над его головой
+  if (localSnake.length > 0) {
+    const head = localSnake[0];
+    specialCtx.fillStyle = '#00FF00';
+    specialCtx.font = '12px "Press Start 2P", sans-serif';
+    const myName = window.currentUser ? window.currentUser.username : 'You';
+    specialCtx.fillText(myName, head.x * gridSize, head.y * gridSize - 5);
+  }
+
+  // Отображаем счёт
+  specialCtx.fillStyle = '#00FF00';
+  specialCtx.font = '12px "Press Start 2P", sans-serif';
+  specialCtx.fillText(`Score: ${score}`, 10, 15);
+  specialCtx.fillText(`Opp: ${opponentScore}`, 10, 30);
+
+  // Рисуем тайм-бар (2 минуты)
+  let barWidth = (timerCurrent / timerTotal) * specialGameCanvas.width;
+  specialCtx.fillStyle = '#00FF00';
+  specialCtx.fillRect(0, 0, barWidth, 4);
+}
+
+// === ОТРИСОВКА ЭКРАНА "ПОИСК СОПЕРНИКА" ===
+function drawSearchScreen() {
+  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  specialCtx.fillStyle = '#000000';
+  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  specialCtx.fillStyle = '#00FF00';
+  specialCtx.font = '16px "Press Start 2P", sans-serif';
+  specialCtx.textAlign = 'center';
+  specialCtx.fillText(
+    'Поиск соперника...',
+    specialGameCanvas.width / 2,
+    specialGameCanvas.height / 2
   );
-
-  // Змейки
-  drawSnake(sg1_snake);
-  drawSnake(sg1_enemySnake);
-
-  // Ники
-  drawUsernameAboveHead(sg1_snake);
-  drawUsernameAboveHead(sg1_enemySnake);
-
-  sg1_ctx.restore();
 }
 
-// Полоска времени (topbar)
-function drawTimeBar() {
-  const barWidth  = sg1_canvas.width;
-  const barHeight = 8;
-  const fraction  = timeLeft / GAME_DURATION;
-  const filledWidth = fraction * barWidth;
-
-  sg1_ctx.fillStyle = '#444';
-  sg1_ctx.fillRect(0, 0, barWidth, barHeight);
-
-  sg1_ctx.fillStyle = '#0f0';
-  sg1_ctx.fillRect(0, 0, filledWidth, barHeight);
+// === ОТРИСОВКА ЭКРАНА "ОЖИДАНИЕ" (если нужно) ===
+function drawWaitingScreen() {
+  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+  specialCtx.fillStyle = '#000';
+  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
 }
 
-// Рисуем змейку
-function drawSnake(snakeObj) {
-  sg1_ctx.fillStyle = snakeObj.color;
-  for (let seg of snakeObj.segments) {
-    sg1_ctx.fillRect(
-      seg.x * SG1_CELL_SIZE,
-      seg.y * SG1_CELL_SIZE,
-      SG1_CELL_SIZE,
-      SG1_CELL_SIZE
-    );
-  }
+// === ОТРИСОВКА ОБРАТНОГО ОТСЧЁТА ===
+function drawCountdownScreen(value) {
+  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  specialCtx.fillStyle = '#000000';
+  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  specialCtx.fillStyle = '#00FF00';
+  specialCtx.font = '48px "Press Start 2P", sans-serif';
+  specialCtx.textAlign = 'center';
+  specialCtx.fillText(
+    value.toString(),
+    specialGameCanvas.width / 2,
+    specialGameCanvas.height / 2
+  );
 }
 
-// Ник над головой
-function drawUsernameAboveHead(snakeObj) {
-  if (!snakeObj.segments.length) return;
-  const head = snakeObj.segments[0];
+// =============== УПРАВЛЕНИЕ (СВАЙПЫ / КЛАВИШИ) ===============
 
-  sg1_ctx.fillStyle = '#0f0'; // или snakeObj.color
-  sg1_ctx.font = '10px "Press Start 2P", monospace';
-  sg1_ctx.textAlign = 'center';
+// Добавить слушатели свайпов и клавиш
+function addSwipeListeners() {
+  // Для смартфонов/планшетов
+  let touchStartX = null;
+  let touchStartY = null;
 
-  const px = head.x * SG1_CELL_SIZE + SG1_CELL_SIZE/2;
-  const py = head.y * SG1_CELL_SIZE - 5;
-
-  sg1_ctx.fillText(snakeObj.username, px, py);
-}
-
-// ---------------------------------------
-// 13. СИНХРОНИЗАЦИЯ (отправка данных змейки)
-// ---------------------------------------
-function sendLocalSnakeData() {
-  if (!sg1_gameRef) return;
-  if (sg1_localPlayer === 'player1') {
-    sg1_gameRef.update({ snake1: sg1_snake.segments });
-  } else {
-    sg1_gameRef.update({ snake2: sg1_snake.segments });
-  }
-}
-
-// ---------------------------------------
-// 14. ПОБЕДА / ПРОИГРЫШ (модальное окно)
-// ---------------------------------------
-function showWinnerModal(winnerPlayer) {
-  clearIntervals();
-
-  let title = 'Итог';
-  let message = '';
-  if ((winnerPlayer === 'player1' && sg1_localPlayer === 'player1') ||
-      (winnerPlayer === 'player2' && sg1_localPlayer === 'player2')) {
-    message = 'Вы победили!';
-  } else {
-    message = 'Вы проиграли!';
-  }
-  // Эта функция должна быть определена в main.js
-  showEndGameModal(title, message);
-}
-
-// ---------------------------------------
-// 15. СБРОС ИГРЫ
-// ---------------------------------------
-function resetSpecialGame1() {
-  clearIntervals();
-  if (sg1_gameRef) sg1_gameRef.off();
-  sg1_gameRef     = null;
-  sg1_gameId      = null;
-  sg1_localPlayer = null;
-  sg1_gameState   = 'searching';
-}
-
-// Очищаем интервалы
-function clearIntervals() {
-  if (sg1_countdownInterval)  { clearInterval(sg1_countdownInterval);  sg1_countdownInterval = null; }
-  if (sg1_mainTimerInterval)  { clearInterval(sg1_mainTimerInterval);  sg1_mainTimerInterval = null; }
-  if (sg1_gameLoopInterval)   { clearInterval(sg1_gameLoopInterval);   sg1_gameLoopInterval = null; }
-  if (sg1_sendDataInterval)   { clearInterval(sg1_sendDataInterval);   sg1_sendDataInterval = null; }
-  if (fadeInterval)           { clearInterval(fadeInterval);           fadeInterval = null; }
-}
-
-// ---------------------------------------
-// 16. СВАЙПЫ + ОТКЛЮЧЕНИЕ ПРОКРУТКИ
-// ---------------------------------------
-function setupSwipeControls(canvas) {
-  let startX = 0, startY = 0;
-  let endX   = 0, endY   = 0;
-
-  canvas.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    startX = t.clientX;
-    startY = t.clientY;
+  function onTouchStart(e) {
+    // Сразу отменяем возможное поведение (чтобы не закрывался Telegram)
     e.preventDefault();
-  }, { passive: false });
+    // Берём первую точку касания
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }
 
-  canvas.addEventListener('touchmove', (e) => {
-    const t = e.touches[0];
-    endX = t.clientX;
-    endY = t.clientY;
+  function onTouchMove(e) {
+    // Отменяем стандартное
     e.preventDefault();
-  }, { passive: false });
+  }
 
-  canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const diffX = endX - startX;
-    const diffY = endY - startY;
+  function onTouchEnd(e) {
+    // Сравниваем координаты
+    if (!touchStartX || !touchStartY) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
 
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      // Горизонталь
-      if (diffX > 0 && sg1_snake.direction !== 'left') {
-        sg1_snake.direction = 'right';
-      } else if (diffX < 0 && sg1_snake.direction !== 'right') {
-        sg1_snake.direction = 'left';
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Горизонтальный свайп
+      if (dx > 0 && localDirection !== 'left') {
+        localDirection = 'right';
+      } else if (dx < 0 && localDirection !== 'right') {
+        localDirection = 'left';
       }
     } else {
-      // Вертикаль
-      if (diffY > 0 && sg1_snake.direction !== 'up') {
-        sg1_snake.direction = 'down';
-      } else if (diffY < 0 && sg1_snake.direction !== 'down') {
-        sg1_snake.direction = 'up';
+      // Вертикальный свайп
+      if (dy > 0 && localDirection !== 'up') {
+        localDirection = 'down';
+      } else if (dy < 0 && localDirection !== 'down') {
+        localDirection = 'up';
       }
     }
-  }, { passive: false });
+    touchStartX = null;
+    touchStartY = null;
+  }
+
+  specialGameCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  specialGameCanvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  specialGameCanvas.addEventListener('touchend', onTouchEnd, { passive: false });
+
+  // Для клавиатуры (при игре на ПК)
+  function onKeyDown(e) {
+    switch (e.key) {
+      case 'ArrowLeft':
+        if (localDirection !== 'right') localDirection = 'left';
+        break;
+      case 'ArrowRight':
+        if (localDirection !== 'left') localDirection = 'right';
+        break;
+      case 'ArrowUp':
+        if (localDirection !== 'down') localDirection = 'up';
+        break;
+      case 'ArrowDown':
+        if (localDirection !== 'up') localDirection = 'down';
+        break;
+    }
+  }
+  window.addEventListener('keydown', onKeyDown);
+
+  // Сохраним функции в глобальные переменные, чтобы потом удалить
+  window.__special_onKeyDown = onKeyDown;
+  window.__special_onTouchStart = onTouchStart;
+  window.__special_onTouchMove = onTouchMove;
+  window.__special_onTouchEnd = onTouchEnd;
 }
 
-// ---------------------------------------
-// Доп. утилита (если хотите случайный цвет)
-// ---------------------------------------
-function getRandomSnakeColor() {
-  const colors = ['#0f0', '#f0f', '#ff0', '#0ff', '#39ff14', '#32cd32'];
-  return colors[Math.floor(Math.random() * colors.length)];
+// Удалить слушатели свайпов/клавиш (при ресете)
+function removeSwipeListeners() {
+  if (!specialGameCanvas) return;
+
+  specialGameCanvas.removeEventListener('touchstart', window.__special_onTouchStart);
+  specialGameCanvas.removeEventListener('touchmove', window.__special_onTouchMove);
+  specialGameCanvas.removeEventListener('touchend', window.__special_onTouchEnd);
+  window.removeEventListener('keydown', window.__special_onKeyDown);
+  window.__special_onTouchStart = null;
+  window.__special_onTouchMove = null;
+  window.__special_onTouchEnd = null;
+  window.__special_onKeyDown = null;
 }
+
