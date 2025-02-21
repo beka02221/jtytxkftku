@@ -1,0 +1,738 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Mobile Games Site</title>
+
+  <!-- Font: Press Start 2P -->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <!-- Подключение темы (по умолчанию st1.css) -->
+  <link id="themeStylesheet" rel="stylesheet" href="st1.css">
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="user-info">
+      <img id="userPhoto" src="" alt="Avatar"/>
+      <span id="username">@User</span>
+    </div>
+    <div class="balances">
+      <span>
+        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png"
+             alt="Tickets" width="20"/>
+        <span id="ticketCount">0</span>
+      </span>
+      <span>
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png"
+             alt="Coins" width="20"/>
+        <span id="coinCount">0</span>
+      </span>
+      <span>
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png"
+             alt="Points" width="20"/>
+        <span id="pointCount">0</span>
+      </span>
+    </div>
+
+    <!-- Кнопка и меню дизайна (гамбургер) -->
+    <div class="header-left" id="design-settings">
+      <button onclick="toggleDesignMenu()">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      <div id="design-options">
+        <p onclick="changeDesign('st1.css')" style="cursor: pointer; margin: 5px 0;">Дизайн (применен)</p>
+        <p onclick="changeDesign('st2.css')" style="cursor: pointer; margin: 5px 0;">Ретро дизайн</p>
+        <p onclick="changeDesign('st3.css')" style="cursor: pointer; margin: 5px 0;">Киберпанк дизайн</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- PLAY SECTION (Галерея игр) -->
+    <section id="playSection" class="section active">
+      <h2>   </h2>
+      
+      <!-- Main Online Games Section -->
+      <div class="games-section">
+        <h3>
+          Main Online Games
+          <button class="info-button" onclick="openMainOnlineInfoModal()">Info 2 игры</button>
+        </h3>
+        <div class="games-gallery">
+          <!-- Game Card 1: Dino Runner -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png" alt="Special Game">
+            <p>Online snake</p>
+            <button onclick="window.location.href='snake.html'">Подробнее</button>
+          </div>
+          
+          <!-- Game Card 2: Special Game (открывается отдельной страницей) -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/flash-on.png" alt="Special Game">
+            <p>Special Game</p>
+            <button onclick="window.location.href='specialgame.html'">Подробнее</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mini Games Section -->
+      <div class="games-section">
+        <h3>
+          Mini Games
+          <button class="info-button" onclick="openMiniGamesInfoModal()">Info 3 игры</button>
+        </h3>
+        <div class="games-gallery">
+          <!-- Game Card: Match-3 -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png" alt="Match-3">
+            <p>Match-3</p>
+            <button onclick="openGameInfoModal({
+              gameId: 'game2',
+              title: 'Match-3',
+              img: 'https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png',
+              desc: 'Соединяйте три и более конфет в ряд, чтобы проходить уровни.',
+              cost: 1
+            })">Подробнее</button>
+          </div>
+          
+          <!-- Game Card: Game 3 -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png" alt="Game 3">
+            <p>Game 3</p>
+            <button onclick="openGameInfoModal({
+              gameId: 'game3',
+              title: 'Game 3',
+              img: 'https://img.icons8.com/ios-filled/50/00FF00/controller.png',
+              desc: 'Описание третьей игры...',
+              cost: 1
+            })">Подробнее</button>
+          </div>
+          
+          <!-- Game Card: Space Explorer -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/64/00FF00/rocket.png" alt="Space Explorer">
+            <p>Space Explorer</p>
+            <button onclick="openGameInfoModal({
+              gameId: 'game4',
+              title: 'Space Explorer',
+              img: 'https://img.icons8.com/ios-filled/64/00FF00/rocket.png',
+              desc: 'Исследуй космос, избегай астероидов и собирай звезды.',
+              cost: 1
+            })">Подробнее</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Partner Games Section -->
+      <div class="games-section">
+        <h3>
+          Partner Games
+          <button class="info-button" onclick="openPartnerInfoModal()">Info 1 игра</button>
+        </h3>
+        <div class="games-gallery">
+          <!-- Game Card: Partner Game -->
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png" alt="Partner Game">
+            <p>Partner Game</p>
+            <button onclick="openGameInfoModal({
+              gameId: 'partnergame1',
+              title: 'Partner Game',
+              img: 'https://img.icons8.com/ios-filled/50/00FF00/handshake.png',
+              desc: 'Игра от нашего партнёра.',
+              cost: 1
+            })">Подробнее</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TICKETS SECTION (Колесо) -->
+    <section id="ticketsSection" class="section">
+      <h2>Tickets</h2>
+      <div class="wheel-container">
+        <div class="wheel" id="wheel">
+          <div class="slice slice1">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>5</span>
+          </div>
+          <div class="slice slice2">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>10</span>
+          </div>
+          <div class="slice slice3">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>15</span>
+          </div>
+          <div class="slice slice4">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>20</span>
+          </div>
+          <div class="slice slice5">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>25</span>
+          </div>
+          <div class="slice slice6">
+            <img width="24" height="32" src="https://img.icons8.com/forma-thin/24/ticket.png" alt="ticket"/>
+            <span>30</span>
+          </div>
+        </div>
+        <div class="wheel-pointer"></div>
+        <div class="tickets-actions">
+          <button onclick="spinWheel()">Spin (once every 24h)</button>
+          <button onclick="buyTickets()">Buy Tickets</button>
+        </div>
+        <div class="spin-result" id="spinResult"></div>
+      </div>
+    </section>
+
+    <!-- Leaderboard Section -->
+    <section id="leaderboardSection" class="section">
+      <h2>Leaderboard</h2>
+      <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
+      <div class="leaderboard-container">
+        <table id="leaderboardTable">
+          <thead>
+            <tr>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <!-- Leaderboard data populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Referral Section -->
+    <section id="referralSection" class="section">
+      <h2>Referral</h2>
+      <div class="referral-container">
+        <p>Invite your friends using the link and earn bonuses!</p>
+        <div class="referral-link" id="referralLink">
+          Link will appear after login...
+        </div>
+        <button class="copy-button" onclick="copyReferralLink()">Copy</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav id="mainNav">
+    <button onclick="showSection('playSection')">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/playing.png" alt="Play"/>
+    </button>
+    <button onclick="showSection('ticketsSection')">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/ticket.png" alt="Tickets"/>
+    </button>
+    <button onclick="showSection('leaderboardSection')">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/trophy.png" alt="Leaderboard"/>
+    </button>
+    <button onclick="showSection('referralSection')">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/share.png" alt="Referral"/>
+    </button>
+  </nav>
+
+  <!-- Global Modal -->
+  <div class="modal-backdrop" id="globalModalBackdrop">
+    <div class="modal">
+      <h2 id="globalModalTitle">Message</h2>
+      <p id="globalModalMessage"></p>
+      <button class="close-modal" onclick="closeGlobalModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Season Info Modal -->
+  <div class="modal-backdrop" id="seasonModalBackdrop">
+    <div class="modal modal-season">
+      <h2>Season Information</h2>
+      <p>Details about the season, prizes, deadlines, etc.</p>
+      <button class="close-modal" onclick="closeSeasonModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Game Info Modal -->
+  <div class="modal-backdrop" id="gameInfoModal">
+    <div class="modal">
+      <img id="gameInfoImg" src="" alt="Game Image" style="max-width:100px; display:block; margin:0 auto 10px;" />
+      <h2 id="gameInfoTitle" style="text-align:center;"></h2>
+      <p id="gameInfoDesc"></p>
+      <button id="gameInfoPlayBtn">Играть</button>
+      <button onclick="closeGameInfoModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Spin Result Modal -->
+  <div class="modal-backdrop" id="spinModalBackdrop">
+    <div class="modal">
+      <h2>You won!</h2>
+      <p id="spinModalMessage"></p>
+      <button class="close-modal" onclick="closeSpinModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Fullscreen Game Modal (без canvas для Special Game) -->
+  <div class="game-modal-backdrop" id="gameModalBackdrop">
+    <div class="game-modal-content">
+      <div class="game-canvas">
+        <!-- Canvas for Game 1 -->
+        <canvas id="gameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+        <!-- Canvas for Game 2 -->
+        <canvas id="match3Canvas" width="400" height="400" style="display: none;"></canvas>
+        <!-- Canvas for Partner Game -->
+        <canvas id="partnerGameCanvas" width="400" height="200" style="display: none;"></canvas>
+        <!-- Canvas for Game 3 -->
+        <canvas id="game3Canvas" width="400" height="650" style="display: none;"></canvas>
+        <!-- Canvas for Game 4: Space Explorer -->
+        <canvas id="game4Canvas" width="400" height="650" style="display: none;"></canvas>
+        <!-- Canvas for Game 5 -->
+        <canvas id="game5Canvas" width="400" height="650" style="display: none;"></canvas>
+        <!-- Canvas for Game 6 -->
+        <canvas id="game6Canvas" width="400" height="650" style="display: none;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Endgame Modal -->
+  <div class="endgame-backdrop" id="endgameBackdrop">
+    <div class="endgame-modal">
+      <h2 id="endgameTitle">Result</h2>
+      <p id="endgameMessage"></p>
+      <button class="close-modal" onclick="finishGame()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Main Online Games Info -->
+  <div class="modal-backdrop" id="mainOnlineInfoModal">
+    <div class="modal">
+      <h2>Информация о Main Online Games</h2>
+      <p>Здесь представлено 2 основных игры: Dino Runner и Special Game.</p>
+      <button onclick="closeMainOnlineInfoModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Modal for Mini Games Info -->
+  <div class="modal-backdrop" id="miniGamesInfoModal">
+    <div class="modal">
+      <h2>Информация о мини-играх</h2>
+      <p>Игроки участвуют в мини-играх, зарабатывая очки за свою активность. Раз в 3 дня топ-10 игроков в лидерборде получают кейсы с наградами.</p>
+      <button onclick="closeMiniGamesInfoModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Modal for Partner Games Info -->
+  <div class="modal-backdrop" id="partnerInfoModal">
+    <div class="modal">
+      <h2>Информация о Partner Games</h2>
+      <p>Партнерская игра от нашего партнёра.</p>
+      <button onclick="closePartnerInfoModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Modal for Deposit -->
+  <div class="modal-backdrop" id="depositModal">
+    <div class="modal">
+      <h2>Недостаточно монет</h2>
+      <p>У вас недостаточно монет для участия. Пожалуйста, пополните баланс.</p>
+      <button onclick="closeDepositModal()">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Modal for Wheel Result -->
+  <div class="modal-backdrop" id="wheelResultModal">
+    <div class="modal">
+      <h2>Вы выиграли <span id="wheelTicketCount"></span> билетов!</h2>
+      <button class="close-modal" onclick="closeWheelResult()">OK</button>
+    </div>
+  </div>
+
+  <!-- Подключаем скрипты игр и основной скрипт -->
+  <script src="game1.js"></script>
+  <script src="game2.js"></script>
+  <script src="partnergame1.js"></script>
+  <!-- Файл specialgame1.js удалён – Special Game теперь на отдельной странице -->
+  <script src="game3.js"></script>
+  <script src="game4.js"></script>
+  <script src="game5.js"></script>
+  <script src="game6.js"></script>
+  <script src="case.js"></script>
+
+  <button style="position: absolute; bottom: 10px; left: 10px;" onclick="copyInviteLink()">
+    Скопировать ссылку
+  </button>
+  
+  <script>
+    /* ----------------------------------------------
+       1. Firebase Initialization
+    ---------------------------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    /* ----------------------------------------------
+       2. Telegram Web App
+    ---------------------------------------------- */
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    /* ----------------------------------------------
+       3. Global Variables
+    ---------------------------------------------- */
+    let currentUser = null;
+    let userRef = null;
+    let localUserData = {
+      photo: '',
+      tickets: 0,
+      coins: 0,
+      points: 0
+    };
+    let gameInProgress = false;
+
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user;
+      document.getElementById('username').textContent = '@' + currentUser.username;
+      if (currentUser.photo_url) {
+        document.getElementById('userPhoto').src = currentUser.photo_url;
+      }
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value', snapshot => {
+        if (!snapshot.exists()) {
+          userRef.set({
+            photo: currentUser.photo_url || '',
+            tickets: 0,
+            coins: 0,
+            points: 0
+          });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        if (!gameInProgress) {
+          localUserData = data;
+        } else {
+          localUserData.tickets = data.tickets || 0;
+          localUserData.coins   = data.coins   || 0;
+        }
+        updateTopBar();
+      });
+    }
+
+    /* ----------------------------------------------
+       4. Update Top Bar
+    ---------------------------------------------- */
+    function updateTopBar() {
+      document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
+      document.getElementById('coinCount').textContent   = localUserData.coins || 0;
+      document.getElementById('pointCount').textContent  = localUserData.points || 0;
+    }
+
+    /* ----------------------------------------------
+       5. Section Switching
+    ---------------------------------------------- */
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    /* ----------------------------------------------
+       6. Global Modal
+    ---------------------------------------------- */
+    function showGlobalModal(title, message) {
+      document.getElementById('globalModalTitle').textContent = title;
+      document.getElementById('globalModalMessage').textContent = message;
+      document.getElementById('globalModalBackdrop').classList.add('active');
+    }
+    function closeGlobalModal() {
+      document.getElementById('globalModalBackdrop').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       7. Game Info Modal (Подробнее)
+    ---------------------------------------------- */
+    function openGameInfoModal(gameData) {
+      document.getElementById('gameInfoImg').src = gameData.img;
+      document.getElementById('gameInfoTitle').textContent = gameData.title;
+      document.getElementById('gameInfoDesc').textContent = gameData.desc;
+      const playBtn = document.getElementById('gameInfoPlayBtn');
+      playBtn.textContent = `Играть (${gameData.cost} ticket)`;
+      playBtn.onclick = function() {
+        closeGameInfoModal();
+        handleStartGame(gameData.gameId, gameData.cost);
+      };
+      document.getElementById('gameInfoModal').classList.add('active');
+    }
+    function closeGameInfoModal() {
+      document.getElementById('gameInfoModal').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       8. Start Game
+    ---------------------------------------------- */
+    let currentGame = null;
+    function handleStartGame(gameName, ticketCost) {
+      document.querySelector('.user-info').style.display = 'none';
+      if (!currentUser || !userRef) {
+        showGlobalModal('Error', 'No user data available!');
+        return;
+      }
+      if ((localUserData.tickets || 0) < ticketCost) {
+        showGlobalModal('Not enough tickets', 'You do not have enough tickets to play!');
+        return;
+      }
+      localUserData.tickets -= ticketCost;
+      updateTopBar();
+      userRef.update({ tickets: localUserData.tickets });
+      currentGame = gameName;
+      gameInProgress = true;
+      document.getElementById('mainNav').classList.add('hidden');
+
+      document.getElementById('gameCanvas').style.display = 'none';
+      document.getElementById('match3Canvas').style.display = 'none';
+      document.getElementById('partnerGameCanvas').style.display = 'none';
+      document.getElementById('game3Canvas').style.display = 'none';
+      document.getElementById('game4Canvas').style.display = 'none';
+      document.getElementById('game5Canvas').style.display = 'none';
+      document.getElementById('game6Canvas').style.display = 'none';
+
+      document.getElementById('gameModalBackdrop').classList.add('active');
+
+      if (gameName === 'game1') {
+        document.getElementById('gameCanvas').style.display = 'block';
+        initGame1();
+      } else if (gameName === 'game2') {
+        document.getElementById('match3Canvas').style.display = 'block';
+        initGame2();
+      } else if (gameName === 'partnergame1') {
+        document.getElementById('partnerGameCanvas').style.display = 'block';
+        initPartnerGame1();
+      } else if (gameName === 'game3') {
+        document.getElementById('game3Canvas').style.display = 'block';
+        initGame3();
+      } else if (gameName === 'game4') {
+        document.getElementById('game4Canvas').style.display = 'block';
+        initGame4();
+      } else if (gameName === 'game5') {
+        document.getElementById('game5Canvas').style.display = 'block';
+        initGame5();
+      } else if (gameName === 'game6') {
+        document.getElementById('game6Canvas').style.display = 'block';
+        initGame6();
+      }
+    }
+
+    /* ----------------------------------------------
+       9. End Game Modal
+    ---------------------------------------------- */
+    function showEndGameModal(title, message) {
+      document.getElementById('endgameTitle').textContent = title;
+      document.getElementById('endgameMessage').textContent = message;
+      document.getElementById('endgameBackdrop').classList.add('active');
+    }
+    function finishGame() {
+      document.querySelector('.user-info').style.display = '';
+      document.getElementById('endgameBackdrop').classList.remove('active');
+      closeGameModal();
+    }
+    function closeGameModal() {
+      document.getElementById('gameModalBackdrop').classList.remove('active');
+      document.getElementById('mainNav').classList.remove('hidden');
+      if (userRef && currentGame) {
+        userRef.update({ points: localUserData.points });
+      }
+      if (currentGame === 'game1') {
+        resetGame1();
+      } else if (currentGame === 'game2') {
+        resetGame2();
+      } else if (currentGame === 'partnergame1') {
+        resetPartnerGame1();
+      } else if (currentGame === 'game3') {
+        resetGame3();
+      } else if (currentGame === 'game4') {
+        resetGame4();
+      } else if (currentGame === 'game5') {
+        resetGame5();
+      } else if (currentGame === 'game6') {
+        resetGame6();
+      }
+      currentGame = null;
+      gameInProgress = false;
+    }
+
+    /* ----------------------------------------------
+       10. Wheel of Fortune / Tickets
+    ---------------------------------------------- */
+    let lastSpinTime = 0;
+    let spinDuration = 4000;
+    function spinWheel() {
+      if (!currentUser) return;
+      const now = Date.now();
+      if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
+        showGlobalModal('Wheel of Fortune', 'Free spin available once every 24 hours!');
+        return;
+      }
+      lastSpinTime = now;
+      let randomRotation = 1080 + Math.floor(Math.random() * 360);
+      const wheelEl = document.getElementById('wheel');
+      wheelEl.style.transform = `rotate(${randomRotation}deg)`;
+      setTimeout(() => {
+        let finalDeg = randomRotation % 360;
+        let wonTickets = 0;
+        if (finalDeg < 60) {
+          wonTickets = 5;
+        } else if (finalDeg < 120) {
+          wonTickets = 10;
+        } else if (finalDeg < 180) {
+          wonTickets = 15;
+        } else if (finalDeg < 240) {
+          wonTickets = 20;
+        } else if (finalDeg < 300) {
+          wonTickets = 25;
+        } else {
+          wonTickets = 30;
+        }
+        localUserData.tickets += wonTickets;
+        updateTopBar();
+        userRef.update({ tickets: localUserData.tickets });
+        showSpinModal(wonTickets);
+      }, spinDuration);
+    }
+    function showSpinModal(amount) {
+      document.getElementById("spinModalMessage").textContent = `You won ${amount} tickets!`;
+      document.getElementById("spinModalBackdrop").classList.add("active");
+    }
+    function closeSpinModal() {
+      document.getElementById("spinModalBackdrop").classList.remove("active");
+    }
+
+    /* ----------------------------------------------
+       11. Leaderboard
+    ---------------------------------------------- */
+    let leaderboardRef = db.ref('users');
+    leaderboardRef.on('value', snapshot => {
+      const usersData = snapshot.val() || {};
+      const usersArray = Object.entries(usersData).map(([uname, obj]) => ({
+        username: uname,
+        points: obj.points || 0
+      }));
+      usersArray.sort((a, b) => b.points - a.points);
+      const topUsers = usersArray.slice(0, 10);
+      const tbody = document.getElementById('leaderboardBody');
+      tbody.innerHTML = '';
+      topUsers.forEach((user, i) => {
+        const tr = document.createElement('tr');
+        if (currentUser && user.username === currentUser.username) {
+          tr.classList.add('current-user');
+        }
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>@${user.username}</td>
+          <td>${user.points}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+
+    function openSeasonInfoModal() {
+      document.getElementById('seasonModalBackdrop').classList.add('active');
+    }
+    function closeSeasonModal() {
+      document.getElementById('seasonModalBackdrop').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       12. Referral
+    ---------------------------------------------- */
+    function copyReferralLink() {
+      const link = document.getElementById('referralLink').textContent;
+      navigator.clipboard.writeText(link).then(() => {
+        showGlobalModal('Copied', 'Referral link copied to clipboard!');
+      });
+    }
+
+    /* ----------------------------------------------
+       13. Настройки дизайна
+    ---------------------------------------------- */
+    function toggleDesignMenu() {
+      var menu = document.getElementById('design-options');
+      if (menu.style.display === 'none' || menu.style.display === '') {
+        menu.style.display = 'block';
+      } else {
+        menu.style.display = 'none';
+      }
+    }
+    function changeDesign(theme) {
+      document.getElementById('themeStylesheet').setAttribute('href', theme);
+      toggleDesignMenu();
+    }
+
+    /* ----------------------------------------------
+       14. Модалки для разделов
+    ---------------------------------------------- */
+    function openMainOnlineInfoModal() {
+      document.getElementById('mainOnlineInfoModal').classList.add('active');
+    }
+    function closeMainOnlineInfoModal() {
+      document.getElementById('mainOnlineInfoModal').classList.remove('active');
+    }
+
+    function openMiniGamesInfoModal() {
+      document.getElementById('miniGamesInfoModal').classList.add('active');
+    }
+    function closeMiniGamesInfoModal() {
+      document.getElementById('miniGamesInfoModal').classList.remove('active');
+    }
+
+    function openPartnerInfoModal() {
+      document.getElementById('partnerInfoModal').classList.add('active');
+    }
+    function closePartnerInfoModal() {
+      document.getElementById('partnerInfoModal').classList.remove('active');
+    }
+
+    function openDepositModal() {
+      document.getElementById('depositModal').classList.add('active');
+    }
+    function closeDepositModal() {
+      document.getElementById('depositModal').classList.remove('active');
+    }
+
+    function closeWheelResult() {
+      document.getElementById("wheelResultModal").classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       15. Копирование ссылки приглашения
+    ---------------------------------------------- */
+    function copyInviteLink() {
+      const link = window.location.href;
+      navigator.clipboard.writeText(link).then(() => {
+        showGlobalModal('Copied', 'Invite link copied to clipboard!');
+      });
+    }
+  </script>
+</body>
+</html>
