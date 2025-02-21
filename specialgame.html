@@ -26,7 +26,7 @@
       font-family: 'Press Start 2P', sans-serif;
       background-color: #000;
       color: #0f0;
-      overflow: hidden; /* Чтобы скрывать скролл, если что */
+      overflow: hidden;
     }
     header {
       display: flex;
@@ -42,40 +42,27 @@
       gap: 8px;
     }
     .user-info img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
+      width: 40px; height: 40px; border-radius: 50%;
     }
-    .balances span {
-      margin-right: 10px;
-    }
+    .balances span { margin-right: 10px; }
     .hamburger-line {
-      display: block;
-      width: 20px;
-      height: 2px;
-      background-color: #0f0;
-      margin: 4px 0;
+      display: block; width: 20px; height: 2px;
+      background-color: #0f0; margin: 4px 0;
     }
     #design-options {
-      display: none;
-      position: absolute;
-      background: #222;
-      border: 1px solid #0f0;
-      padding: 10px;
-      z-index: 999;
+      display: none; position: absolute;
+      background: #222; border: 1px solid #0f0;
+      padding: 10px; z-index: 999;
     }
 
-    .game-info-container {
-      text-align: center;
-      padding: 10px;
-    }
+    /* Описание игры */
+    .game-info-container { text-align: center; padding: 10px; }
     .game-search-container {
-      text-align: center;
-      margin-top: 20px;
+      text-align: center; margin-top: 20px;
     }
     @keyframes searching {
-      0%   { opacity: 0.2; }
-      50%  { opacity: 1;   }
+      0% { opacity: 0.2; }
+      50% { opacity: 1; }
       100% { opacity: 0.2; }
     }
     .search-animation {
@@ -83,77 +70,52 @@
       font-size: 14px;
     }
 
-    /* Почти весь экран для Canvas */
+    /* Игровая зона */
     .game-area {
+      width: 600px; height: 600px;
+      margin: 0 auto; padding-bottom: 20px;
+      display: none; /* показываем, когда игра начинается */
       position: relative;
-      width: 100vw;
-      height: calc(100vh - 70px); /* Вычтем высоту header, ~70px */
-      overflow: hidden;
-      background: #333;
-      display: none; /* Покажем, когда стартуем игру */
     }
-    canvas#snakeCanvas {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      margin: auto;
-      /* Чтобы вписывался в родительский блок с соотношением сторон */
-      width: 100%;
-      height: 100%;
+    #snakeCanvas {
+      width: 600px; height: 600px;
+      background: #333; border: 2px solid #0f0;
       image-rendering: pixelated;
-      border: 2px solid #0f0;
     }
 
     .game-timer-bar {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80%;
-      height: 12px;
-      background: #555;
-      border: 1px solid #0f0;
+      width: 300px; height: 12px;
+      background: #555; border: 1px solid #0f0;
+      margin: 10px auto; position: relative;
     }
     .game-timer-fill {
       background: #0f0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       transition: width 1s linear;
     }
-
     .scores {
-      position: absolute;
-      bottom: 10px; 
-      left: 50%;
-      transform: translateX(-50%);
+      margin-top: 10px;
+      text-align: center;
       font-size: 14px;
     }
 
     /* Модалки */
     .modal-backdrop, .endgame-backdrop {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.7);
-      display: none;
-      justify-content: center;
-      align-items: center;
+      display: none; justify-content: center; align-items: center;
       z-index: 9999;
     }
     .modal-backdrop.active, .endgame-backdrop.active {
       display: flex;
     }
     .modal, .endgame-modal {
-      background: #222;
-      border: 2px solid #0f0;
-      padding: 20px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
+      background: #222; border: 2px solid #0f0;
+      padding: 20px; width: 90%; max-width: 400px; text-align: center;
     }
 
-    /* Скрываем нижнюю панель (если на главной была) */
-    #mainNav {
-      display: none;
-    }
+    /* Скрываем нижнюю панель (если была) */
+    #mainNav { display: none; }
   </style>
 </head>
 <body>
@@ -194,10 +156,10 @@
     </div>
   </header>
 
-  <!-- Описание игры -->
+  <!-- Информация об игре -->
   <div class="game-info-container">
     <h2>Special Snake PvP</h2>
-    <p>Мультиплеерная змейка 1 на 1 (почти на весь экран). Стоимость: <strong>1 билет</strong>.</p>
+    <p>Мультиплеерная змейка 1 на 1 (600×600 поле). Стоимость: <strong>1 билет</strong>.</p>
   </div>
 
   <!-- Поиск соперника -->
@@ -219,13 +181,12 @@
     </div>
   </div>
 
-  <!-- Игровая зона (почти весь экран) -->
+  <!-- Игровая зона -->
   <div class="game-area" id="gameArea">
-    <!-- Полоска времени -->
     <div class="game-timer-bar">
       <div class="game-timer-fill" id="timerFill"></div>
     </div>
-    <canvas id="snakeCanvas"></canvas>
+    <canvas id="snakeCanvas" width="600" height="600"></canvas>
     <div class="scores">
       <span id="playerScoreLabel">Вы: 0</span> | 
       <span id="opponentScoreLabel">Соперник: 0</span>
@@ -280,47 +241,54 @@ let currentUser = null;
 let userRef = null;
 let localUserData = { photo:'', tickets:0, coins:0, points:0 };
 
-let gameId = null;          // ID конкретной игры
-let isHost = false;         // Хостом будет тот, кто вошёл первым
+let gameId = null;        
+let isHost = false;       
+
 let countdownInterval = null;
 let gameTimerInterval = null;
 let timeLeft = 60;
 let gameStarted = false;
-
 let playerScore = 0;
 let opponentScore = 0;
 
-let opponentData = {
-  username: '',
-  photo: ''
-};
+// Количество клеток в одном ряду/столбце
+const GRID_COUNT = 30;
+const CANVAS_SIZE = 600; 
+const TILE_SIZE = CANVAS_SIZE / GRID_COUNT;
 
-// Размер сетки
-const GRID_COUNT = 30; // 30x30 клеток
-let tileSize = 0;     // вычислим динамически из размеров canvas
-
-// Змейки
+// Змейка игрока (растёт при яблоке)
 let snake = {
-  x: 5, y: 5,
+  x: 5,
+  y: 5,
   direction: 'RIGHT',
-  body: [{x:5, y:5}],
+  body: [
+    {x:5, y:5},
+    {x:4, y:5},
+    {x:3, y:5},
+  ],
   color: '#0f0'
 };
+// Змейка соперника
 let snakeOpponent = {
-  x: 10, y: 10,
+  x: 10,
+  y: 10,
   direction: 'LEFT',
-  body: [{x:10,y:10}],
+  body: [
+    {x:10,y:10},
+    {x:11,y:10},
+    {x:12,y:10},
+  ],
   color: '#f00'
 };
 let apple = { x: 15, y: 15 };
 
-// Чтобы замедлить движение в 3 раза, используем счётчик
-// Будем обновлять положение змейки ~каждые 300ms, а отрисовка всё равно идёт на каждом кадре
-let lastUpdateTime = 0;
-let moveInterval = 300; // мс (чуть ~3 FPS для движения)
+// Скорость змейки ~10 кадров в секунду
+const MOVE_INTERVAL = 100;
+let lastMoveTime = 0; // используется в gameLoop
+let gameLoopId = null;
 
 /* ----------------------------------------------
-   4. Получаем данные пользователя (username, фото и балансы)
+   4. Получаем данные пользователя
 ---------------------------------------------- */
 if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
   currentUser = tg.initDataUnsafe.user;
@@ -328,9 +296,7 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
   if (currentUser.photo_url) {
     document.getElementById('userPhoto').src = currentUser.photo_url;
   }
-  // Ссылка на юзера в БД
   userRef = db.ref('users/' + currentUser.username);
-
   userRef.once('value', snapshot => {
     if (!snapshot.exists()) {
       userRef.set({
@@ -341,7 +307,6 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       });
     }
   });
-
   userRef.on('value', snapshot => {
     const data = snapshot.val() || {};
     localUserData = data;
@@ -350,7 +315,7 @@ if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
 }
 
 /* ----------------------------------------------
-   5. Логика обновления балансов в шапке
+   5. Обновление верхней панели
 ---------------------------------------------- */
 function updateTopBar() {
   document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
@@ -359,18 +324,16 @@ function updateTopBar() {
 }
 
 /* ----------------------------------------------
-   6. После загрузки страницы: пробуем матчмейкинг
+   6. Запуск matchmaking
 ---------------------------------------------- */
 window.onload = function() {
   findOpponentInQueue();
 };
 
-/* ----------------------------------------------
-   7. Меню дизайна
----------------------------------------------- */
+/* Меню дизайна */
 function toggleDesignMenu() {
   const menu = document.getElementById('design-options');
-  menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+  menu.style.display = (menu.style.display==='none'||menu.style.display==='') ? 'block':'none';
 }
 function changeDesign(theme) {
   document.getElementById('themeStylesheet').setAttribute('href', theme);
@@ -378,59 +341,46 @@ function changeDesign(theme) {
 }
 
 /* ----------------------------------------------
-   8. Настоящий поиск соперника:
-      - Сначала пытаемся взять первого в очереди (если есть).
-      - Если нет – сами становимся в очередь.
+   7. Ищем соперника
 ---------------------------------------------- */
 function findOpponentInQueue() {
   const queueRef = db.ref('matchmaking/waiting');
-
   queueRef.once('value', snap => {
     const waiting = snap.val();
     if (!waiting) {
       // Очередь пуста – становимся хостом
       isHost = true;
       gameId = generateGameId();
-      // Запишем себя в waiting
       queueRef.set({
         username: currentUser.username,
         photo: currentUser.photo_url || '',
         gameId: gameId
       });
-      // Ждём, пока придёт второй
-      listenForJoin();
+      listenForJoin(); // ждём, пока гость подключится
     } else {
-      // Кто-то уже в очереди
-      // Берём данные
-      const hostUser = waiting.username;
-      const hostPhoto = waiting.photo;
-      gameId = waiting.gameId; // подключаемся к уже созданной игре
-
-      // Удаляем из очереди, т.к. нашли соперника
+      // Есть уже хост
+      isHost = false;
+      gameId = waiting.gameId;
+      // Удаляем очередь
       queueRef.set(null);
 
-      // Мы – гость
-      isHost = false;
-
-      // Проверяем билеты
-      if ((localUserData.tickets || 0) < 1) {
-        // Недостаточно билетов -> показываем модалку
+      // Проверим билеты
+      if ((localUserData.tickets||0)<1) {
         document.getElementById('noTicketsModal').classList.add('active');
         return;
       }
-      // Списываем 1 билет
+      // Списываем билет
       localUserData.tickets -= 1;
       userRef.update({ tickets: localUserData.tickets });
 
-      // Записываемся в gameId как player2
+      // Записываемся в games/{gameId}/player2
       db.ref(`games/${gameId}/player2`).set({
         username: currentUser.username,
         photo: currentUser.photo_url || ''
       });
 
-      // Хост уже оплатил (по такой же логике, см. listenForJoin).
-      // Показываем «Соперник найден!»
-      showOpponentFound(hostUser, hostPhoto);
+      // Соперник (хост) уже оплатил, считаем соперника найденным
+      showOpponentFound(waiting.username, waiting.photo);
     }
   });
 }
@@ -440,223 +390,259 @@ function generateGameId() {
 }
 
 /* ----------------------------------------------
-   9. Если мы – хост, ждём подключения второго игрока
+   8. Хост ждёт guest
 ---------------------------------------------- */
 function listenForJoin() {
-  // Ждём, пока кто-то запишется в /games/gameId/player2
   const gameRef = db.ref(`games/${gameId}/player2`);
-  gameRef.on('value', snap => {
+  gameRef.on('value', snap=>{
     const val = snap.val();
-    if (val) {
-      // player2 подключился
-      // Проверяем, есть ли у нас билет
-      if ((localUserData.tickets || 0) < 1) {
-        // Нет билета – показываем модалку
+    if(val) {
+      // Пришёл гость
+      if((localUserData.tickets||0)<1) {
         document.getElementById('noTicketsModal').classList.add('active');
         return;
       }
-      // Списываем билет
       localUserData.tickets -= 1;
       userRef.update({ tickets: localUserData.tickets });
 
-      // Считаем, что соперник найден
-      showOpponentFound(val.username, val.photo);
+      showOpponentFound(val.username, val.photo||'');
     }
   });
 }
 
 /* ----------------------------------------------
-   10. Соперник найден: отображаем UI и запускаем обратный отсчёт
+   9. "Соперник найден" -> 10 секунд отсчёт
 ---------------------------------------------- */
 function showOpponentFound(opName, opPhoto) {
-  document.getElementById('searchContainer').style.display = 'none';
-  document.getElementById('opponentContainer').style.display = 'block';
-
-  document.getElementById('opponentName').textContent = '@' + opName;
+  document.getElementById('searchContainer').style.display='none';
+  document.getElementById('opponentContainer').style.display='block';
+  document.getElementById('opponentName').textContent = '@'+opName;
   document.getElementById('opponentPhoto').src = opPhoto || 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
 
-  // 10 сек отсчёт
-  let count = 10;
-  document.getElementById('countdownValue').textContent = count;
-  countdownInterval = setInterval(() => {
+  let count=10;
+  document.getElementById('countdownValue').textContent=count;
+  countdownInterval=setInterval(()=>{
     count--;
-    document.getElementById('countdownValue').textContent = count;
-    if (count <= 0) {
+    document.getElementById('countdownValue').textContent=count;
+    if(count<=0) {
       clearInterval(countdownInterval);
       startGame();
     }
-  }, 1000);
+  },1000);
 }
 
 /* ----------------------------------------------
-   11. Запуск игры:
-       - Показываем canvas
-       - Находим его реальный размер, определяем tileSize
-       - Запускаем таймер 1 мин
-       - Подписываемся на соперника
-       - requestAnimationFrame gameLoop (с учётом moveInterval)
+   10. Запуск игры
 ---------------------------------------------- */
 function startGame() {
-  document.getElementById('opponentContainer').style.display = 'none';
-  const gameArea = document.getElementById('gameArea');
-  gameArea.style.display = 'block';
+  document.getElementById('opponentContainer').style.display='none';
+  document.getElementById('gameArea').style.display='block';
 
-  // Вычисляем tileSize (делим размеры canvas на GRID_COUNT)
-  const canvas = document.getElementById('snakeCanvas');
-  const rect = canvas.getBoundingClientRect();
-  // Чтобы точно попасть, возьмём мин(ширину, высоту):
-  let shorterSide = Math.min(rect.width, rect.height);
-  tileSize = Math.floor(shorterSide / GRID_COUNT);
+  // Запишем начальные данные в БД (хост отвечает за яблоко, snake и т.д.)
+  if(isHost) {
+    db.ref(`games/${gameId}/apple`).set({ x: apple.x, y: apple.y });
+    db.ref(`games/${gameId}/player1State`).set( packSnakeData(snake) );
+  } else {
+    db.ref(`games/${gameId}/player2State`).set( packSnakeData(snake) );
+  }
 
-  // Запуск таймера 1 мин
-  timeLeft = 60;
+  timeLeft=60;
   updateTimerBar();
-  gameTimerInterval = setInterval(() => {
+  gameTimerInterval=setInterval(()=>{
     timeLeft--;
     updateTimerBar();
-    if (timeLeft <= 0) {
+    if(timeLeft<=0) {
       clearInterval(gameTimerInterval);
       endGame();
     }
-  }, 1000);
+  },1000);
 
-  // Подписка на соперника
-  subscribeToOpponentChanges();
-  
-  // События управления
+  subscribeOpponentState();
+  subscribeApple();
+
   document.addEventListener('keydown', handleKeyDown);
   setupTouchControls();
 
-  // Запуск игрового цикла
-  gameStarted = true;
-  requestAnimationFrame(gameLoop);
+  gameStarted=true;
+  lastMoveTime=Date.now();
+  gameLoopId = setInterval(gameLoop, 16); // ~60 FPS отрисовка
 }
 
 /* ----------------------------------------------
-   12. Игровой цикл с учётом moveInterval
+   11. Игровой цикл (но движение - каждые 100ms)
 ---------------------------------------------- */
-function gameLoop(timestamp) {
-  if (!gameStarted) return;
+function gameLoop() {
+  if(!gameStarted) return;
 
-  // Плавная отрисовка ~60FPS, но движение делаем реже
-  const delta = timestamp - lastUpdateTime;
-  if (delta > moveInterval) {
-    // Обновляем змейку
+  const now = Date.now();
+  if(now - lastMoveTime >= MOVE_INTERVAL) {
     updateSnake(snake);
-    checkApple(snake, true);
-    // snakeOpponent обновляется из Firebase (subscribeToOpponentChanges)
-    checkApple(snakeOpponent, false);
-
-    // Записываем свою позицию (если host => player1, иначе player2)
-    const playerPath = isHost ? 'player1State' : 'player2State';
-    db.ref(`games/${gameId}/${playerPath}`).set({
-      x: snake.x,
-      y: snake.y,
-      body: snake.body,
-      direction: snake.direction
-    });
-
-    lastUpdateTime = timestamp;
+    checkApple(snake,true);
+    // Запишем состояние
+    const path = isHost ? 'player1State':'player2State';
+    db.ref(`games/${gameId}/${path}`).set( packSnakeData(snake) );
+    lastMoveTime=now;
   }
-
-  // Рисуем
   drawScene();
-
-  requestAnimationFrame(gameLoop);
 }
 
 /* ----------------------------------------------
-   13. Обновляем змейку (обёртка по краям)
+   12. Классическая логика Snake:
+       - Сдвиг головы
+       - Если не съели яблоко -> pop() хвоста
+       - Если съели -> не pop()
 ---------------------------------------------- */
 function updateSnake(snk) {
-  if (snk.direction==='LEFT')  snk.x--;
-  else if (snk.direction==='RIGHT') snk.x++;
-  else if (snk.direction==='UP') snk.y--;
-  else if (snk.direction==='DOWN') snk.y++;
+  let head = { x: snk.body[0].x, y: snk.body[0].y };
 
-  // обёртка
-  if (snk.x<0) snk.x = GRID_COUNT-1;
-  if (snk.x>=GRID_COUNT) snk.x = 0;
-  if (snk.y<0) snk.y = GRID_COUNT-1;
-  if (snk.y>=GRID_COUNT) snk.y = 0;
+  // Новые координаты головы
+  if(snk.direction==='LEFT')  head.x--;
+  else if(snk.direction==='RIGHT') head.x++;
+  else if(snk.direction==='UP') head.y--;
+  else if(snk.direction==='DOWN') head.y++;
 
-  // тело
-  snk.body.unshift({ x: snk.x, y: snk.y });
-  snk.body.pop();
+  // Обёртка
+  if(head.x<0) head.x=GRID_COUNT-1;
+  if(head.x>=GRID_COUNT) head.x=0;
+  if(head.y<0) head.y=GRID_COUNT-1;
+  if(head.y>=GRID_COUNT) head.y=0;
+
+  snk.body.unshift(head);
+  // Временно не pop() — сделаем в checkApple, если не было яблока
 }
 
 /* ----------------------------------------------
-   14. Проверка, собрана ли яблоко
+   13. Проверка яблока
 ---------------------------------------------- */
 function checkApple(snk, isPlayer) {
-  if (snk.x===apple.x && snk.y===apple.y) {
-    if (isPlayer) {
+  let head = snk.body[0];
+  if(head.x===apple.x && head.y===apple.y) {
+    // Съели яблоко
+    if(isHost) {
+      // Хост генерирует новое яблоко
+      apple.x = Math.floor(Math.random()*GRID_COUNT);
+      apple.y = Math.floor(Math.random()*GRID_COUNT);
+      db.ref(`games/${gameId}/apple`).set({ x: apple.x, y: apple.y });
+    }
+    if(isPlayer) {
       playerScore++;
-      document.getElementById('playerScoreLabel').textContent = `Вы: ${playerScore}`;
+      document.getElementById('playerScoreLabel').textContent='Вы: '+playerScore;
     } else {
       opponentScore++;
-      document.getElementById('opponentScoreLabel').textContent = `Соперник: ${opponentScore}`;
+      document.getElementById('opponentScoreLabel').textContent='Соперник: '+opponentScore;
     }
-    // новое яблоко
-    apple.x = Math.floor(Math.random()*GRID_COUNT);
-    apple.y = Math.floor(Math.random()*GRID_COUNT);
+    // Не удаляем хвост -> змейка увеличивается
+  } else {
+    // Не съели -> убираем хвост
+    snk.body.pop();
   }
 }
 
 /* ----------------------------------------------
-   15. Отрисовка
+   14. Отрисовка всего
 ---------------------------------------------- */
 function drawScene() {
   const canvas = document.getElementById('snakeCanvas');
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Рисуем змей
+  // Яблоко
+  ctx.fillStyle='#ff0';
+  ctx.fillRect(apple.x*TILE_SIZE, apple.y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+  // Змейка игрока
   drawSnake(ctx, snake, 'You');
+  // Змейка соперника
   drawSnake(ctx, snakeOpponent, opponentData.username||'Opp');
-
-  // Рисуем яблоко
-  ctx.fillStyle = '#ff0';
-  ctx.fillRect(apple.x * tileSize, apple.y * tileSize, tileSize, tileSize);
 }
 
 function drawSnake(ctx, snk, label) {
-  ctx.fillStyle = snk.color;
-  snk.body.forEach(part => {
-    ctx.fillRect(part.x*tileSize, part.y*tileSize, tileSize, tileSize);
+  ctx.fillStyle=snk.color;
+  snk.body.forEach((part,i)=>{
+    ctx.fillRect(part.x*TILE_SIZE, part.y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
   });
-  // имя
-  ctx.fillStyle = '#fff';
-  ctx.font = '8px "Press Start 2P"';
-  let head = snk.body[0];
-  ctx.fillText(label, head.x*tileSize, head.y*tileSize - 2);
+  // Имя над головой
+  ctx.fillStyle='#fff';
+  ctx.font='8px "Press Start 2P"';
+  ctx.fillText(label, snk.body[0].x*TILE_SIZE, snk.body[0].y*TILE_SIZE-2);
 }
 
 /* ----------------------------------------------
-   16. Управление (клавиатура)
+   15. Подготовка данных змейки (для записи в БД)
+---------------------------------------------- */
+function packSnakeData(snk) {
+  return {
+    x: snk.body[0].x,
+    y: snk.body[0].y,
+    direction: snk.direction,
+    body: snk.body
+  };
+}
+function unpackSnakeData(snk, data) {
+  snk.x=data.x; snk.y=data.y;
+  snk.direction=data.direction;
+  snk.body=data.body||[];
+}
+
+/* ----------------------------------------------
+   16. Подписка на состояние соперника
+---------------------------------------------- */
+function subscribeOpponentState() {
+  const oppPath = isHost ? 'player2State':'player1State';
+  const infoPath= isHost ? 'player2':'player1';
+  // Подписываемся на изменения тела соперника
+  db.ref(`games/${gameId}/${oppPath}`).on('value',snap=>{
+    if(snap.val()) {
+      unpackSnakeData(snakeOpponent,snap.val());
+    }
+  });
+  // Считываем инфо о сопернике (username,photo)
+  const infoRef = db.ref(`games/${gameId}/${infoPath}`);
+  infoRef.once('value', snap=>{
+    if(snap.val()) {
+      opponentData.username = snap.val().username||'Opp';
+      opponentData.photo = snap.val().photo||'';
+    }
+  });
+}
+
+/* ----------------------------------------------
+   17. Подписка на яблоко (только хост двигает)
+---------------------------------------------- */
+function subscribeApple() {
+  db.ref(`games/${gameId}/apple`).on('value', snap=>{
+    const val = snap.val();
+    if(val) {
+      apple.x=val.x; apple.y=val.y;
+    }
+  });
+}
+
+/* ----------------------------------------------
+   18. Управление клавишами
 ---------------------------------------------- */
 function handleKeyDown(e) {
-  if (e.key==='ArrowLeft' && snake.direction!=='RIGHT')  snake.direction='LEFT';
-  else if (e.key==='ArrowRight'&& snake.direction!=='LEFT')  snake.direction='RIGHT';
-  else if (e.key==='ArrowUp'   && snake.direction!=='DOWN')  snake.direction='UP';
-  else if (e.key==='ArrowDown' && snake.direction!=='UP')    snake.direction='DOWN';
+  if(e.key==='ArrowLeft' && snake.direction!=='RIGHT') snake.direction='LEFT';
+  else if(e.key==='ArrowRight'&& snake.direction!=='LEFT') snake.direction='RIGHT';
+  else if(e.key==='ArrowUp'   && snake.direction!=='DOWN') snake.direction='UP';
+  else if(e.key==='ArrowDown' && snake.direction!=='UP')   snake.direction='DOWN';
 }
 
 /* ----------------------------------------------
-   17. Управление (свайпы)
+   19. Управление свайпами
 ---------------------------------------------- */
 function setupTouchControls() {
   let touchStartX=0, touchStartY=0;
-  document.addEventListener('touchstart', (e)=>{
+  document.addEventListener('touchstart',(e)=>{
     touchStartX=e.touches[0].clientX;
     touchStartY=e.touches[0].clientY;
-  }, false);
+  },false);
   document.addEventListener('touchmove',(e)=>{
     e.preventDefault();
-  },{passive:false});
-  document.addEventListener('touchend', (e)=>{
-    let diffX = e.changedTouches[0].clientX - touchStartX;
-    let diffY = e.changedTouches[0].clientY - touchStartY;
+  }, { passive:false });
+  document.addEventListener('touchend',(e)=>{
+    let diffX=e.changedTouches[0].clientX - touchStartX;
+    let diffY=e.changedTouches[0].clientY - touchStartY;
     if(Math.abs(diffX)>Math.abs(diffY)) {
       if(diffX>0 && snake.direction!=='LEFT') snake.direction='RIGHT';
       else if(diffX<0 && snake.direction!=='RIGHT') snake.direction='LEFT';
@@ -668,68 +654,47 @@ function setupTouchControls() {
 }
 
 /* ----------------------------------------------
-   18. Подписка на изменения соперника
-   - если мы host => оппонент - player2State
-   - если мы гость => оппонент - player1State
----------------------------------------------- */
-function subscribeToOpponentChanges() {
-  const oppPath = isHost ? 'player2State' : 'player1State';
-  db.ref(`games/${gameId}/${oppPath}`).on('value', snap=>{
-    if(snap.val()) {
-      const data = snap.val();
-      snakeOpponent.x = data.x;
-      snakeOpponent.y = data.y;
-      snakeOpponent.body = data.body;
-      snakeOpponent.direction = data.direction;
-    }
-  });
-  // Также получим info оппонента (username, photo)
-  const oppInfoKey = isHost ? 'player2' : 'player1'; 
-  db.ref(`games/${gameId}/${oppInfoKey}`).once('value', snap=>{
-    const val = snap.val() || {};
-    opponentData.username = val.username || 'Opponent';
-    opponentData.photo    = val.photo    || '';
-  });
-}
-
-/* ----------------------------------------------
-   19. Обновление полоски таймера
+   20. Обновление полосы таймера
 ---------------------------------------------- */
 function updateTimerBar() {
-  const percent = (timeLeft/60)*100;
-  document.getElementById('timerFill').style.width = percent+'%';
+  const percent=(timeLeft/60)*100;
+  document.getElementById('timerFill').style.width=percent+'%';
 }
 
 /* ----------------------------------------------
-   20. Завершение игры
+   21. Завершение игры
 ---------------------------------------------- */
 function endGame() {
-  gameStarted = false;
+  gameStarted=false;
+  if(gameLoopId) clearInterval(gameLoopId);
+
   const resultText = (playerScore>opponentScore)
     ? 'Вы победили!'
-    : (playerScore===opponentScore ? 'Ничья!' : 'Вы проиграли...');
-  document.getElementById('endgameTitle').textContent = 'Игра завершена!';
-  document.getElementById('endgameMessage').textContent =
-    `Ваш счёт: ${playerScore}, счёт соперника: ${opponentScore}. ${resultText}`;
+    : (playerScore===opponentScore?'Ничья!':'Вы проиграли...');
+  document.getElementById('endgameTitle').textContent='Игра завершена!';
+  document.getElementById('endgameMessage').textContent=
+   `Ваш счёт: ${playerScore}, счёт соперника: ${opponentScore}. ${resultText}`;
   document.getElementById('endgameBackdrop').classList.add('active');
 
-  // Начислим очки
-  let pointsEarned = (playerScore>opponentScore)? 10 : (playerScore===opponentScore? 5 : 2);
-  localUserData.points = (localUserData.points||0) + pointsEarned;
+  let pointsEarned=(playerScore>opponentScore)?10:(playerScore===opponentScore?5:2);
+  localUserData.points=(localUserData.points||0)+pointsEarned;
   if(userRef) userRef.update({ points: localUserData.points });
+
+  // (Опционально) Удалим игру из БД, чтобы не копить мусор
+  // db.ref(`games/${gameId}`).remove();
+  // Или оставим для отладки
 }
 
 /* ----------------------------------------------
-   21. Кнопка "Продолжить" – возврат на главную
+   22. Кнопка "Продолжить" => на главную
 ---------------------------------------------- */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
-  // Можно удалить /games/gameId, если хотите, и т.д.
-  window.location.href = 'index.html';
+  window.location.href='index.html';
 }
 
 /* ----------------------------------------------
-   22. Модалка "Недостаточно билетов"
+   23. Модалка "Недостаточно билетов"
 ---------------------------------------------- */
 function returnToMain() {
   document.getElementById('noTicketsModal').classList.remove('active');
