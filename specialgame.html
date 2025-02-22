@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" 
-        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
   
   <!-- Font: Press Start 2P -->
@@ -30,11 +29,17 @@
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
     }
-    /* Canvas занимает всю страницу, фиксированный фон */
+    /* Canvas для мобильных (400x700) и ПК (600x800) */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
       background: #000;
+    }
+    @media (min-width: 768px) {
+      #specialGameCanvas {
+        width: 600px;
+        height: 800px;
+      }
     }
     /* Кнопка для копирования inviteLink */
     #copyButton {
@@ -77,12 +82,9 @@
     }
     /* Анимация мигания для поиска соперника */
     @keyframes blink {
-      0% { opacity: 0.2; }
+      0% { opacity: 0.3; }
       50% { opacity: 1; }
-      100% { opacity: 0.2; }
-    }
-    .blinking {
-      animation: blink 1.2s infinite;
+      100% { opacity: 0.3; }
     }
   </style>
 </head>
@@ -90,7 +92,7 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Кнопка для копирования inviteLink -->
+  <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
   <!-- Модальное окно итогов -->
@@ -114,18 +116,20 @@
   <script>
     /* ============================================================
        Special Snake PvP – Optimized Version
-       - Improved design: blinking "Searching for opponent" text,
-         styled invite link and copy button.
-       - If a player refreshes or disconnects, the game ends and the remaining player wins.
-       - Game duration: 1 minute. Winner = player with most apples.
-       - Colliding with your own snake ends the game; collision with opponent is ignored.
+       Changes:
+         1. When the opponent disconnects during the game, the game ends (remaining player wins).
+         2. When refreshing the search page, any previous queue entry is removed so you don’t match with yourself.
+         3. When an opponent is found, his username and avatar are displayed; then, a countdown timer is shown below.
+         4. Self-collision is not checked – snakes never die by touching their own tail.
+         5. Canvas sizes adapt for PC (larger size) while mobile sizes remain unchanged.
+         6. During opponent search, the "Searching for opponent..." text is drawn in a pink-violet color (#D020F0) and blinks.
        All text is in English.
        ============================================================ */
-       
+    
     let specialGameCanvas;
     let specialCtx;
     
-    // Game area (position on canvas)
+    // Game area parameters on canvas (centered)
     const GAME_AREA_X = 50;
     const GAME_AREA_Y = 175;
     const GAME_AREA_WIDTH = 300;
@@ -133,10 +137,10 @@
     
     // Grid settings
     const gridSize = 20;
-    const tileCountX = GAME_AREA_WIDTH / gridSize;  
-    const tileCountY = GAME_AREA_HEIGHT / gridSize; 
+    const tileCountX = GAME_AREA_WIDTH / gridSize;
+    const tileCountY = GAME_AREA_HEIGHT / gridSize;
     
-    // Room and player IDs and database reference
+    // Room and player identifiers
     let roomId = null;
     let playerId = null;
     let opponentId = null;
@@ -169,16 +173,16 @@
     let logicTimer = null;
     let countdownInterval = null;
     
-    // Snake colors: player1 - purple, player2 - yellow
+    // Snake colors: player1 – purple, player2 – yellow
     const snakeColors = {
       player1: '#800080',
       player2: '#FFFF00'
     };
     
-    // Logic interval (150 ms)
+    // Logic interval (150ms)
     const LOGIC_INTERVAL = 150;
     
-    // Invite link (set later)
+    // Invite link (to be set later)
     let inviteLink = "";
     
     /* ======================================
@@ -190,11 +194,9 @@
       
       resetSpecialGame1();
       drawWaitingScreen();
-      
       findOrCreateRoom();
       
-      // Setup disconnect handler: if current player disconnects,
-      // remove player's node so opponent wins.
+      // Setup onDisconnect so that if current player disconnects, his node is removed
       const currentPlayerRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + playerId);
       currentPlayerRef.onDisconnect().remove();
     }
@@ -232,7 +234,7 @@
     ====================================== */
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
-      // Remove any previous entry for current user so you don't match with yourself
+      // Remove any previous entry for current user
       queueRef.child(currentUser.username).remove().then(() => {
         queueRef.once('value').then((snapshot) => {
           const queueData = snapshot.val() || {};
@@ -244,7 +246,6 @@
             }
           }
           if (openRoomKey) {
-            // Join as player2
             roomId = openRoomKey;
             playerId = 'player2';
             opponentId = 'player1';
@@ -253,7 +254,6 @@
               .catch((err) => console.error('Error updating room status:', err));
             setupGameReferences();
           } else {
-            // Create new room as player1
             roomId = queueRef.push().key;
             playerId = 'player1';
             opponentId = 'player2';
@@ -263,9 +263,7 @@
             }).catch((err) => console.error('Error creating room:', err));
             setupGameReferences();
           }
-          // Form invite link (change URL as needed)
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-          // Show copy button
           document.getElementById('copyButton').style.display = 'block';
           waitForOpponent();
         }).catch((err) => console.error('Error reading queue:', err));
@@ -279,8 +277,7 @@
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
-          drawOpponentFoundScreen();
-          // Hide copy button when opponent is found
+          drawOpponentFoundScreenWithAvatar();
           document.getElementById('copyButton').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
@@ -288,11 +285,11 @@
         }
       });
       
-      // If opponent disconnects (or if you match with yourself), check for that:
+      // Listen for opponent disconnect – if opponent node is removed mid-game, end game.
       const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent has left – current player wins
+          // Opponent left – current player wins
           setGameOver();
         }
       });
@@ -327,11 +324,9 @@
           }).catch((err) => console.error('Error initializing player data:', err));
         }
       });
-      // Listen for opponent data
       const oppRef = gameStateRef.child('players').child(opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent disconnected – current player wins.
           setGameOver();
           return;
         }
@@ -340,7 +335,6 @@
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
       });
-      // Listen for apple updates
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -348,7 +342,6 @@
           applePos.y = aData.y;
         }
       });
-      // Listen for game over flag
       gameStateRef.child('gameOver').on('value', (snapshot) => {
         if (snapshot.val() === true && !isGameOver) {
           isGameOver = true;
@@ -382,7 +375,6 @@
         }
         localDirection = (data && data.direction) ? data.direction : 'right';
         score = (data && data.score) ? data.score : 0;
-        // Ensure apple exists
         gameStateRef.child('apple').once('value').then((appleSnap) => {
           if (!appleSnap.exists()) {
             spawnApple();
@@ -414,11 +406,7 @@
       
       moveLocalSnake();
       
-      // Only self-collision ends the game.
-      if (checkSelfCollision()) {
-        setGameOver();
-        return;
-      }
+      // Remove self-collision check: snake never dies on touching its own tail
       
       // Check apple collision
       const head = localSnake[0];
@@ -439,7 +427,7 @@
     }
     
     /* ======================================
-       6. MOVEMENT AND COLLISIONS
+       6. MOVEMENT
     ====================================== */
     function moveLocalSnake() {
       const head = { ...localSnake[0] };
@@ -449,23 +437,12 @@
         case 'up':    head.y--; break;
         case 'down':  head.y++; break;
       }
-      // Wrap around the grid
       if (head.x < 0) head.x = tileCountX - 1;
       if (head.x >= tileCountX) head.x = 0;
       if (head.y < 0) head.y = tileCountY - 1;
       if (head.y >= tileCountY) head.y = 0;
       localSnake.unshift(head);
       localSnake.pop();
-    }
-    
-    function checkSelfCollision() {
-      const head = localSnake[0];
-      for (let i = 1; i < localSnake.length; i++) {
-        if (localSnake[i].x === head.x && localSnake[i].y === head.y) {
-          return true;
-        }
-      }
-      return false;
     }
     
     /* ======================================
@@ -601,7 +578,7 @@
         );
       }
       
-      // Draw scores in top-right of game area
+      // Draw scores (top right)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
@@ -639,13 +616,19 @@
     
     /* ======================================
        11. SCREENS: "SEARCHING / WAITING..."
+       - During search, text "Searching for opponent..." is drawn in pink-violet (#D020F0) and blinks.
+       - When opponent is found, display his avatar and username.
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Blinking search text
-      specialCtx.fillStyle = '#00FF00';
+      
+      // Blinking text: use global time to modulate opacity
+      const time = Date.now();
+      const opacity = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time / 300));
+      specialCtx.fillStyle = `rgba(208,32,240,${opacity})`;  // pink-violet color
+      
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(
@@ -679,22 +662,42 @@
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
-    function drawOpponentFoundScreen() {
+    // Draw opponent screen: show avatar and username, then below that start countdown timer
+    function drawOpponentFoundScreenWithAvatar() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(
         'Opponent found',
         specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
+        specialGameCanvas.height / 2 - 60
       );
+      
+      // Draw opponent avatar if available
+      if (opponentData.photo) {
+        const oppImg = new Image();
+        oppImg.src = opponentData.photo;
+        oppImg.onload = function() {
+          // Draw avatar centered above countdown
+          const imgSize = 60;
+          specialCtx.drawImage(oppImg, (specialGameCanvas.width - imgSize) / 2, specialGameCanvas.height / 2 - 50, imgSize, imgSize);
+          // Draw opponent username below avatar
+          specialCtx.font = '14px "Press Start 2P", sans-serif';
+          specialCtx.fillText(opponentData.username || opponentName, specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 10);
+          // Countdown will be drawn separately
+        }
+      } else {
+        specialCtx.font = '14px "Press Start 2P", sans-serif';
+        specialCtx.fillText(opponentData.username || opponentName, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      }
     }
     
     /* ======================================
-       12. COUNTDOWN (5...1)
+       12. COUNTDOWN (5..1)
     ====================================== */
     function drawCountdownScreen(value) {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -706,7 +709,7 @@
       specialCtx.fillText(
         value.toString(),
         specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
+        specialGameCanvas.height / 2 + 80
       );
     }
     
@@ -813,7 +816,7 @@
   </script>
   
   <script>
-    // Finish game: hide modal and go to index.html
+    // Functions to finish game and return to main page
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       window.location.href = 'index.html';
@@ -825,8 +828,8 @@
     
     // Initialize game after page load and Firebase setup
     window.addEventListener('load', () => {
-      // Firebase configuration – replace with your actual config values
-      const firebaseConfig = {
+      // Firebase configuration – replace with your real values
+    const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
       databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
@@ -840,9 +843,8 @@
         firebase.initializeApp(firebaseConfig);
       }
       
-      // Ensure window.currentUser is set.
+      // Ensure currentUser is set – if not, assign a default for testing.
       if (!window.currentUser) {
-        // For testing outside Telegram:
         window.currentUser = {
           username: "TestUser",
           photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
