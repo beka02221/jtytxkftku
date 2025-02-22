@@ -1,25 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Special Snake PvP</title>
-
-  <!-- Шрифт (Press Start 2P) -->
+  <title>Snake PvP Multiplayer</title>
+  
+  <!-- Press Start 2P Font -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  
-  <!-- Основной стиль – можно вынести в отдельный файл -->
-  <link id="themeStylesheet" rel="stylesheet" href="st1.css">
 
-  <!-- Telegram Web App API -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
+  <!-- Base CSS (you can keep your existing CSS rules) -->
   <style>
-    /* Общий стиль */
     body {
       margin: 0;
       padding: 0;
@@ -48,16 +39,61 @@
     .balances span {
       margin-right: 10px;
     }
+    .hamburger-line {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background-color: #0f0;
+      margin: 4px 0;
+    }
+    #design-options {
+      display: none;
+      position: absolute;
+      background: #222;
+      border: 1px solid #0f0;
+      padding: 10px;
+      z-index: 99;
+    }
     main {
       position: relative;
       width: 100vw;
-      height: calc(100vh - 58px); /* Высота экрана минус шапка */
+      height: calc(100vh - 58px); /* header height subtracted */
       overflow: hidden;
     }
-    /* Экран поиска соперника */
-    .search-container {
+    /* Signaling UI */
+    #signalingUI {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.8);
+      border: 1px solid #0f0;
+      padding: 10px;
+      z-index: 1000;
+      max-width: 90%;
+    }
+    #signalingUI textarea {
+      width: 100%;
+      height: 80px;
+    }
+    #signalingUI button {
+      margin-top: 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+    /* Multiplayer game views */
+    .view {
+      display: none;
       width: 100%;
       height: 100%;
+    }
+    .activeView {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Search/Waiting view */
+    .search-container {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -65,8 +101,8 @@
       text-align: center;
     }
     @keyframes searching {
-      0%   { opacity: 0.2; }
-      50%  { opacity: 1; }
+      0% { opacity: 0.2; }
+      50% { opacity: 1; }
       100% { opacity: 0.2; }
     }
     .search-animation {
@@ -85,14 +121,8 @@
       width: 60px;
       height: 60px;
     }
-    /* Игровая зона – Canvas занимает всё оставшееся пространство */
+    /* Game view */
     .game-container {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
@@ -122,16 +152,13 @@
       border-top: 2px solid #0f0;
       border-bottom: 2px solid #0f0;
       image-rendering: pixelated;
-      position: relative;
     }
-    /* Отрисовка сетки – тонкие зеленые линии */
-    canvas.grid-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
+    /* Draw grid lines (green) */
+    .grid-line {
+      stroke: rgba(0,255,0,0.3);
+      stroke-width: 1;
     }
-    /* Модальные окна */
+    /* Modals */
     .modal-backdrop, .endgame-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -139,7 +166,7 @@
       display: none;
       justify-content: center;
       align-items: center;
-      z-index: 999;
+      z-index: 1000;
     }
     .modal-backdrop.active, .endgame-backdrop.active {
       display: flex;
@@ -153,345 +180,305 @@
       text-align: center;
     }
   </style>
+
+  <!-- SimplePeer from CDN -->
+  <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
 </head>
 <body>
-  <!-- Шапка (информация о пользователе) -->
+  <!-- Header (user info, balances, design) -->
   <header>
     <div class="user-info">
-      <img id="userPhoto" src="" alt="Avatar" />
+      <img id="userPhoto" src="" alt="Avatar"/>
       <span id="username">@User</span>
     </div>
     <div class="balances">
       <span>
-        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png" alt="Tickets" width="20" />
+        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png" alt="Tickets" width="20"/>
         <span id="ticketCount">0</span>
       </span>
       <span>
-        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png" alt="Coins" width="20" />
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png" alt="Coins" width="20"/>
         <span id="coinCount">0</span>
       </span>
       <span>
-        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png" alt="Points" width="20" />
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png" alt="Points" width="20"/>
         <span id="pointCount">0</span>
       </span>
     </div>
-  </header>
-
-  <!-- Основная область -->
-  <main>
-    <!-- Экран поиска соперника -->
-    <div id="searchView" class="search-container">
-      <div id="searchBlock">
-        <h2>Мультиплеерная Змейка (2 минуты)</h2>
-        <p>Стоимость: 1 билет</p>
-        <div class="search-animation">Ищем соперника...</div>
-      </div>
-      <div id="foundBlock" style="display: none;" class="opponent-found">
-        <h2>Соперник найден!</h2>
-        <img id="opponentPhoto" src="" alt="Opponent" />
-        <p id="opponentName">@Opponent</p>
-        <p>Начало через <span id="countdownValue">5</span>...</p>
+    <div class="header-left" id="design-settings" style="position:relative;">
+      <button onclick="toggleDesignMenu()">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      <div id="design-options">
+        <p onclick="changeDesign('st1.css')">Design (Default)</p>
+        <p onclick="changeDesign('st2.css')">Retro Design</p>
+        <p onclick="changeDesign('st3.css')">Cyberpunk Design</p>
       </div>
     </div>
+  </header>
 
-    <!-- Игровая зона -->
-    <div id="gameArea" class="game-container">
-      <div class="timer-bar">
-        <div class="timer-fill" id="timerFill"></div>
+  <!-- Signaling UI (for manual SDP exchange) -->
+  <div id="signalingUI">
+    <div id="peerSelect">
+      <button id="hostBtn">Host Game</button>
+      <button id="joinBtn">Join Game</button>
+    </div>
+    <div id="hostUI" style="display:none;">
+      <p>Share this offer with your friend:</p>
+      <textarea id="offerSDP" readonly></textarea>
+      <p>Paste your friend’s answer below:</p>
+      <textarea id="answerSDP"></textarea>
+      <button id="submitAnswerBtn">Submit Answer</button>
+    </div>
+    <div id="joinUI" style="display:none;">
+      <p>Paste host's offer:</p>
+      <textarea id="hostOffer"></textarea>
+      <button id="submitOfferBtn">Submit Offer</button>
+      <p>Send this answer to the host:</p>
+      <textarea id="myAnswer" readonly></textarea>
+    </div>
+  </div>
+
+  <!-- Main Views -->
+  <main>
+    <!-- Signaling view is visible initially (above) -->
+    <div id="gameView" class="view">
+      <!-- Search/Waiting view -->
+      <div id="searchView" class="view activeView">
+        <div class="search-container">
+          <h2>Snake PvP Multiplayer</h2>
+          <p>Game duration: 2 minutes | Cost: 1 Ticket</p>
+          <div class="search-animation">Waiting for opponent...</div>
+        </div>
       </div>
-      <div class="scores">
-        <span id="playerScoreLabel">Вы: 0</span> |
-        <span id="opponentScoreLabel">Соперник: 0</span>
+      <!-- Game view -->
+      <div id="playView" class="view">
+        <div class="game-container">
+          <div class="timer-bar">
+            <div class="timer-fill" id="timerFill"></div>
+          </div>
+          <div class="scores">
+            <span id="playerScoreLabel">You: 0</span> | 
+            <span id="opponentScoreLabel">Opponent: 0</span>
+          </div>
+          <canvas id="snakeCanvas"></canvas>
+        </div>
       </div>
-      <canvas id="snakeCanvas"></canvas>
     </div>
   </main>
 
-  <!-- Модалка "Нет билетов" -->
+  <!-- Modals -->
   <div class="modal-backdrop" id="noTicketsModal">
     <div class="modal">
-      <h2>Недостаточно билетов</h2>
-      <p>У вас нет билетов для участия в игре.</p>
-      <button onclick="returnToMain()">Вернуться</button>
+      <h2>Not enough tickets</h2>
+      <p>You do not have enough tickets to play.</p>
+      <button onclick="returnToMain()">Return</button>
     </div>
   </div>
-
-  <!-- Модалка окончания игры -->
   <div class="endgame-backdrop" id="endgameBackdrop">
     <div class="endgame-modal">
-      <h2 id="endgameTitle">Игра завершена!</h2>
+      <h2 id="endgameTitle">Game Over!</h2>
       <p id="endgameMessage"></p>
-      <button onclick="finishGame()">Продолжить</button>
+      <button onclick="finishGame()">Continue</button>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="connectionErrorModal">
+    <div class="modal">
+      <h2>Connection Error</h2>
+      <p>Connection lost. The game will end.</p>
+      <button onclick="finishGame()">Return to Main</button>
     </div>
   </div>
 
+  <!-- JavaScript: Multiplayer game with WebRTC (SimplePeer) -->
   <script>
-    /********** 1. Firebase Initialization **********/
-  const firebaseConfig = {
-      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-      authDomain: "test-with-likes.firebaseapp.com",
-      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-      projectId: "test-with-likes",
-      storageBucket: "test-with-likes.appspot.com",
-      messagingSenderId: "764738820142",
-      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-      measurementId: "G-WJNF0HSN9P"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    /********** 2. Telegram Web App **********/
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    /********** 3. Global Variables **********/
-    let currentUser = null;
-    let userRef = null;
-    let localUserData = { tickets: 0, coins: 0, points: 0 };
-
-    // Opponent data and game info
-    let opponentData = { username: '', photo: '' };
-    let gameId = null;
-    let isHost = false;
-
-    let gameStarted = false;
-    let countdownInterval = null;
-    let timeLeft = 120; // 2 минуты
-    let gameTimer = null;
-
-    let playerScore = 0;
-    let opponentScore = 0;
-
-    // Змейки – изначально длина 3 клетки
-    let snake = {
+    /***** GLOBAL VARIABLES *****/
+    let peer = null; // SimplePeer instance
+    let isHostMode = false;
+    let connected = false;
+    
+    // Game state variables
+    let localSnake = {
       x: 5, y: 5,
       direction: 'RIGHT',
-      body: [
-        { x: 3, y: 5 },
-        { x: 4, y: 5 },
-        { x: 5, y: 5 }
-      ],
+      // Start with 3 blocks horizontally
+      body: [ {x:3,y:5}, {x:4,y:5}, {x:5,y:5} ],
       color: '#0f0'
     };
-    let snakeOpponent = {
+    let remoteSnake = {
       x: 15, y: 15,
       direction: 'LEFT',
-      body: [
-        { x: 17, y: 15 },
-        { x: 16, y: 15 },
-        { x: 15, y: 15 }
-      ],
+      body: [ {x:17,y:15}, {x:16,y:15}, {x:15,y:15} ],
       color: '#f00'
     };
-
-    // Параметры поля
-    let gridCols = 20;
-    let gridRows = 30;
-    let tileSizeX = 0;
-    let tileSizeY = 0;
+    let localScore = 0, remoteScore = 0;
     let apple = { x: 10, y: 10 };
-
-    // Скорость – 200 мс на шаг для быстрой игры
-    let snakeSpeed = 200;
+    let gridCols = 20, gridRows = 30;
+    let tileSizeX = 0, tileSizeY = 0;
+    let snakeSpeed = 200; // 200ms per move
     let lastMoveTime = 0;
+    let gameDuration = 120; // 120 seconds (2 minutes)
+    let gameTimeLeft = gameDuration;
+    let gameInterval = null;
+    let gameStarted = false;
 
-    /********** 4. User Initialization **********/
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      currentUser = tg.initDataUnsafe.user;
-      document.getElementById('username').textContent = '@' + currentUser.username;
-      if (currentUser.photo_url) {
-        document.getElementById('userPhoto').src = currentUser.photo_url;
+    /***** SIGNALING / PEER CONNECTION *****/
+    const hostBtn = document.getElementById('hostBtn');
+    const joinBtn = document.getElementById('joinBtn');
+    const hostUI = document.getElementById('hostUI');
+    const joinUI = document.getElementById('joinUI');
+    const offerSDPText = document.getElementById('offerSDP');
+    const answerSDPText = document.getElementById('answerSDP');
+    const submitAnswerBtn = document.getElementById('submitAnswerBtn');
+    const hostOfferText = document.getElementById('hostOffer');
+    const submitOfferBtn = document.getElementById('submitOfferBtn');
+    const myAnswerText = document.getElementById('myAnswer');
+
+    hostBtn.addEventListener('click', () => {
+      isHostMode = true;
+      document.getElementById('peerSelect').style.display = 'none';
+      hostUI.style.display = 'block';
+      // Create peer as initiator
+      peer = new SimplePeer({ initiator: true, trickle: false });
+      setPeerEvents();
+    });
+    joinBtn.addEventListener('click', () => {
+      isHostMode = false;
+      document.getElementById('peerSelect').style.display = 'none';
+      joinUI.style.display = 'block';
+    });
+    submitOfferBtn.addEventListener('click', () => {
+      let offer = hostOfferText.value;
+      if (!offer) return alert("Please paste host's offer.");
+      // Create peer as non-initiator and signal with offer
+      peer = new SimplePeer({ initiator: false, trickle: false });
+      setPeerEvents();
+      peer.signal(JSON.parse(offer));
+    });
+    submitAnswerBtn.addEventListener('click', () => {
+      let answer = answerSDPText.value;
+      if (!answer) return alert("Please paste your friend's answer.");
+      try {
+        peer.signal(JSON.parse(answer));
+      } catch(e) {
+        alert("Invalid answer data.");
       }
-      // Используем username как ключ (если нужно – примените toLowerCase())
-      const safeName = currentUser.username;
-      userRef = db.ref('users/' + safeName);
-      userRef.once('value').then((snapshot) => {
-        if (!snapshot.exists()) {
-          // Инициализируем, например, 10 билетами
-          userRef.set({
-            photo: currentUser.photo_url || '',
-            tickets: 10,
-            coins: 0,
-            points: 0
-          });
-          localUserData = { photo: currentUser.photo_url || '', tickets: 10, coins: 0, points: 0 };
+    });
+    function setPeerEvents() {
+      peer.on('signal', data => {
+        // When signaling, output SDP based on role
+        if (isHostMode) {
+          // Host: show offer; then later wait for answer
+          offerSDPText.value = JSON.stringify(data);
         } else {
-          localUserData = snapshot.val();
+          // Joiner: output answer for host
+          myAnswerText.value = JSON.stringify(data);
         }
-        updateTopBar();
-        // Подписываемся на изменения
-        userRef.on('value', (snap2) => {
-          localUserData = snap2.val() || {};
-          updateTopBar();
-        });
-        startMatchmaking();
+      });
+      peer.on('connect', () => {
+        connected = true;
+        document.getElementById('signalingUI').style.display = 'none';
+        // When connected, show search view (waiting for opponent)
+        document.getElementById('gameView').classList.add('activeView');
+        // Start game search phase (for this example, once connection is established, we consider both peers ready)
+        startGameSearch();
+      });
+      peer.on('data', data => {
+        try {
+          let msg = JSON.parse(data);
+          handlePeerMessage(msg);
+        } catch(e) {
+          console.error("Invalid message", data);
+        }
+      });
+      peer.on('close', () => {
+        connected = false;
+        showConnectionError();
+      });
+      peer.on('error', err => {
+        console.error("Peer error", err);
+        showConnectionError();
       });
     }
 
-    /********** 5. Update Top Bar **********/
-    function updateTopBar() {
-      document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
-      document.getElementById('coinCount').textContent = localUserData.coins || 0;
-      document.getElementById('pointCount').textContent = localUserData.points || 0;
-    }
-
-    /********** 6. Matchmaking **********/
-    function startMatchmaking() {
-      if ((localUserData.tickets || 0) < 1) {
-        document.getElementById('noTicketsModal').classList.add('active');
-        return;
+    /***** PEER MESSAGE HANDLING *****/
+    function handlePeerMessage(msg) {
+      if (msg.type === 'stateUpdate') {
+        // Update remote snake and score
+        remoteSnake = msg.snake;
+        remoteScore = msg.score;
+        // If host sends apple update, update local apple (joiner accepts host apple)
+        if (msg.apple !== undefined) {
+          apple = msg.apple;
+        }
+      } else if (msg.type === 'gameOver') {
+        // Received game over message from peer
+        endGame(msg.result);
       }
-      const mmRef = db.ref('matchmaking');
-      mmRef.once('value').then(snap => {
-        const data = snap.val() || {};
-        const other = Object.keys(data).find(u => u !== currentUser.username);
-        if (other) {
-          gameId = currentUser.username + '_vs_' + other;
-          isHost = false;
-          db.ref('matchmaking/' + other).remove();
-          db.ref('matchmaking/' + currentUser.username).remove();
-          createGameNode(other);
-        } else {
-          isHost = true;
-          mmRef.child(currentUser.username).set({ time: Date.now() });
-          mmRef.on('child_added', (childSnap) => {
-            if (childSnap.key !== currentUser.username) {
-              gameId = currentUser.username + '_vs_' + childSnap.key;
-              db.ref('matchmaking/' + childSnap.key).remove();
-              db.ref('matchmaking/' + currentUser.username).remove();
-              createGameNode(childSnap.key);
-            }
-          });
-        }
-      });
     }
 
-    function createGameNode(opponentName) {
-      const gRef = db.ref('games/' + gameId);
-      // Если мы host – player1 = currentUser, player2 = opponent; иначе наоборот.
-      gRef.set({
-        player1: {
-          username: isHost ? currentUser.username : opponentName,
-          photo: isHost ? currentUser.photo_url || '' : '',
-          snake: isHost ? snake : snakeOpponent
-        },
-        player2: {
-          username: isHost ? opponentName : currentUser.username,
-          photo: isHost ? '' : currentUser.photo_url || '',
-          snake: isHost ? snakeOpponent : snake
-        },
-        apple: apple,
-        timeLeft: 120
-      }).then(() => {
-        initGameSubscriptions();
-      });
-    }
-
-    /********** 7. Game Subscriptions **********/
-    function initGameSubscriptions() {
-      const gRef = db.ref('games/' + gameId);
-      // Подписываемся на изменения в обоих игроках
-      gRef.child('player1').on('value', (snap) => {
-        const val = snap.val() || {};
-        if (val.username !== currentUser.username) {
-          opponentData.username = val.username || '';
-          opponentData.photo = val.photo || '';
-          if (val.snake) snakeOpponent = val.snake;
-        }
-      });
-      gRef.child('player2').on('value', (snap) => {
-        const val = snap.val() || {};
-        if (val.username !== currentUser.username) {
-          opponentData.username = val.username || '';
-          opponentData.photo = val.photo || '';
-          if (val.snake) snakeOpponent = val.snake;
-        }
-      });
-      gRef.child('apple').on('value', (snap) => {
-        apple = snap.val() || apple;
-      });
-      // После небольшой задержки показываем "Соперник найден"
+    /***** GAME LOGIC *****/
+    function startGameSearch() {
+      // Both peers are now connected. Show a "waiting" screen for 5 seconds,
+      // then start the game and deduct the ticket.
+      document.getElementById('searchView').classList.add('activeView');
       setTimeout(() => {
-        showOpponentFound();
-      }, 1000);
+        // Start game – both peers deduct ticket (simulate local ticket deduction)
+        // In a real app, tickets would be maintained persistently.
+        startGame();
+      }, 5000);
     }
 
-    /********** 8. Show Opponent Found **********/
-    function showOpponentFound() {
-      document.getElementById('searchBlock').style.display = 'none';
-      document.getElementById('foundBlock').style.display = 'block';
-      document.getElementById('opponentPhoto').src =
-        opponentData.photo || 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
-      document.getElementById('opponentName').textContent = '@' + (opponentData.username || 'Opp');
-      let c = 5;
-      document.getElementById('countdownValue').textContent = c;
-      countdownInterval = setInterval(() => {
-        c--;
-        document.getElementById('countdownValue').textContent = c;
-        if (c <= 0) {
-          clearInterval(countdownInterval);
-          startGame();
-        }
-      }, 1000);
-    }
-
-    /********** 9. Start Game **********/
     function startGame() {
-      if ((localUserData.tickets || 0) < 1) {
-        document.getElementById('noTicketsModal').classList.add('active');
-        return;
-      }
-      // Списываем билет только сейчас – когда матч реально начинается
-      localUserData.tickets -= 1;
-      userRef.update({ tickets: localUserData.tickets });
-      updateTopBar();
-
+      // Hide search view; show game view.
       document.getElementById('searchView').style.display = 'none';
-      const gameArea = document.getElementById('gameArea');
-      gameArea.style.display = 'flex';
-
+      document.getElementById('playView').style.display = 'flex';
+      
+      // Set up canvas dimensions and grid tile sizes.
       const canvas = document.getElementById('snakeCanvas');
       canvas.width = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
       tileSizeX = canvas.width / gridCols;
       tileSizeY = canvas.height / gridRows;
 
-      gameStarted = true;
-      timeLeft = 120;
+      // Initialize game timer and reset scores.
+      gameTimeLeft = gameDuration;
+      localScore = 0;
+      remoteScore = 0;
+      updateScoreLabels();
       updateTimerBar();
 
-      gameTimer = setInterval(() => {
-        timeLeft--;
-        db.ref('games/' + gameId + '/timeLeft').set(timeLeft);
+      // Start game loop.
+      gameStarted = true;
+      lastMoveTime = performance.now();
+      gameInterval = setInterval(() => {
+        gameTimeLeft--;
         updateTimerBar();
-        if (timeLeft <= 0) {
-          clearInterval(gameTimer);
-          endGame();
+        if (gameTimeLeft <= 0) {
+          clearInterval(gameInterval);
+          sendPeerMessage({ type: 'gameOver', result: calculateResult() });
+          endGame(calculateResult());
         }
       }, 1000);
-
-      document.addEventListener('keydown', handleKeyDown);
-      setupTouchControls();
       requestAnimationFrame(gameLoop);
     }
 
-    /********** 10. Game Loop **********/
     function gameLoop(timestamp) {
       if (!gameStarted) return;
       if (timestamp - lastMoveTime > snakeSpeed) {
         lastMoveTime = timestamp;
-        // Обновляем состояние своей змейки
-        updateSnake(snake, true);
-        // Отправляем состояние в Firebase
-        const me = isHost ? 'player1' : 'player2';
-        db.ref('games/' + gameId + '/' + me + '/snake').set(snake);
+        // Update local snake movement
+        updateSnake(localSnake, true);
+        // Send local state to peer
+        sendPeerMessage({ type: 'stateUpdate', snake: localSnake, score: localScore, apple: isHostMode ? apple : undefined });
       }
       drawScene();
       requestAnimationFrame(gameLoop);
     }
 
-    /********** 11. Update Snake **********/
-    function updateSnake(snk, isPlayer) {
+    function updateSnake(snk, isLocal) {
       let newX = snk.x, newY = snk.y;
       if (snk.direction === 'LEFT') newX--;
       else if (snk.direction === 'RIGHT') newX++;
@@ -501,136 +488,137 @@
       if (newX >= gridCols) newX = 0;
       if (newY < 0) newY = gridRows - 1;
       if (newY >= gridRows) newY = 0;
-      snk.x = newX;
-      snk.y = newY;
+      snk.x = newX; snk.y = newY;
       let ateApple = (newX === apple.x && newY === apple.y);
       snk.body.unshift({ x: newX, y: newY });
       if (!ateApple) {
         snk.body.pop();
       } else {
-        // Если съели яблоко – увеличиваем счет и не удаляем хвост (змейка вырастает)
-        if (isPlayer) {
-          playerScore++;
-          document.getElementById('playerScoreLabel').textContent = `Вы: ${playerScore}`;
-        } else {
-          opponentScore++;
-          document.getElementById('opponentScoreLabel').textContent = `Соперник: ${opponentScore}`;
+        if (isLocal) { localScore++; }
+        else { remoteScore++; }
+        // If host, generate new apple and send update.
+        if (isHostMode) {
+          apple.x = Math.floor(Math.random() * gridCols);
+          apple.y = Math.floor(Math.random() * gridRows);
         }
-        apple.x = Math.floor(Math.random() * gridCols);
-        apple.y = Math.floor(Math.random() * gridRows);
-        db.ref('games/' + gameId + '/apple').set(apple);
       }
+      updateScoreLabels();
     }
 
-    /********** 12. Draw Scene **********/
+    function updateScoreLabels() {
+      document.getElementById('playerScoreLabel').textContent = `You: ${localScore}`;
+      document.getElementById('opponentScoreLabel').textContent = `Opponent: ${remoteScore}`;
+    }
+
     function drawScene() {
       const canvas = document.getElementById('snakeCanvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Рисуем сетку
       drawGrid(ctx, canvas.width, canvas.height);
-      // Рисуем змейки
-      drawSnake(ctx, snake, 'You');
-      drawSnake(ctx, snakeOpponent, opponentData.username || 'Opp');
-      // Рисуем яблоко
-      ctx.fillStyle = '#ff0';
+      drawSnake(ctx, localSnake, "You");
+      drawSnake(ctx, remoteSnake, opponentData.username || "Opponent");
+      // Draw apple
+      ctx.fillStyle = "#ff0";
       ctx.fillRect(apple.x * tileSizeX, apple.y * tileSizeY, tileSizeX, tileSizeY);
     }
+
     function drawGrid(ctx, width, height) {
       ctx.strokeStyle = "rgba(0,255,0,0.3)";
       ctx.lineWidth = 1;
       for (let i = 0; i <= gridCols; i++) {
-         let x = i * tileSizeX;
-         ctx.beginPath();
-         ctx.moveTo(x, 0);
-         ctx.lineTo(x, height);
-         ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(i * tileSizeX, 0);
+        ctx.lineTo(i * tileSizeX, height);
+        ctx.stroke();
       }
       for (let j = 0; j <= gridRows; j++) {
-         let y = j * tileSizeY;
-         ctx.beginPath();
-         ctx.moveTo(0, y);
-         ctx.lineTo(width, y);
-         ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, j * tileSizeY);
+        ctx.lineTo(width, j * tileSizeY);
+        ctx.stroke();
       }
     }
+
     function drawSnake(ctx, snk, label) {
       ctx.fillStyle = snk.color;
       snk.body.forEach(part => {
-         ctx.fillRect(part.x * tileSizeX, part.y * tileSizeY, tileSizeX, tileSizeY);
+        ctx.fillRect(part.x * tileSizeX, part.y * tileSizeY, tileSizeX, tileSizeY);
       });
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px "Press Start 2P"';
+      ctx.fillStyle = "#fff";
+      ctx.font = "10px 'Press Start 2P'";
       ctx.fillText(label, snk.body[0].x * tileSizeX, snk.body[0].y * tileSizeY - 2);
     }
 
-    /********** 13. Controls **********/
-    function handleKeyDown(e) {
-      if (e.key === 'ArrowLeft' && snake.direction !== 'RIGHT') snake.direction = 'LEFT';
-      else if (e.key === 'ArrowRight' && snake.direction !== 'LEFT') snake.direction = 'RIGHT';
-      else if (e.key === 'ArrowUp' && snake.direction !== 'DOWN') snake.direction = 'UP';
-      else if (e.key === 'ArrowDown' && snake.direction !== 'UP') snake.direction = 'DOWN';
-    }
-    function setupTouchControls() {
-      let startX = 0, startY = 0;
-      document.addEventListener('touchstart', e => {
-         startX = e.touches[0].clientX;
-         startY = e.touches[0].clientY;
-      }, false);
-      document.addEventListener('touchmove', e => {
-         e.preventDefault();
-      }, { passive: false });
-      document.addEventListener('touchend', e => {
-         let endX = e.changedTouches[0].clientX;
-         let endY = e.changedTouches[0].clientY;
-         let diffX = endX - startX;
-         let diffY = endY - startY;
-         if (Math.abs(diffX) > Math.abs(diffY)) {
-           if (diffX > 0 && snake.direction !== 'LEFT') snake.direction = 'RIGHT';
-           else if (diffX < 0 && snake.direction !== 'RIGHT') snake.direction = 'LEFT';
-         } else {
-           if (diffY > 0 && snake.direction !== 'UP') snake.direction = 'DOWN';
-           else if (diffY < 0 && snake.direction !== 'DOWN') snake.direction = 'UP';
-         }
-      }, false);
+    function sendPeerMessage(msg) {
+      if (peer && connected) {
+        peer.send(JSON.stringify(msg));
+      }
     }
 
-    /********** 14. Timer Bar **********/
-    function updateTimerBar() {
-      const p = (timeLeft / 120) * 100;
-      document.getElementById('timerFill').style.width = p + '%';
+    function calculateResult() {
+      if (localScore > remoteScore) return "win";
+      else if (localScore < remoteScore) return "lose";
+      else return "draw";
     }
 
-    /********** 15. End Game **********/
-    function endGame() {
+    function endGame(resultMsg) {
       gameStarted = false;
-      document.getElementById('gameArea').style.display = 'none';
-      let res = '';
-      if (playerScore > opponentScore) res = 'Вы победили!';
-      else if (playerScore < opponentScore) res = 'Вы проиграли...';
-      else res = 'Ничья!';
+      clearInterval(gameTimer);
+      document.getElementById('playView').style.display = 'none';
       document.getElementById('endgameMessage').textContent =
-         `Ваш счёт: ${playerScore}, Соперник: ${opponentScore}. ${res}`;
-      document.getElementById('endgameBackdrop').classList.add('active');
-      let pointsAdd = (playerScore > opponentScore) ? 10 : (playerScore === opponentScore ? 5 : 2);
-      localUserData.points = (localUserData.points || 0) + pointsAdd;
-      userRef.update({ points: localUserData.points });
-      db.ref('games/' + gameId).remove();
-      db.ref('matchmaking/' + currentUser.username).remove();
+        `Your score: ${localScore}, Opponent: ${remoteScore}. ` +
+        (resultMsg === "win" ? "You won!" : resultMsg === "lose" ? "You lost!" : "Draw!");
+      document.getElementById('endgameBackdrop').classList.add("active");
     }
 
-    /********** 16. Finish Game **********/
-    function finishGame() {
-      document.getElementById('endgameBackdrop').classList.remove('active');
-      window.location.href = 'index.html';
+    /***** INPUT HANDLERS FOR CONTROLLING SNAKE *****/
+    document.addEventListener("keydown", (e) => {
+      if (!gameStarted) return;
+      if (e.key === "ArrowLeft" && localSnake.direction !== "RIGHT") localSnake.direction = "LEFT";
+      else if (e.key === "ArrowRight" && localSnake.direction !== "LEFT") localSnake.direction = "RIGHT";
+      else if (e.key === "ArrowUp" && localSnake.direction !== "DOWN") localSnake.direction = "UP";
+      else if (e.key === "ArrowDown" && localSnake.direction !== "UP") localSnake.direction = "DOWN";
+    });
+    function setupTouchControls() {
+      let touchStartX = 0, touchStartY = 0;
+      document.addEventListener("touchstart", (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, false);
+      document.addEventListener("touchmove", (e) => { e.preventDefault(); }, { passive: false });
+      document.addEventListener("touchend", (e) => {
+        let touchEndX = e.changedTouches[0].clientX;
+        let touchEndY = e.changedTouches[0].clientY;
+        let diffX = touchEndX - touchStartX;
+        let diffY = touchEndY - touchStartY;
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+          if (diffX > 0 && localSnake.direction !== "LEFT") localSnake.direction = "RIGHT";
+          else if (diffX < 0 && localSnake.direction !== "RIGHT") localSnake.direction = "LEFT";
+        } else {
+          if (diffY > 0 && localSnake.direction !== "UP") localSnake.direction = "DOWN";
+          else if (diffY < 0 && localSnake.direction !== "DOWN") localSnake.direction = "UP";
+        }
+      }, false);
     }
 
-    /********** 17. Return to Main **********/
+    /***** TIMER *****/
+    function updateTimerBar() {
+      const percent = (gameTimeLeft / gameDuration) * 100;
+      document.getElementById("timerFill").style.width = percent + "%";
+    }
+
+    /***** CONNECTION ERROR HANDLING *****/
+    function showConnectionError() {
+      document.getElementById("connectionErrorModal").classList.add("active");
+    }
     function returnToMain() {
-      document.getElementById('noTicketsModal').classList.remove('active');
-      window.location.href = 'index.html';
+      document.getElementById("noTicketsModal").classList.remove("active");
+      window.location.href = "index.html";
+    }
+    function finishGame() {
+      document.getElementById("endgameBackdrop").classList.remove("active");
+      window.location.href = "index.html";
     }
   </script>
 </body>
 </html>
-
