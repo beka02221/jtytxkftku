@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
+  <meta name="viewport" 
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
   
@@ -21,7 +21,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* Общие стили */
+    /* Общие стили страницы */
     body {
       margin: 0;
       padding: 0;
@@ -36,7 +36,7 @@
       margin: 0 auto;
       background: #000;
     }
-    /* Кнопка "Copy Invite Link" */
+    /* Кнопка для копирования inviteLink */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -75,7 +75,7 @@
       text-align: center;
       border-radius: 8px;
     }
-    /* Анимация мигания для текста поиска */
+    /* Анимация мигания для поиска */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -90,7 +90,7 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Кнопка для копирования inviteLink -->
+  <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
   <!-- Модальное окно итогов -->
@@ -113,20 +113,20 @@
   
   <script>
     /* ============================================================
-       Special Snake PvP – Optimized Version with fixes
-       
-       - Improved design of the search screen: blinking text, formatted invite link and copy button.
-       - If a player refreshes (or disconnects) during search, his previous queue entry is removed so he doesn't match with himself.
-       - If the opponent disconnects during search/game, the game ends and the remaining player wins.
-       - Game duration is set to 1 minute. Winner = player with more apples.
-       - Self-collision ends the game; collision with opponent is ignored.
-       - All text is in English.
+       Special Snake PvP – Optimized Version
+       Changes:
+         - During opponent search, a blinking "Searching for opponent..." text is shown.
+         - The invite link is displayed (with adjusted font size) and a styled "Copy Invite Link" button.
+         - If the second opponent disconnects, the game ends automatically.
+         - When re-entering search (after page refresh) your previous queue entry is removed to prevent self-matching.
+         - Game duration is 1 minute – the player with the most apples wins.
+         - All texts are in English.
        ============================================================ */
     
     let specialGameCanvas;
     let specialCtx;
     
-    // Game area (position on canvas)
+    // Game area (centered on canvas)
     const GAME_AREA_X = 50;
     const GAME_AREA_Y = 175;
     const GAME_AREA_WIDTH = 300;
@@ -134,8 +134,8 @@
     
     // Grid settings
     const gridSize = 20;
-    const tileCountX = GAME_AREA_WIDTH / gridSize;
-    const tileCountY = GAME_AREA_HEIGHT / gridSize;
+    const tileCountX = GAME_AREA_WIDTH / gridSize;  
+    const tileCountY = GAME_AREA_HEIGHT / gridSize; 
     
     // Room and player IDs
     let roomId = null;
@@ -170,16 +170,16 @@
     let logicTimer = null;
     let countdownInterval = null;
     
-    // Snake colors
+    // Snake colors: player1 - purple, player2 - yellow
     const snakeColors = {
       player1: '#800080',
       player2: '#FFFF00'
     };
     
-    // Logic interval (150ms)
+    // Logic interval (150 ms)
     const LOGIC_INTERVAL = 150;
     
-    // Invite link (will be set later)
+    // Invite link (to be formed)
     let inviteLink = "";
     
     /* ======================================
@@ -188,15 +188,15 @@
     function initSpecialGame1() {
       specialGameCanvas = document.getElementById('specialGameCanvas');
       specialCtx = specialGameCanvas.getContext('2d');
-      
+    
       resetSpecialGame1();
       drawWaitingScreen();
-      
+    
       findOrCreateRoom();
-      
-      // Setup disconnect handler: if current player disconnects, remove his queue entry.
-      const queueRef = firebase.database().ref('snakeQueue');
-      queueRef.child(currentUser.username).onDisconnect().remove();
+    
+      // Set up disconnect handler so that if you disconnect, your entry is removed.
+      // (This helps prevent self-matching on re-entry.)
+      // Note: This will be set after roomId and playerId are assigned.
     }
     
     function resetSpecialGame1() {
@@ -228,15 +228,14 @@
     
     /* ======================================
        2. ROOM SEARCH / CREATION
-       Prevent matching with yourself.
+       (Prevents self-matching on refresh)
     ====================================== */
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
-      // Remove any existing queue entry for current user
+      // Remove any previous entry for current user
       queueRef.child(currentUser.username).remove().then(() => {
         queueRef.once('value').then((snapshot) => {
           const queueData = snapshot.val() || {};
-          // Exclude currentUser from matching
           let openRoomKey = null;
           for (const key in queueData) {
             if (key !== currentUser.username && queueData[key].status === 'waiting') {
@@ -264,7 +263,7 @@
             }).catch((err) => console.error('Error creating room:', err));
             setupGameReferences();
           }
-          // Form invite link (change URL as needed)
+          // Form invite link (replace with your real address)
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
           // Show copy button
           document.getElementById('copyButton').style.display = 'block';
@@ -281,19 +280,17 @@
         if (currentStatus === 'ready') {
           statusRef.off();
           drawOpponentFoundScreen();
-          // Hide copy button when opponent is found
           document.getElementById('copyButton').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
           }, 2000);
         }
       });
-      
-      // Listen for opponent disconnect
+      // Listen for opponent disconnect:
       const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent has disconnected – current player wins
+          // Opponent left – end the game immediately
           setGameOver();
         }
       });
@@ -331,7 +328,7 @@
       const oppRef = gameStateRef.child('players').child(opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent disconnected
+          // Opponent disconnected – end game
           setGameOver();
           return;
         }
@@ -446,7 +443,7 @@
         case 'up':    head.y--; break;
         case 'down':  head.y++; break;
       }
-      // Wrap around grid
+      // Wrap around the grid
       if (head.x < 0) head.x = tileCountX - 1;
       if (head.x >= tileCountX) head.x = 0;
       if (head.y < 0) head.y = tileCountY - 1;
@@ -542,7 +539,7 @@
       
       drawMatrixGrid();
       
-      // Draw apple
+      // Draw apple (red)
       specialCtx.fillStyle = '#FF0000';
       specialCtx.fillRect(
         GAME_AREA_X + applePos.x * gridSize,
@@ -598,7 +595,7 @@
         );
       }
       
-      // Draw scores in top right of game area
+      // Draw scores (top right of game area)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
@@ -667,6 +664,7 @@
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2 + 80
       );
+      // Show copy button
       document.getElementById('copyButton').style.display = 'block';
     }
     
@@ -804,12 +802,13 @@
     }
     
     /* ============================================================
-       End of game code – call initSpecialGame1() below.
+       End of game code.
+       Call initSpecialGame1() below.
     ============================================================ */
   </script>
   
   <script>
-    // Finish game: hide modal and go to index.html
+    // Functions to finish game and return to main page
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       window.location.href = 'index.html';
