@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
-  <!-- Ваш CSS -->
+  <!-- Your CSS (e.g., st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   
   <!-- Firebase SDK -->
@@ -21,7 +21,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* Общие стили */
+    /* Общие стили страницы */
     body {
       margin: 0;
       padding: 0;
@@ -30,11 +30,13 @@
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
     }
+    /* Canvas занимает всю страницу */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
       background: #000;
     }
+    /* Кнопка для копирования inviteLink */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -54,6 +56,7 @@
     #copyButton:hover {
       background-color: #333;
     }
+    /* Модальное окно итогов */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -72,6 +75,7 @@
       text-align: center;
       border-radius: 8px;
     }
+    /* Анимация мигания для поиска */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -83,13 +87,13 @@
   </style>
 </head>
 <body>
-  <!-- Canvas -->
+  <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Invite Link Copy Button -->
+  <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
-  <!-- Endgame Modal -->
+  <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
@@ -98,7 +102,7 @@
     </div>
   </div>
   
-  <!-- "Not enough tickets" Modal -->
+  <!-- Модальное окно "Not enough tickets" -->
   <div id="noTicketsModal" class="modal-backdrop">
     <div class="modal">
       <h2>Not enough tickets</h2>
@@ -108,68 +112,87 @@
   </div>
   
   <script>
-    /* ======================
-       1. Firebase Setup
-    ======================= */
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DB_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID",
-      measurementId: "YOUR_MEASUREMENT_ID"
-    };
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
+    /* ============================================================
+       Special Snake PvP – Optimized Version
+       Changes:
+         - Blinking "Searching for opponent..." text.
+         - Invite link (styled text and copy button).
+         - If opponent is found, its username is shown; if it equals your username,
+           then the game does not start (self-match is prevented – room is re-searched).
+         - Above each snake the real username is displayed.
+         - If the opponent disconnects, the game ends automatically.
+         - Game duration is 1 minute.
+       ============================================================ */
     
-    /* ======================
-       2. Global Vars
-    ======================= */
-    let specialGameCanvas, specialCtx;
-    const GAME_AREA_X = 50, GAME_AREA_Y = 175,
-          GAME_AREA_WIDTH = 300, GAME_AREA_HEIGHT = 500;
+    let specialGameCanvas;
+    let specialCtx;
+    
+    // Game area (center of canvas)
+    const GAME_AREA_X = 50;
+    const GAME_AREA_Y = 175;
+    const GAME_AREA_WIDTH = 300;
+    const GAME_AREA_HEIGHT = 500;
+    
+    // Grid settings
     const gridSize = 20;
-    const tileCountX = GAME_AREA_WIDTH / gridSize;
-    const tileCountY = GAME_AREA_HEIGHT / gridSize;
-    let roomId = null,
-        playerId = null,
-        opponentId = null,
-        gameStateRef = null;
-    let localSnake = [],
-        localDirection = 'right',
-        score = 0;
-    let opponentSnake = [],
-        opponentScore = 0,
-        opponentName = 'Opponent';  // Будем обновлять при получении данных
-    let applePos = { x:0, y:0 };
-    let isGameRunning = false,
-        isGameOver = false,
-        countdownValue = 5;
-    let logicTimer = null,
-        countdownInterval = null,
-        showOpponentNameTimeout = null;
-    let timerTotal = 60,
-        timerCurrent = 60;
-    const LOGIC_INTERVAL = 150; // скорость змейки
-    let inviteLink = "";
+    const tileCountX = GAME_AREA_WIDTH / gridSize;  
+    const tileCountY = GAME_AREA_HEIGHT / gridSize; 
     
-    // Цвета змейки
+    // Room and player IDs
+    let roomId = null;
+    let playerId = null;
+    let opponentId = null;
+    let gameStateRef = null;
+    
+    // Local snake state
+    let localSnake = [];
+    let localDirection = 'right';
+    let score = 0;
+    
+    // Opponent snake state
+    let opponentSnake = [];
+    let opponentScore = 0;
+    let opponentName = 'Opponent';
+    
+    // Apple position
+    let applePos = { x: 0, y: 0 };
+    
+    // Game flags
+    let isGameRunning = false;
+    let isGameOver = false;
+    let countdownValue = 5;
+    let showOpponentNameTimeout = null;
+    
+    // Timer (1 minute)
+    let timerTotal = 60;
+    let timerCurrent = 60;
+    
+    // Intervals
+    let logicTimer = null;
+    let countdownInterval = null;
+    
+    // Snake colors: player1 - purple, player2 - yellow
     const snakeColors = {
       player1: '#800080',
       player2: '#FFFF00'
     };
     
-    /* ======================
-       3. Инициализация
-    ======================= */
+    // Logic interval (150ms)
+    const LOGIC_INTERVAL = 150;
+    
+    // Invite link (to be set later)
+    let inviteLink = "";
+    
+    /* ======================================
+       1. INITIALIZATION & RESET
+    ====================================== */
     function initSpecialGame1() {
       specialGameCanvas = document.getElementById('specialGameCanvas');
       specialCtx = specialGameCanvas.getContext('2d');
+      
       resetSpecialGame1();
       drawWaitingScreen();
+      
       findOrCreateRoom();
     }
     
@@ -190,7 +213,7 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-      applePos = { x:0, y:0 };
+      applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
       countdownValue = 5;
@@ -200,77 +223,95 @@
       removeSwipeListeners();
     }
     
-    /* ======================
-       4. Поиск/создание комнаты
-         И проверка на самоподбор (refresh)
-    ======================= */
+    /* ======================================
+       2. ROOM SEARCH / CREATION
+       (Prevents self-matching on refresh)
+    ====================================== */
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
-      // Сначала удаляем свою старую запись
-      queueRef.child(currentUser.username).remove()
-        .then(() => {
-          queueRef.once('value').then((snap) => {
-            const queueData = snap.val() || {};
-            let openRoomKey = null;
-            for (const key in queueData) {
-              if (key !== currentUser.username && queueData[key].status === 'waiting') {
-                openRoomKey = key;
-                break;
-              }
+      // Remove any previous entry for current user so you don't match with yourself
+      queueRef.child(currentUser.username).remove().then(() => {
+        queueRef.once('value').then((snapshot) => {
+          const queueData = snapshot.val() || {};
+          let openRoomKey = null;
+          for (const key in queueData) {
+            if (key !== currentUser.username && queueData[key].status === 'waiting') {
+              openRoomKey = key;
+              break;
             }
-            if (openRoomKey) {
-              // Присоединяемся как player2
-              roomId = openRoomKey;
-              playerId = 'player2';
-              opponentId = 'player1';
-              firebase.database().ref('snakeQueue/' + roomId)
-                .update({ status: 'ready' });
-            } else {
-              // Создаём новую комнату как player1
-              roomId = queueRef.push().key;
-              playerId = 'player1';
-              opponentId = 'player2';
-              queueRef.child(roomId).set({
-                status: 'waiting',
-                createdAt: firebase.database.ServerValue.TIMESTAMP
-              });
-            }
-            // Линкуем основную логику
+          }
+          if (openRoomKey) {
+            // Join as player2
+            roomId = openRoomKey;
+            playerId = 'player2';
+            opponentId = 'player1';
+            firebase.database().ref('snakeQueue/' + roomId)
+              .update({ status: 'ready' })
+              .catch((err) => console.error('Error updating room status:', err));
             setupGameReferences();
-            // Генерируем inviteLink
-            inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-            document.getElementById('copyButton').style.display = 'block';
-            waitForOpponent();
-          });
-        });
+          } else {
+            // Create new room as player1
+            roomId = queueRef.push().key;
+            playerId = 'player1';
+            opponentId = 'player2';
+            queueRef.child(roomId).set({
+              status: 'waiting',
+              createdAt: firebase.database.ServerValue.TIMESTAMP
+            }).catch((err) => console.error('Error creating room:', err));
+            setupGameReferences();
+          }
+          // Form invite link (replace URL as needed)
+          inviteLink = "https://mygame.example.com/invite?room=" + roomId;
+          document.getElementById('copyButton').style.display = 'block';
+          waitForOpponent();
+        }).catch((err) => console.error('Error reading queue:', err));
+      });
     }
     
     function waitForOpponent() {
       drawSearchScreen();
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
-      statusRef.on('value', (snap) => {
-        const currentStatus = snap.val();
+      statusRef.on('value', (snapshot) => {
+        const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
-          drawOpponentFoundScreen();
-          document.getElementById('copyButton').style.display = 'none';
-          
-          showOpponentNameTimeout = setTimeout(() => {
-            startCountdown();
-          }, 2000);
+          // Перед запуском игры – проверяем, что opponent.username ≠ currentUser.username
+          firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId)
+            .once('value').then((snap) => {
+              const oppData = snap.val();
+              if (oppData && oppData.username === window.currentUser.username) {
+                // Self-match detected – remove room and re-run matchmaking
+                firebase.database().ref('snakeQueue/' + roomId).remove();
+                findOrCreateRoom();
+              } else {
+                drawOpponentFoundScreen();
+                document.getElementById('copyButton').style.display = 'none';
+                showOpponentNameTimeout = setTimeout(() => {
+                  startCountdown();
+                }, 2000);
+              }
+            });
+        }
+      });
+      
+      // If opponent disconnects during search/game, end game.
+      const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
+      oppRef.on('value', (snapshot) => {
+        if (!snapshot.exists() && isGameRunning) {
+          // Opponent left – end game immediately
+          setGameOver();
         }
       });
     }
     
-    /* ======================
-       5. Настройка gameStateRef
-    ======================= */
+    /* ======================================
+       3. SETUP gameStateRef and listeners
+    ====================================== */
     function setupGameReferences() {
       gameStateRef = firebase.database().ref('snakeGames/' + roomId);
-      // Игрок
       const playerRef = gameStateRef.child('players').child(playerId);
-      playerRef.once('value').then((snap) => {
-        if (!snap.exists()) {
+      playerRef.once('value').then((snapshot) => {
+        if (!snapshot.exists()) {
           let startX, startY;
           if (playerId === 'player1') {
             startX = 3;
@@ -279,53 +320,49 @@
             startX = tileCountX - 4;
             startY = Math.floor(tileCountY / 2);
           }
-          const initSnake = [
-            { x:startX,   y:startY },
-            { x:startX-1, y:startY },
-            { x:startX-2, y:startY }
+          const initialSnake = [
+            { x: startX, y: startY },
+            { x: startX-1, y: startY },
+            { x: startX-2, y: startY }
           ];
           playerRef.set({
-            snake: initSnake,
+            snake: initialSnake,
             direction: 'right',
             score: 0,
-            username: currentUser.username
-          });
+            username: window.currentUser ? window.currentUser.username : 'Unknown'
+          }).catch((err) => console.error('Error initializing player data:', err));
         }
       });
-      // Соперник
       const oppRef = gameStateRef.child('players').child(opponentId);
-      oppRef.on('value', (snap) => {
-        if (!snap.exists()) {
-          // Opponent left or didn't exist
-          if (isGameRunning) setGameOver();
+      oppRef.on('value', (snapshot) => {
+        if (!snapshot.exists() && isGameRunning) {
+          // Opponent disconnected – current player wins.
+          setGameOver();
           return;
         }
-        const oppData = snap.val();
+        const oppData = snapshot.val() || {};
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
-        // Если это тот же user => можно проверить/выдать ошибку, но обычно уже проверено
       });
-      // Яблоко
-      gameStateRef.child('apple').on('value', (snap) => {
-        const a = snap.val() || {};
-        if (typeof a.x === 'number' && typeof a.y === 'number') {
-          applePos.x = a.x;
-          applePos.y = a.y;
+      gameStateRef.child('apple').on('value', (snapshot) => {
+        const aData = snapshot.val() || {};
+        if (typeof aData.x === 'number' && typeof aData.y === 'number') {
+          applePos.x = aData.x;
+          applePos.y = aData.y;
         }
       });
-      // Флаг gameOver
-      gameStateRef.child('gameOver').on('value', (snap) => {
-        if (snap.val() === true && !isGameOver) {
+      gameStateRef.child('gameOver').on('value', (snapshot) => {
+        if (snapshot.val() === true && !isGameOver) {
           isGameOver = true;
           endGame();
         }
       });
     }
     
-    /* ======================
-       6. Обратный отсчёт и старт
-    ======================= */
+    /* ======================================
+       4. COUNTDOWN (5...1) and start game
+    ====================================== */
     function startCountdown() {
       countdownValue = 5;
       countdownInterval = setInterval(() => {
@@ -341,13 +378,17 @@
     function launchGame() {
       isGameRunning = true;
       isGameOver = false;
-      gameStateRef.child('players').child(playerId).once('value').then((snap) => {
-        const d = snap.val();
-        if (d && d.snake) localSnake = d.snake;
-        localDirection = (d && d.direction) ? d.direction : 'right';
-        score = (d && d.score) ? d.score : 0;
-        gameStateRef.child('apple').once('value').then((aSnap) => {
-          if (!aSnap.exists()) spawnApple();
+      gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
+        const data = snapshot.val();
+        if (data && data.snake) {
+          localSnake = data.snake;
+        }
+        localDirection = (data && data.direction) ? data.direction : 'right';
+        score = (data && data.score) ? data.score : 0;
+        gameStateRef.child('apple').once('value').then((appleSnap) => {
+          if (!appleSnap.exists()) {
+            spawnApple();
+          }
         });
         addSwipeListeners();
         startLogicLoop();
@@ -356,24 +397,32 @@
       });
     }
     
-    /* ======================
-       7. Логика и отрисовка
-    ======================= */
+    /* ======================================
+       5. GAME LOGIC and RENDER
+    ====================================== */
     function startLogicLoop() {
       logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
     }
+    
     function stopLogicLoop() {
-      if (logicTimer) clearInterval(logicTimer);
-      logicTimer = null;
+      if (logicTimer) {
+        clearInterval(logicTimer);
+        logicTimer = null;
+      }
     }
+    
     function gameLogicUpdate() {
       if (!isGameRunning || isGameOver) return;
+      
       moveLocalSnake();
+      
+      // Only self-collision ends the game.
       if (checkSelfCollision()) {
         setGameOver();
         return;
       }
-      // Apple
+      
+      // Check apple collision
       const head = localSnake[0];
       if (head.x === applePos.x && head.y === applePos.y) {
         score++;
@@ -383,23 +432,29 @@
         updatePlayerState(false);
       }
     }
+    
     function renderLoop() {
       renderGame();
-      if (!isGameOver) requestAnimationFrame(renderLoop);
+      if (!isGameOver) {
+        requestAnimationFrame(renderLoop);
+      }
     }
     
-    /* ======================
-       8. Движение, столкновения
-    ======================= */
+    /* ======================================
+       6. MOVEMENT AND COLLISIONS
+    ====================================== */
     function moveLocalSnake() {
-      const head = {...localSnake[0]};
-      if (localDirection === 'left')  head.x--;
-      if (localDirection === 'right') head.x++;
-      if (localDirection === 'up')    head.y--;
-      if (localDirection === 'down')  head.y++;
-      if (head.x < 0) head.x = tileCountX-1;
+      const head = { ...localSnake[0] };
+      switch (localDirection) {
+        case 'left':  head.x--; break;
+        case 'right': head.x++; break;
+        case 'up':    head.y--; break;
+        case 'down':  head.y++; break;
+      }
+      // Wrap around the grid
+      if (head.x < 0) head.x = tileCountX - 1;
       if (head.x >= tileCountX) head.x = 0;
-      if (head.y < 0) head.y = tileCountY-1;
+      if (head.y < 0) head.y = tileCountY - 1;
       if (head.y >= tileCountY) head.y = 0;
       localSnake.unshift(head);
       localSnake.pop();
@@ -407,305 +462,372 @@
     
     function checkSelfCollision() {
       const head = localSnake[0];
-      for (let i=1; i<localSnake.length; i++){
-        if (localSnake[i].x===head.x && localSnake[i].y===head.y) return true;
+      for (let i = 1; i < localSnake.length; i++) {
+        if (localSnake[i].x === head.x && localSnake[i].y === head.y) {
+          return true;
+        }
       }
       return false;
     }
     
-    /* ======================
-       9. Update Player State
-    ======================= */
+    /* ======================================
+       7. UPDATE STATE IN FIREBASE
+    ====================================== */
     function updatePlayerState(ateApple) {
       if (ateApple) {
-        const lastSeg = localSnake[localSnake.length-1];
-        localSnake.push({...lastSeg});
+        const lastSegment = localSnake[localSnake.length - 1];
+        localSnake.push({ ...lastSegment });
       }
       gameStateRef.child('players').child(playerId).update({
         snake: localSnake,
         direction: localDirection,
         score: score
-      });
-    }
-    function spawnApple() {
-      const newA = {
-        x: Math.floor(Math.random()*tileCountX),
-        y: Math.floor(Math.random()*tileCountY)
-      };
-      gameStateRef.child('apple').set(newA);
+      }).catch((err) => console.error('Error updating player state:', err));
     }
     
-    /* ======================
-       10. Окончание игры
-    ======================= */
+    function spawnApple() {
+      const newApple = {
+        x: Math.floor(Math.random() * tileCountX),
+        y: Math.floor(Math.random() * tileCountY)
+      };
+      gameStateRef.child('apple').set(newApple)
+        .catch((err) => console.error('Error setting apple:', err));
+    }
+    
+    /* ======================================
+       8. GAME OVER
+    ====================================== */
     function setGameOver() {
       isGameOver = true;
-      gameStateRef.update({gameOver:true});
+      gameStateRef.update({ gameOver: true })
+        .catch((err) => console.error('Error setting gameOver:', err));
       endGame();
     }
+    
     function endGame() {
       stopLogicLoop();
       clearInterval(countdownInterval);
       let resultTitle = 'Game Over';
-      if (score > opponentScore) resultTitle='You Win!';
-      else if (score<opponentScore) resultTitle='You Lose...';
-      else resultTitle='Draw';
+      if (score > opponentScore) {
+        resultTitle = 'You Win!';
+      } else if (score < opponentScore) {
+        resultTitle = 'You Lose...';
+      } else {
+        resultTitle = 'Draw';
+      }
       const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
-      showEndGameModal(resultTitle,msg);
+      showEndGameModal(resultTitle, msg);
     }
     
-    /* ======================
-       11. Таймер (1 мин)
-    ======================= */
+    /* ======================================
+       9. TIMER (1 minute)
+    ====================================== */
     function startTimer() {
       timerCurrent = timerTotal;
-      const timerInt = setInterval(()=>{
+      const timerInterval = setInterval(() => {
         if (!isGameRunning || isGameOver) {
-          clearInterval(timerInt);
+          clearInterval(timerInterval);
           return;
         }
         timerCurrent--;
-        if (timerCurrent<=0) {
+        if (timerCurrent <= 0) {
           setGameOver();
-          clearInterval(timerInt);
+          clearInterval(timerInterval);
         }
-      },1000);
+      }, 1000);
     }
     
-    /* ======================
-       12. Рендер
-    ======================= */
+    /* ======================================
+       10. RENDER GAME
+    ====================================== */
     function renderGame() {
-      specialCtx.clearRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='rgba(0,0,0,0.8)';
-      specialCtx.fillRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = 'rgba(0,0,0,0.8)';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       
       drawMatrixGrid();
       
-      // Apple
-      specialCtx.fillStyle='#f00';
+      // Draw apple (red)
+      specialCtx.fillStyle = '#FF0000';
       specialCtx.fillRect(
-        GAME_AREA_X + applePos.x*gridSize,
-        GAME_AREA_Y + applePos.y*gridSize,
-        gridSize, gridSize
+        GAME_AREA_X + applePos.x * gridSize,
+        GAME_AREA_Y + applePos.y * gridSize,
+        gridSize,
+        gridSize
       );
       
-      // Our snake
+      // Draw our snake
       specialCtx.fillStyle = snakeColors[playerId] || '#800080';
-      localSnake.forEach(seg=>{
+      localSnake.forEach(seg => {
         specialCtx.fillRect(
-          GAME_AREA_X + seg.x*gridSize,
-          GAME_AREA_Y + seg.y*gridSize,
-          gridSize, gridSize
+          GAME_AREA_X + seg.x * gridSize,
+          GAME_AREA_Y + seg.y * gridSize,
+          gridSize,
+          gridSize
         );
       });
       
-      // Opponent snake
+      // Draw opponent snake
       specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
-      opponentSnake.forEach(seg=>{
+      opponentSnake.forEach(seg => {
         specialCtx.fillRect(
-          GAME_AREA_X + seg.x*gridSize,
-          GAME_AREA_Y + seg.y*gridSize,
-          gridSize, gridSize
+          GAME_AREA_X + seg.x * gridSize,
+          GAME_AREA_Y + seg.y * gridSize,
+          gridSize,
+          gridSize
         );
       });
       
-      // Opponent name above head
-      if (opponentSnake.length>0) {
-        const oppHead=opponentSnake[0];
-        specialCtx.fillStyle='#0f0';
-        specialCtx.font='12px "Press Start 2P"';
+      // Draw opponent name above head
+      if (opponentSnake.length > 0) {
+        const oppHead = opponentSnake[0];
+        specialCtx.fillStyle = '#00FF00';
+        specialCtx.font = '12px "Press Start 2P", sans-serif';
         specialCtx.fillText(
           opponentName,
-          GAME_AREA_X + oppHead.x*gridSize,
-          GAME_AREA_Y + oppHead.y*gridSize -5
+          GAME_AREA_X + oppHead.x * gridSize,
+          GAME_AREA_Y + oppHead.y * gridSize - 5
         );
       }
-      // Our name above head
-      if (localSnake.length>0){
-        const myHead=localSnake[0];
-        specialCtx.fillStyle='#0f0';
-        specialCtx.font='12px "Press Start 2P"';
-        const myName = currentUser.username || 'You';
+      
+      // Draw our name above head
+      if (localSnake.length > 0) {
+        const myHead = localSnake[0];
+        specialCtx.fillStyle = '#00FF00';
+        specialCtx.font = '12px "Press Start 2P", sans-serif';
+        const myName = window.currentUser ? window.currentUser.username : 'You';
         specialCtx.fillText(
           myName,
-          GAME_AREA_X + myHead.x*gridSize,
-          GAME_AREA_Y + myHead.y*gridSize -5
+          GAME_AREA_X + myHead.x * gridSize,
+          GAME_AREA_Y + myHead.y * gridSize - 5
         );
       }
       
-      // Счёт
-      specialCtx.fillStyle='#0f0';
-      specialCtx.font='12px "Press Start 2P"';
-      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH -100, GAME_AREA_Y+15);
-      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH -100, GAME_AREA_Y+30);
+      // Draw scores (top-right of game area)
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '12px "Press Start 2P", sans-serif';
+      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
+      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
       
-      // Timer bar
-      const barW = (timerCurrent/timerTotal)*GAME_AREA_WIDTH;
-      specialCtx.fillStyle='#0f0';
-      specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y-5, barW,4);
+      // Draw timer bar
+      const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
     }
     
     function drawMatrixGrid() {
-      specialCtx.fillStyle='rgba(0,0,0,0.5)';
+      specialCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
       
-      specialCtx.strokeStyle='rgba(0,255,0,0.3)';
-      for (let i=0; i<=tileCountX; i++){
-        let x=GAME_AREA_X + i*gridSize;
+      specialCtx.strokeStyle = 'rgba(0,255,0,0.3)';
+      for (let i = 0; i <= tileCountX; i++) {
+        let x = GAME_AREA_X + i * gridSize;
         specialCtx.beginPath();
-        specialCtx.moveTo(x,GAME_AREA_Y);
-        specialCtx.lineTo(x,GAME_AREA_Y+GAME_AREA_HEIGHT);
+        specialCtx.moveTo(x, GAME_AREA_Y);
+        specialCtx.lineTo(x, GAME_AREA_Y + GAME_AREA_HEIGHT);
         specialCtx.stroke();
       }
-      for (let j=0;j<=tileCountY;j++){
-        let y=GAME_AREA_Y + j*gridSize;
+      for (let j = 0; j <= tileCountY; j++) {
+        let y = GAME_AREA_Y + j * gridSize;
         specialCtx.beginPath();
-        specialCtx.moveTo(GAME_AREA_X,y);
-        specialCtx.lineTo(GAME_AREA_X+GAME_AREA_WIDTH,y);
+        specialCtx.moveTo(GAME_AREA_X, y);
+        specialCtx.lineTo(GAME_AREA_X + GAME_AREA_WIDTH, y);
         specialCtx.stroke();
       }
-      specialCtx.strokeStyle='#0f0';
-      specialCtx.lineWidth=2;
-      specialCtx.strokeRect(GAME_AREA_X,GAME_AREA_Y,GAME_AREA_WIDTH,GAME_AREA_HEIGHT);
+      specialCtx.strokeStyle = 'rgb(0,255,0)';
+      specialCtx.lineWidth = 2;
+      specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
     }
     
-    /* ======================
-       13. Поисковые экраны
-    ======================= */
+    /* ======================================
+       11. SCREENS: "SEARCHING / WAITING..."
+    ====================================== */
     function drawSearchScreen() {
-      specialCtx.clearRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#000';
-      specialCtx.fillRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#0f0';
-      specialCtx.font='16px "Press Start 2P"';
-      specialCtx.textAlign='center';
-      specialCtx.fillText('Searching for opponent...',specialGameCanvas.width/2, specialGameCanvas.height/2);
-      
-      specialCtx.font='10px "Press Start 2P"';
-      specialCtx.fillText('Invite a friend:',specialGameCanvas.width/2, specialGameCanvas.height/2+40);
-      specialCtx.fillText(inviteLink, specialGameCanvas.width/2, specialGameCanvas.height/2+60);
-      
-      specialCtx.font='8px "Press Start 2P"';
-      specialCtx.fillText('Click to copy', specialGameCanvas.width/2, specialGameCanvas.height/2+80);
-      document.getElementById('copyButton').style.display='block';
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      // Blinking search text
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        'Searching for opponent...',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
+      specialCtx.font = '10px "Press Start 2P", sans-serif';
+      specialCtx.fillText(
+        'Invite a friend:',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 40
+      );
+      specialCtx.fillText(
+        inviteLink,
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 60
+      );
+      specialCtx.font = '8px "Press Start 2P", sans-serif';
+      specialCtx.fillText(
+        'Click to copy',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 80
+      );
+      document.getElementById('copyButton').style.display = 'block';
     }
     
     function drawWaitingScreen() {
-      specialCtx.clearRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#000';
-      specialCtx.fillRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
     function drawOpponentFoundScreen() {
-      specialCtx.clearRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#000';
-      specialCtx.fillRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#0f0';
-      specialCtx.font='16px "Press Start 2P"';
-      specialCtx.textAlign='center';
-      specialCtx.fillText('Opponent found',specialGameCanvas.width/2, specialGameCanvas.height/2);
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        'Opponent found',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
     }
     
+    /* ======================================
+       12. COUNTDOWN (5...1)
+    ====================================== */
     function drawCountdownScreen(value) {
-      specialCtx.clearRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#000';
-      specialCtx.fillRect(0,0,specialGameCanvas.width,specialGameCanvas.height);
-      specialCtx.fillStyle='#0f0';
-      specialCtx.font='48px "Press Start 2P"';
-      specialCtx.textAlign='center';
-      specialCtx.fillText(value.toString(), specialGameCanvas.width/2, specialGameCanvas.height/2);
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '48px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        value.toString(),
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
     }
     
-    /* ======================
-       14. Управление
-    ======================= */
+    /* ======================================
+       13. INPUT HANDLING (SWIPE + KEYS)
+    ====================================== */
     function addSwipeListeners() {
-      let touchStartX=0, touchStartY=0;
+      let touchStartX = null;
+      let touchStartY = null;
       function onTouchStart(e) {
         e.preventDefault();
-        const t=e.touches[0];
-        touchStartX=t.clientX; touchStartY=t.clientY;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
       }
-      function onTouchMove(e) { e.preventDefault(); }
+      function onTouchMove(e) {
+        e.preventDefault();
+      }
       function onTouchEnd(e) {
-        if (!touchStartX||!touchStartY) return;
-        const t=e.changedTouches[0], dx=t.clientX-touchStartX, dy=t.clientY-touchStartY;
-        if (Math.abs(dx)>Math.abs(dy)){
-          if (dx>0 && localDirection!=='left') localDirection='right';
-          else if (dx<0 && localDirection!=='right') localDirection='left';
+        if (!touchStartX || !touchStartY) return;
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx > 0 && localDirection !== 'left') {
+            localDirection = 'right';
+          } else if (dx < 0 && localDirection !== 'right') {
+            localDirection = 'left';
+          }
         } else {
-          if (dy>0 && localDirection!=='up') localDirection='down';
-          else if (dy<0 && localDirection!=='down') localDirection='up';
+          if (dy > 0 && localDirection !== 'up') {
+            localDirection = 'down';
+          } else if (dy < 0 && localDirection !== 'down') {
+            localDirection = 'up';
+          }
         }
-        touchStartX=0; touchStartY=0;
+        touchStartX = null;
+        touchStartY = null;
       }
-      specialGameCanvas.addEventListener('touchstart', onTouchStart,{passive:false});
-      specialGameCanvas.addEventListener('touchmove', onTouchMove,{passive:false});
-      specialGameCanvas.addEventListener('touchend', onTouchEnd,{passive:false});
+      specialGameCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
+      specialGameCanvas.addEventListener('touchmove', onTouchMove, { passive: false });
+      specialGameCanvas.addEventListener('touchend', onTouchEnd, { passive: false });
       function onKeyDown(e) {
-        switch(e.key){
-          case 'ArrowLeft': if(localDirection!=='right') localDirection='left'; break;
-          case 'ArrowRight':if(localDirection!=='left')  localDirection='right';break;
-          case 'ArrowUp':   if(localDirection!=='down')  localDirection='up';   break;
-          case 'ArrowDown': if(localDirection!=='up')    localDirection='down'; break;
+        switch (e.key) {
+          case 'ArrowLeft':
+            if (localDirection !== 'right') localDirection = 'left';
+            break;
+          case 'ArrowRight':
+            if (localDirection !== 'left') localDirection = 'right';
+            break;
+          case 'ArrowUp':
+            if (localDirection !== 'down') localDirection = 'up';
+            break;
+          case 'ArrowDown':
+            if (localDirection !== 'up') localDirection = 'down';
+            break;
         }
       }
       window.addEventListener('keydown', onKeyDown);
-      
-      // Сохраняем для удаления
-      window.__special_onKeyDown=onKeyDown;
-      window.__special_onTouchStart=onTouchStart;
-      window.__special_onTouchMove=onTouchMove;
-      window.__special_onTouchEnd=onTouchEnd;
-    }
-    function removeSwipeListeners() {
-      if(!specialGameCanvas) return;
-      specialGameCanvas.removeEventListener('touchstart',window.__special_onTouchStart);
-      specialGameCanvas.removeEventListener('touchmove',window.__special_onTouchMove);
-      specialGameCanvas.removeEventListener('touchend',window.__special_onTouchEnd);
-      window.removeEventListener('keydown',window.__special_onKeyDown);
-      window.__special_onKeyDown=null;
-      window.__special_onTouchStart=null;
-      window.__special_onTouchMove=null;
-      window.__special_onTouchEnd=null;
+      window.__special_onKeyDown = onKeyDown;
+      window.__special_onTouchStart = onTouchStart;
+      window.__special_onTouchMove = onTouchMove;
+      window.__special_onTouchEnd = onTouchEnd;
     }
     
-    /* ======================
-       15. Copy Invite Link
-    ======================= */
+    function removeSwipeListeners() {
+      if (!specialGameCanvas) return;
+      specialGameCanvas.removeEventListener('touchstart', window.__special_onTouchStart);
+      specialGameCanvas.removeEventListener('touchmove', window.__special_onTouchMove);
+      specialGameCanvas.removeEventListener('touchend', window.__special_onTouchEnd);
+      window.removeEventListener('keydown', window.__special_onKeyDown);
+      window.__special_onTouchStart = null;
+      window.__special_onTouchMove = null;
+      window.__special_onTouchEnd = null;
+      window.__special_onKeyDown = null;
+    }
+    
+    /* ======================================
+       14. COPY INVITE LINK
+    ====================================== */
     function copyInviteLink() {
       if (!inviteLink) return;
       navigator.clipboard.writeText(inviteLink)
-        .then(()=>{ console.log("Invite link copied:", inviteLink); })
-        .catch(err=> console.error("Error copying link:",err));
+        .then(() => { console.log("Invite link copied:", inviteLink); })
+        .catch(err => console.error("Error copying invite link:", err));
     }
     
-    /* ======================
-       16. Модальное окно итога
-    ======================= */
-    function showEndGameModal(title, message){
-      const modal=document.getElementById('endgameBackdrop');
-      document.getElementById('endgameTitle').textContent=title;
-      document.getElementById('endgameMessage').textContent=message;
+    /* ======================================
+       15. END GAME MODAL
+    ====================================== */
+    function showEndGameModal(title, message) {
+      const modal = document.getElementById('endgameBackdrop');
+      const titleEl = document.getElementById('endgameTitle');
+      const msgEl = document.getElementById('endgameMessage');
+      titleEl.textContent = title;
+      msgEl.textContent = message;
       modal.classList.add('active');
     }
+    
+    /* ============================================================
+       End of game code.
+       Call initSpecialGame1() below.
+    ============================================================ */
   </script>
   
   <script>
-    /* Функции модалок */
+    // Finish game: hide modal and go to index.html
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
-      window.location.href='index.html';
+      window.location.href = 'index.html';
     }
-    function returnToMain(){
+    function returnToMain() {
       document.getElementById('noTicketsModal').classList.remove('active');
-      window.location.href='index.html';
+      window.location.href = 'index.html';
     }
     
-    // Инициализация
-    window.addEventListener('load', ()=>{
-      // Замените конфиг на ваш реальный
+    // Initialize game after page load and Firebase setup
+    window.addEventListener('load', () => {
+      // Firebase configuration – replace with your actual config values
       const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -716,13 +838,15 @@
       appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
       measurementId: "G-WJNF0HSN9P"
     };
-      if(!firebase.apps.length) firebase.initializeApp(config);
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
       
-      // Если нет currentUser, создадим для теста
-      if(!window.currentUser){
-        window.currentUser={
-          username:"TestUser",
-          photo_url:"https://img.icons8.com/ios-filled/50/00FF00/user.png"
+      // Ensure currentUser is set. For testing outside Telegram:
+      if (!window.currentUser) {
+        window.currentUser = {
+          username: "TestUser",
+          photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
         };
       }
       
@@ -731,3 +855,4 @@
   </script>
 </body>
 </html>
+
