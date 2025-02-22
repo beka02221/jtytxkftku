@@ -12,7 +12,7 @@
   <!-- Подключите свой CSS (например, st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   
-  <!-- Firebase (подключите SDK) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   
@@ -45,10 +45,11 @@
 /* ============================================================
    specialgame1.js (оптимизированная версия)
    Что нового:
-     1. Во время поиска соперника внизу отображается ссылка для приглашения друга (inviteLink).
-     2. Функция copyInviteLink() копирует её в буфер обмена.
-     3. Оптимизированы: логика змейки (setInterval ~150 мс), отрисовка через requestAnimationFrame,
-        использование .on() для обновления состояния соперника.
+     1. При поиске соперника отображается ссылка для приглашения друга (inviteLink).
+     2. Функция copyInviteLink() копирует inviteLink в буфер обмена.
+     3. Логика змейки (setInterval ~150 мс), отрисовка через requestAnimationFrame.
+     4. Изменение: теперь при столкновении со своей змейкой игра завершается, а при касании змейки соперника – змейки не умирают.
+     5. Добавлено модальное окно итогов, кнопка «Продолжить» отправляет на index.html.
  ============================================================ */
 
 // Глобальные переменные и константы для игры
@@ -66,7 +67,7 @@ const gridSize = 20;
 const tileCountX = GAME_AREA_WIDTH / gridSize;  
 const tileCountY = GAME_AREA_HEIGHT / gridSize; 
 
-// Глобальные идентификаторы комнаты/игроков и ссылки на базу
+// Глобальные идентификаторы комнаты/игроков и ссылка на базу
 let roomId = null;            
 let playerId = null;          
 let opponentId = null;        
@@ -119,7 +120,7 @@ function initSpecialGame1() {
   specialCtx = specialGameCanvas.getContext('2d');
 
   resetSpecialGame1();
-  drawWaitingScreen(); // Рисуем начальный экран ожидания
+  drawWaitingScreen(); // Рисуем экран ожидания
 
   findOrCreateRoom();  // Запускаем поиск/создание комнаты
 }
@@ -195,7 +196,7 @@ function findOrCreateRoom() {
 }
 
 function waitForOpponent() {
-  drawSearchScreen(); // Рисуем экран поиска + inviteLink
+  drawSearchScreen(); // Рисуем экран "Поиск соперника..." с inviteLink
   const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
   statusRef.on('value', (snapshot) => {
     const currentStatus = snapshot.val();
@@ -316,13 +317,19 @@ function stopLogicLoop() {
   }
 }
 
+// Каждые 150 мс
 function gameLogicUpdate() {
   if (!isGameRunning || isGameOver) return;
+  
   moveLocalSnake();
-  if (checkSelfCollision() || checkOpponentCollision()) {
+
+  // Убираем проверку столкновения со змейкой соперника – они не умирают при касании друг друга.
+  if (checkSelfCollision()) {
     setGameOver();
     return;
   }
+
+  // Проверка яблока
   const head = localSnake[0];
   if (head.x === applePos.x && head.y === applePos.y) {
     score++;
@@ -333,6 +340,7 @@ function gameLogicUpdate() {
   }
 }
 
+// Отрисовка через requestAnimationFrame
 function renderLoop() {
   renderGame();
   if (!isGameOver) {
@@ -341,7 +349,7 @@ function renderLoop() {
 }
 
 /* ======================================
-   6. ДВИЖЕНИЕ ЗМЕЙ И СТОЛКНОВЕНИЯ
+   6. ЛОГИКА ДВИЖЕНИЯ И СТОЛКНОВЕНИЯ
 ====================================== */
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
@@ -351,6 +359,7 @@ function moveLocalSnake() {
     case 'up':    head.y--; break;
     case 'down':  head.y++; break;
   }
+  // Проход сквозь стены
   if (head.x < 0) head.x = tileCountX - 1;
   if (head.x >= tileCountX) head.x = 0;
   if (head.y < 0) head.y = tileCountY - 1;
@@ -369,21 +378,14 @@ function checkSelfCollision() {
   return false;
 }
 
-function checkOpponentCollision() {
-  const head = localSnake[0];
-  for (let seg of opponentSnake) {
-    if (seg.x === head.x && seg.y === head.y) {
-      return true;
-    }
-  }
-  return false;
-}
+// Функция checkOpponentCollision теперь не используется – столкновение со змейкой соперника не приводит к окончанию игры.
 
 /* ======================================
    7. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
 ====================================== */
 function updatePlayerState(ateApple) {
   if (ateApple) {
+    // Если яблоко съедено, растёт змейка – возвращаем хвост
     const lastSegment = localSnake[localSnake.length - 1];
     localSnake.push({ ...lastSegment });
   }
@@ -425,11 +427,11 @@ function endGame() {
     resultTitle = 'Ничья';
   }
   const msg = `Ваш счёт: ${score} | Соперник: ${opponentScore}`;
-  window.showEndGameModal(resultTitle, msg);
+  showEndGameModal(resultTitle, msg);
 }
 
 /* ======================================
-   9. ТАЙМЕР (2 минуты)
+   9. ТАЙМЕР (2 МИНУТЫ)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
@@ -587,7 +589,7 @@ function drawOpponentFoundScreen() {
 }
 
 /* ======================================
-   12. ОБРАТНЫЙ ОТСЧЁТ (5..1)
+   12. ОБРАТНЫЙ ОТСЧЁТ (5...1)
 ====================================== */
 function drawCountdownScreen(value) {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -687,20 +689,54 @@ function copyInviteLink() {
     .catch(err => console.error("Ошибка при копировании ссылки:", err));
 }
 
+/* ======================================
+   15. МОДАЛКА РЕЗУЛЬТАТОВ
+   Функция showEndGameModal() заполняет модальное окно
+   (элемент с id="endgameBackdrop") и показывает его.
+   Кнопка "Продолжить" в модалке (которая уже в HTML)
+   вызывает finishGame(), которая отправляет на index.html.
+====================================== */
+function showEndGameModal(title, message) {
+  const modal = document.getElementById('endgameBackdrop');
+  const titleEl = document.getElementById('endgameTitle');
+  const msgEl = document.getElementById('endgameMessage');
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  modal.classList.add('active');
+}
+
 /* ============================================================
-Подключите этот скрипт в HTML и вызовите:
-initSpecialGame1();
+   Подключение в HTML: вызов initSpecialGame1() в конце скриптов.
 ============================================================ */
   </script>
   
+  <!-- Модалка итогов -->
+  <div id="endgameBackdrop" class="endgame-backdrop">
+    <div class="endgame-modal">
+      <h2 id="endgameTitle">Игра завершена!</h2>
+      <p id="endgameMessage"></p>
+      <button onclick="finishGame()">Продолжить</button>
+    </div>
+  </div>
+  
   <script>
-    // Инициализация игры после загрузки страницы
+    // Функции завершения игры и возврата на главную страницу
+    function finishGame() {
+      document.getElementById('endgameBackdrop').classList.remove('active');
+      window.location.href = 'index.html';
+    }
+    function returnToMain() {
+      document.getElementById('noTicketsModal').classList.remove('active');
+      window.location.href = 'index.html';
+    }
+    
+    /* ======================================
+       Запуск игры после загрузки страницы
+       (Настройте Firebase, заменив параметры ниже)
+    ====================================== */
     window.addEventListener('load', () => {
-      // Настройка Firebase и Telegram Web App уже выполнена выше.
-      // Не забудьте заменить firebaseConfig ниже на свои реальные параметры!
-      
-      // Пример настройки Firebase:
-      const firebaseConfig = {
+      // Настройка Firebase: замените параметры на свои реальные
+     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
       databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
@@ -718,3 +754,4 @@ initSpecialGame1();
   </script>
 </body>
 </html>
+
