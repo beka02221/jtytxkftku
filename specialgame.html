@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
-  <!-- Your CSS (e.g., st1.css) -->
+  <!-- Your CSS (for example, st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   
   <!-- Firebase SDK -->
@@ -30,7 +30,7 @@
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
     }
-    /* Canvas занимает всю страницу */
+    /* Canvas – основной игровой экран */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
@@ -56,7 +56,7 @@
     #copyButton:hover {
       background-color: #333;
     }
-    /* Модальное окно итогов */
+    /* Модальное окно итогов и "Not enough tickets" */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -75,7 +75,7 @@
       text-align: center;
       border-radius: 8px;
     }
-    /* Анимация мигания для поиска */
+    /* Анимация мигания для экрана поиска */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -87,10 +87,10 @@
   </style>
 </head>
 <body>
-  <!-- Canvas для игры -->
+  <!-- Игровой canvas -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Кнопка для копирования ссылки -->
+  <!-- Кнопка для копирования inviteLink -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
   <!-- Модальное окно итогов -->
@@ -114,19 +114,18 @@
   <script>
     /* ============================================================
        Special Snake PvP – Optimized Version
-       Changes:
-         - During opponent search, a blinking "Searching for opponent..." text is shown.
-         - The invite link is displayed (with adjusted font size) and a styled "Copy Invite Link" button.
-         - If the second opponent disconnects, the game ends automatically.
-         - When re-entering search (after page refresh) your previous queue entry is removed to prevent self-matching.
-         - Game duration is 1 minute – the player with the most apples wins.
-         - All texts are in English.
+       - Blinking "Searching for opponent..." text.
+       - Displays opponent's username (if different from yours) and real usernames above snakes.
+       - If the second opponent disconnects, the game ends automatically.
+       - Prevents self-matching on page refresh by removing your previous queue entry.
+       - Game duration: 1 minute.
+       - All texts are in English.
        ============================================================ */
     
     let specialGameCanvas;
     let specialCtx;
     
-    // Game area (centered on canvas)
+    // Game area settings (position on canvas)
     const GAME_AREA_X = 50;
     const GAME_AREA_Y = 175;
     const GAME_AREA_WIDTH = 300;
@@ -137,7 +136,7 @@
     const tileCountX = GAME_AREA_WIDTH / gridSize;  
     const tileCountY = GAME_AREA_HEIGHT / gridSize; 
     
-    // Room and player IDs
+    // Room and player IDs and database reference
     let roomId = null;
     let playerId = null;
     let opponentId = null;
@@ -176,10 +175,10 @@
       player2: '#FFFF00'
     };
     
-    // Logic interval (150 ms)
+    // Logic interval (150ms)
     const LOGIC_INTERVAL = 150;
     
-    // Invite link (to be formed)
+    // Invite link (will be formed later)
     let inviteLink = "";
     
     /* ======================================
@@ -191,12 +190,8 @@
     
       resetSpecialGame1();
       drawWaitingScreen();
-    
       findOrCreateRoom();
-    
-      // Set up disconnect handler so that if you disconnect, your entry is removed.
-      // (This helps prevent self-matching on re-entry.)
-      // Note: This will be set after roomId and playerId are assigned.
+      // After roomId and playerId are assigned, set onDisconnect to remove your node.
     }
     
     function resetSpecialGame1() {
@@ -232,7 +227,7 @@
     ====================================== */
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
-      // Remove any previous entry for current user
+      // Remove any previous entry for current user so you don't match with yourself.
       queueRef.child(currentUser.username).remove().then(() => {
         queueRef.once('value').then((snapshot) => {
           const queueData = snapshot.val() || {};
@@ -263,9 +258,8 @@
             }).catch((err) => console.error('Error creating room:', err));
             setupGameReferences();
           }
-          // Form invite link (replace with your real address)
+          // Form invite link (change URL as needed)
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-          // Show copy button
           document.getElementById('copyButton').style.display = 'block';
           waitForOpponent();
         }).catch((err) => console.error('Error reading queue:', err));
@@ -279,18 +273,32 @@
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
-          drawOpponentFoundScreen();
-          document.getElementById('copyButton').style.display = 'none';
-          showOpponentNameTimeout = setTimeout(() => {
-            startCountdown();
-          }, 2000);
+          // Now, check the opponent’s username
+          firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId)
+            .once('value')
+            .then((oppSnap) => {
+              if (oppSnap.exists()) {
+                const oppData = oppSnap.val();
+                // If the opponent's username equals your username, ignore and wait for a valid opponent.
+                if (oppData.username === currentUser.username) {
+                  // Do nothing – wait for a valid opponent.
+                  return;
+                } else {
+                  drawOpponentFoundScreen();
+                  document.getElementById('copyButton').style.display = 'none';
+                  showOpponentNameTimeout = setTimeout(() => {
+                    startCountdown();
+                  }, 2000);
+                }
+              }
+            });
         }
       });
-      // Listen for opponent disconnect:
+      
+      // Listen for opponent disconnect (if opponent node disappears, end game)
       const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent left – end the game immediately
           setGameOver();
         }
       });
@@ -327,15 +335,14 @@
       });
       const oppRef = gameStateRef.child('players').child(opponentId);
       oppRef.on('value', (snapshot) => {
-        if (!snapshot.exists() && isGameRunning) {
-          // Opponent disconnected – end game
-          setGameOver();
-          return;
+        // Check: if the opponent's username equals currentUser.username, ignore.
+        if (snapshot.exists()) {
+          const oppData = snapshot.val() || {};
+          if (oppData.username === currentUser.username) return;
+          opponentSnake = oppData.snake || [];
+          opponentScore = oppData.score || 0;
+          opponentName  = oppData.username || 'Opponent';
         }
-        const oppData = snapshot.val() || {};
-        opponentSnake = oppData.snake || [];
-        opponentScore = oppData.score || 0;
-        opponentName  = oppData.username || 'Opponent';
       });
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
@@ -443,7 +450,7 @@
         case 'up':    head.y--; break;
         case 'down':  head.y++; break;
       }
-      // Wrap around the grid
+      // Wrap around
       if (head.x < 0) head.x = tileCountX - 1;
       if (head.x >= tileCountX) head.x = 0;
       if (head.y < 0) head.y = tileCountY - 1;
@@ -595,13 +602,13 @@
         );
       }
       
-      // Draw scores (top right of game area)
+      // Draw scores (top-right of game area)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
       
-      // Draw timer bar at top of game area
+      // Draw timer bar
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#00FF00';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -638,7 +645,7 @@
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Blinking search text
+      // Blinking text for search
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
@@ -664,7 +671,6 @@
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2 + 80
       );
-      // Show copy button
       document.getElementById('copyButton').style.display = 'block';
     }
     
@@ -821,7 +827,7 @@
     // Initialize game after page load and Firebase setup
     window.addEventListener('load', () => {
       // Firebase configuration – replace with your actual config values
-     const firebaseConfig = {
+      const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
       databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
@@ -835,9 +841,8 @@
         firebase.initializeApp(firebaseConfig);
       }
       
-      // Ensure window.currentUser is set.
+      // Ensure currentUser is set. For testing outside Telegram:
       if (!window.currentUser) {
-        // For testing outside Telegram:
         window.currentUser = {
           username: "TestUser",
           photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
@@ -849,3 +854,4 @@
   </script>
 </body>
 </html>
+
