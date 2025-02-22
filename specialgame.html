@@ -2,25 +2,24 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
 
-  <!-- Шрифт (как на главном сайте) -->
+  <!-- Шрифт (Press Start 2P) -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-
-  <!-- Основные стили -->
+  
+  <!-- Основной стиль – можно вынести в отдельный файл -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
 
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <style>
+    /* Общий стиль */
     body {
       margin: 0;
       padding: 0;
@@ -49,25 +48,10 @@
     .balances span {
       margin-right: 10px;
     }
-    .hamburger-line {
-      display: block;
-      width: 20px;
-      height: 2px;
-      background-color: #0f0;
-      margin: 4px 0;
-    }
-    #design-options {
-      display: none;
-      position: absolute;
-      background: #222;
-      border: 1px solid #0f0;
-      padding: 10px;
-      z-index: 99;
-    }
     main {
       position: relative;
       width: 100vw;
-      height: calc(100vh - 58px); /* высота экрана минус высота хедера */
+      height: calc(100vh - 58px); /* Высота экрана минус шапка */
       overflow: hidden;
     }
     /* Экран поиска соперника */
@@ -101,7 +85,7 @@
       width: 60px;
       height: 60px;
     }
-    /* Игровая зона */
+    /* Игровая зона – Canvas занимает всё оставшееся пространство */
     .game-container {
       width: 100%;
       height: 100%;
@@ -138,6 +122,14 @@
       border-top: 2px solid #0f0;
       border-bottom: 2px solid #0f0;
       image-rendering: pixelated;
+      position: relative;
+    }
+    /* Отрисовка сетки – тонкие зеленые линии */
+    canvas.grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
     }
     /* Модальные окна */
     .modal-backdrop, .endgame-backdrop {
@@ -163,40 +155,25 @@
   </style>
 </head>
 <body>
-  <!-- Шапка с данными пользователя -->
+  <!-- Шапка (информация о пользователе) -->
   <header>
     <div class="user-info">
-      <img id="userPhoto" src="" alt="Avatar"/>
+      <img id="userPhoto" src="" alt="Avatar" />
       <span id="username">@User</span>
     </div>
     <div class="balances">
       <span>
-        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png"
-             alt="Tickets" width="20"/>
+        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png" alt="Tickets" width="20" />
         <span id="ticketCount">0</span>
       </span>
       <span>
-        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png"
-             alt="Coins" width="20"/>
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png" alt="Coins" width="20" />
         <span id="coinCount">0</span>
       </span>
       <span>
-        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png"
-             alt="Points" width="20"/>
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png" alt="Points" width="20" />
         <span id="pointCount">0</span>
       </span>
-    </div>
-    <div class="header-left" id="design-settings" style="position:relative;">
-      <button onclick="toggleDesignMenu()">
-        <span class="hamburger-line"></span>
-        <span class="hamburger-line"></span>
-        <span class="hamburger-line"></span>
-      </button>
-      <div id="design-options">
-        <p onclick="changeDesign('st1.css')">Дизайн (применён)</p>
-        <p onclick="changeDesign('st2.css')">Ретро дизайн</p>
-        <p onclick="changeDesign('st3.css')">Киберпанк дизайн</p>
-      </div>
     </div>
   </header>
 
@@ -209,7 +186,7 @@
         <p>Стоимость: 1 билет</p>
         <div class="search-animation">Ищем соперника...</div>
       </div>
-      <div id="foundBlock" style="display:none;" class="opponent-found">
+      <div id="foundBlock" style="display: none;" class="opponent-found">
         <h2>Соперник найден!</h2>
         <img id="opponentPhoto" src="" alt="Opponent" />
         <p id="opponentName">@Opponent</p>
@@ -217,7 +194,7 @@
       </div>
     </div>
 
-    <!-- Игровая зона (Canvas) -->
+    <!-- Игровая зона -->
     <div id="gameArea" class="game-container">
       <div class="timer-bar">
         <div class="timer-fill" id="timerFill"></div>
@@ -230,7 +207,7 @@
     </div>
   </main>
 
-  <!-- Модалка "нет билетов" -->
+  <!-- Модалка "Нет билетов" -->
   <div class="modal-backdrop" id="noTicketsModal">
     <div class="modal">
       <h2>Недостаточно билетов</h2>
@@ -249,7 +226,7 @@
   </div>
 
   <script>
-    // 1. Firebase Initialization – замените ключи на свои
+    /********** 1. Firebase Initialization **********/
   const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -263,19 +240,19 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. Telegram Web App
+    /********** 2. Telegram Web App **********/
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // 3. Глобальные переменные
+    /********** 3. Global Variables **********/
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, coins: 0, points: 0 };
 
+    // Opponent data and game info
     let opponentData = { username: '', photo: '' };
     let gameId = null;
     let isHost = false;
-    let matchFound = false;
 
     let gameStarted = false;
     let countdownInterval = null;
@@ -285,44 +262,52 @@
     let playerScore = 0;
     let opponentScore = 0;
 
-    // Змейки – стартовая длина 3 клетки
+    // Змейки – изначально длина 3 клетки
     let snake = {
       x: 5, y: 5,
       direction: 'RIGHT',
-      body: [{x:3,y:5}, {x:4,y:5}, {x:5,y:5}],
+      body: [
+        { x: 3, y: 5 },
+        { x: 4, y: 5 },
+        { x: 5, y: 5 }
+      ],
       color: '#0f0'
     };
     let snakeOpponent = {
       x: 15, y: 15,
       direction: 'LEFT',
-      body: [{x:13,y:15}, {x:14,y:15}, {x:15,y:15}],
+      body: [
+        { x: 17, y: 15 },
+        { x: 16, y: 15 },
+        { x: 15, y: 15 }
+      ],
       color: '#f00'
     };
 
-    // Поле (сетка)
+    // Параметры поля
     let gridCols = 20;
     let gridRows = 30;
     let tileSizeX = 0;
     let tileSizeY = 0;
     let apple = { x: 10, y: 10 };
 
-    // Скорость змейки – 300 мс (быстрее, чем раньше)
-    let snakeSpeed = 300;
+    // Скорость – 200 мс на шаг для быстрой игры
+    let snakeSpeed = 200;
     let lastMoveTime = 0;
 
-    // 4. Инициализация пользователя из TG и Firebase
+    /********** 4. User Initialization **********/
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
       if (currentUser.photo_url) {
         document.getElementById('userPhoto').src = currentUser.photo_url;
       }
-      // Если в вашей базе username записывается без изменения регистра, используйте так:
+      // Используем username как ключ (если нужно – примените toLowerCase())
       const safeName = currentUser.username;
       userRef = db.ref('users/' + safeName);
       userRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
-          // Задаём, например, 10 билетов по умолчанию
+          // Инициализируем, например, 10 билетами
           userRef.set({
             photo: currentUser.photo_url || '',
             tickets: 10,
@@ -334,48 +319,56 @@
           localUserData = snapshot.val();
         }
         updateTopBar();
-        // Подписка на обновление данных
+        // Подписываемся на изменения
         userRef.on('value', (snap2) => {
           localUserData = snap2.val() || {};
           updateTopBar();
         });
-        // После загрузки данных запускаем matchmaking
         startMatchmaking();
       });
     }
 
-    // 5. Обновление верхней панели
+    /********** 5. Update Top Bar **********/
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
-      document.getElementById('coinCount').textContent   = localUserData.coins || 0;
-      document.getElementById('pointCount').textContent  = localUserData.points || 0;
+      document.getElementById('coinCount').textContent = localUserData.coins || 0;
+      document.getElementById('pointCount').textContent = localUserData.points || 0;
     }
 
-    // 6. Matchmaking – записываем себя и слушаем изменения
+    /********** 6. Matchmaking **********/
     function startMatchmaking() {
-      if (matchFound) return;
+      if ((localUserData.tickets || 0) < 1) {
+        document.getElementById('noTicketsModal').classList.add('active');
+        return;
+      }
       const mmRef = db.ref('matchmaking');
-      mmRef.child(currentUser.username).set({ timestamp: Date.now() });
-      mmRef.on('value', (snapshot) => {
-        if (matchFound) return;
-        const data = snapshot.val() || {};
-        let others = Object.keys(data).filter(u => u !== currentUser.username);
-        if (others.length > 0) {
-          matchFound = true;
-          let opponentName = others[0];
-          // Удаляем обе записи из matchmaking
-          mmRef.child(currentUser.username).remove();
-          mmRef.child(opponentName).remove();
-          gameId = currentUser.username + '_vs_' + opponentName;
-          // Определяем host по лексикографическому порядку
-          isHost = (currentUser.username < opponentName);
-          createGameNode(opponentName);
+      mmRef.once('value').then(snap => {
+        const data = snap.val() || {};
+        const other = Object.keys(data).find(u => u !== currentUser.username);
+        if (other) {
+          gameId = currentUser.username + '_vs_' + other;
+          isHost = false;
+          db.ref('matchmaking/' + other).remove();
+          db.ref('matchmaking/' + currentUser.username).remove();
+          createGameNode(other);
+        } else {
+          isHost = true;
+          mmRef.child(currentUser.username).set({ time: Date.now() });
+          mmRef.on('child_added', (childSnap) => {
+            if (childSnap.key !== currentUser.username) {
+              gameId = currentUser.username + '_vs_' + childSnap.key;
+              db.ref('matchmaking/' + childSnap.key).remove();
+              db.ref('matchmaking/' + currentUser.username).remove();
+              createGameNode(childSnap.key);
+            }
+          });
         }
       });
     }
 
     function createGameNode(opponentName) {
       const gRef = db.ref('games/' + gameId);
+      // Если мы host – player1 = currentUser, player2 = opponent; иначе наоборот.
       gRef.set({
         player1: {
           username: isHost ? currentUser.username : opponentName,
@@ -394,9 +387,10 @@
       });
     }
 
-    // 7. Подписки на узел игры (обновление данных соперника, яблока)
+    /********** 7. Game Subscriptions **********/
     function initGameSubscriptions() {
       const gRef = db.ref('games/' + gameId);
+      // Подписываемся на изменения в обоих игроках
       gRef.child('player1').on('value', (snap) => {
         const val = snap.val() || {};
         if (val.username !== currentUser.username) {
@@ -416,19 +410,19 @@
       gRef.child('apple').on('value', (snap) => {
         apple = snap.val() || apple;
       });
-      // После небольшого ожидания показываем экран "Соперник найден"
+      // После небольшой задержки показываем "Соперник найден"
       setTimeout(() => {
         showOpponentFound();
       }, 1000);
     }
 
-    // 8. Отображаем "Соперник найден" и запускаем 5-секундный обратный отсчёт
+    /********** 8. Show Opponent Found **********/
     function showOpponentFound() {
       document.getElementById('searchBlock').style.display = 'none';
       document.getElementById('foundBlock').style.display = 'block';
       document.getElementById('opponentPhoto').src =
         opponentData.photo || 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
-      document.getElementById('opponentName').textContent = '@' + (opponentData.username || 'opponent');
+      document.getElementById('opponentName').textContent = '@' + (opponentData.username || 'Opp');
       let c = 5;
       document.getElementById('countdownValue').textContent = c;
       countdownInterval = setInterval(() => {
@@ -441,13 +435,13 @@
       }, 1000);
     }
 
-    // 9. Старт игры – здесь списываем билет и запускаем матч (2 минуты)
+    /********** 9. Start Game **********/
     function startGame() {
       if ((localUserData.tickets || 0) < 1) {
         document.getElementById('noTicketsModal').classList.add('active');
         return;
       }
-      // Списываем билет только в начале матча
+      // Списываем билет только сейчас – когда матч реально начинается
       localUserData.tickets -= 1;
       userRef.update({ tickets: localUserData.tickets });
       updateTopBar();
@@ -456,7 +450,6 @@
       const gameArea = document.getElementById('gameArea');
       gameArea.style.display = 'flex';
 
-      // Полноэкранный Canvas
       const canvas = document.getElementById('snakeCanvas');
       canvas.width = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
@@ -482,40 +475,41 @@
       requestAnimationFrame(gameLoop);
     }
 
-    // 10. Игровой цикл – обновляем только свою змейку (с ростом при поедании яблока)
+    /********** 10. Game Loop **********/
     function gameLoop(timestamp) {
       if (!gameStarted) return;
       if (timestamp - lastMoveTime > snakeSpeed) {
         lastMoveTime = timestamp;
-        updateSnake(snake);
-        // Обновляем Firebase
+        // Обновляем состояние своей змейки
+        updateSnake(snake, true);
+        // Отправляем состояние в Firebase
         const me = isHost ? 'player1' : 'player2';
         db.ref('games/' + gameId + '/' + me + '/snake').set(snake);
-        db.ref('games/' + gameId + '/apple').set(apple);
       }
       drawScene();
       requestAnimationFrame(gameLoop);
     }
 
-    // 11. Функция updateSnake – перемещает голову, проверяет поедание яблока (если съедено – не убираем хвост)
-    function updateSnake(snk) {
-      let newHead = { x: snk.x, y: snk.y };
-      if (snk.direction === 'LEFT') newHead.x--;
-      else if (snk.direction === 'RIGHT') newHead.x++;
-      else if (snk.direction === 'UP') newHead.y--;
-      else if (snk.direction === 'DOWN') newHead.y++;
-      if (newHead.x < 0) newHead.x = gridCols - 1;
-      if (newHead.x >= gridCols) newHead.x = 0;
-      if (newHead.y < 0) newHead.y = gridRows - 1;
-      if (newHead.y >= gridRows) newHead.y = 0;
-      snk.x = newHead.x; snk.y = newHead.y;
-      let ateApple = (newHead.x === apple.x && newHead.y === apple.y);
-      snk.body.unshift(newHead);
+    /********** 11. Update Snake **********/
+    function updateSnake(snk, isPlayer) {
+      let newX = snk.x, newY = snk.y;
+      if (snk.direction === 'LEFT') newX--;
+      else if (snk.direction === 'RIGHT') newX++;
+      else if (snk.direction === 'UP') newY--;
+      else if (snk.direction === 'DOWN') newY++;
+      if (newX < 0) newX = gridCols - 1;
+      if (newX >= gridCols) newX = 0;
+      if (newY < 0) newY = gridRows - 1;
+      if (newY >= gridRows) newY = 0;
+      snk.x = newX;
+      snk.y = newY;
+      let ateApple = (newX === apple.x && newY === apple.y);
+      snk.body.unshift({ x: newX, y: newY });
       if (!ateApple) {
         snk.body.pop();
       } else {
-        // Если съели яблоко – увеличиваем счёт и не удаляем хвост (змея растёт)
-        if (snk === snake) {
+        // Если съели яблоко – увеличиваем счет и не удаляем хвост (змейка вырастает)
+        if (isPlayer) {
           playerScore++;
           document.getElementById('playerScoreLabel').textContent = `Вы: ${playerScore}`;
         } else {
@@ -524,49 +518,53 @@
         }
         apple.x = Math.floor(Math.random() * gridCols);
         apple.y = Math.floor(Math.random() * gridRows);
+        db.ref('games/' + gameId + '/apple').set(apple);
       }
     }
 
-    // 12. Функция drawScene – отрисовывает поле, сетку, змейки и яблоко
+    /********** 12. Draw Scene **********/
     function drawScene() {
       const canvas = document.getElementById('snakeCanvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Рисуем зелёную сетку
-      drawGrid(ctx, canvas.width, canvas.height, tileSizeX, tileSizeY);
-      // Рисуем нашу змейку и змейку соперника
+      // Рисуем сетку
+      drawGrid(ctx, canvas.width, canvas.height);
+      // Рисуем змейки
       drawSnake(ctx, snake, 'You');
       drawSnake(ctx, snakeOpponent, opponentData.username || 'Opp');
       // Рисуем яблоко
       ctx.fillStyle = '#ff0';
       ctx.fillRect(apple.x * tileSizeX, apple.y * tileSizeY, tileSizeX, tileSizeY);
     }
-    function drawGrid(ctx, width, height, cellW, cellH) {
+    function drawGrid(ctx, width, height) {
       ctx.strokeStyle = "rgba(0,255,0,0.3)";
-      for (let x = 0; x <= width; x += cellW) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= gridCols; i++) {
+         let x = i * tileSizeX;
+         ctx.beginPath();
+         ctx.moveTo(x, 0);
+         ctx.lineTo(x, height);
+         ctx.stroke();
       }
-      for (let y = 0; y <= height; y += cellH) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
+      for (let j = 0; j <= gridRows; j++) {
+         let y = j * tileSizeY;
+         ctx.beginPath();
+         ctx.moveTo(0, y);
+         ctx.lineTo(width, y);
+         ctx.stroke();
       }
     }
     function drawSnake(ctx, snk, label) {
       ctx.fillStyle = snk.color;
       snk.body.forEach(part => {
-        ctx.fillRect(part.x * tileSizeX, part.y * tileSizeY, tileSizeX, tileSizeY);
+         ctx.fillRect(part.x * tileSizeX, part.y * tileSizeY, tileSizeX, tileSizeY);
       });
       ctx.fillStyle = '#fff';
       ctx.font = '10px "Press Start 2P"';
       ctx.fillText(label, snk.body[0].x * tileSizeX, snk.body[0].y * tileSizeY - 2);
     }
 
-    // 13. Управление – клавиатура и свайпы
+    /********** 13. Controls **********/
     function handleKeyDown(e) {
       if (e.key === 'ArrowLeft' && snake.direction !== 'RIGHT') snake.direction = 'LEFT';
       else if (e.key === 'ArrowRight' && snake.direction !== 'LEFT') snake.direction = 'RIGHT';
@@ -575,33 +573,35 @@
     }
     function setupTouchControls() {
       let startX = 0, startY = 0;
-      document.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
+      document.addEventListener('touchstart', e => {
+         startX = e.touches[0].clientX;
+         startY = e.touches[0].clientY;
       }, false);
-      document.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
-      document.addEventListener('touchend', (e) => {
-        let endX = e.changedTouches[0].clientX;
-        let endY = e.changedTouches[0].clientY;
-        let diffX = endX - startX;
-        let diffY = endY - startY;
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-          if (diffX > 0 && snake.direction !== 'LEFT') snake.direction = 'RIGHT';
-          else if (diffX < 0 && snake.direction !== 'RIGHT') snake.direction = 'LEFT';
-        } else {
-          if (diffY > 0 && snake.direction !== 'UP') snake.direction = 'DOWN';
-          else if (diffY < 0 && snake.direction !== 'DOWN') snake.direction = 'UP';
-        }
+      document.addEventListener('touchmove', e => {
+         e.preventDefault();
+      }, { passive: false });
+      document.addEventListener('touchend', e => {
+         let endX = e.changedTouches[0].clientX;
+         let endY = e.changedTouches[0].clientY;
+         let diffX = endX - startX;
+         let diffY = endY - startY;
+         if (Math.abs(diffX) > Math.abs(diffY)) {
+           if (diffX > 0 && snake.direction !== 'LEFT') snake.direction = 'RIGHT';
+           else if (diffX < 0 && snake.direction !== 'RIGHT') snake.direction = 'LEFT';
+         } else {
+           if (diffY > 0 && snake.direction !== 'UP') snake.direction = 'DOWN';
+           else if (diffY < 0 && snake.direction !== 'DOWN') snake.direction = 'UP';
+         }
       }, false);
     }
 
-    // 14. Обновление таймера (полоска)
+    /********** 14. Timer Bar **********/
     function updateTimerBar() {
-      const percent = (timeLeft / 120) * 100;
-      document.getElementById('timerFill').style.width = percent + '%';
+      const p = (timeLeft / 120) * 100;
+      document.getElementById('timerFill').style.width = p + '%';
     }
 
-    // 15. Окончание матча – показываем результат, начисляем очки и удаляем запись об игре
+    /********** 15. End Game **********/
     function endGame() {
       gameStarted = false;
       document.getElementById('gameArea').style.display = 'none';
@@ -610,22 +610,22 @@
       else if (playerScore < opponentScore) res = 'Вы проиграли...';
       else res = 'Ничья!';
       document.getElementById('endgameMessage').textContent =
-        `Ваш счёт: ${playerScore}, Соперник: ${opponentScore}. ${res}`;
+         `Ваш счёт: ${playerScore}, Соперник: ${opponentScore}. ${res}`;
       document.getElementById('endgameBackdrop').classList.add('active');
-      let pts = (playerScore > opponentScore) ? 10 : (playerScore === opponentScore ? 5 : 2);
-      localUserData.points = (localUserData.points || 0) + pts;
+      let pointsAdd = (playerScore > opponentScore) ? 10 : (playerScore === opponentScore ? 5 : 2);
+      localUserData.points = (localUserData.points || 0) + pointsAdd;
       userRef.update({ points: localUserData.points });
       db.ref('games/' + gameId).remove();
       db.ref('matchmaking/' + currentUser.username).remove();
     }
 
-    // 16. Кнопка "Продолжить" – возвращаемся на главную
+    /********** 16. Finish Game **********/
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       window.location.href = 'index.html';
     }
 
-    // 17. Модалка "нет билетов" – кнопка "Вернуться"
+    /********** 17. Return to Main **********/
     function returnToMain() {
       document.getElementById('noTicketsModal').classList.remove('active');
       window.location.href = 'index.html';
@@ -633,3 +633,4 @@
   </script>
 </body>
 </html>
+
