@@ -6,11 +6,11 @@
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
   
-  <!-- Include a monospace retro font -->
+  <!-- Подключаем шрифт Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
-  <!-- Basic CSS styling (your CSS can remain unchanged) -->
+  <!-- CSS стили -->
   <style>
     body {
       margin: 0;
@@ -58,10 +58,10 @@
     main {
       position: relative;
       width: 100vw;
-      height: calc(100vh - 58px); /* screen height minus header */
+      height: calc(100vh - 58px); /* высота экрана минус шапка */
       overflow: hidden;
     }
-    /* Search / waiting screen */
+    /* Экран поиска соперника */
     .search-container {
       width: 100%;
       height: 100%;
@@ -92,7 +92,7 @@
       width: 60px;
       height: 60px;
     }
-    /* Game area occupies full remaining space */
+    /* Игровая зона */
     .game-container {
       width: 100%;
       height: 100%;
@@ -126,9 +126,9 @@
       width: 100%;
       height: 100%;
       background: #333;
-      /* We'll draw our game area (grid, snakes, apple) within a defined rectangle */
+      /* Игровая область будет отрисована в пределах заданного прямоугольника */
     }
-    /* Endgame modal & error modals */
+    /* Модальные окна */
     .modal-backdrop, .endgame-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -152,7 +152,7 @@
   </style>
 </head>
 <body>
-  <!-- Header with user info (assumed to be set by Telegram Web App) -->
+  <!-- Header -->
   <header>
     <div class="user-info">
       <img id="userPhoto" src="" alt="Avatar" />
@@ -160,15 +160,18 @@
     </div>
     <div class="balances">
       <span>
-        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png" alt="Tickets" width="20" />
+        <img src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/64/00FF00/external-ticket-cinema-kmg-design-glyph-kmg-design.png"
+             alt="Tickets" width="20" />
         <span id="ticketCount">0</span>
       </span>
       <span>
-        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png" alt="Coins" width="20" />
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/coins.png"
+             alt="Coins" width="20" />
         <span id="coinCount">0</span>
       </span>
       <span>
-        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png" alt="Points" width="20" />
+        <img src="https://img.icons8.com/ios-filled/50/00FF00/rating.png"
+             alt="Points" width="20" />
         <span id="pointCount">0</span>
       </span>
     </div>
@@ -186,9 +189,9 @@
     </div>
   </header>
 
-  <!-- Main content: first the waiting/search screen, then the game area -->
+  <!-- Main Content -->
   <main>
-    <!-- Waiting/Searching screen -->
+    <!-- Waiting / Search Screen -->
     <div id="searchView" class="search-container">
       <div id="searchBlock">
         <h2>Multiplayer Snake (2 minutes)</h2>
@@ -203,7 +206,7 @@
       </div>
     </div>
 
-    <!-- Game area -->
+    <!-- Game Area -->
     <div id="gameArea" class="game-container">
       <div class="timer-bar">
         <div class="timer-fill" id="timerFill"></div>
@@ -234,50 +237,43 @@
     </div>
   </div>
 
-  <!-- Firebase and game logic script -->
+  <!-- Firebase and Telegram Web App SDKs are loaded above -->
   <script>
     /***************************************
-     * SPECIALGAME.JS – MULTIPLAYER SNAKE
-     * (Optimized version in English)
-     *
-     * Features:
-     *  - Real-time two-player game on one map.
-     *  - Each snake has a unique color.
-     *  - Both players see each other’s moves.
-     *  - Apples are spawned randomly; eating an apple grows the snake by one cell.
-     *  - Game lasts 2 minutes.
-     *  - During opponent search, an invite link is displayed.
-     *  - Uses Firebase Realtime Database for matchmaking and game state synchronization.
-     *
-     * Note: This is a client-side only implementation.
+     * Firebase Configuration
      ***************************************/
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
 
-    // Canvas and context for the game
-    let specialGameCanvas, specialCtx;
+    /***************************************
+     * Telegram Web App Initialization
+     ***************************************/
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-    // Define the game area within the canvas (centered rectangle)
-    const GAME_AREA_X = 50;
-    const GAME_AREA_Y = 75;
-    const GAME_AREA_WIDTH = 300;
-    const GAME_AREA_HEIGHT = 500;
-
-    // Grid settings
-    const gridSize = 20; // size of one cell in pixels
-    const tileCountX = GAME_AREA_WIDTH / gridSize;  
-    const tileCountY = GAME_AREA_HEIGHT / gridSize; 
-
-    // Global room/player identifiers (for Firebase matchmaking)
-    let roomId = null;
-    let playerId = null;      // 'player1' or 'player2'
-    let opponentId = null;    // opposite of playerId
-    let gameStateRef = null;  // Firebase reference to this game
+    /***************************************
+     * Global Variables & Game Settings
+     ***************************************/
+    let roomId = null;          // Firebase room ID
+    let playerId = null;        // 'player1' or 'player2'
+    let opponentId = null;
+    let gameStateRef = null;    // Reference to /snakeGames/{roomId}
 
     // Local snake state
     let localSnake = [];
     let localDirection = 'right';
     let score = 0;
 
-    // Opponent state (updated via Firebase .on listeners)
+    // Opponent state (from Firebase listeners)
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
@@ -290,15 +286,15 @@
     let isGameOver = false;
     let countdownValue = 5;
     let countdownInterval = null;
-    let timerTotal = 120;  // 2 minutes in seconds
+    let timerTotal = 120;   // 2 minutes
     let timerCurrent = 120;
 
-    // Logic loop interval (150 ms for smooth yet moderate speed)
+    // Logic loop interval (150ms)
     const LOGIC_INTERVAL = 150;
     let logicTimer = null;
 
-    // Invite link (displayed during search)
-    let inviteLink = "";
+    // Invite link (using your provided game link)
+    let inviteLink = "https://t.me/GalaxytonAIbot/glitchtest?room=";
 
     // Snake colors (player1: purple, player2: yellow)
     const snakeColors = {
@@ -306,77 +302,77 @@
       player2: '#FFFF00'
     };
 
+    // Game area within canvas (a centered rectangle)
+    const GAME_AREA_X = 50;
+    const GAME_AREA_Y = 75;
+    const GAME_AREA_WIDTH = 300;
+    const GAME_AREA_HEIGHT = 500;
+    const gridSize = 20;
+    const tileCountX = GAME_AREA_WIDTH / gridSize;
+    const tileCountY = GAME_AREA_HEIGHT / gridSize;
+
+    // Timers for game duration
+    let gameTimer = null;
+
+    // Canvas and context
+    let specialGameCanvas, specialCtx;
+
     /***************************************
-     * 1. INITIALIZATION & RESET
+     * 1. Initialization & Reset
      ***************************************/
     function initSpecialGame() {
       specialGameCanvas = document.getElementById('specialGameCanvas');
       specialCtx = specialGameCanvas.getContext('2d');
-
       resetSpecialGame();
-      drawWaitingScreen(); // Draw "waiting" screen
-
-      findOrCreateRoom();  // Start matchmaking
+      drawWaitingScreen();
+      findOrCreateRoom();
     }
-
     function resetSpecialGame() {
       stopLogicLoop();
       clearInterval(countdownInterval);
-
       roomId = null;
       playerId = null;
       opponentId = null;
       gameStateRef = null;
-
       localSnake = [];
       localDirection = 'right';
       score = 0;
-
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-
       applePos = { x: 0, y: 0 };
-
       isGameRunning = false;
       isGameOver = false;
       countdownValue = 5;
       timerTotal = 120;
       timerCurrent = 120;
-
-      inviteLink = "";
+      inviteLink = inviteLink; // already set above
       removeSwipeListeners();
     }
 
     /***************************************
-     * 2. MATCHMAKING: FIND OR CREATE ROOM
+     * 2. Matchmaking – Find or Create Room
      ***************************************/
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
       queueRef.once('value', (snapshot) => {
         const queueData = snapshot.val() || {};
-
         let openRoomKey = null;
-        // Look for a room with status "waiting"
         for (const key in queueData) {
           if (queueData[key].status === 'waiting') {
             openRoomKey = key;
             break;
           }
         }
-
         if (openRoomKey) {
-          // Join as player2
           roomId = openRoomKey;
           playerId = 'player2';
           opponentId = 'player1';
-          // Update room status to "ready"
           firebase.database().ref('snakeQueue/' + roomId)
             .update({ status: 'ready' })
             .catch((err) => console.error('Error updating room status:', err));
           setupGameReferences();
         } else {
-          // Create new room as player1
           roomId = queueRef.push().key;
           playerId = 'player1';
           opponentId = 'player2';
@@ -386,19 +382,15 @@
           }).catch((err) => console.error('Error creating room:', err));
           setupGameReferences();
         }
-
-        // Form the invite link (substitute your real domain if needed)
-        inviteLink = "https://yourgame.example.com/specialgame.html?room=" + roomId;
-        // Go to waiting screen
+        // Append room ID to invite link
+        inviteLink += roomId;
         waitForOpponent();
       }, (err) => {
         console.error('Error reading queue:', err);
       });
     }
-
     function waitForOpponent() {
-      drawSearchScreen(); // Draw "Searching for opponent..." and invite link
-
+      drawSearchScreen();
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       statusRef.on('value', (snapshot) => {
         const currentStatus = snapshot.val();
@@ -413,16 +405,13 @@
     }
 
     /***************************************
-     * 3. SETUP GAME STATE REFERENCES
+     * 3. Setup Game State References
      ***************************************/
     function setupGameReferences() {
       gameStateRef = firebase.database().ref('snakeGames/' + roomId);
-
-      // Initialize local player data if not set
       const playerRef = gameStateRef.child('players').child(playerId);
       playerRef.once('value', (snapshot) => {
         if (!snapshot.exists()) {
-          // Set different starting positions for each player
           let startX, startY;
           if (playerId === 'player1') {
             startX = 3;
@@ -431,7 +420,6 @@
             startX = tileCountX - 4;
             startY = Math.floor(tileCountY / 2);
           }
-          // Snake starts with 3 cells horizontally
           const initialSnake = [
             { x: startX, y: startY },
             { x: startX - 1, y: startY },
@@ -445,17 +433,13 @@
           }).catch((err) => console.error('Error initializing player data:', err));
         }
       });
-
-      // Listen for opponent updates
       const oppRef = gameStateRef.child('players').child(opponentId);
       oppRef.on('value', (snap) => {
         const oppData = snap.val() || {};
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
-        opponentName = oppData.username || 'Opponent';
+        opponentName  = oppData.username || 'Opponent';
       });
-
-      // Listen for apple updates
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -463,8 +447,6 @@
           applePos.y = aData.y;
         }
       });
-
-      // Listen for game over signal
       gameStateRef.child('gameOver').on('value', (snapshot) => {
         if (snapshot.val() === true && !isGameOver) {
           isGameOver = true;
@@ -474,7 +456,7 @@
     }
 
     /***************************************
-     * 4. COUNTDOWN AND GAME LAUNCH
+     * 4. Countdown and Launch Game
      ***************************************/
     function startCountdown() {
       countdownValue = 5;
@@ -487,12 +469,9 @@
         }
       }, 1000);
     }
-
     function launchGame() {
       isGameRunning = true;
       isGameOver = false;
-      
-      // Load local player state from Firebase
       gameStateRef.child('players').child(playerId).once('value', (snapshot) => {
         const data = snapshot.val();
         if (data && data.snake) {
@@ -500,14 +479,12 @@
         }
         localDirection = data && data.direction ? data.direction : 'right';
         score = data && data.score ? data.score : 0;
-        // Check apple – if not exists, spawn one
         gameStateRef.child('apple').once('value', (appleSnap) => {
           if (!appleSnap.exists()) {
             spawnApple();
           }
         });
         addSwipeListeners();
-        // Start the logic loop and timer
         startLogicLoop();
         startTimer();
         requestAnimationFrame(renderLoop);
@@ -515,7 +492,7 @@
     }
 
     /***************************************
-     * 5. GAME LOGIC & RENDERING
+     * 5. Game Logic & Rendering
      ***************************************/
     function startLogicLoop() {
       logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -533,7 +510,6 @@
         setGameOver();
         return;
       }
-      // Check if apple is eaten by local snake
       const head = localSnake[0];
       if (head.x === applePos.x && head.y === applePos.y) {
         score++;
@@ -551,7 +527,7 @@
     }
 
     /***************************************
-     * 6. MOVEMENT & COLLISION LOGIC
+     * 6. Movement & Collision
      ***************************************/
     function moveLocalSnake() {
       const head = { ...localSnake[0] };
@@ -582,13 +558,11 @@
     }
 
     /***************************************
-     * 7. UPDATE PLAYER STATE IN FIREBASE
+     * 7. Update Player State in Firebase
      ***************************************/
     function updatePlayerState(grew) {
       if (grew) {
-        // Do not remove tail – snake grows
-      } else {
-        // Regular move: tail already removed in moveLocalSnake()
+        // Do not remove tail so the snake grows
       }
       firebase.database().ref('snakeGames/' + roomId + '/players/' + playerId)
         .update({
@@ -609,7 +583,7 @@
     }
 
     /***************************************
-     * 8. GAME OVER & ENDGAME HANDLING
+     * 8. Game Over & Endgame Handling
      ***************************************/
     function setGameOver() {
       firebase.database().ref('snakeGames/' + roomId + '/gameOver')
@@ -641,17 +615,20 @@
         }
       }, 1000);
     }
+    function updateTimerBar() {
+      const p = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
+      document.getElementById('timerFill').style.width = p + 'px';
+    }
 
     /***************************************
-     * 9. RENDERING THE GAME STATE
+     * 9. Rendering the Game State
      ***************************************/
     function renderGame() {
-      // Clear the entire canvas
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Draw dark background
+      // Dark background
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Draw the matrix grid (green lines)
+      // Draw game matrix grid
       drawMatrixGrid();
       // Draw apple (red)
       specialCtx.fillStyle = '#FF0000';
@@ -660,7 +637,7 @@
         GAME_AREA_Y + applePos.y * gridSize,
         gridSize, gridSize
       );
-      // Draw local snake using player's color
+      // Draw local snake
       specialCtx.fillStyle = snakeColors[playerId] || '#800080';
       localSnake.forEach(seg => {
         specialCtx.fillRect(
@@ -669,7 +646,7 @@
           gridSize, gridSize
         );
       });
-      // Draw opponent snake using opponent's color
+      // Draw opponent snake
       specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
       opponentSnake.forEach(seg => {
         specialCtx.fillRect(
@@ -703,23 +680,20 @@
           GAME_AREA_Y + myHead.y * gridSize - 5
         );
       }
-      // Draw score (top-right of game area)
+      // Draw score in top-right of game area
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'left';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
-      // Draw timer bar at top of game area
+      // Draw timer bar (above game area)
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#00FF00';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 10, barWidth, 4);
     }
-
     function drawMatrixGrid() {
-      // Draw a semi-transparent dark rectangle as game area background
       specialCtx.fillStyle = 'rgba(0,0,0,0.5)';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
-      // Draw vertical grid lines
       specialCtx.strokeStyle = 'rgba(0,255,0,0.3)';
       for (let i = 0; i <= tileCountX; i++) {
         let x = GAME_AREA_X + i * gridSize;
@@ -728,7 +702,6 @@
         specialCtx.lineTo(x, GAME_AREA_Y + GAME_AREA_HEIGHT);
         specialCtx.stroke();
       }
-      // Draw horizontal grid lines
       for (let j = 0; j <= tileCountY; j++) {
         let y = GAME_AREA_Y + j * gridSize;
         specialCtx.beginPath();
@@ -736,14 +709,13 @@
         specialCtx.lineTo(GAME_AREA_X + GAME_AREA_WIDTH, y);
         specialCtx.stroke();
       }
-      // Draw a border around the game area
       specialCtx.strokeStyle = 'rgb(0,255,0)';
       specialCtx.lineWidth = 2;
       specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
     }
 
     /***************************************
-     * 10. WAITING/SEARCH SCREENS & COUNTDOWN
+     * 10. Waiting / Search Screens & Countdown
      ***************************************/
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -753,20 +725,17 @@
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
-      // Draw invite link below
       specialCtx.font = '10px "Press Start 2P", sans-serif';
-      specialCtx.fillText('Invite friend:', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
+      specialCtx.fillText('Invite a friend:', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
       specialCtx.fillText(inviteLink, specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 60);
       specialCtx.font = '8px "Press Start 2P", sans-serif';
       specialCtx.fillText('Click "Copy Invite Link" to copy', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 80);
     }
-
     function drawWaitingScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
-
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
@@ -776,7 +745,6 @@
       specialCtx.textAlign = 'center';
       specialCtx.fillText('Opponent Found!', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
     }
-
     function drawCountdownScreen(value) {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
@@ -788,11 +756,10 @@
     }
 
     /***************************************
-     * 11. INPUT: SWIPE & KEYBOARD CONTROLS
+     * 11. Input – Swipe and Keyboard Controls
      ***************************************/
     function addSwipeListeners() {
-      let touchStartX = 0;
-      let touchStartY = 0;
+      let touchStartX = 0, touchStartY = 0;
       function onTouchStart(e) {
         e.preventDefault();
         const touch = e.touches[0];
@@ -814,8 +781,7 @@
           if (diffY > 0 && localDirection !== 'up') localDirection = 'down';
           else if (diffY < 0 && localDirection !== 'down') localDirection = 'up';
         }
-        touchStartX = 0;
-        touchStartY = 0;
+        touchStartX = 0; touchStartY = 0;
       }
       specialGameCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
       specialGameCanvas.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -855,7 +821,7 @@
     }
 
     /***************************************
-     * 12. COPY INVITE LINK FUNCTION
+     * 12. Copy Invite Link Function
      ***************************************/
     function copyInviteLink() {
       if (!inviteLink) return;
@@ -867,7 +833,7 @@
     }
 
     /***************************************
-     * 13. ENDGAME MODAL & RETURN FUNCTIONS
+     * 13. Endgame Modal & Return Functions
      ***************************************/
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = title;
@@ -884,14 +850,10 @@
     }
 
     /***************************************
-     * 14. INITIALIZE GAME
+     * 14. Initialize Game on Page Load
      ***************************************/
-    // Call this function on page load.
-    // In your main page, include:
-    // <script src="specialgame1.js"></script>
-    // and then call initSpecialGame();
+    // Call initSpecialGame() once the page loads.
     initSpecialGame();
   </script>
 </body>
 </html>
-
