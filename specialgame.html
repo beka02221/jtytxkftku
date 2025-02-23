@@ -115,15 +115,16 @@
     /* ============================================================
        Special Snake PvP – Optimized Version
        Изменения:
-         - После нахождения реального соперника показываются его реальные данные:
-             * Имя (username)
-             * Фото профиля
-         - Затем начинается обратный отсчёт до игры.
-         - Во время игры над змеями отображаются реальные юзернеймы.
+         - После нахождения реального соперника показываются его реальные данные (username и фото профиля),
+           после чего начинается отсчёт до игры.
+         - Во время игры над змеями выводятся реальные юзернеймы.
        ============================================================ */
     
     let specialGameCanvas;
     let specialCtx;
+    
+    // Глобальные переменные для изображения профиля соперника
+    let opponentPhotoImg = new Image();
     
     // Game area (centered on canvas)
     const GAME_AREA_X = 50;
@@ -147,11 +148,10 @@
     let localDirection = 'right';
     let score = 0;
     
-    // Opponent snake state and data
+    // Opponent snake state
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
-    let opponentPhotoUrl = '';  // Новый параметр для фото профиля соперника
     
     // Apple position
     let applePos = { x: 0, y: 0 };
@@ -194,9 +194,7 @@
     
       findOrCreateRoom();
     
-      // Set up disconnect handler so that if you disconnect, your entry is removed.
-      // (This helps prevent self-matching on re-entry.)
-      // Note: This will be set after roomId and playerId are assigned.
+      // Устанавливаем обработчик отключения, чтобы при выходе из игры удалялась очередь.
     }
     
     function resetSpecialGame1() {
@@ -216,7 +214,6 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-      opponentPhotoUrl = '';
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
@@ -229,11 +226,11 @@
     
     /* ======================================
        2. ROOM SEARCH / CREATION
-       (Prevents self-matching on refresh)
+       (Предотвращение самосовпадения при перезагрузке)
     ====================================== */
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
-      // Remove any previous entry for current user
+      // Удаляем предыдущую запись, если есть
       queueRef.child(currentUser.username).remove().then(() => {
         queueRef.once('value').then((snapshot) => {
           const queueData = snapshot.val() || {};
@@ -245,7 +242,7 @@
             }
           }
           if (openRoomKey) {
-            // Join as player2
+            // Присоединяемся как player2
             roomId = openRoomKey;
             playerId = 'player2';
             opponentId = 'player1';
@@ -254,7 +251,7 @@
               .catch((err) => console.error('Error updating room status:', err));
             setupGameReferences();
           } else {
-            // Create new room as player1
+            // Создаём новую комнату как player1
             roomId = queueRef.push().key;
             playerId = 'player1';
             opponentId = 'player2';
@@ -264,9 +261,9 @@
             }).catch((err) => console.error('Error creating room:', err));
             setupGameReferences();
           }
-          // Form invite link (replace with your real address)
+          // Формирование ссылки для приглашения (замените на ваш реальный адрес)
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-          // Show copy button
+          // Показываем кнопку копирования
           document.getElementById('copyButton').style.display = 'block';
           waitForOpponent();
         }).catch((err) => console.error('Error reading queue:', err));
@@ -280,6 +277,7 @@
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
+          // Показываем данные соперника: username и фото профиля
           drawOpponentFoundScreen();
           document.getElementById('copyButton').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
@@ -287,11 +285,11 @@
           }, 2000);
         }
       });
-      // Listen for opponent disconnect:
+      // Отслеживание отключения соперника:
       const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent left – end the game immediately
+          // Соперник отключился – заканчиваем игру
           setGameOver();
         }
       });
@@ -318,7 +316,6 @@
             { x: startX-1, y: startY },
             { x: startX-2, y: startY }
           ];
-          // Сохраняем также photo_url для отображения профиля
           playerRef.set({
             snake: initialSnake,
             direction: 'right',
@@ -331,7 +328,7 @@
       const oppRef = gameStateRef.child('players').child(opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
-          // Opponent disconnected – end game
+          // Соперник отключился – заканчиваем игру
           setGameOver();
           return;
         }
@@ -339,7 +336,11 @@
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
-        opponentPhotoUrl = oppData.photo_url || '';
+        if (oppData.photo_url) {
+          opponentPhotoImg.src = oppData.photo_url;
+        } else {
+          opponentPhotoImg.src = '';
+        }
       });
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
@@ -357,7 +358,7 @@
     }
     
     /* ======================================
-       4. COUNTDOWN (5...1) and start game
+       4. COUNTDOWN (5...1) и запуск игры
     ====================================== */
     function startCountdown() {
       countdownValue = 5;
@@ -394,7 +395,7 @@
     }
     
     /* ======================================
-       5. GAME LOGIC and RENDER
+       5. GAME LOGIC и RENDER
     ====================================== */
     function startLogicLoop() {
       logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -412,13 +413,13 @@
       
       moveLocalSnake();
       
-      // Only self-collision ends the game.
+      // Самостолкновение завершает игру
       if (checkSelfCollision()) {
         setGameOver();
         return;
       }
       
-      // Check apple collision
+      // Проверка столкновения с яблоком
       const head = localSnake[0];
       if (head.x === applePos.x && head.y === applePos.y) {
         score++;
@@ -437,7 +438,7 @@
     }
     
     /* ======================================
-       6. MOVEMENT AND COLLISIONS
+       6. ДВИЖЕНИЕ И СТОЛКНОВЕНИЯ
     ====================================== */
     function moveLocalSnake() {
       const head = { ...localSnake[0] };
@@ -447,7 +448,7 @@
         case 'up':    head.y--; break;
         case 'down':  head.y++; break;
       }
-      // Wrap around the grid
+      // Обработка выхода за границы (переход с одной стороны на другую)
       if (head.x < 0) head.x = tileCountX - 1;
       if (head.x >= tileCountX) head.x = 0;
       if (head.y < 0) head.y = tileCountY - 1;
@@ -467,7 +468,7 @@
     }
     
     /* ======================================
-       7. UPDATE STATE IN FIREBASE
+       7. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
     ====================================== */
     function updatePlayerState(ateApple) {
       if (ateApple) {
@@ -491,7 +492,7 @@
     }
     
     /* ======================================
-       8. GAME OVER
+       8. КОНЕЦ ИГРЫ
     ====================================== */
     function setGameOver() {
       isGameOver = true;
@@ -516,7 +517,7 @@
     }
     
     /* ======================================
-       9. TIMER (1 minute)
+       9. ТАЙМЕР (1 минута)
     ====================================== */
     function startTimer() {
       timerCurrent = timerTotal;
@@ -534,7 +535,7 @@
     }
     
     /* ======================================
-       10. RENDER GAME
+       10. РЕНДЕР ИГРЫ
     ====================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -543,7 +544,7 @@
       
       drawMatrixGrid();
       
-      // Draw apple (red)
+      // Рисуем яблоко (красное)
       specialCtx.fillStyle = '#FF0000';
       specialCtx.fillRect(
         GAME_AREA_X + applePos.x * gridSize,
@@ -552,7 +553,7 @@
         gridSize
       );
       
-      // Draw our snake
+      // Рисуем нашу змею
       specialCtx.fillStyle = snakeColors[playerId] || '#800080';
       localSnake.forEach(seg => {
         specialCtx.fillRect(
@@ -563,7 +564,7 @@
         );
       });
       
-      // Draw opponent snake
+      // Рисуем змею соперника
       specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
       opponentSnake.forEach(seg => {
         specialCtx.fillRect(
@@ -574,7 +575,7 @@
         );
       });
       
-      // Draw opponent name above head
+      // Рисуем имя соперника над его головой
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
         specialCtx.fillStyle = '#00FF00';
@@ -586,7 +587,7 @@
         );
       }
       
-      // Draw our name above head
+      // Рисуем ваше имя над головой
       if (localSnake.length > 0) {
         const myHead = localSnake[0];
         specialCtx.fillStyle = '#00FF00';
@@ -599,13 +600,13 @@
         );
       }
       
-      // Draw scores (top right of game area)
+      // Рисуем счёт (в правом верхнем углу игрового поля)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
       
-      // Draw timer bar at top of game area
+      // Рисуем таймер в виде полосы сверху игрового поля
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#00FF00';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -636,13 +637,13 @@
     }
     
     /* ======================================
-       11. SCREENS: "SEARCHING / WAITING..."
+       11. ЭКРАНЫ: "SEARCHING / WAITING..."
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Blinking search text
+      // Мигающий текст поиска
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
@@ -668,7 +669,7 @@
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2 + 80
       );
-      // Show copy button
+      // Показываем кнопку копирования
       document.getElementById('copyButton').style.display = 'block';
     }
     
@@ -678,37 +679,37 @@
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
-    // Отображает экран с данными найденного соперника (его имя и фото профиля)
+    // Функция для показа экрана с данными найденного соперника (username и фото профиля)
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText(
-        'Opponent found',
-        specialGameCanvas.width / 2,
-        100
-      );
-      specialCtx.fillText(
-        opponentName,
-        specialGameCanvas.width / 2,
-        150
-      );
-      // Если у соперника есть фото, выводим его
-      if(opponentPhotoUrl) {
-        let img = new Image();
-        img.onload = function() {
-          // Рисуем фото по центру (размер 100x100)
-          specialCtx.drawImage(img, specialGameCanvas.width/2 - 50, 180, 100, 100);
-        };
-        img.src = opponentPhotoUrl;
+      specialCtx.fillText('Opponent found!', specialGameCanvas.width / 2, 50);
+      
+      // Выводим username соперника
+      specialCtx.fillText(opponentName, specialGameCanvas.width / 2, 100);
+      
+      // Если доступно фото соперника, выводим его в виде круглого аватара
+      if (opponentPhotoImg.src) {
+        let imgSize = 80;
+        let imgX = (specialGameCanvas.width - imgSize) / 2;
+        let imgY = 120;
+        specialCtx.save();
+        specialCtx.beginPath();
+        specialCtx.arc(specialGameCanvas.width/2, imgY + imgSize/2, imgSize/2, 0, Math.PI * 2, true);
+        specialCtx.closePath();
+        specialCtx.clip();
+        specialCtx.drawImage(opponentPhotoImg, imgX, imgY, imgSize, imgSize);
+        specialCtx.restore();
       }
     }
     
     /* ======================================
-       12. COUNTDOWN (5...1)
+       12. ОТСЧЁТ (5...1)
     ====================================== */
     function drawCountdownScreen(value) {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -725,7 +726,7 @@
     }
     
     /* ======================================
-       13. INPUT HANDLING (SWIPE + KEYS)
+       13. ОБРАБОТКА ВВОДА (SWIPE + КЛАВИШИ)
     ====================================== */
     function addSwipeListeners() {
       let touchStartX = null;
@@ -799,7 +800,7 @@
     }
     
     /* ======================================
-       14. COPY INVITE LINK
+       14. КНОПКА КОПИРОВАНИЯ INVITE LINK
     ====================================== */
     function copyInviteLink() {
       if (!inviteLink) return;
@@ -809,7 +810,7 @@
     }
     
     /* ======================================
-       15. END GAME MODAL
+       15. МОДАЛКА КОНЦА ИГРЫ
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -821,13 +822,13 @@
     }
     
     /* ============================================================
-       End of game code.
-       Call initSpecialGame1() below.
+       Конец кода игры.
+       Вызываем initSpecialGame1() ниже.
     ============================================================ */
   </script>
   
   <script>
-    // Functions to finish game and return to main page
+    // Функции для завершения игры и возврата на главную страницу
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       window.location.href = 'index.html';
@@ -837,9 +838,9 @@
       window.location.href = 'index.html';
     }
     
-    // Initialize game after page load and Firebase setup
+    // Инициализация игры после загрузки страницы и настройки Firebase
     window.addEventListener('load', () => {
-      // Firebase configuration – replace with your actual config values
+      // Конфигурация Firebase – замените на свои реальные значения
       const firebaseConfig = {
         apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
         authDomain: "test-with-likes.firebaseapp.com",
@@ -854,9 +855,9 @@
         firebase.initializeApp(firebaseConfig);
       }
       
-      // Ensure window.currentUser is set.
+      // Устанавливаем window.currentUser, если он ещё не задан.
       if (!window.currentUser) {
-        // For testing outside Telegram:
+        // Для тестирования вне Telegram:
         window.currentUser = {
           username: "TestUser",
           photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
@@ -868,4 +869,3 @@
   </script>
 </body>
 </html>
-
