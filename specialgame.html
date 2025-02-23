@@ -21,7 +21,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* Общие стили страницы */
+    /* Common page styles */
     body {
       margin: 0;
       padding: 0;
@@ -30,13 +30,13 @@
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
     }
-    /* Canvas занимает всю страницу */
+    /* Canvas takes full page */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
       background: #000;
     }
-    /* Кнопка для копирования inviteLink */
+    /* Invite link copy button */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -56,7 +56,7 @@
     #copyButton:hover {
       background-color: #333;
     }
-    /* Модальное окно итогов */
+    /* End game modal */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -75,7 +75,7 @@
       text-align: center;
       border-radius: 8px;
     }
-    /* Анимация мигания для поиска */
+    /* Blinking text animation (used in canvas animation function) */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -87,13 +87,13 @@
   </style>
 </head>
 <body>
-  <!-- Canvas для игры -->
+  <!-- Canvas for game -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Кнопка для копирования ссылки -->
+  <!-- Copy invite link button -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
-  <!-- Модальное окно итогов -->
+  <!-- End game modal -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
@@ -102,7 +102,7 @@
     </div>
   </div>
   
-  <!-- Модальное окно "Not enough tickets" -->
+  <!-- Modal for "Not enough tickets" -->
   <div id="noTicketsModal" class="modal-backdrop">
     <div class="modal">
       <h2>Not enough tickets</h2>
@@ -113,18 +113,16 @@
   
   <script>
     /* ============================================================
-       Special Snake PvP – Optimized Version with Telegram API integration
-
-       Improvements:
-         1. Integrate Telegram API: Uses Telegram.WebApp API to retrieve user data.
-         2. Fetch User Data: Sends the current user's username and avatar (photo_url)
-            to Firebase when initializing player data.
-         3. Display Profile: After a match is found, the opponent’s Telegram avatar
-            (if available) is displayed above their snake on the game canvas.
+       Special Snake PvP – Improved Version
+       Changes:
+         - During opponent search, a blinking “Searching for opponent…” text
+           is drawn on the canvas.
+         - When an opponent is found, their Telegram profile (photo and username)
+           is shown at the top of the canvas with a countdown timer below.
+         - In-game, each snake displays its player’s username above its head.
        ============================================================ */
     
-    let specialGameCanvas;
-    let specialCtx;
+    let specialGameCanvas, specialCtx;
     
     // Game area (centered on canvas)
     const GAME_AREA_X = 50;
@@ -148,12 +146,12 @@
     let localDirection = 'right';
     let score = 0;
     
-    // Opponent snake state and profile
+    // Opponent snake state
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
-    let opponentAvatar = '';  // URL for opponent's Telegram photo
-    let opponentImg = null;   // Image object for drawing avatar
+    let opponentPhotoUrl = '';
+    let opponentImage = new Image();  // for drawing opponent’s profile picture
     
     // Apple position
     let applePos = { x: 0, y: 0 };
@@ -171,6 +169,9 @@
     // Intervals
     let logicTimer = null;
     let countdownInterval = null;
+    
+    // Animation frame for search screen blinking
+    let searchAnimationRequest = null;
     
     // Snake colors: player1 - purple, player2 - yellow
     const snakeColors = {
@@ -196,8 +197,7 @@
     
       findOrCreateRoom();
     
-      // Set up disconnect handler so that if you disconnect, your entry is removed.
-      // (This helps prevent self-matching on re-entry.)
+      // Set up disconnect handler after roomId and playerId are assigned.
     }
     
     function resetSpecialGame1() {
@@ -217,8 +217,7 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-      opponentAvatar = '';
-      opponentImg = null;
+      opponentPhotoUrl = '';
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
@@ -236,6 +235,7 @@
     function findOrCreateRoom() {
       const queueRef = firebase.database().ref('snakeQueue');
       // Remove any previous entry for current user
+      // (Here we assume window.currentUser.username is unique)
       queueRef.child(currentUser.username).remove().then(() => {
         queueRef.once('value').then((snapshot) => {
           const queueData = snapshot.val() || {};
@@ -276,14 +276,15 @@
     }
     
     function waitForOpponent() {
-      drawSearchScreen();
+      drawSearchScreen();  // start blinking search text
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       statusRef.on('value', (snapshot) => {
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
-          drawOpponentFoundScreen();
-          document.getElementById('copyButton').style.display = 'none';
+          // Stop the search animation before showing profile
+          cancelAnimationFrame(searchAnimationRequest);
+          // After a short delay, start the countdown with opponent profile shown
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
           }, 2000);
@@ -320,7 +321,7 @@
             { x: startX-1, y: startY },
             { x: startX-2, y: startY }
           ];
-          // Include Telegram user data (username and avatar)
+          // Save username and photo_url (for Telegram profile)
           playerRef.set({
             snake: initialSnake,
             direction: 'right',
@@ -341,13 +342,9 @@
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
-        opponentAvatar = oppData.photo_url || '';
-        // Reset image if the avatar URL has changed
-        if (opponentAvatar) {
-          if (!opponentImg || opponentImg.src !== opponentAvatar) {
-            opponentImg = new Image();
-            opponentImg.src = opponentAvatar;
-          }
+        opponentPhotoUrl = oppData.photo_url || '';
+        if (opponentPhotoUrl) {
+          opponentImage.src = opponentPhotoUrl;
         }
       });
       gameStateRef.child('apple').on('value', (snapshot) => {
@@ -366,40 +363,53 @@
     }
     
     /* ======================================
-       4. COUNTDOWN (5...1) and start game
+       4. COUNTDOWN with Opponent Profile Display
     ====================================== */
+    // This function draws both the opponent’s Telegram profile (photo and username)
+    // and a large countdown number below.
+    function drawProfileWithCountdown(value) {
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      // Background
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
+      const imgSize = 80;
+      const profileY = 100;
+      
+      // Draw opponent profile picture if available
+      if (opponentImage.src) {
+        // If the image is already loaded, draw it immediately.
+        if (opponentImage.complete) {
+          specialCtx.drawImage(opponentImage, specialGameCanvas.width/2 - imgSize/2, profileY, imgSize, imgSize);
+        } else {
+          // In case it’s not yet loaded, set onload.
+          opponentImage.onload = () => {
+            specialCtx.drawImage(opponentImage, specialGameCanvas.width/2 - imgSize/2, profileY, imgSize, imgSize);
+          }
+        }
+      }
+      
+      // Draw opponent username below the picture
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(opponentName, specialGameCanvas.width/2, profileY + imgSize + 20);
+      
+      // Draw countdown timer at bottom
+      specialCtx.font = '48px "Press Start 2P", sans-serif';
+      specialCtx.fillText(value.toString(), specialGameCanvas.width/2, specialGameCanvas.height - 150);
+    }
+    
     function startCountdown() {
       countdownValue = 5;
       countdownInterval = setInterval(() => {
-        drawCountdownScreen(countdownValue);
+        drawProfileWithCountdown(countdownValue);
         countdownValue--;
         if (countdownValue < 1) {
           clearInterval(countdownInterval);
           launchGame();
         }
       }, 1000);
-    }
-    
-    function launchGame() {
-      isGameRunning = true;
-      isGameOver = false;
-      gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
-        const data = snapshot.val();
-        if (data && data.snake) {
-          localSnake = data.snake;
-        }
-        localDirection = (data && data.direction) ? data.direction : 'right';
-        score = (data && data.score) ? data.score : 0;
-        gameStateRef.child('apple').once('value').then((appleSnap) => {
-          if (!appleSnap.exists()) {
-            spawnApple();
-          }
-        });
-        addSwipeListeners();
-        startLogicLoop();
-        startTimer();
-        requestAnimationFrame(renderLoop);
-      });
     }
     
     /* ======================================
@@ -583,38 +593,15 @@
         );
       });
       
-      // Draw opponent avatar and name above head (if available)
+      // Draw opponent name above head
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
-        const baseX = GAME_AREA_X + oppHead.x * gridSize;
-        const baseY = GAME_AREA_Y + oppHead.y * gridSize;
-        // If an avatar URL exists, draw the avatar as a clipped circle
-        if (opponentAvatar) {
-          if (!opponentImg) {
-            opponentImg = new Image();
-            opponentImg.src = opponentAvatar;
-          }
-          const avatarSize = 24;
-          const centerX = baseX;
-          const centerY = baseY - avatarSize;
-          if (opponentImg.complete) {
-            specialCtx.save();
-            specialCtx.beginPath();
-            specialCtx.arc(centerX, centerY, avatarSize/2, 0, Math.PI * 2);
-            specialCtx.closePath();
-            specialCtx.clip();
-            specialCtx.drawImage(opponentImg, centerX - avatarSize/2, centerY - avatarSize/2, avatarSize, avatarSize);
-            specialCtx.restore();
-          }
-        }
-        // Draw opponent name just above the snake head (adjust as needed)
         specialCtx.fillStyle = '#00FF00';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
-        specialCtx.textAlign = 'center';
         specialCtx.fillText(
           opponentName,
-          baseX,
-          baseY - 30
+          GAME_AREA_X + oppHead.x * gridSize,
+          GAME_AREA_Y + oppHead.y * gridSize - 5
         );
       }
       
@@ -624,7 +611,6 @@
         specialCtx.fillStyle = '#00FF00';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         const myName = window.currentUser ? window.currentUser.username : 'You';
-        specialCtx.textAlign = 'center';
         specialCtx.fillText(
           myName,
           GAME_AREA_X + myHead.x * gridSize,
@@ -635,7 +621,6 @@
       // Draw scores (top right of game area)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.textAlign = 'left';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
       
@@ -672,12 +657,15 @@
     /* ======================================
        11. SCREENS: "SEARCHING / WAITING..."
     ====================================== */
-    function drawSearchScreen() {
+    // Instead of a static search screen, we animate a blinking search message.
+    function animateSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Blinking search text
-      specialCtx.fillStyle = '#00FF00';
+      
+      // Calculate a blink opacity based on time (cycles between 0.2 and 1)
+      const blinkOpacity = (Math.sin(Date.now()/300) + 1) / 2 * 0.8 + 0.2;
+      specialCtx.fillStyle = 'rgba(0,255,0,' + blinkOpacity + ')';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(
@@ -702,8 +690,18 @@
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2 + 80
       );
-      // Show copy button
+      // Keep the copy button visible
       document.getElementById('copyButton').style.display = 'block';
+      
+      searchAnimationRequest = requestAnimationFrame(animateSearchScreen);
+    }
+    
+    function drawSearchScreen() {
+      // Start the blinking animation for the search query.
+      if (searchAnimationRequest) {
+        cancelAnimationFrame(searchAnimationRequest);
+      }
+      animateSearchScreen();
     }
     
     function drawWaitingScreen() {
@@ -712,39 +710,8 @@
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
-    function drawOpponentFoundScreen() {
-      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
-      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '16px "Press Start 2P", sans-serif';
-      specialCtx.textAlign = 'center';
-      specialCtx.fillText(
-        'Opponent found',
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
-      );
-    }
-    
     /* ======================================
-       12. COUNTDOWN (5...1)
-    ====================================== */
-    function drawCountdownScreen(value) {
-      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
-      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '48px "Press Start 2P", sans-serif';
-      specialCtx.textAlign = 'center';
-      specialCtx.fillText(
-        value.toString(),
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
-      );
-    }
-    
-    /* ======================================
-       13. INPUT HANDLING (SWIPE + KEYS)
+       12. INPUT HANDLING (SWIPE + KEYS)
     ====================================== */
     function addSwipeListeners() {
       let touchStartX = null;
@@ -818,7 +785,7 @@
     }
     
     /* ======================================
-       14. COPY INVITE LINK
+       13. COPY INVITE LINK
     ====================================== */
     function copyInviteLink() {
       if (!inviteLink) return;
@@ -828,7 +795,7 @@
     }
     
     /* ======================================
-       15. END GAME MODAL
+       14. END GAME MODAL
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -858,23 +825,6 @@
     
     // Initialize game after page load and Firebase setup
     window.addEventListener('load', () => {
-      // Telegram API integration:
-      // If the Telegram WebApp API is available, use it to set currentUser data.
-      if (window.Telegram && window.Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
-        window.currentUser = {
-          username: Telegram.WebApp.initDataUnsafe.user.username,
-          photo_url: Telegram.WebApp.initDataUnsafe.user.photo_url
-        };
-      }
-      
-      // For testing outside Telegram:
-      if (!window.currentUser) {
-        window.currentUser = {
-          username: "TestUser",
-          photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-        };
-      }
-      
       // Firebase configuration – replace with your actual config values
       const firebaseConfig = {
         apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
@@ -888,6 +838,15 @@
       };
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
+      }
+      
+      // Ensure window.currentUser is set.
+      if (!window.currentUser) {
+        // For testing outside Telegram:
+        window.currentUser = {
+          username: "TestUser",
+          photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+        };
       }
       
       initSpecialGame1();
