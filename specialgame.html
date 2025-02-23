@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" 
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
   
   <!-- Font: Press Start 2P -->
@@ -74,7 +75,7 @@
       text-align: center;
       border-radius: 8px;
     }
-    /* Анимация мигания для поиска */
+    /* Анимация мигания для поиска (if used on HTML elements) */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -83,59 +84,11 @@
     .blinking {
       animation: blink 1.2s infinite;
     }
-    /* HTML overlay for search status */
-    #searchStatus {
-      position: absolute;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 24px;
-      font-family: 'Press Start 2P', sans-serif;
-      color: #0f0;
-      z-index: 1100;
-      display: none;
-    }
-    /* HTML overlay for opponent profile and countdown */
-    #opponentProfile {
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-      color: #0f0;
-      z-index: 1100;
-      display: none;
-    }
-    #opponentProfile img {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      border: 2px solid #0f0;
-      margin-bottom: 10px;
-    }
-    #opponentUsername {
-      font-size: 16px;
-      font-family: 'Press Start 2P', sans-serif;
-    }
-    #gameCountdown {
-      font-size: 48px;
-      margin-top: 20px;
-    }
   </style>
 </head>
 <body>
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
-  
-  <!-- HTML overlay for blinking search text -->
-  <div id="searchStatus" class="blinking">Searching for opponent...</div>
-  
-  <!-- HTML overlay for opponent profile and countdown -->
-  <div id="opponentProfile">
-    <img id="opponentPhoto" src="" alt="Opponent Photo">
-    <div id="opponentUsername"></div>
-    <div id="gameCountdown"></div>
-  </div>
   
   <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
@@ -160,9 +113,14 @@
   
   <script>
     /* ============================================================
-       Special Snake PvP – Optimized Version with Blinking Search,
-       Telegram opponent profile display, and HTML countdown.
-       Also: Each snake displays the player's username at the top.
+       Special Snake PvP – Improved Version
+       Changes:
+         - During opponent search, a continuously updating (flickering)
+           "Searching for opponent..." text is shown.
+         - When an opponent is found, a profile screen displays the
+           opponent’s avatar (from Telegram photo_url) and username.
+         - Below the profile, a countdown timer for the game start is shown.
+         - In the game interface, each snake displays the player's username at its head.
        ============================================================ */
     
     let specialGameCanvas;
@@ -194,7 +152,10 @@
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
-    let opponentPhotoUrl = '';  // New variable to store opponent's Telegram profile picture URL
+    // Opponent photo URL and preloaded image (default avatar)
+    let opponentPhotoUrl = "https://img.icons8.com/ios-filled/50/00FF00/user.png";
+    const opponentAvatarImage = new Image();
+    opponentAvatarImage.src = opponentPhotoUrl;
     
     // Apple position
     let applePos = { x: 0, y: 0 };
@@ -202,7 +163,9 @@
     // Game flags
     let isGameRunning = false;
     let isGameOver = false;
+    let isSearching = false; // flag for search animation
     let countdownValue = 5;
+    let showOpponentProfileTimeout = null;
     
     // Timer (1 minute)
     let timerTotal = 60;
@@ -211,6 +174,7 @@
     // Intervals
     let logicTimer = null;
     let countdownInterval = null;
+    let searchAnimationFrame; // to cancel the search animation if needed
     
     // Snake colors: player1 - purple, player2 - yellow
     const snakeColors = {
@@ -235,14 +199,15 @@
       drawWaitingScreen();
     
       findOrCreateRoom();
-    
-      // Set up disconnect handler so that if you disconnect, your entry is removed.
-      // (This helps prevent self-matching on re-entry.)
     }
     
     function resetSpecialGame1() {
       stopLogicLoop();
       clearInterval(countdownInterval);
+      if (showOpponentProfileTimeout) {
+        clearTimeout(showOpponentProfileTimeout);
+        showOpponentProfileTimeout = null;
+      }
       roomId = null;
       playerId = null;
       opponentId = null;
@@ -253,7 +218,6 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-      opponentPhotoUrl = '';
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
@@ -261,6 +225,8 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
+      isSearching = false;
+      cancelAnimationFrame(searchAnimationFrame);
       removeSwipeListeners();
     }
     
@@ -305,24 +271,31 @@
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
           // Show copy button
           document.getElementById('copyButton').style.display = 'block';
-          // Start search screen – show the blinking searchStatus overlay
-          drawSearchScreen();
           waitForOpponent();
         }).catch((err) => console.error('Error reading queue:', err));
       });
     }
     
     function waitForOpponent() {
+      // Start the flickering search screen animation
+      isSearching = true;
+      animateSearchScreen();
+      
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       statusRef.on('value', (snapshot) => {
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
-          // Hide the blinking search text
-          document.getElementById('searchStatus').style.display = 'none';
-          // Show opponent profile overlay with Telegram details and start countdown
-          drawOpponentFoundScreen();
+          // Stop the search animation and hide the copy button
+          isSearching = false;
+          cancelAnimationFrame(searchAnimationFrame);
           document.getElementById('copyButton').style.display = 'none';
+          // Show opponent profile screen (with avatar and username)
+          drawOpponentProfileScreen();
+          // Preload opponent avatar (if available) from Firebase data below
+          showOpponentProfileTimeout = setTimeout(() => {
+            startCountdown();
+          }, 2000);
         }
       });
       // Listen for opponent disconnect:
@@ -331,6 +304,14 @@
         if (!snapshot.exists() && isGameRunning) {
           // Opponent left – end the game immediately
           setGameOver();
+        }
+        const oppData = snapshot.val() || {};
+        opponentSnake = oppData.snake || [];
+        opponentScore = oppData.score || 0;
+        opponentName  = oppData.username || 'Opponent';
+        if (oppData.photo_url) {
+          opponentPhotoUrl = oppData.photo_url;
+          opponentAvatarImage.src = opponentPhotoUrl;
         }
       });
     }
@@ -365,19 +346,7 @@
           }).catch((err) => console.error('Error initializing player data:', err));
         }
       });
-      const oppRef = gameStateRef.child('players').child(opponentId);
-      oppRef.on('value', (snapshot) => {
-        if (!snapshot.exists() && isGameRunning) {
-          // Opponent disconnected – end game
-          setGameOver();
-          return;
-        }
-        const oppData = snapshot.val() || {};
-        opponentSnake = oppData.snake || [];
-        opponentScore = oppData.score || 0;
-        opponentName  = oppData.username || 'Opponent';
-        opponentPhotoUrl = oppData.photo_url || '';
-      });
+      // Opponent data is handled in waitForOpponent above.
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -394,54 +363,7 @@
     }
     
     /* ======================================
-       4. HTML COUNTDOWN and opponent profile display
-    ====================================== */
-    function drawSearchScreen() {
-      // Clear canvas background
-      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
-      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Show blinking search status
-      document.getElementById('searchStatus').style.display = 'block';
-      // Ensure opponent profile overlay is hidden
-      document.getElementById('opponentProfile').style.display = 'none';
-    }
-    
-    function drawOpponentFoundScreen() {
-      // Update opponent profile overlay with Telegram data
-      document.getElementById('opponentUsername').textContent = opponentName;
-      if (opponentPhotoUrl) {
-        document.getElementById('opponentPhoto').src = opponentPhotoUrl;
-      } else {
-        // Fallback image if none is provided
-        document.getElementById('opponentPhoto').src = 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
-      }
-      // Show the opponent profile overlay
-      document.getElementById('opponentProfile').style.display = 'block';
-      // Start the HTML countdown
-      startHTMLCountdown();
-    }
-    
-    function startHTMLCountdown() {
-      let count = 5;
-      const countdownEl = document.getElementById('gameCountdown');
-      countdownEl.textContent = count;
-      const interval = setInterval(() => {
-        count--;
-        if (count > 0) {
-          countdownEl.textContent = count;
-        } else {
-          clearInterval(interval);
-          // Hide the opponent profile overlay and launch the game
-          document.getElementById('opponentProfile').style.display = 'none';
-          launchGame();
-        }
-      }, 1000);
-    }
-    
-    /* ======================================
-       5. COUNTDOWN on canvas (unused in favor of HTML countdown)
-       (This function remains in case you wish to switch back to canvas-based countdown.)
+       4. COUNTDOWN (5...1) and start game
     ====================================== */
     function startCountdown() {
       countdownValue = 5;
@@ -455,23 +377,6 @@
       }, 1000);
     }
     
-    function drawCountdownScreen(value) {
-      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
-      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '48px "Press Start 2P", sans-serif';
-      specialCtx.textAlign = 'center';
-      specialCtx.fillText(
-        value.toString(),
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
-      );
-    }
-    
-    /* ======================================
-       6. LAUNCH GAME & INITIALIZE PLAYERS
-    ====================================== */
     function launchGame() {
       isGameRunning = true;
       isGameOver = false;
@@ -495,7 +400,7 @@
     }
     
     /* ======================================
-       7. GAME LOGIC and RENDER
+       5. GAME LOGIC and RENDER
     ====================================== */
     function startLogicLoop() {
       logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -538,7 +443,7 @@
     }
     
     /* ======================================
-       8. MOVEMENT AND COLLISIONS
+       6. MOVEMENT AND COLLISIONS
     ====================================== */
     function moveLocalSnake() {
       const head = { ...localSnake[0] };
@@ -568,7 +473,7 @@
     }
     
     /* ======================================
-       9. UPDATE STATE IN FIREBASE
+       7. UPDATE STATE IN FIREBASE
     ====================================== */
     function updatePlayerState(ateApple) {
       if (ateApple) {
@@ -592,7 +497,7 @@
     }
     
     /* ======================================
-       10. GAME OVER
+       8. GAME OVER
     ====================================== */
     function setGameOver() {
       isGameOver = true;
@@ -617,7 +522,7 @@
     }
     
     /* ======================================
-       11. TIMER (1 minute)
+       9. TIMER (1 minute)
     ====================================== */
     function startTimer() {
       timerCurrent = timerTotal;
@@ -635,7 +540,7 @@
     }
     
     /* ======================================
-       12. RENDER GAME
+       10. RENDER GAME
     ====================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -737,7 +642,105 @@
     }
     
     /* ======================================
-       13. INPUT HANDLING (SWIPE + KEYS)
+       11. SCREENS: SEARCHING, PROFILE, and COUNTDOWN
+    ====================================== */
+    // Animate the search screen with flickering text
+    function animateSearchScreen() {
+      if (!isSearching) return;
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
+      // Flicker effect using sine function (adjust period as needed)
+      let time = Date.now();
+      let alpha = 0.2 + 0.8 * Math.abs(Math.sin(time / 600));
+      specialCtx.fillStyle = 'rgba(0,255,0,' + alpha + ')';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        'Searching for opponent...',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
+      
+      specialCtx.font = '10px "Press Start 2P", sans-serif';
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.fillText(
+        'Invite a friend:',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 40
+      );
+      specialCtx.fillText(
+        inviteLink,
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 60
+      );
+      specialCtx.font = '8px "Press Start 2P", sans-serif';
+      specialCtx.fillText(
+        'Click to copy',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 80
+      );
+      // Continue animation loop
+      searchAnimationFrame = requestAnimationFrame(animateSearchScreen);
+    }
+    
+    // Display a profile screen with the opponent's avatar and username
+    function drawOpponentProfileScreen() {
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
+      const avatarSize = 80;
+      const avatarX = (specialGameCanvas.width - avatarSize) / 2;
+      const avatarY = (specialGameCanvas.height - avatarSize) / 2 - 40;
+      
+      if (opponentAvatarImage.complete) {
+        specialCtx.drawImage(opponentAvatarImage, avatarX, avatarY, avatarSize, avatarSize);
+      } else {
+        opponentAvatarImage.onload = function() {
+          specialCtx.drawImage(opponentAvatarImage, avatarX, avatarY, avatarSize, avatarSize);
+        }
+      }
+      
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(opponentName, specialGameCanvas.width / 2, avatarY + avatarSize + 25);
+    }
+    
+    // Draw the countdown screen that also shows the opponent's profile at the top
+    function drawCountdownScreen(value) {
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
+      // Draw opponent profile at the top
+      const avatarSize = 80;
+      const avatarX = (specialGameCanvas.width - avatarSize) / 2;
+      const avatarY = 50;
+      if (opponentAvatarImage.complete) {
+        specialCtx.drawImage(opponentAvatarImage, avatarX, avatarY, avatarSize, avatarSize);
+      }
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(opponentName, specialGameCanvas.width / 2, avatarY + avatarSize + 25);
+      
+      // Draw countdown number in the center
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '48px "Press Start 2P", sans-serif';
+      specialCtx.fillText(value.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 50);
+    }
+    
+    function drawWaitingScreen() {
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+    }
+    
+    /* ======================================
+       12. INPUT HANDLING (SWIPE + KEYS)
     ====================================== */
     function addSwipeListeners() {
       let touchStartX = null;
@@ -811,7 +814,7 @@
     }
     
     /* ======================================
-       14. COPY INVITE LINK
+       13. COPY INVITE LINK
     ====================================== */
     function copyInviteLink() {
       if (!inviteLink) return;
@@ -821,7 +824,7 @@
     }
     
     /* ======================================
-       15. END GAME MODAL
+       14. END GAME MODAL
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -830,7 +833,6 @@
       titleEl.textContent = title;
       msgEl.textContent = message;
       modal.classList.add('active');
-      modal.style.display = 'flex';
     }
     
     /* ============================================================
@@ -843,12 +845,10 @@
     // Functions to finish game and return to main page
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
-      document.getElementById('endgameBackdrop').style.display = 'none';
       window.location.href = 'index.html';
     }
     function returnToMain() {
       document.getElementById('noTicketsModal').classList.remove('active');
-      document.getElementById('noTicketsModal').style.display = 'none';
       window.location.href = 'index.html';
     }
     
