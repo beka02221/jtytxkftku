@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -21,7 +21,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* Общие стили страницы */
+    /* Page and canvas styles */
     body {
       margin: 0;
       padding: 0;
@@ -30,13 +30,12 @@
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
     }
-    /* Canvas занимает всю страницу */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
       background: #000;
     }
-    /* Кнопка для копирования inviteLink */
+    /* Copy button styling */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -56,7 +55,7 @@
     #copyButton:hover {
       background-color: #333;
     }
-    /* Модальное окно итогов */
+    /* Endgame / Modal styles */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -75,73 +74,54 @@
       text-align: center;
       border-radius: 8px;
     }
-    /* Animation for search flicker (used in canvas) */
-    @keyframes flicker {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
+    /* Blinking animation for search text */
+    @keyframes blink {
+      0% { opacity: 0.2; }
+      50% { opacity: 1; }
+      100% { opacity: 0.2; }
     }
-    /* Opponent profile style (DOM overlay) */
-    #opponentProfile {
+    .blinking {
+      animation: blink 1.2s infinite;
+    }
+    /* UI overlay container above the canvas */
+    #uiContainer {
       position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      opacity: 0;
-      transition: opacity 1s;
+      top: 10px;
+      width: 100%;
       text-align: center;
-      z-index: 1001;
+      color: #00FF00;
+      font-family: 'Press Start 2P', sans-serif;
+      z-index: 1100;
+      pointer-events: none; /* So clicks pass through to canvas if needed */
+    }
+    /* Allow interactions on links/buttons */
+    #uiContainer a, #uiContainer * {
+      pointer-events: auto;
+    }
+    #searchArea, #opponentProfile {
+      margin: 5px auto;
     }
     #opponentProfile img {
-      width: 64px;
-      height: 64px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
+      vertical-align: middle;
     }
     #opponentProfile div {
-      font-weight: bold;
-      color: #00FF00;
-      margin-top: 8px;
-    }
-    /* Countdown timer style */
-    #countdownTimer {
-      position: absolute;
-      top: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      font-size: 32px;
-      color: #00FF00;
-      text-align: center;
-      z-index: 1002;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-    .pulsing {
-      animation: pulse 1s infinite;
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
     }
   </style>
 </head>
 <body>
-  <!-- Canvas для игры -->
+  <!-- Canvas for game -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Opponent profile display -->
-  <div id="opponentProfile">
-    <img id="opponentAvatar" src="" alt="Opponent Avatar">
-    <div id="opponentUsername">Opponent</div>
-  </div>
-  
-  <!-- Countdown timer display -->
-  <div id="countdownTimer"></div>
-  
-  <!-- Кнопка для копирования ссылки -->
+  <!-- Copy Invite Link Button -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
-  <!-- Модальное окно итогов -->
+  <!-- End game modal -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
@@ -150,7 +130,7 @@
     </div>
   </div>
   
-  <!-- Модальное окно "Not enough tickets" -->
+  <!-- "Not enough tickets" modal -->
   <div id="noTicketsModal" class="modal-backdrop">
     <div class="modal">
       <h2>Not enough tickets</h2>
@@ -159,14 +139,32 @@
     </div>
   </div>
   
+  <!-- UI Overlay: Search area and opponent profile info -->
+  <div id="uiContainer">
+    <div id="searchArea">
+      <div id="searchText" class="blinking">Searching for opponent...</div>
+      <div id="inviteLinkContainer">
+        Invite a friend: <a id="inviteLink" href="#" style="color: #00FF00;"></a>
+      </div>
+    </div>
+    <div id="opponentProfile"></div>
+  </div>
+  
   <script>
     /* ============================================================
-       Special Snake PvP – Enhanced Version
-       Enhancements:
-         1. Dynamic search animation with flickering text.
-         2. Opponent profile display with Telegram avatar and username (fade‑in).
-         3. Countdown timer (DOM based with pulsing effect) below the profile.
-         4. Improved in‑game username rendering: bold text with semi-transparent background.
+       Special Snake PvP – Optimized Version with Telegram Bot enhancements
+       
+       New Features:
+       • A blinking/flashing "Searching for opponent..." text (via HTML + CSS)
+       • On matching an opponent, their Telegram profile info is displayed below the search area
+         - Avatar photo (with a fallback placeholder)
+         - Username / display name
+       • Proper error handling if user data cannot be retrieved
+       • Responsive and smooth UI; minimal resource usage for the animation
+       • API calls now include photo_url when setting up player data, and privacy/rate-limiting are considered
+       • State management (via the searchState variable) tracks search status
+       
+       Follow Telegram Bot API best practices for user data handling.
        ============================================================ */
     
     let specialGameCanvas;
@@ -194,19 +192,20 @@
     let localDirection = 'right';
     let score = 0;
     
-    // Opponent snake state and profile
+    // Opponent snake state and profile info
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
-    let opponentPhotoUrl = 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
+    let opponentPhoto = ''; // to hold Telegram avatar URL
     
     // Apple position
     let applePos = { x: 0, y: 0 };
     
-    // Game flags
+    // Game flags and state management
     let isGameRunning = false;
     let isGameOver = false;
     let countdownValue = 5;
+    let searchState = 'searching'; // "searching" or "found"
     let showOpponentNameTimeout = null;
     
     // Timer (1 minute)
@@ -216,9 +215,6 @@
     // Intervals
     let logicTimer = null;
     let countdownInterval = null;
-    
-    // Searching flag for animation
-    let isSearching = false;
     
     // Snake colors: player1 - purple, player2 - yellow
     const snakeColors = {
@@ -262,7 +258,7 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-      opponentPhotoUrl = 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
+      opponentPhoto = '';
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
@@ -270,6 +266,12 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
+      searchState = 'searching';
+      // Clear UI overlays
+      document.getElementById('searchText').textContent = 'Searching for opponent...';
+      document.getElementById('searchText').classList.add('blinking');
+      document.getElementById('opponentProfile').innerHTML = "";
+      document.getElementById('copyButton').style.display = 'none';
       removeSwipeListeners();
     }
     
@@ -312,25 +314,36 @@
           }
           // Form invite link (replace with your real address)
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-          // Show copy button
+          // Show copy button and update UI
           document.getElementById('copyButton').style.display = 'block';
+          updateSearchUI();
           waitForOpponent();
         }).catch((err) => console.error('Error reading queue:', err));
       });
     }
     
+    function updateSearchUI() {
+      const inviteLinkElement = document.getElementById('inviteLink');
+      inviteLinkElement.textContent = inviteLink;
+      inviteLinkElement.href = inviteLink;
+    }
+    
     function waitForOpponent() {
-      // Start search animation loop on canvas
-      isSearching = true;
-      animateSearchScreen();
-      
+      drawSearchScreen();
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       statusRef.on('value', (snapshot) => {
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
-          isSearching = false; // stop the search animation
+          // Opponent matched: update UI state
+          searchState = 'found';
           statusRef.off();
-          showOpponentProfile();
+          // Stop blinking animation and update search text
+          const searchTextEl = document.getElementById('searchText');
+          searchTextEl.textContent = 'Opponent Found';
+          searchTextEl.classList.remove('blinking');
+          // Display opponent profile info (if available) below the search area
+          displayOpponentProfile();
+          // Hide copy button (invite no longer needed)
           document.getElementById('copyButton').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
@@ -343,6 +356,15 @@
         if (!snapshot.exists() && isGameRunning) {
           // Opponent left – end the game immediately
           setGameOver();
+        }
+        // Update opponent snake and profile data
+        const oppData = snapshot.val() || {};
+        opponentSnake = oppData.snake || [];
+        opponentScore = oppData.score || 0;
+        opponentName  = oppData.username || 'Opponent';
+        opponentPhoto = oppData.photo_url || '';
+        if (searchState === 'found') {
+          displayOpponentProfile();
         }
       });
     }
@@ -368,6 +390,7 @@
             { x: startX-1, y: startY },
             { x: startX-2, y: startY }
           ];
+          // Store both username and photo_url (from Telegram WebApp or testing defaults)
           playerRef.set({
             snake: initialSnake,
             direction: 'right',
@@ -388,7 +411,7 @@
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
-        opponentPhotoUrl = oppData.photo_url || 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
+        opponentPhoto = oppData.photo_url || '';
       });
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
@@ -406,26 +429,16 @@
     }
     
     /* ======================================
-       4. COUNTDOWN (DOM based)
+       4. COUNTDOWN (5...1) and start game
     ====================================== */
     function startCountdown() {
       countdownValue = 5;
-      const countdownElem = document.getElementById('countdownTimer');
-      countdownElem.style.display = 'block';
-      countdownElem.textContent = countdownValue;
-      countdownElem.classList.add('pulsing');
-      
       countdownInterval = setInterval(() => {
+        drawCountdownScreen(countdownValue);
         countdownValue--;
-        if (countdownValue > 0) {
-          countdownElem.textContent = countdownValue;
-        } else {
-          countdownElem.textContent = 'Game Starting...';
+        if (countdownValue < 1) {
           clearInterval(countdownInterval);
-          setTimeout(() => {
-            countdownElem.style.display = 'none';
-            launchGame();
-          }, 1000);
+          launchGame();
         }
       }, 1000);
     }
@@ -633,34 +646,29 @@
         );
       });
       
-      // Draw opponent username above snake with a semi-transparent background
+      // Draw opponent name above head
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
-        const nameText = opponentName;
-        specialCtx.font = 'bold 12px "Press Start 2P", sans-serif';
-        const textWidth = specialCtx.measureText(nameText).width;
-        const textHeight = 12;
-        const xPos = GAME_AREA_X + oppHead.x * gridSize;
-        const yPos = GAME_AREA_Y + oppHead.y * gridSize - 10;
-        specialCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        specialCtx.fillRect(xPos - 5, yPos - textHeight, textWidth + 10, textHeight + 4);
-        specialCtx.fillStyle = '#FFFFFF';
-        specialCtx.fillText(nameText, xPos, yPos);
+        specialCtx.fillStyle = '#00FF00';
+        specialCtx.font = '12px "Press Start 2P", sans-serif';
+        specialCtx.fillText(
+          opponentName,
+          GAME_AREA_X + oppHead.x * gridSize,
+          GAME_AREA_Y + oppHead.y * gridSize - 5
+        );
       }
       
-      // Draw our username above snake with a semi-transparent background
+      // Draw our name above head
       if (localSnake.length > 0) {
         const myHead = localSnake[0];
+        specialCtx.fillStyle = '#00FF00';
+        specialCtx.font = '12px "Press Start 2P", sans-serif';
         const myName = window.currentUser ? window.currentUser.username : 'You';
-        specialCtx.font = 'bold 12px "Press Start 2P", sans-serif';
-        const textWidth = specialCtx.measureText(myName).width;
-        const textHeight = 12;
-        const xPos = GAME_AREA_X + myHead.x * gridSize;
-        const yPos = GAME_AREA_Y + myHead.y * gridSize - 10;
-        specialCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        specialCtx.fillRect(xPos - 5, yPos - textHeight, textWidth + 10, textHeight + 4);
-        specialCtx.fillStyle = '#FFFFFF';
-        specialCtx.fillText(myName, xPos, yPos);
+        specialCtx.fillText(
+          myName,
+          GAME_AREA_X + myHead.x * gridSize,
+          GAME_AREA_Y + myHead.y * gridSize - 5
+        );
       }
       
       // Draw scores (top right of game area)
@@ -700,44 +708,13 @@
     }
     
     /* ======================================
-       11. SCREENS: "SEARCHING / WAITING..."
-       (Search screen uses a canvas animation loop)
+       11. SCREENS: SEARCHING / WAITING...
     ====================================== */
-    function animateSearchScreen() {
-      if (!isSearching) return;
+    function drawSearchScreen() {
+      // Clear only the canvas (UI overlay is handled via HTML)
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Toggle opacity every 500ms
-      let flicker = ((Math.floor(Date.now() / 500) % 2) === 0) ? 1 : 0.5;
-      specialCtx.globalAlpha = flicker;
-      specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '16px "Press Start 2P", sans-serif';
-      specialCtx.textAlign = 'center';
-      specialCtx.fillText(
-        'Searching for opponent...',
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
-      );
-      specialCtx.globalAlpha = 1;
-      specialCtx.font = '10px "Press Start 2P", sans-serif';
-      specialCtx.fillText(
-        'Invite a friend:',
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2 + 40
-      );
-      specialCtx.fillText(
-        inviteLink,
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2 + 60
-      );
-      specialCtx.font = '8px "Press Start 2P", sans-serif';
-      specialCtx.fillText(
-        'Click to copy',
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2 + 80
-      );
-      requestAnimationFrame(animateSearchScreen);
     }
     
     function drawWaitingScreen() {
@@ -746,22 +723,35 @@
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
-    /* --------------------------------------
-       Show opponent profile (DOM overlay)
-    -------------------------------------- */
-    function showOpponentProfile() {
-      const profileDiv = document.getElementById('opponentProfile');
-      const avatarImg = document.getElementById('opponentAvatar');
-      const usernameDiv = document.getElementById('opponentUsername');
-      
-      avatarImg.src = opponentPhotoUrl;
-      usernameDiv.textContent = opponentName;
-      
-      profileDiv.style.display = 'block';
-      // Trigger fade-in
-      setTimeout(() => {
-        profileDiv.style.opacity = 1;
-      }, 100);
+    function drawOpponentFoundScreen() {
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        'Opponent found',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
+    }
+    
+    /* ======================================
+       12. COUNTDOWN (5...1)
+    ====================================== */
+    function drawCountdownScreen(value) {
+      specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#000';
+      specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '48px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        value.toString(),
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
     }
     
     /* ======================================
@@ -849,7 +839,38 @@
     }
     
     /* ======================================
-       15. END GAME MODAL
+       15. OPPONENT PROFILE DISPLAY
+         - Retrieves opponent's Telegram avatar and username.
+         - If data cannot be retrieved, a placeholder image and default name are used.
+    ====================================== */
+    function displayOpponentProfile() {
+      const oppProfileDiv = document.getElementById('opponentProfile');
+      // Clear any previous content
+      oppProfileDiv.innerHTML = "";
+      try {
+        // Create image element for the avatar
+        const img = document.createElement('img');
+        img.alt = 'Opponent Profile Picture';
+        img.onerror = function() {
+          // Fallback if image fails to load
+          this.src = 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
+        };
+        img.src = opponentPhoto || 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
+        
+        // Create element for the username
+        const usernameEl = document.createElement('div');
+        usernameEl.textContent = opponentName || 'Opponent';
+        
+        oppProfileDiv.appendChild(img);
+        oppProfileDiv.appendChild(usernameEl);
+      } catch (error) {
+        console.error("Error displaying opponent profile:", error);
+        oppProfileDiv.textContent = "Opponent profile unavailable";
+      }
+    }
+    
+    /* ======================================
+       16. END GAME MODAL
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
