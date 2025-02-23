@@ -104,7 +104,7 @@
     left: 0;
     width: 100%;
     padding: 12px;
-    background: #6d4fba;
+    background: #49357d;
     border-bottom: 2px solid #fff;
     display: flex;
     flex-direction: column;
@@ -146,7 +146,7 @@
   main {
     flex: 1;
     overflow-y: auto;
-    padding: 10px 0;
+    padding: 30px 0;
     padding-bottom: 70px; /* отступ, чтобы не наезжать на нижнюю навигацию */
     -webkit-overflow-scrolling: touch;
   }
@@ -171,12 +171,12 @@
   }
   .section h2 {
     font-size: 16px;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
     text-align: center;
   }
   .section h3 {
-    font-size: 14px;
-    margin: 10px 0 20px;
+    font-size: 20px;
+    margin: 50px 0 20px;
     text-align: center;
   }
   
@@ -191,6 +191,71 @@
   }
   
   /* ---------- Карточка игры ---------- */
+    
+
+
+    /* ---------- main games card игры ---------- */
+
+  .game-card1 {
+    background-color: #45cac5;
+    color: #ff2553;
+    padding: 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    position: relative;
+    box-shadow:
+      inset -2px 2px 1px 1px grey,
+      inset -2px -2px 1px 1px lightgray,
+      inset 2px 0px 1px 1px lightgray;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .game-card1:hover {
+    cursor: pointer;
+    transform: scale(1.02);
+  }
+  .game-card1:active {
+    transform: translateY(3px);
+    box-shadow:
+      -2px 2px 1px 1px grey,
+      -2px -2px 1px 1px lightgray,
+      2px 0px 1px 1px lightgray;
+  }
+  .game-card1 img {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    margin-bottom: 6px;
+   
+  }
+  .game-card1 p {
+    margin-bottom: 6px;
+    color: #000;
+  }
+  .game-card1 button {
+    background: #06B6D1;
+    color: #262626;
+    border: 1px solid #4b4b4b;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    box-shadow: 0 2px #6b6b6b;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .game-card1 button:hover {
+    transform: scale(1.05);
+  }
+  .game-card1 button:active {
+    animation: press 0.15s forwards;
+    box-shadow: 0 1px #6b6b6b;
+    transform: translateY(1px) scale(1.0);
+  }
+
+
+
+
+
+  
   .game-card {
     background-color: #45cac5;
     color: #ff2553;
@@ -216,11 +281,11 @@
       2px 0px 1px 1px lightgray;
   }
   .game-card img {
-    width: 60px;
-    height: 60px;
+    width: 120px;
+    height: 120px;
     object-fit: contain;
     margin-bottom: 6px;
-    filter: invert(40%) sepia(80%) hue-rotate(100deg) saturate(200%) brightness(0.9);
+   
   }
   .game-card p {
     margin-bottom: 6px;
@@ -251,7 +316,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 30px;
+    gap: 40px;
     position: fixed;
     bottom: 0;
     left: 0;
@@ -261,8 +326,8 @@
     z-index: 1000;
   }
   nav button {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     background: #06C1DE;
     border: none;
     position: relative;
@@ -469,7 +534,7 @@
   
   .info-button {
     display: block;
-    margin: 0 auto;
+    margin: 20px;
     background: #06B6D1;
     color: #262626;
     border: 1px solid #4b4b4b;
@@ -478,6 +543,9 @@
     font-size: 10px;
     box-shadow: 0 3px #6b6b6b;
     cursor: pointer;
+    float: right;
+  
+  
   }
   .info-button:hover {
     transform: scale(1.05);
