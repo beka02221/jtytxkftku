@@ -113,14 +113,14 @@
   
   <script>
     /* ============================================================
-       Special Snake PvP – Optimized Version
-       Changes:
-         - During opponent search, a blinking "Searching for opponent..." text is shown.
-         - The invite link is displayed (with adjusted font size) and a styled "Copy Invite Link" button.
-         - If the second opponent disconnects, the game ends automatically.
-         - When re-entering search (after page refresh) your previous queue entry is removed to prevent self-matching.
-         - Game duration is 1 minute – the player with the most apples wins.
-         - All texts are in English.
+       Special Snake PvP – Optimized Version with Telegram API integration
+
+       Improvements:
+         1. Integrate Telegram API: Uses Telegram.WebApp API to retrieve user data.
+         2. Fetch User Data: Sends the current user's username and avatar (photo_url)
+            to Firebase when initializing player data.
+         3. Display Profile: After a match is found, the opponent’s Telegram avatar
+            (if available) is displayed above their snake on the game canvas.
        ============================================================ */
     
     let specialGameCanvas;
@@ -148,10 +148,12 @@
     let localDirection = 'right';
     let score = 0;
     
-    // Opponent snake state
+    // Opponent snake state and profile
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
+    let opponentAvatar = '';  // URL for opponent's Telegram photo
+    let opponentImg = null;   // Image object for drawing avatar
     
     // Apple position
     let applePos = { x: 0, y: 0 };
@@ -196,7 +198,6 @@
     
       // Set up disconnect handler so that if you disconnect, your entry is removed.
       // (This helps prevent self-matching on re-entry.)
-      // Note: This will be set after roomId and playerId are assigned.
     }
     
     function resetSpecialGame1() {
@@ -216,6 +217,8 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
+      opponentAvatar = '';
+      opponentImg = null;
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
@@ -317,11 +320,13 @@
             { x: startX-1, y: startY },
             { x: startX-2, y: startY }
           ];
+          // Include Telegram user data (username and avatar)
           playerRef.set({
             snake: initialSnake,
             direction: 'right',
             score: 0,
-            username: window.currentUser ? window.currentUser.username : 'Unknown'
+            username: window.currentUser ? window.currentUser.username : 'Unknown',
+            photo_url: window.currentUser ? window.currentUser.photo_url : ''
           }).catch((err) => console.error('Error initializing player data:', err));
         }
       });
@@ -336,6 +341,14 @@
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
+        opponentAvatar = oppData.photo_url || '';
+        // Reset image if the avatar URL has changed
+        if (opponentAvatar) {
+          if (!opponentImg || opponentImg.src !== opponentAvatar) {
+            opponentImg = new Image();
+            opponentImg.src = opponentAvatar;
+          }
+        }
       });
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
@@ -570,15 +583,38 @@
         );
       });
       
-      // Draw opponent name above head
+      // Draw opponent avatar and name above head (if available)
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
+        const baseX = GAME_AREA_X + oppHead.x * gridSize;
+        const baseY = GAME_AREA_Y + oppHead.y * gridSize;
+        // If an avatar URL exists, draw the avatar as a clipped circle
+        if (opponentAvatar) {
+          if (!opponentImg) {
+            opponentImg = new Image();
+            opponentImg.src = opponentAvatar;
+          }
+          const avatarSize = 24;
+          const centerX = baseX;
+          const centerY = baseY - avatarSize;
+          if (opponentImg.complete) {
+            specialCtx.save();
+            specialCtx.beginPath();
+            specialCtx.arc(centerX, centerY, avatarSize/2, 0, Math.PI * 2);
+            specialCtx.closePath();
+            specialCtx.clip();
+            specialCtx.drawImage(opponentImg, centerX - avatarSize/2, centerY - avatarSize/2, avatarSize, avatarSize);
+            specialCtx.restore();
+          }
+        }
+        // Draw opponent name just above the snake head (adjust as needed)
         specialCtx.fillStyle = '#00FF00';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
+        specialCtx.textAlign = 'center';
         specialCtx.fillText(
           opponentName,
-          GAME_AREA_X + oppHead.x * gridSize,
-          GAME_AREA_Y + oppHead.y * gridSize - 5
+          baseX,
+          baseY - 30
         );
       }
       
@@ -588,6 +624,7 @@
         specialCtx.fillStyle = '#00FF00';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         const myName = window.currentUser ? window.currentUser.username : 'You';
+        specialCtx.textAlign = 'center';
         specialCtx.fillText(
           myName,
           GAME_AREA_X + myHead.x * gridSize,
@@ -598,6 +635,7 @@
       // Draw scores (top right of game area)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'left';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
       
@@ -820,28 +858,36 @@
     
     // Initialize game after page load and Firebase setup
     window.addEventListener('load', () => {
-      // Firebase configuration – replace with your actual config values
-      const firebaseConfig = {
-      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-      authDomain: "test-with-likes.firebaseapp.com",
-      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-      projectId: "test-with-likes",
-      storageBucket: "test-with-likes.appspot.com",
-      messagingSenderId: "764738820142",
-      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-      measurementId: "G-WJNF0HSN9P"
-    };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+      // Telegram API integration:
+      // If the Telegram WebApp API is available, use it to set currentUser data.
+      if (window.Telegram && window.Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+        window.currentUser = {
+          username: Telegram.WebApp.initDataUnsafe.user.username,
+          photo_url: Telegram.WebApp.initDataUnsafe.user.photo_url
+        };
       }
       
-      // Ensure window.currentUser is set.
+      // For testing outside Telegram:
       if (!window.currentUser) {
-        // For testing outside Telegram:
         window.currentUser = {
           username: "TestUser",
           photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
         };
+      }
+      
+      // Firebase configuration – replace with your actual config values
+      const firebaseConfig = {
+        apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+        authDomain: "test-with-likes.firebaseapp.com",
+        databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+        projectId: "test-with-likes",
+        storageBucket: "test-with-likes.appspot.com",
+        messagingSenderId: "764738820142",
+        appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+        measurementId: "G-WJNF0HSN9P"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
       }
       
       initSpecialGame1();
@@ -849,4 +895,3 @@
   </script>
 </body>
 </html>
-
