@@ -115,12 +115,12 @@
     /* ============================================================
        Special Snake PvP – Optimized Version
        Changes:
-         - During opponent search, a blinking "Searching for opponent..." text is shown.
-         - The invite link is displayed (with adjusted font size) and a styled "Copy Invite Link" button.
-         - If the second opponent disconnects, the game ends automatically.
-         - When re-entering search (after page refresh) your previous queue entry is removed to prevent self-matching.
-         - Game duration is 1 minute – the player with the most apples wins.
-         - All texts are in English.
+         - Во время поиска противника отображается мигающий текст "Searching for opponent..."
+         - Ссылка для приглашения отображается над игровым полем с кнопкой для копирования.
+         - Если противник отключается, игра завершается автоматически.
+         - При повторном входе из очереди предыдущая заявка удаляется для предотвращения самосопоставления.
+         - Длительность игры – 1 минута, побеждает игрок с наибольшим количеством съеденных яблок.
+         - Все тексты на английском.
        ============================================================ */
     
     let specialGameCanvas;
@@ -570,10 +570,10 @@
         );
       });
       
-      // Draw opponent name above head
+      // Draw opponent name above head (розовым)
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
-        specialCtx.fillStyle = '#00FF00';
+        specialCtx.fillStyle = '#FFC0CB';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         specialCtx.fillText(
           opponentName,
@@ -582,10 +582,10 @@
         );
       }
       
-      // Draw our name above head
+      // Draw our name above head (розовым)
       if (localSnake.length > 0) {
         const myHead = localSnake[0];
-        specialCtx.fillStyle = '#00FF00';
+        specialCtx.fillStyle = '#FFC0CB';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         const myName = window.currentUser ? window.currentUser.username : 'You';
         specialCtx.fillText(
@@ -595,11 +595,11 @@
         );
       }
       
-      // Draw scores (top right of game area)
+      // Draw scores above game area (счет выводится чуть выше поля)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 15);
-      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y + 30);
+      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y - 20);
+      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y - 5);
       
       // Draw timer bar at top of game area
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
@@ -857,4 +857,3 @@
   </script>
 </body>
 </html>
-
