@@ -21,7 +21,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* Page and canvas styles */
+    /* Общие стили страницы */
     body {
       margin: 0;
       padding: 0;
@@ -30,12 +30,13 @@
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
     }
+    /* Canvas занимает всю страницу */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
       background: #000;
     }
-    /* Copy button styling */
+    /* Кнопка для копирования inviteLink */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -55,7 +56,7 @@
     #copyButton:hover {
       background-color: #333;
     }
-    /* Endgame / Modal styles */
+    /* Модальное окно итогов */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -74,7 +75,7 @@
       text-align: center;
       border-radius: 8px;
     }
-    /* Blinking animation for search text */
+    /* Анимация мигания для поиска */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -83,45 +84,16 @@
     .blinking {
       animation: blink 1.2s infinite;
     }
-    /* UI overlay container above the canvas */
-    #uiContainer {
-      position: absolute;
-      top: 10px;
-      width: 100%;
-      text-align: center;
-      color: #00FF00;
-      font-family: 'Press Start 2P', sans-serif;
-      z-index: 1100;
-      pointer-events: none; /* So clicks pass through to canvas if needed */
-    }
-    /* Allow interactions on links/buttons */
-    #uiContainer a, #uiContainer * {
-      pointer-events: auto;
-    }
-    #searchArea, #opponentProfile {
-      margin: 5px auto;
-    }
-    #opponentProfile img {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      vertical-align: middle;
-    }
-    #opponentProfile div {
-      display: inline-block;
-      margin-left: 10px;
-      vertical-align: middle;
-    }
   </style>
 </head>
 <body>
-  <!-- Canvas for game -->
+  <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Copy Invite Link Button -->
+  <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
-  <!-- End game modal -->
+  <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
@@ -130,7 +102,7 @@
     </div>
   </div>
   
-  <!-- "Not enough tickets" modal -->
+  <!-- Модальное окно "Not enough tickets" -->
   <div id="noTicketsModal" class="modal-backdrop">
     <div class="modal">
       <h2>Not enough tickets</h2>
@@ -139,32 +111,15 @@
     </div>
   </div>
   
-  <!-- UI Overlay: Search area and opponent profile info -->
-  <div id="uiContainer">
-    <div id="searchArea">
-      <div id="searchText" class="blinking">Searching for opponent...</div>
-      <div id="inviteLinkContainer">
-        Invite a friend: <a id="inviteLink" href="#" style="color: #00FF00;"></a>
-      </div>
-    </div>
-    <div id="opponentProfile"></div>
-  </div>
-  
   <script>
     /* ============================================================
-       Special Snake PvP – Optimized Version with Telegram Bot enhancements
-       
-       New Features:
-       • A blinking/flashing "Searching for opponent..." text (via HTML + CSS)
-       • On matching an opponent, their Telegram profile info is displayed below the search area
-         - Avatar photo (with a fallback placeholder)
-         - Username / display name
-       • Proper error handling if user data cannot be retrieved
-       • Responsive and smooth UI; minimal resource usage for the animation
-       • API calls now include photo_url when setting up player data, and privacy/rate-limiting are considered
-       • State management (via the searchState variable) tracks search status
-       
-       Follow Telegram Bot API best practices for user data handling.
+       Special Snake PvP – Optimized Version
+       Изменения:
+         - После нахождения реального соперника показываются его реальные данные:
+             * Имя (username)
+             * Фото профиля
+         - Затем начинается обратный отсчёт до игры.
+         - Во время игры над змеями отображаются реальные юзернеймы.
        ============================================================ */
     
     let specialGameCanvas;
@@ -192,20 +147,19 @@
     let localDirection = 'right';
     let score = 0;
     
-    // Opponent snake state and profile info
+    // Opponent snake state and data
     let opponentSnake = [];
     let opponentScore = 0;
     let opponentName = 'Opponent';
-    let opponentPhoto = ''; // to hold Telegram avatar URL
+    let opponentPhotoUrl = '';  // Новый параметр для фото профиля соперника
     
     // Apple position
     let applePos = { x: 0, y: 0 };
     
-    // Game flags and state management
+    // Game flags
     let isGameRunning = false;
     let isGameOver = false;
     let countdownValue = 5;
-    let searchState = 'searching'; // "searching" or "found"
     let showOpponentNameTimeout = null;
     
     // Timer (1 minute)
@@ -239,6 +193,10 @@
       drawWaitingScreen();
     
       findOrCreateRoom();
+    
+      // Set up disconnect handler so that if you disconnect, your entry is removed.
+      // (This helps prevent self-matching on re-entry.)
+      // Note: This will be set after roomId and playerId are assigned.
     }
     
     function resetSpecialGame1() {
@@ -258,7 +216,7 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = 'Opponent';
-      opponentPhoto = '';
+      opponentPhotoUrl = '';
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
@@ -266,12 +224,6 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
-      searchState = 'searching';
-      // Clear UI overlays
-      document.getElementById('searchText').textContent = 'Searching for opponent...';
-      document.getElementById('searchText').classList.add('blinking');
-      document.getElementById('opponentProfile').innerHTML = "";
-      document.getElementById('copyButton').style.display = 'none';
       removeSwipeListeners();
     }
     
@@ -314,18 +266,11 @@
           }
           // Form invite link (replace with your real address)
           inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-          // Show copy button and update UI
+          // Show copy button
           document.getElementById('copyButton').style.display = 'block';
-          updateSearchUI();
           waitForOpponent();
         }).catch((err) => console.error('Error reading queue:', err));
       });
-    }
-    
-    function updateSearchUI() {
-      const inviteLinkElement = document.getElementById('inviteLink');
-      inviteLinkElement.textContent = inviteLink;
-      inviteLinkElement.href = inviteLink;
     }
     
     function waitForOpponent() {
@@ -334,16 +279,8 @@
       statusRef.on('value', (snapshot) => {
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
-          // Opponent matched: update UI state
-          searchState = 'found';
           statusRef.off();
-          // Stop blinking animation and update search text
-          const searchTextEl = document.getElementById('searchText');
-          searchTextEl.textContent = 'Opponent Found';
-          searchTextEl.classList.remove('blinking');
-          // Display opponent profile info (if available) below the search area
-          displayOpponentProfile();
-          // Hide copy button (invite no longer needed)
+          drawOpponentFoundScreen();
           document.getElementById('copyButton').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
@@ -356,15 +293,6 @@
         if (!snapshot.exists() && isGameRunning) {
           // Opponent left – end the game immediately
           setGameOver();
-        }
-        // Update opponent snake and profile data
-        const oppData = snapshot.val() || {};
-        opponentSnake = oppData.snake || [];
-        opponentScore = oppData.score || 0;
-        opponentName  = oppData.username || 'Opponent';
-        opponentPhoto = oppData.photo_url || '';
-        if (searchState === 'found') {
-          displayOpponentProfile();
         }
       });
     }
@@ -390,7 +318,7 @@
             { x: startX-1, y: startY },
             { x: startX-2, y: startY }
           ];
-          // Store both username and photo_url (from Telegram WebApp or testing defaults)
+          // Сохраняем также photo_url для отображения профиля
           playerRef.set({
             snake: initialSnake,
             direction: 'right',
@@ -411,7 +339,7 @@
         opponentSnake = oppData.snake || [];
         opponentScore = oppData.score || 0;
         opponentName  = oppData.username || 'Opponent';
-        opponentPhoto = oppData.photo_url || '';
+        opponentPhotoUrl = oppData.photo_url || '';
       });
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
@@ -708,13 +636,40 @@
     }
     
     /* ======================================
-       11. SCREENS: SEARCHING / WAITING...
+       11. SCREENS: "SEARCHING / WAITING..."
     ====================================== */
     function drawSearchScreen() {
-      // Clear only the canvas (UI overlay is handled via HTML)
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      // Blinking search text
+      specialCtx.fillStyle = '#00FF00';
+      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.textAlign = 'center';
+      specialCtx.fillText(
+        'Searching for opponent...',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
+      specialCtx.font = '10px "Press Start 2P", sans-serif';
+      specialCtx.fillText(
+        'Invite a friend:',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 40
+      );
+      specialCtx.fillText(
+        inviteLink,
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 60
+      );
+      specialCtx.font = '8px "Press Start 2P", sans-serif';
+      specialCtx.fillText(
+        'Click to copy',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 80
+      );
+      // Show copy button
+      document.getElementById('copyButton').style.display = 'block';
     }
     
     function drawWaitingScreen() {
@@ -723,6 +678,7 @@
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
+    // Отображает экран с данными найденного соперника (его имя и фото профиля)
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
@@ -733,8 +689,22 @@
       specialCtx.fillText(
         'Opponent found',
         specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2
+        100
       );
+      specialCtx.fillText(
+        opponentName,
+        specialGameCanvas.width / 2,
+        150
+      );
+      // Если у соперника есть фото, выводим его
+      if(opponentPhotoUrl) {
+        let img = new Image();
+        img.onload = function() {
+          // Рисуем фото по центру (размер 100x100)
+          specialCtx.drawImage(img, specialGameCanvas.width/2 - 50, 180, 100, 100);
+        };
+        img.src = opponentPhotoUrl;
+      }
     }
     
     /* ======================================
@@ -839,38 +809,7 @@
     }
     
     /* ======================================
-       15. OPPONENT PROFILE DISPLAY
-         - Retrieves opponent's Telegram avatar and username.
-         - If data cannot be retrieved, a placeholder image and default name are used.
-    ====================================== */
-    function displayOpponentProfile() {
-      const oppProfileDiv = document.getElementById('opponentProfile');
-      // Clear any previous content
-      oppProfileDiv.innerHTML = "";
-      try {
-        // Create image element for the avatar
-        const img = document.createElement('img');
-        img.alt = 'Opponent Profile Picture';
-        img.onerror = function() {
-          // Fallback if image fails to load
-          this.src = 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
-        };
-        img.src = opponentPhoto || 'https://img.icons8.com/ios-filled/50/00FF00/user.png';
-        
-        // Create element for the username
-        const usernameEl = document.createElement('div');
-        usernameEl.textContent = opponentName || 'Opponent';
-        
-        oppProfileDiv.appendChild(img);
-        oppProfileDiv.appendChild(usernameEl);
-      } catch (error) {
-        console.error("Error displaying opponent profile:", error);
-        oppProfileDiv.textContent = "Opponent profile unavailable";
-      }
-    }
-    
-    /* ======================================
-       16. END GAME MODAL
+       15. END GAME MODAL
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -929,3 +868,4 @@
   </script>
 </body>
 </html>
+
