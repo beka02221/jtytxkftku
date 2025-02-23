@@ -116,7 +116,9 @@
        Special Snake PvP – Optimized Version
        Changes:
          - Во время поиска противника отображается мигающий текст "Searching for opponent..."
-         - Ссылка для приглашения отображается над игровым полем с кнопкой для копирования.
+         - После нахождения противника на 2 секунды отображается экран с текстом
+           светло-красным цветом: "Opponent: @username"
+         - Затем экран заменяется обратным отсчётом начала игры.
          - Если противник отключается, игра завершается автоматически.
          - При повторном входе из очереди предыдущая заявка удаляется для предотвращения самосопоставления.
          - Длительность игры – 1 минута, побеждает игрок с наибольшим количеством съеденных яблок.
@@ -279,8 +281,10 @@
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
+          // Отобразить экран с информацией о найденном противнике
           drawOpponentFoundScreen();
           document.getElementById('copyButton').style.display = 'none';
+          // Через 2 секунды запустить обратный отсчёт
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
           }, 2000);
@@ -674,15 +678,16 @@
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
+    // Изменённая функция: после нахождения противника показывается светло-красным "Opponent: @username"
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#00FF00';
+      specialCtx.fillStyle = '#FFA07A';  // Светло-красный цвет
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(
-        'Opponent found',
+        'Opponent: @' + opponentName,
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2
       );
@@ -857,3 +862,4 @@
   </script>
 </body>
 </html>
+
