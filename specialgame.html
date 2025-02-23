@@ -23,19 +23,20 @@
   <style>
     /* Общие стили страницы */
     body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      color: #0f0;
-      font-family: 'Press Start 2P', sans-serif;
-      position: relative;
-    }
-    /* Canvas занимает всю страницу */
-    #specialGameCanvas {
-      display: block;
-      margin: 0 auto;
-      background: #000;
-    }
+  margin: 0;
+  padding: 0;
+  background-color: #1f1c2c;
+  color: #FF00FF;
+  font-family: 'Press Start 2P', sans-serif;
+  position: relative;
+}
+
+#specialGameCanvas {
+  display: block;
+  margin: 0 auto;
+  background-image: url('1.jpg');
+}
+
     /* Кнопка для копирования inviteLink */
     #copyButton {
       position: absolute;
@@ -44,18 +45,23 @@
       transform: translateX(-50%);
       font-size: 16px;
       padding: 8px 16px;
-      background-color: #222;
-      border: 2px solid #0f0;
-      color: #0f0;
-      cursor: pointer;
-      border-radius: 8px;
-      z-index: 1000;
-      display: none;
-      transition: background-color 0.3s;
-    }
-    #copyButton:hover {
-      background-color: #333;
-    }
+       /* Кнопка для копирования inviteLink */   
+        background: #06B6D1;
+    color: #262626;
+    border: 1px solid #4b4b4b;
+    border-radius: 4px;
+    padding: 4px 6px;
+    scale: 1;
+    box-shadow: 0 3px #6b6b6b;
+    cursor: pointer;
+  }
+  .copy-button:hover {
+    transform: scale(1.05);
+  }
+  .copy-button:active {
+    animation: press 0.15s forwards;
+    transform: translateY(1px) scale(1.0);
+  }
     /* Модальное окно итогов */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
@@ -172,8 +178,8 @@
     
     // Snake colors: player1 - purple, player2 - yellow
     const snakeColors = {
-      player1: '#800080',
-      player2: '#FFFF00'
+      player1: '#FFFF00',
+      player2: '#FF0000'
     };
     
     // Logic interval (150 мс)
@@ -525,19 +531,26 @@
     ====================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = 'rgba(0,0,0,0.8)';
+      specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       
       drawMatrixGrid();
       
-      // Яблоко (красное)
-      specialCtx.fillStyle = '#FF0000';
-      specialCtx.fillRect(
-        GAME_AREA_X + applePos.x * gridSize,
-        GAME_AREA_Y + applePos.y * gridSize,
-        gridSize,
-        gridSize
-      );
+      // Создаем объект для яблока
+const appleImg = new Image();
+appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
+
+// В функции отрисовки, например, внутри игрового цикла:
+if (appleImg.complete) { // проверяем, что изображение загружено
+  specialCtx.drawImage(
+    appleImg,
+    GAME_AREA_X + applePos.x * gridSize,
+    GAME_AREA_Y + applePos.y * gridSize,
+    gridSize,
+    gridSize
+  );
+}
+
       
       // Наша змея
       specialCtx.fillStyle = snakeColors[playerId] || '#800080';
@@ -564,7 +577,7 @@
       // Имя противника над его головой (розовым)
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
-        specialCtx.fillStyle = '#FFC0CB';
+        specialCtx.fillStyle = '#FFF';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         specialCtx.fillText(
           opponentName ? ('@' + opponentName) : '@Anonymous',
@@ -576,7 +589,7 @@
       // Наше имя над головой (розовым)
       if (localSnake.length > 0) {
         const myHead = localSnake[0];
-        specialCtx.fillStyle = '#FFC0CB';
+        specialCtx.fillStyle = '#FFf';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         const myName = window.currentUser ? window.currentUser.username : 'You';
         specialCtx.fillText(
@@ -589,20 +602,20 @@
       // Счет выводится чуть выше игрового поля
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y - 20);
-      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 100, GAME_AREA_Y - 5);
+      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
+      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
       
       // Таймер в виде полосы сверху игрового поля
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
-      specialCtx.fillStyle = '#00FF00';
+      specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
     }
     
     function drawMatrixGrid() {
-      specialCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      specialCtx.fillStyle = '#433171';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
       
-      specialCtx.strokeStyle = 'rgba(0,255,0,0.3)';
+      specialCtx.strokeStyle = '#00103c';
       for (let i = 0; i <= tileCountX; i++) {
         let x = GAME_AREA_X + i * gridSize;
         specialCtx.beginPath();
@@ -617,7 +630,7 @@
         specialCtx.lineTo(GAME_AREA_X + GAME_AREA_WIDTH, y);
         specialCtx.stroke();
       }
-      specialCtx.strokeStyle = 'rgb(0,255,0)';
+      specialCtx.strokeStyle = '#8F509D';
       specialCtx.lineWidth = 2;
       specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
     }
@@ -627,10 +640,10 @@
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
+      specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '16px "Press Start 2P", sans-serif';
+      specialCtx.fillStyle = '#FF00FF';
+      specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(
         'Searching for opponent...',
@@ -639,18 +652,22 @@
       );
       specialCtx.font = '10px "Press Start 2P", sans-serif';
       specialCtx.fillText(
-        'Invite a friend:',
+        ' ',
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2 + 40
       );
-      specialCtx.fillText(
-        inviteLink,
-        specialGameCanvas.width / 2,
-        specialGameCanvas.height / 2 + 60
-      );
+      specialCtx.save();
+specialCtx.globalAlpha = 0; // делаем всё невидимым
+specialCtx.fillText(
+  inviteLink,
+  specialGameCanvas.width / 2,
+  specialGameCanvas.height / 2 + 60
+);
+specialCtx.restore();
+
       specialCtx.font = '8px "Press Start 2P", sans-serif';
       specialCtx.fillText(
-        'Click to copy',
+        ' ',
         specialGameCanvas.width / 2,
         specialGameCanvas.height / 2 + 80
       );
@@ -666,9 +683,9 @@
     // Экран, показывающий реальный юзернейм противника светло-красным цветом
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
+      specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#FFA07A'; // Светло-красный цвет
+      specialCtx.fillStyle = '#FF00FF'; // Светло-красный цвет
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       // Если opponentName не пустой, выводим его; иначе – "Anonymous"
@@ -685,10 +702,10 @@
     ====================================== */
     function drawCountdownScreen(value) {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#000';
+      specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00FF00';
-      specialCtx.font = '48px "Press Start 2P", sans-serif';
+      specialCtx.font = '60px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(
         value.toString(),
