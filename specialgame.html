@@ -25,7 +25,7 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #1f1c2c;
+      background-color: #00103c;
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
@@ -40,7 +40,7 @@
     /* Контейнер для D-Pad (расположен внизу страницы, по центру) */
     .dpad {
       position: absolute;
-      bottom: 30px;       /* Расстояние от нижнего края экрана */
+      bottom: 20px;       /* Расстояние от нижнего края экрана */
       left: 50%;
       transform: translateX(-50%);
       width: 200px;       /* Ширина контейнера (можно менять) */
@@ -622,14 +622,10 @@ function moveLocalSnake() {
 }
 
 function checkSelfCollision() {
-  const head = localSnake[0];
-  for (let i = 1; i < localSnake.length; i++) {
-    if (localSnake[i].x === head.x && localSnake[i].y === head.y) {
-      return true;
-    }
-  }
+  // Отключаем проверку столкновения со своим хвостом
   return false;
 }
+
 
 /* ======================================
    8. UPDATE STATE IN FIREBASE
@@ -721,17 +717,19 @@ function renderGame() {
   drawMatrixGrid();
 
   // Draw apple
-  const appleImg = new Image();
-  appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
-  if (appleImg.complete) {
-    specialCtx.drawImage(
-      appleImg,
-      GAME_AREA_X + applePos.x * gridSize,
-      GAME_AREA_Y + applePos.y * gridSize,
-      gridSize,
-      gridSize
-    );
-  }
+ // Глобально (в начале скрипта)
+let appleImg = new Image();
+appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
+if (appleImg.complete) {
+  specialCtx.drawImage(
+    appleImg,
+    GAME_AREA_X + applePos.x * gridSize,
+    GAME_AREA_Y + applePos.y * gridSize,
+    gridSize,
+    gridSize
+  );
+}
+
 
   // Draw local snake
   specialCtx.fillStyle = snakeColors[playerId] || '#800080';
