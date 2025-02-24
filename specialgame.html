@@ -23,19 +23,76 @@
   <style>
     /* Общие стили страницы */
     body {
-  margin: 0;
-  padding: 0;
-  background-color: #1f1c2c;
-  color: #FF00FF;
-  font-family: 'Press Start 2P', sans-serif;
-  position: relative;
+      margin: 0;
+      padding: 0;
+      background-color: #1f1c2c;
+      color: #FF00FF;
+      font-family: 'Press Start 2P', sans-serif;
+      position: relative;
+    }
+    
+    #specialGameCanvas {
+      display: block;
+      margin: 0 auto;
+      background-image: url('1.jpg');
+    }
+         
+/* Контейнер для D-Pad (расположен внизу страницы, по центру) */
+.dpad {
+  position: absolute;
+  bottom: 0px;       /* Уменьшено расстояние от нижнего края экрана */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;       /* Уменьшенная ширина контейнера */
+  height: 120px;      /* Уменьшенная высота контейнера */
 }
 
-#specialGameCanvas {
-  display: block;
-  margin: 0 auto;
-  background-image: url('1.jpg');
+/* Общие стили для кнопок управления */
+.dpad-btn {
+  position: absolute;
+  width: 40px;        /* Уменьшенная ширина кнопки */
+  height: 40px;       /* Уменьшенная высота кнопки */
+  background-color: #06B6D1;
+  color: #262626;
+  border: 1px solid #4b4b4b;
+  border-radius: 10px;
+  font-size: 18px;    /* Немного уменьшенный размер шрифта */
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
 }
+
+/* Визуальная обратная связь при нажатии */
+.dpad-btn:active {
+  transform: scale(0.95);
+}
+
+/* Позиционирование кнопок внутри контейнера D-Pad */
+.dpad-btn.up {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dpad-btn.down {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dpad-btn.left {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.dpad-btn.right {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+
 
     /* Кнопка для копирования inviteLink */
     #copyButton {
@@ -45,23 +102,23 @@
       transform: translateX(-50%);
       font-size: 16px;
       padding: 8px 16px;
-       /* Кнопка для копирования inviteLink */   
-        background: #06B6D1;
-    color: #262626;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    padding: 4px 6px;
-    scale: 1;
-    box-shadow: 0 3px #6b6b6b;
-    cursor: pointer;
-  }
-  .copy-button:hover {
-    transform: scale(1.05);
-  }
-  .copy-button:active {
-    animation: press 0.15s forwards;
-    transform: translateY(1px) scale(1.0);
-  }
+      background: #06B6D1;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 4px 6px;
+      scale: 1;
+      box-shadow: 0 3px #6b6b6b;
+      cursor: pointer;
+    }
+    .copy-button:hover {
+      transform: scale(1.05);
+    }
+    .copy-button:active {
+      animation: press 0.15s forwards;
+      transform: translateY(1px) scale(1.0);
+    }
+    
     /* Модальное окно итогов */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
@@ -81,6 +138,7 @@
       text-align: center;
       border-radius: 8px;
     }
+    
     /* Анимация мигания для поиска */
     @keyframes blink {
       0% { opacity: 0.2; }
@@ -90,14 +148,78 @@
     .blinking {
       animation: blink 1.2s infinite;
     }
+    
+    /* =========================
+       Стили для панели управления
+       ========================= */
+    #controlPanel {
+      width: 150px;
+      height: 150px;
+      margin: 20px auto; /* Центрируем по горизонтали и добавляем отступ сверху/снизу */
+      position: relative;
+    }
+    #controlPanel .control-button {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: #06B6D1;
+      border: none;
+      border-radius: 10px;
+      color: #262626;
+      font-size: 24px;
+      font-family: 'Press Start 2P', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+      transition: transform 0.1s ease;
+    }
+    /* Расположение кнопок в виде плюса */
+    #btn-up {
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #btn-down {
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #btn-left {
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    #btn-right {
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    /* Эффекты при наведении и нажатии */
+    #controlPanel .control-button:hover {
+      transform: scale(1.05);
+    }
+    #controlPanel .control-button:active {
+      transform: translateY(1px) scale(1);
+      box-shadow: 0 1px #6b6b6b;
+    }
   </style>
 </head>
 <body>
   <!-- Canvas для игры -->
-  <canvas id="specialGameCanvas" width="400" height="700"></canvas>
-  
-  <!-- Кнопка для копирования ссылки -->
-  <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
+ <!-- Canvas для игры -->
+<canvas id="specialGameCanvas" width="400" height="700"></canvas>
+
+<!-- Контейнер для элементов управления (D-Pad) -->
+<div class="dpad">
+  <button class="dpad-btn up" onclick="changeDirection('up')">↑</button>
+  <button class="dpad-btn left" onclick="changeDirection('left')">←</button>
+  <button class="dpad-btn right" onclick="changeDirection('right')">→</button>
+  <button class="dpad-btn down" onclick="changeDirection('down')">↓</button>
+</div>
+
+<!-- Кнопка для копирования ссылки и прочие элементы -->
+<button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
+<!-- ... остальной код страницы ... -->
+
   
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
@@ -120,13 +242,7 @@
   <script>
     /* ============================================================
        Special Snake PvP – Optimized Version
-       Изменения:
-         - Во время поиска противника отображается мигающий текст "Searching for opponent..."
-         - После обнаружения противника на 2 секунды показывается экран с текстом 
-           светло-красным цветом: "Opponent: @realUsername" (где realUsername – полученный юзернейм)
-         - Затем экран заменяется обратным отсчётом начала игры.
-         - Если противник отключается, игра завершается автоматически.
-         - Остальные настройки как и прежде.
+       Изменения: Добавлена панель управления (4 кнопки направления)
        ============================================================ */
     
     let specialGameCanvas;
@@ -134,7 +250,7 @@
     
     // Game area (centered on canvas)
     const GAME_AREA_X = 50;
-    const GAME_AREA_Y = 175;
+    const GAME_AREA_Y = 50;
     const GAME_AREA_WIDTH = 300;
     const GAME_AREA_HEIGHT = 500;
     
@@ -157,7 +273,7 @@
     // Opponent snake state
     let opponentSnake = [];
     let opponentScore = 0;
-    let opponentName = ''; // Теперь без жесткого значения по умолчанию
+    let opponentName = '';
     
     // Apple position
     let applePos = { x: 0, y: 0 };
@@ -199,6 +315,9 @@
       drawWaitingScreen();
     
       findOrCreateRoom();
+      
+      // Инициализируем обработчики для кнопок управления
+      setupControlButtons();
     }
     
     function resetSpecialGame1() {
@@ -280,16 +399,13 @@
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
           statusRef.off();
-          // После обнаружения противника показываем экран с реальным юзернеймом противника
           drawOpponentFoundScreen();
           document.getElementById('copyButton').style.display = 'none';
-          // Через 2 секунды запускаем обратный отсчёт
           showOpponentNameTimeout = setTimeout(() => {
             startCountdown();
           }, 2000);
         }
       });
-      // Слушаем отключение противника:
       const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
       oppRef.on('value', (snapshot) => {
         if (!snapshot.exists() && isGameRunning) {
@@ -333,7 +449,6 @@
         if (oppData) {
           opponentSnake = oppData.snake || [];
           opponentScore = oppData.score || 0;
-          // Здесь используем реальный юзернейм противника; если его нет, то выводим пустую строку
           opponentName  = oppData.username || "";
         }
       });
@@ -536,21 +651,18 @@
       
       drawMatrixGrid();
       
-      // Создаем объект для яблока
-const appleImg = new Image();
-appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
-
-// В функции отрисовки, например, внутри игрового цикла:
-if (appleImg.complete) { // проверяем, что изображение загружено
-  specialCtx.drawImage(
-    appleImg,
-    GAME_AREA_X + applePos.x * gridSize,
-    GAME_AREA_Y + applePos.y * gridSize,
-    gridSize,
-    gridSize
-  );
-}
-
+      // Отрисовка яблока
+      const appleImg = new Image();
+      appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
+      if (appleImg.complete) {
+        specialCtx.drawImage(
+          appleImg,
+          GAME_AREA_X + applePos.x * gridSize,
+          GAME_AREA_Y + applePos.y * gridSize,
+          gridSize,
+          gridSize
+        );
+      }
       
       // Наша змея
       specialCtx.fillStyle = snakeColors[playerId] || '#800080';
@@ -574,7 +686,7 @@ if (appleImg.complete) { // проверяем, что изображение з
         );
       });
       
-      // Имя противника над его головой (розовым)
+      // Имя противника над его головой
       if (opponentSnake.length > 0) {
         const oppHead = opponentSnake[0];
         specialCtx.fillStyle = '#FFF';
@@ -586,10 +698,10 @@ if (appleImg.complete) { // проверяем, что изображение з
         );
       }
       
-      // Наше имя над головой (розовым)
+      // Наше имя над головой
       if (localSnake.length > 0) {
         const myHead = localSnake[0];
-        specialCtx.fillStyle = '#FFf';
+        specialCtx.fillStyle = '#FFF';
         specialCtx.font = '12px "Press Start 2P", sans-serif';
         const myName = window.currentUser ? window.currentUser.username : 'You';
         specialCtx.fillText(
@@ -599,13 +711,13 @@ if (appleImg.complete) { // проверяем, что изображение з
         );
       }
       
-      // Счет выводится чуть выше игрового поля
+      // Счет
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
       
-      // Таймер в виде полосы сверху игрового поля
+      // Таймер в виде полосы
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -657,14 +769,13 @@ if (appleImg.complete) { // проверяем, что изображение з
         specialGameCanvas.height / 2 + 40
       );
       specialCtx.save();
-specialCtx.globalAlpha = 0; // делаем всё невидимым
-specialCtx.fillText(
-  inviteLink,
-  specialGameCanvas.width / 2,
-  specialGameCanvas.height / 2 + 60
-);
-specialCtx.restore();
-
+      specialCtx.globalAlpha = 0;
+      specialCtx.fillText(
+        inviteLink,
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2 + 60
+      );
+      specialCtx.restore();
       specialCtx.font = '8px "Press Start 2P", sans-serif';
       specialCtx.fillText(
         ' ',
@@ -680,15 +791,13 @@ specialCtx.restore();
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
     
-    // Экран, показывающий реальный юзернейм противника светло-красным цветом
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      specialCtx.fillStyle = '#FF00FF'; // Светло-красный цвет
+      specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      // Если opponentName не пустой, выводим его; иначе – "Anonymous"
       const displayName = opponentName ? opponentName : "Anonymous";
       specialCtx.fillText(
         'Opponent: @' + displayName,
@@ -810,6 +919,26 @@ specialCtx.restore();
       modal.classList.add('active');
     }
     
+    /* ======================================
+       16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+    ====================================== */
+    function setupControlButtons() {
+      const buttons = document.querySelectorAll('.control-button');
+      buttons.forEach(button => {
+        button.addEventListener('click', () => {
+          const newDirection = button.getAttribute('data-direction');
+          // Проверка: нельзя сменить направление на противоположное
+          if ((localDirection === 'left' && newDirection === 'right') ||
+              (localDirection === 'right' && newDirection === 'left') ||
+              (localDirection === 'up' && newDirection === 'down') ||
+              (localDirection === 'down' && newDirection === 'up')) {
+            return;
+          }
+          localDirection = newDirection;
+        });
+      });
+    }
+    
     /* ============================================================
        End of game code.
        Call initSpecialGame1() below.
@@ -844,7 +973,7 @@ specialCtx.restore();
         firebase.initializeApp(firebaseConfig);
       }
       
-      // Устанавливаем данные текущего пользователя: если запущено в Telegram – берём реальные данные, иначе тестовый юзер.
+      // Устанавливаем данные текущего пользователя
       if (!window.currentUser) {
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
           const tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -862,6 +991,22 @@ specialCtx.restore();
       
       initSpecialGame1();
     });
+
+
+
+    function changeDirection(newDir) {
+  // Предотвращаем разворот змеи на 180 градусов
+  if (
+    (newDir === 'up' && localDirection === 'down') ||
+    (newDir === 'down' && localDirection === 'up') ||
+    (newDir === 'left' && localDirection === 'right') ||
+    (newDir === 'right' && localDirection === 'left')
+  ) {
+    return;
+  }
+  localDirection = newDir;
+}
+
   </script>
 </body>
 </html>
