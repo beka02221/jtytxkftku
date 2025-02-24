@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -38,60 +38,54 @@
     }
          
     /* Контейнер для D-Pad (расположен внизу страницы, по центру) */
-.dpad {
-  position: absolute;
-  bottom: 30px;       /* Расстояние от нижнего края экрана */
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;       /* Ширина контейнера (можно менять) */
-  height: 200px;      /* Высота контейнера */
-}
+    .dpad {
+      position: absolute;
+      bottom: 30px;       /* Расстояние от нижнего края экрана */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;       /* Ширина контейнера (можно менять) */
+      height: 200px;      /* Высота контейнера */
+    }
 
-/* Общие стили для кнопок управления */
-.dpad-btn {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background-color: #06B6D1;  /* Настраиваемый цвет фона */
-  color: #262626;
-  border: 1px solid #4b4b4b;
-  border-radius: 8px;         /* Радиус скругления, можно изменить */
-  font-size: 24px;
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.1s;
-}
-
-/* Визуальная обратная связь при нажатии */
-.dpad-btn:active {
-  transform: scale(0.95);
-}
-
-/* Позиционирование кнопок внутри контейнера D-Pad */
-.dpad-btn.up {
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.dpad-btn.down {
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.dpad-btn.left {
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.dpad-btn.right {
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
+    /* Общие стили для кнопок управления */
+    .dpad-btn {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background-color: #06B6D1;  /* Настраиваемый цвет фона */
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 8px;         /* Радиус скругления, можно изменить */
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s;
+    }
+    /* Визуальная обратная связь при нажатии */
+    .dpad-btn:active {
+      transform: scale(0.95);
+    }
+    /* Позиционирование кнопок внутри контейнера D-Pad */
+    .dpad-btn.up {
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .dpad-btn.down {
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .dpad-btn.left {
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .dpad-btn.right {
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
 
     /* Кнопка для копирования inviteLink */
     #copyButton {
@@ -106,7 +100,6 @@
       border: 1px solid #4b4b4b;
       border-radius: 4px;
       padding: 4px 6px;
-      scale: 1;
       box-shadow: 0 3px #6b6b6b;
       cursor: pointer;
     }
@@ -178,11 +171,10 @@
       transform: translateX(-50%);
     }
     .dpad-btn.down {
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
     #btn-left {
       left: 0;
       top: 50%;
@@ -203,25 +195,21 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Canvas для игры -->
- <!-- Canvas для игры -->
-<canvas id="specialGameCanvas" width="400" height="700"></canvas>
+  <canvas id="specialGameCanvas" width="400" height="700"></canvas>
 
-<!-- Контейнер для элементов управления (D-Pad) -->
-<!-- Контейнер для D-Pad (изначально скрыт) -->
-<div class="dpad" id="dpad" style="display: none;">
-  <button class="dpad-btn up" onclick="changeDirection('up')">↑</button>
-  <button class="dpad-btn left" onclick="changeDirection('left')">←</button>
-  <button class="dpad-btn down" onclick="changeDirection('down')">↓</button>
-  <button class="dpad-btn right" onclick="changeDirection('right')">→</button>
-</div>
+  <!-- Контейнер для D-Pad (изначально скрыт) -->
+  <div class="dpad" id="dpad" style="display: none;">
+    <button class="dpad-btn up" onclick="changeDirection('up')">↑</button>
+    <button class="dpad-btn left" onclick="changeDirection('left')">←</button>
+    <button class="dpad-btn down" onclick="changeDirection('down')">↓</button>
+    <button class="dpad-btn right" onclick="changeDirection('right')">→</button>
+  </div>
 
-
-<!-- Кнопка для копирования ссылки и прочие элементы -->
-<button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
-<!-- ... остальной код страницы ... -->
-
+  <!-- Кнопка для копирования ссылки -->
+  <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
@@ -242,15 +230,28 @@
   </div>
   
   <script>
-   /* ============================================================
-   Special Snake PvP – Optimized Version (Modified)
-   Изменения: Кнопки управления (D-Pad) появляются только во время игры
-============================================================ */
+/* 
+============================================================
+  Special Snake PvP – Corrected Version
+  Explanation of the main fix:
+  
+  - The original issue was that opponentName would remain empty
+    or default to "@anonymous" because we called 
+    drawOpponentFoundScreen() before 'opponentName' had actually 
+    been loaded from Firebase.  
+
+  - To fix this, we fetch opponent data from 'snakeGames/roomId/players/opponentId' 
+    BEFORE calling drawOpponentFoundScreen() in the waitForOpponent() function. 
+    This ensures that 'opponentName' has the correct value when displayed.
+============================================================
+*/
+
 /*******************************************************
   FULL UPDATED JAVASCRIPT
   Includes:
    1. Auto-win if opponent leaves/refreshes
    2. Game room cleanup upon game end
+   3. Correct retrieval of real usernames for opponents
  *******************************************************/
 
 // Global Canvas/Context
@@ -406,15 +407,37 @@ function findOrCreateRoom() {
   });
 }
 
+/* ======================================
+   3. WAIT FOR OPPONENT
+   - Important fix: Retrieve opponentName 
+     BEFORE calling drawOpponentFoundScreen()
+====================================== */
 function waitForOpponent() {
   drawSearchScreen();
+  
   const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
-  statusRef.on('value', (snapshot) => {
+  statusRef.on('value', async (snapshot) => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
+      // Stop listening to status changes
       statusRef.off();
-      drawOpponentFoundScreen();
+      
+      // FETCH OPPONENT DATA BEFORE showing the found screen
+      try {
+        const oppSnapshot = await firebase.database()
+          .ref('snakeGames/' + roomId + '/players/' + opponentId)
+          .once('value');
+        const oppData = oppSnapshot.val();
+        if (oppData && oppData.username) {
+          opponentName = oppData.username;  // now we have the correct opponent name
+        }
+      } catch(e) {
+        console.error("Error reading opponent data: ", e);
+      }
+
+      drawOpponentFoundScreen();  // Now displays the real name
       document.getElementById('copyButton').style.display = 'none';
+
       showOpponentNameTimeout = setTimeout(() => {
         startCountdown();
       }, 2000);
@@ -424,16 +447,23 @@ function waitForOpponent() {
   // Keep an eye on opponent's data for disconnection
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
   oppRef.on('value', (snapshot) => {
-    // If opponent data disappears mid-game, declare auto-win
-    if (!snapshot.exists() && isGameRunning) {
-      opponentDisconnected = true;
-      setGameOver();
+    const oppData = snapshot.val();
+    if (oppData) {
+      opponentSnake = oppData.snake || [];
+      opponentScore = oppData.score || 0;
+      opponentName  = oppData.username || "";
+    } else {
+      // If opponent's node is removed, it means they disconnected
+      if (isGameRunning) {
+        opponentDisconnected = true;
+        setGameOver();
+      }
     }
   });
 }
 
 /* ======================================
-   3. SETUP gameStateRef + LISTENERS
+   4. SETUP gameStateRef + LISTENERS
    (with onDisconnect handling)
 ====================================== */
 function setupGameReferences() {
@@ -459,6 +489,7 @@ function setupGameReferences() {
         snake: initialSnake,
         direction: 'right',
         score: 0,
+        // We store current user's username here
         username: window.currentUser ? window.currentUser.username : 'Unknown'
       }).catch((err) => console.error('Error initializing player data:', err));
 
@@ -466,23 +497,6 @@ function setupGameReferences() {
       playerRef.onDisconnect().remove()
         .then(() => console.log("onDisconnect set for player:", playerId))
         .catch((err) => console.error("Error setting onDisconnect:", err));
-    }
-  });
-
-  // Opponent data changes
-  const oppRef = gameStateRef.child('players').child(opponentId);
-  oppRef.on('value', (snapshot) => {
-    const oppData = snapshot.val();
-    if (oppData) {
-      opponentSnake = oppData.snake || [];
-      opponentScore = oppData.score || 0;
-      opponentName  = oppData.username || "";
-    } else {
-      // If opponent's node is removed, it means they disconnected
-      if (isGameRunning) {
-        opponentDisconnected = true;
-        setGameOver();
-      }
     }
   });
 
@@ -505,7 +519,7 @@ function setupGameReferences() {
 }
 
 /* ======================================
-   4. COUNTDOWN (5...1) and START GAME
+   5. COUNTDOWN (5...1) and START GAME
 ====================================== */
 function startCountdown() {
   countdownValue = 5;
@@ -547,7 +561,7 @@ function launchGame() {
 }
 
 /* ======================================
-   5. GAME LOGIC and RENDER
+   6. GAME LOGIC and RENDER
 ====================================== */
 function startLogicLoop() {
   logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -588,7 +602,7 @@ function renderLoop() {
 }
 
 /* ======================================
-   6. MOVEMENT AND COLLISIONS
+   7. MOVEMENT AND COLLISIONS
 ====================================== */
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
@@ -598,6 +612,7 @@ function moveLocalSnake() {
     case 'up':    head.y--; break;
     case 'down':  head.y++; break;
   }
+  // Wrap around boundaries
   if (head.x < 0) head.x = tileCountX - 1;
   if (head.x >= tileCountX) head.x = 0;
   if (head.y < 0) head.y = tileCountY - 1;
@@ -617,7 +632,7 @@ function checkSelfCollision() {
 }
 
 /* ======================================
-   7. UPDATE STATE IN FIREBASE
+   8. UPDATE STATE IN FIREBASE
 ====================================== */
 function updatePlayerState(ateApple) {
   if (ateApple) {
@@ -641,7 +656,7 @@ function spawnApple() {
 }
 
 /* ======================================
-   8. GAME OVER
+   9. GAME OVER
 ====================================== */
 function setGameOver() {
   isGameOver = true;
@@ -678,7 +693,7 @@ function endGame() {
 }
 
 /* ======================================
-   9. TIMER (1 min)
+   10. TIMER (1 min)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
@@ -696,7 +711,7 @@ function startTimer() {
 }
 
 /* ======================================
-   10. RENDER GAME
+   11. RENDER GAME
 ====================================== */
 function renderGame() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -745,6 +760,7 @@ function renderGame() {
     const oppHead = opponentSnake[0];
     specialCtx.fillStyle = '#FFF';
     specialCtx.font = '12px "Press Start 2P", sans-serif';
+    // Show actual opponentName if available, otherwise Anonymous
     specialCtx.fillText(
       opponentName ? ('@' + opponentName) : '@Anonymous',
       GAME_AREA_X + oppHead.x * gridSize,
@@ -752,7 +768,7 @@ function renderGame() {
     );
   }
 
-  // Local player name
+  // Local player name above head
   if (localSnake.length > 0) {
     const myHead = localSnake[0];
     specialCtx.fillStyle = '#FFF';
@@ -802,7 +818,7 @@ function drawMatrixGrid() {
 }
 
 /* ======================================
-   11. SCREENS: "SEARCHING / WAITING..."
+   12. SCREENS: "SEARCHING / WAITING..."
 ====================================== */
 function drawSearchScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -824,7 +840,7 @@ function drawSearchScreen() {
     specialGameCanvas.height / 2 + 40
   );
 
-  // Hidden link text (just for demonstration)
+  // Hidden link text (just for demonstration, not actually shown)
   specialCtx.save();
   specialCtx.globalAlpha = 0;
   specialCtx.fillText(
@@ -858,6 +874,7 @@ function drawOpponentFoundScreen() {
   specialCtx.fillStyle = '#FF00FF';
   specialCtx.font = '16px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
+  // Use the fetched opponentName
   const displayName = opponentName ? opponentName : "Anonymous";
   specialCtx.fillText(
     'Opponent: @' + displayName,
@@ -867,7 +884,7 @@ function drawOpponentFoundScreen() {
 }
 
 /* ======================================
-   12. COUNTDOWN (5...1) RENDER
+   13. COUNTDOWN (5...1) RENDER
 ====================================== */
 function drawCountdownScreen(value) {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -885,7 +902,7 @@ function drawCountdownScreen(value) {
 }
 
 /* ======================================
-   13. INPUT HANDLING (SWIPE + KEYS)
+   14. INPUT HANDLING (SWIPE + KEYS)
 ====================================== */
 function addSwipeListeners() {
   let touchStartX = null;
@@ -965,7 +982,7 @@ function removeSwipeListeners() {
 }
 
 /* ======================================
-   14. COPY INVITE LINK
+   15. COPY INVITE LINK
 ====================================== */
 function copyInviteLink() {
   if (!inviteLink) return;
@@ -975,7 +992,7 @@ function copyInviteLink() {
 }
 
 /* ======================================
-   15. END GAME MODAL
+   16. END GAME MODAL
 ====================================== */
 function showEndGameModal(title, message) {
   const modal = document.getElementById('endgameBackdrop');
@@ -987,7 +1004,7 @@ function showEndGameModal(title, message) {
 }
 
 /* ======================================
-   16. CONTROL BUTTONS SETUP (OPTIONAL)
+   17. CONTROL BUTTONS SETUP (OPTIONAL)
 ====================================== */
 function setupControlButtons() {
   const buttons = document.querySelectorAll('.control-button');
@@ -1007,7 +1024,7 @@ function setupControlButtons() {
 }
 
 /* ======================================
-   17. CLEANUP ROOM AFTER GAME
+   18. CLEANUP ROOM AFTER GAME
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -1031,7 +1048,7 @@ window.addEventListener('beforeunload', function() {
 });
 
 /* ======================================
-   18. FINISH GAME & RETURN TO MAIN
+   19. FINISH GAME & RETURN TO MAIN
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
@@ -1044,7 +1061,7 @@ function returnToMain() {
 }
 
 /* ======================================
-   19. GAME INIT ON WINDOW LOAD
+   20. GAME INIT ON WINDOW LOAD
 ====================================== */
 window.addEventListener('load', () => {
   // Initialize Firebase
@@ -1083,7 +1100,7 @@ window.addEventListener('load', () => {
 });
 
 /* ======================================
-   20. DPAD CLICK HANDLER (HTML BUTTONS)
+   21. DPAD CLICK HANDLER (HTML BUTTONS)
 ====================================== */
 function changeDirection(newDir) {
   // Prevent 180° turn
@@ -1097,7 +1114,6 @@ function changeDirection(newDir) {
   }
   localDirection = newDir;
 }
-
   </script>
 </body>
 </html>
