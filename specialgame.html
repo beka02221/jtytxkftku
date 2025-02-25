@@ -29,6 +29,7 @@
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
+      overflow: hidden;
     }
     
     #specialGameCanvas {
@@ -36,55 +37,29 @@
       margin: 0 auto;
       background-image: url('1.jpg');
     }
-         
-    /* Контейнер для D-Pad (расположен внизу страницы, по центру) */
-   /* Контейнер для D-Pad */
-.dpad {
-  position: fixed;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30vw;
-  height: 30vw;
-}
-
-/* Кнопки управления */
-.dpad-btn {
-  position: absolute;
-  width: 30%;   /* относительный размер относительно контейнера */
-  height: 30%;
-  background-color: #06B6D1;
-  color: #262626;
-  border: 1px solid #4b4b4b;
-  border-radius: 8px;
-  font-size: 2vw;  /* относительный размер шрифта */
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.1s;
-}
-
-/* Расположение кнопок */
-.dpad-btn.up {
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, 0);
-}
-.dpad-btn.down {
-  bottom: 0;
-  left: 50%;
-  transform: translate(-50%, 0);
-}
-.dpad-btn.left {
-  left: 0;
-  top: 50%;
-  transform: translate(0, -50%);
-}
-.dpad-btn.right {
-  right: 0;
-  top: 50%;
-  transform: translate(0, -50%);
-}
-
+    
+    /* Стили для динамического джойстика */
+    .joystick {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background: rgba(6, 182, 209, 0.5);
+      border-radius: 50%;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .joystick-knob {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: rgba(6, 182, 209, 0.8);
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    
     /* Кнопка для копирования inviteLink */
     #copyButton {
       position: absolute;
@@ -97,16 +72,16 @@
       color: #262626;
       border: 1px solid #4b4b4b;
       border-radius: 4px;
-      padding: 4px 6px;
       box-shadow: 0 3px #6b6b6b;
       cursor: pointer;
     }
-    .copy-button:hover {
+    #copyButton:hover {
       transform: scale(1.05);
     }
-    .copy-button:active {
+    #copyButton:active {
       animation: press 0.15s forwards;
       transform: translateY(1px) scale(1.0);
+      box-shadow: 0 1px #6b6b6b;
     }
     
     /* Модальное окно итогов */
@@ -139,13 +114,11 @@
       animation: blink 1.2s infinite;
     }
     
-    /* =========================
-       Стили для панели управления
-       ========================= */
+    /* Стили для панели управления (оставлены для desktop-клавиатуры) */
     #controlPanel {
       width: 150px;
       height: 150px;
-      margin: 20px auto; /* Центрируем по горизонтали и добавляем отступ сверху/снизу */
+      margin: 20px auto;
       position: relative;
     }
     #controlPanel .control-button {
@@ -162,7 +135,6 @@
       box-shadow: 0 3px #6b6b6b;
       transition: transform 0.1s ease;
     }
-    /* Расположение кнопок в виде плюса */
     #btn-up {
       top: 0;
       left: 50%;
@@ -183,7 +155,6 @@
       top: 50%;
       transform: translateY(-50%);
     }
-    /* Эффекты при наведении и нажатии */
     #controlPanel .control-button:hover {
       transform: scale(1.2);
     }
@@ -198,14 +169,8 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
 
-  <!-- Контейнер для D-Pad (изначально скрыт) -->
-  <div class="dpad" id="dpad" style="display: none;">
-    <button class="dpad-btn up" onclick="changeDirection('up')">↑</button>
-    <button class="dpad-btn left" onclick="changeDirection('left')">←</button>
-    <button class="dpad-btn down" onclick="changeDirection('down')">↓</button>
-    <button class="dpad-btn right" onclick="changeDirection('right')">→</button>
-  </div>
-
+  <!-- Удалён блок D-Pad с кнопками управления -->
+  
   <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
@@ -230,27 +195,13 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Corrected Version
-  Explanation of the main fix:
-  
-  - The original issue was that opponentName would remain empty
-    or default to "@anonymous" because we called 
-    drawOpponentFoundScreen() before 'opponentName' had actually 
-    been loaded from Firebase.  
-
-  - To fix this, we fetch opponent data from 'snakeGames/roomId/players/opponentId' 
-    BEFORE calling drawOpponentFoundScreen() in the waitForOpponent() function. 
-    This ensures that 'opponentName' has the correct value when displayed.
+  Special Snake PvP – Corrected Version with Joystick Control
 ============================================================
 */
 
 /*******************************************************
   FULL UPDATED JAVASCRIPT
-  Includes:
-   1. Auto-win if opponent leaves/refreshes
-   2. Game room cleanup upon game end
-   3. Correct retrieval of real usernames for opponents
- *******************************************************/
+*******************************************************/
 
 // Global Canvas/Context
 let specialGameCanvas;
@@ -316,6 +267,15 @@ let inviteLink = "";
 let opponentDisconnected = false;
 
 /* ======================================
+   Joystick globals
+====================================== */
+let joystickElement = null;
+let joystickKnob = null;
+let joystickCenterX = 0;
+let joystickCenterY = 0;
+const joystickMaxDistance = 30;
+
+/* ======================================
    1. INITIALIZATION & RESET
 ====================================== */
 function initSpecialGame1() {
@@ -326,7 +286,7 @@ function initSpecialGame1() {
   drawWaitingScreen();
 
   findOrCreateRoom();
-  // Set up any control buttons if needed
+  // Убираем старые кнопки управления
   setupControlButtons();
 }
 
@@ -354,10 +314,10 @@ function resetSpecialGame1() {
   timerTotal = 60;
   timerCurrent = 60;
   inviteLink = "";
-  removeSwipeListeners();
-  document.getElementById('dpad').style.display = 'none';
+  removeJoystickListeners();
 }
 
+  
 /* ======================================
    2. ROOM SEARCH / CREATION
 ====================================== */
@@ -407,8 +367,6 @@ function findOrCreateRoom() {
 
 /* ======================================
    3. WAIT FOR OPPONENT
-   - Important fix: Retrieve opponentName 
-     BEFORE calling drawOpponentFoundScreen()
 ====================================== */
 function waitForOpponent() {
   drawSearchScreen();
@@ -427,13 +385,13 @@ function waitForOpponent() {
           .once('value');
         const oppData = oppSnapshot.val();
         if (oppData && oppData.username) {
-          opponentName = oppData.username;  // now we have the correct opponent name
+          opponentName = oppData.username;
         }
       } catch(e) {
         console.error("Error reading opponent data: ", e);
       }
 
-      drawOpponentFoundScreen();  // Now displays the real name
+      drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
 
       showOpponentNameTimeout = setTimeout(() => {
@@ -442,7 +400,7 @@ function waitForOpponent() {
     }
   });
 
-  // Keep an eye on opponent's data for disconnection
+  // Слежение за данными противника (на случай отключения)
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
   oppRef.on('value', (snapshot) => {
     const oppData = snapshot.val();
@@ -451,7 +409,6 @@ function waitForOpponent() {
       opponentScore = oppData.score || 0;
       opponentName  = oppData.username || "";
     } else {
-      // If opponent's node is removed, it means they disconnected
       if (isGameRunning) {
         opponentDisconnected = true;
         setGameOver();
@@ -462,7 +419,6 @@ function waitForOpponent() {
 
 /* ======================================
    4. SETUP gameStateRef + LISTENERS
-   (with onDisconnect handling)
 ====================================== */
 function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
@@ -487,11 +443,9 @@ function setupGameReferences() {
         snake: initialSnake,
         direction: 'right',
         score: 0,
-        // We store current user's username here
         username: window.currentUser ? window.currentUser.username : 'Unknown'
       }).catch((err) => console.error('Error initializing player data:', err));
 
-      // If this player disconnects (refresh/close), remove their data
       playerRef.onDisconnect().remove()
         .then(() => console.log("onDisconnect set for player:", playerId))
         .catch((err) => console.error("Error setting onDisconnect:", err));
@@ -534,8 +488,7 @@ function startCountdown() {
 function launchGame() {
   isGameRunning = true;
   isGameOver = false;
-  // Show D-Pad once the game starts
-  document.getElementById('dpad').style.display = 'block';
+  // Здесь больше не используется фиксированный D-Pad, используется джойстик по касанию
 
   gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
     const data = snapshot.val();
@@ -551,7 +504,7 @@ function launchGame() {
       }
     });
 
-    addSwipeListeners();
+    addJoystickListeners();
     startLogicLoop();
     startTimer();
     requestAnimationFrame(renderLoop);
@@ -610,7 +563,7 @@ function moveLocalSnake() {
     case 'up':    head.y--; break;
     case 'down':  head.y++; break;
   }
-  // Wrap around boundaries
+  // Обработка выхода за границы
   if (head.x < 0) head.x = tileCountX - 1;
   if (head.x >= tileCountX) head.x = 0;
   if (head.y < 0) head.y = tileCountY - 1;
@@ -620,10 +573,8 @@ function moveLocalSnake() {
 }
 
 function checkSelfCollision() {
-  // Отключаем проверку столкновения со своим хвостом
   return false;
 }
-
 
 /* ======================================
    8. UPDATE STATE IN FIREBASE
@@ -662,12 +613,10 @@ function setGameOver() {
 function endGame() {
   stopLogicLoop();
   clearInterval(countdownInterval);
-  // Hide D-Pad
-  document.getElementById('dpad').style.display = 'none';
+  removeJoystick(); // Удаляем джойстик при окончании игры
 
   let resultTitle = 'Game Over';
   if (opponentDisconnected) {
-    // Force a win if opponent left
     resultTitle = 'Opponent Disconnected. You Win!';
   } else {
     if (score > opponentScore) {
@@ -681,13 +630,11 @@ function endGame() {
 
   const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
   showEndGameModal(resultTitle, msg);
-
-  // Clean up game room data
   cleanupRoom();
 }
 
 /* ======================================
-   10. TIMER (1 min)
+   10. TIMER (1 мин)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
@@ -715,19 +662,17 @@ function renderGame() {
   drawMatrixGrid();
 
   // Draw apple
- // Глобально (в начале скрипта)
-let appleImg = new Image();
-appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
-if (appleImg.complete) {
-  specialCtx.drawImage(
-    appleImg,
-    GAME_AREA_X + applePos.x * gridSize,
-    GAME_AREA_Y + applePos.y * gridSize,
-    gridSize,
-    gridSize
-  );
-}
-
+  let appleImg = new Image();
+  appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
+  if (appleImg.complete) {
+    specialCtx.drawImage(
+      appleImg,
+      GAME_AREA_X + applePos.x * gridSize,
+      GAME_AREA_Y + applePos.y * gridSize,
+      gridSize,
+      gridSize
+    );
+  }
 
   // Draw local snake
   specialCtx.fillStyle = snakeColors[playerId] || '#800080';
@@ -756,7 +701,6 @@ if (appleImg.complete) {
     const oppHead = opponentSnake[0];
     specialCtx.fillStyle = '#FFF';
     specialCtx.font = '12px "Press Start 2P", sans-serif';
-    // Show actual opponentName if available, otherwise Anonymous
     specialCtx.fillText(
       opponentName ? ('@' + opponentName) : '@Anonymous',
       GAME_AREA_X + oppHead.x * gridSize,
@@ -829,14 +773,7 @@ function drawSearchScreen() {
     specialGameCanvas.width / 2,
     specialGameCanvas.height / 2
   );
-  specialCtx.font = '10px "Press Start 2P", sans-serif';
-  specialCtx.fillText(
-    ' ',
-    specialGameCanvas.width / 2,
-    specialGameCanvas.height / 2 + 40
-  );
-
-  // Hidden link text (just for demonstration, not actually shown)
+  
   specialCtx.save();
   specialCtx.globalAlpha = 0;
   specialCtx.fillText(
@@ -870,7 +807,6 @@ function drawOpponentFoundScreen() {
   specialCtx.fillStyle = '#FF00FF';
   specialCtx.font = '16px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
-  // Use the fetched opponentName
   const displayName = opponentName ? opponentName : "Anonymous";
   specialCtx.fillText(
     'Opponent: @' + displayName,
@@ -898,26 +834,23 @@ function drawCountdownScreen(value) {
 }
 
 /* ======================================
-   14. INPUT HANDLING (SWIPE + KEYS)
+   14. INPUT HANDLING – JOYSTICK (TOUCH + KEYS)
 ====================================== */
-function addSwipeListeners() {
-  let touchStartX = null;
-  let touchStartY = null;
-
+function addJoystickListeners() {
   function onTouchStart(e) {
     e.preventDefault();
     const touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
+    joystickCenterX = touch.clientX;
+    joystickCenterY = touch.clientY;
+    createJoystick(joystickCenterX, joystickCenterY);
   }
   function onTouchMove(e) {
     e.preventDefault();
-  }
-  function onTouchEnd(e) {
-    if (!touchStartX || !touchStartY) return;
-    const touch = e.changedTouches[0];
-    const dx = touch.clientX - touchStartX;
-    const dy = touch.clientY - touchStartY;
+    const touch = e.touches[0];
+    const dx = touch.clientX - joystickCenterX;
+    const dy = touch.clientY - joystickCenterY;
+    updateJoystickKnob(dx, dy);
+    // Определяем направление на основе большего смещения
     if (Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0 && localDirection !== 'left') {
         localDirection = 'right';
@@ -931,13 +864,18 @@ function addSwipeListeners() {
         localDirection = 'up';
       }
     }
-    touchStartX = null;
-    touchStartY = null;
   }
-
+  function onTouchEnd(e) {
+    e.preventDefault();
+    removeJoystick();
+  }
   specialGameCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  specialGameCanvas.addEventListener('touchmove', onTouchMove,   { passive: false });
-  specialGameCanvas.addEventListener('touchend', onTouchEnd,     { passive: false });
+  specialGameCanvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  specialGameCanvas.addEventListener('touchend', onTouchEnd, { passive: false });
+
+  window.__special_onTouchStart = onTouchStart;
+  window.__special_onTouchMove = onTouchMove;
+  window.__special_onTouchEnd = onTouchEnd;
 
   function onKeyDown(e) {
     switch (e.key) {
@@ -956,25 +894,54 @@ function addSwipeListeners() {
     }
   }
   window.addEventListener('keydown', onKeyDown);
-
-  // Store references so we can remove them later
   window.__special_onKeyDown = onKeyDown;
-  window.__special_onTouchStart = onTouchStart;
-  window.__special_onTouchMove = onTouchMove;
-  window.__special_onTouchEnd = onTouchEnd;
 }
 
-function removeSwipeListeners() {
+function removeJoystickListeners() {
   if (!specialGameCanvas) return;
   specialGameCanvas.removeEventListener('touchstart', window.__special_onTouchStart);
   specialGameCanvas.removeEventListener('touchmove', window.__special_onTouchMove);
   specialGameCanvas.removeEventListener('touchend', window.__special_onTouchEnd);
   window.removeEventListener('keydown', window.__special_onKeyDown);
-
   window.__special_onTouchStart = null;
   window.__special_onTouchMove = null;
   window.__special_onTouchEnd = null;
   window.__special_onKeyDown = null;
+}
+
+/* Функции создания/обновления/удаления джойстика */
+function createJoystick(x, y) {
+  joystickElement = document.createElement('div');
+  joystickElement.className = 'joystick';
+  // Центрируем джойстик: ширина 80px, поэтому смещаем на 40px
+  joystickElement.style.left = (x - 40) + 'px';
+  joystickElement.style.top = (y - 40) + 'px';
+  joystickKnob = document.createElement('div');
+  joystickKnob.className = 'joystick-knob';
+  joystickElement.appendChild(joystickKnob);
+  document.body.appendChild(joystickElement);
+}
+
+function updateJoystickKnob(dx, dy) {
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  let clampedDx = dx;
+  let clampedDy = dy;
+  if (distance > joystickMaxDistance) {
+    const angle = Math.atan2(dy, dx);
+    clampedDx = Math.cos(angle) * joystickMaxDistance;
+    clampedDy = Math.sin(angle) * joystickMaxDistance;
+  }
+  // Базовый центр джойстика равен 40,40; смещаем центр ручки (knob) на (clampedDx, clampedDy)
+  joystickKnob.style.left = (40 + clampedDx - 20) + 'px';
+  joystickKnob.style.top = (40 + clampedDy - 20) + 'px';
+}
+
+function removeJoystick() {
+  if (joystickElement) {
+    joystickElement.remove();
+    joystickElement = null;
+    joystickKnob = null;
+  }
 }
 
 /* ======================================
@@ -1007,7 +974,6 @@ function setupControlButtons() {
   buttons.forEach(button => {
     button.addEventListener('click', () => {
       const newDirection = button.getAttribute('data-direction');
-      // Block 180° turns
       if ((localDirection === 'left'  && newDirection === 'right') ||
           (localDirection === 'right' && newDirection === 'left')  ||
           (localDirection === 'up'    && newDirection === 'down')  ||
@@ -1024,19 +990,16 @@ function setupControlButtons() {
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
-    // Remove room from 'snakeGames'
     firebase.database().ref('snakeGames/' + roomId).remove()
       .then(() => console.log("Game room removed from snakeGames."))
       .catch((err) => console.error("Error removing game room:", err));
 
-    // Remove from matchmaking queue
     firebase.database().ref('snakeQueue/' + roomId).remove()
       .then(() => console.log("Game room removed from snakeQueue."))
       .catch((err) => console.error("Error removing room from snakeQueue:", err));
   }
 }
 
-// OPTIONAL: Force removal of your player data if the page unloads
 window.addEventListener('beforeunload', function() {
   if (roomId && gameStateRef) {
     gameStateRef.child('players').child(playerId).remove();
@@ -1048,7 +1011,6 @@ window.addEventListener('beforeunload', function() {
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
-  // Return to main screen or do whatever
   window.location.href = 'index.html';
 }
 function returnToMain() {
@@ -1060,7 +1022,6 @@ function returnToMain() {
    20. GAME INIT ON WINDOW LOAD
 ====================================== */
 window.addEventListener('load', () => {
-  // Initialize Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
     authDomain: "test-with-likes.firebaseapp.com",
@@ -1075,7 +1036,6 @@ window.addEventListener('load', () => {
     firebase.initializeApp(firebaseConfig);
   }
 
-  // Current user from Telegram or fallback
   if (!window.currentUser) {
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
       const tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -1090,26 +1050,8 @@ window.addEventListener('load', () => {
       };
     }
   }
-
-  // Start the game
   initSpecialGame1();
 });
-
-/* ======================================
-   21. DPAD CLICK HANDLER (HTML BUTTONS)
-====================================== */
-function changeDirection(newDir) {
-  // Prevent 180° turn
-  if (
-    (newDir === 'up'    && localDirection === 'down') ||
-    (newDir === 'down'  && localDirection === 'up')   ||
-    (newDir === 'left'  && localDirection === 'right')||
-    (newDir === 'right' && localDirection === 'left')
-  ) {
-    return;
-  }
-  localDirection = newDir;
-}
   </script>
 </body>
 </html>
