@@ -38,54 +38,52 @@
     }
          
     /* Контейнер для D-Pad (расположен внизу страницы, по центру) */
-    .dpad {
-      position: absolute;
-      bottom: 10px;       /* Расстояние от нижнего края экрана */
-      left: 50%;
-      transform: translateX(-50%);
-      width: 200px;       /* Ширина контейнера (можно менять) */
-      height: 200px;      /* Высота контейнера */
-    }
+   /* Контейнер для D-Pad */
+.dpad {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30vw;
+  height: 30vw;
+}
 
-    /* Общие стили для кнопок управления */
-    .dpad-btn {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      background-color: #06B6D1;  /* Настраиваемый цвет фона */
-      color: #262626;
-      border: 1px solid #4b4b4b;
-      border-radius: 8px;         /* Радиус скругления, можно изменить */
-      font-size: 24px;
-      cursor: pointer;
-      user-select: none;
-      transition: transform 0.1s;
-    }
-    /* Визуальная обратная связь при нажатии */
-    .dpad-btn:active {
-      transform: scale(0.95);
-    }
-    /* Позиционирование кнопок внутри контейнера D-Pad */
-    .dpad-btn.up {
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .dpad-btn.down {
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .dpad-btn.left {
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .dpad-btn.right {
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-    }
+/* Кнопки управления */
+.dpad-btn {
+  position: absolute;
+  width: 30%;   /* относительный размер относительно контейнера */
+  height: 30%;
+  background-color: #06B6D1;
+  color: #262626;
+  border: 1px solid #4b4b4b;
+  border-radius: 8px;
+  font-size: 2vw;  /* относительный размер шрифта */
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+}
+
+/* Расположение кнопок */
+.dpad-btn.up {
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+.dpad-btn.down {
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+.dpad-btn.left {
+  left: 0;
+  top: 50%;
+  transform: translate(0, -50%);
+}
+.dpad-btn.right {
+  right: 0;
+  top: 50%;
+  transform: translate(0, -50%);
+}
 
     /* Кнопка для копирования inviteLink */
     #copyButton {
