@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
@@ -28,15 +28,17 @@
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
+      overflow: hidden;
     }
     
+    /* Canvas для игры */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
       background-image: url('1.jpg');
     }
     
-    /* Стили для кнопки копирования ссылки */
+    /* Кнопка копирования ссылки */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -59,7 +61,7 @@
       transform: translateY(1px) scale(1.0);
     }
     
-    /* Модальное окно итогов */
+    /* Модальные окна (конца игры, ошибки и т.д.) */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -110,7 +112,7 @@
       box-shadow: 0 3px #6b6b6b;
       transition: transform 0.1s ease;
     }
-    /* Расположение кнопок (не используется, если только клавиатура) */
+    /* Расположение кнопок (при необходимости) */
     #btn-up {
       top: 0;
       left: 50%;
@@ -131,7 +133,7 @@
       position: fixed;
       width: 100px;
       height: 100px;
-      margin: -50px 0 0 -50px; /* центрирование базы джойстика */
+      margin: -50px 0 0 -50px;
       background: rgba(100, 100, 100, 0.3);
       border: 2px solid rgba(200, 200, 200, 0.7);
       border-radius: 50%;
@@ -143,7 +145,7 @@
       position: absolute;
       width: 50px;
       height: 50px;
-      margin: -25px 0 0 -25px; /* центрирование стика */
+      margin: -25px 0 0 -25px;
       background: rgba(200, 200, 200, 0.5);
       border: 2px solid rgba(255, 255, 255, 0.8);
       border-radius: 50%;
@@ -151,14 +153,79 @@
       top: 50%;
       touch-action: none;
     }
+    
+    /* ========================================
+       Стили обучающей (landing) страницы
+       ======================================== */
+    #landingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #00103c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 2000;
+      color: #FF00FF;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .landingContent img {
+      max-width: 300px;
+      height: auto;
+      margin-bottom: 20px;
+      border: 2px solid #FF00FF;
+    }
+    .landingContent h1 {
+      margin: 10px 0;
+      font-size: 24px;
+    }
+    .landingContent p {
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .landingContent button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 14px;
+      padding: 10px 20px;
+      margin: 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+      transition: transform 0.1s ease;
+    }
+    .landingContent button:hover {
+      transform: scale(1.05);
+    }
+    .landingContent button:active {
+      transform: translateY(1px);
+    }
   </style>
 </head>
 
 <body>
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
+  
+  <!-- Обучающая страница -->
+  <div id="landingScreen">
+    <div class="landingContent">
+      <img src="game_preview.jpg" alt="Превью игры">
+      <h1>Special Snake PvP</h1>
+      <p>Добро пожаловать в игру! Здесь вы можете поучаствовать в захватывающем PvP-сражении змей. Ознакомьтесь с информацией, а затем начните поиск противника.</p>
+      <button id="startSearchBtn">Начать поиск</button>
+      <button id="cancelSearchBtn" style="display: none;">Отмена поиска</button>
+    </div>
+  </div>
 
-  <!-- Джойстик (будет появляться там, где пользователь начнет касание) -->
+  <!-- Джойстик (для мобильных устройств) -->
   <div id="joystick">
     <div id="joystick-stick"></div>
   </div>
@@ -187,7 +254,7 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Исправленная версия с джойстиком
+  Special Snake PvP – Обновлённая версия с обучающей страницей
 ============================================================
 */
 
@@ -239,6 +306,10 @@ let timerCurrent = 60;
 let logicTimer = null;
 let countdownInterval = null;
 
+// Слушатели Firebase для отмены поиска
+let waitingListener = null;
+let oppListener = null;
+
 // Цвета змейки
 const snakeColors = {
   player1: '#FFFF00', // жёлтый
@@ -263,12 +334,12 @@ function initSpecialGame1() {
 
   resetSpecialGame1();
   drawWaitingScreen();
-
-  findOrCreateRoom();
+  
   // Настраиваем слушатели ввода (джойстик + клавиатура)
   setupControlButtons();
 }
 
+// Обнуление глобальных переменных и остановка таймеров/логики
 function resetSpecialGame1() {
   stopLogicLoop();
   clearInterval(countdownInterval);
@@ -293,6 +364,16 @@ function resetSpecialGame1() {
   timerTotal = 60;
   timerCurrent = 60;
   inviteLink = "";
+  
+  // Отписываем слушатели для отмены поиска, если они были установлены
+  if (waitingListener && roomId) {
+    firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
+    waitingListener = null;
+  }
+  if (oppListener && roomId) {
+    firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId).off('value', oppListener);
+    oppListener = null;
+  }
   removeSwipeListeners();
 }
 
@@ -331,7 +412,7 @@ function findOrCreateRoom() {
           .catch((err) => console.error('Error updating room status:', err));
         setupGameReferences();
       } else {
-        // Создаём новую комнату как player1 с информацией о создателе
+        // Создаём новую комнату как player1
         roomId = queueRef.push().key;
         playerId = 'player1';
         opponentId = 'player2';
@@ -359,11 +440,12 @@ function waitForOpponent() {
   drawSearchScreen();
   
   const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
-  statusRef.on('value', async (snapshot) => {
+  waitingListener = statusRef.on('value', async (snapshot) => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
       // Останавливаем слушание изменений статуса
-      statusRef.off();
+      statusRef.off('value', waitingListener);
+      waitingListener = null;
       
       // Получаем данные противника перед показом экрана
       try {
@@ -389,7 +471,7 @@ function waitForOpponent() {
 
   // Следим за отключением противника
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
-  oppRef.on('value', (snapshot) => {
+  oppListener = oppRef.on('value', (snapshot) => {
     const oppData = snapshot.val();
     if (oppData) {
       opponentSnake = oppData.snake || [];
@@ -765,8 +847,6 @@ function drawSearchScreen() {
 
   specialCtx.font = '8px "Press Start 2P", sans-serif';
   specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 80);
-
-  document.getElementById('copyButton').style.display = 'block';
 }
 
 function drawWaitingScreen() {
@@ -944,7 +1024,30 @@ function setupControlButtons() {
 }
 
 /* ======================================
-   17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+   17. ФУНКЦИЯ ОТМЕНЫ ПОИСКА
+====================================== */
+function cancelSearch() {
+  // Отписываем слушателей поиска
+  if (roomId) {
+    const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
+    if (waitingListener) {
+      statusRef.off('value', waitingListener);
+      waitingListener = null;
+    }
+    const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
+    if (oppListener) {
+      oppRef.off('value', oppListener);
+      oppListener = null;
+    }
+    cleanupRoom();
+  }
+  resetSpecialGame1();
+  document.getElementById('cancelSearchBtn').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+}
+
+/* ======================================
+   18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -965,7 +1068,7 @@ window.addEventListener('beforeunload', function() {
 });
 
 /* ======================================
-   18. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+   19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
@@ -977,7 +1080,20 @@ function returnToMain() {
 }
 
 /* ======================================
-   19. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+   20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+====================================== */
+document.getElementById('startSearchBtn').addEventListener('click', function(){
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('cancelSearchBtn').style.display = 'block';
+  findOrCreateRoom();
+});
+
+document.getElementById('cancelSearchBtn').addEventListener('click', function(){
+  cancelSearch();
+});
+
+/* ======================================
+   21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 ====================================== */
 window.addEventListener('load', () => {
   const firebaseConfig = {
