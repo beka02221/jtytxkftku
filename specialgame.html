@@ -1010,7 +1010,7 @@ function renderGame() {
   // Рисуем бонусы (скорость, заморозка) — картинки-«заглушки»
   if (bonuses.speed) {
     let speedBonusImg = new Image();
-    speedBonusImg.src = 'https://static.planetminecraft.com/files/trophy/lightning-pixel-art-free-vector-removebg-preview.png'; // Замените на свой URL
+    speedBonusImg.src = 'speed.png'; // Замените на свой URL
     if (speedBonusImg.complete) {
       specialCtx.drawImage(
         speedBonusImg,
@@ -1023,7 +1023,7 @@ function renderGame() {
   }
   if (bonuses.freeze) {
     let freezeBonusImg = new Image();
-    freezeBonusImg.src = 'https://art.pixilart.com/5ca436ecd228d13.png'; // Замените на свой URL
+    freezeBonusImg.src = 'snow.png'; // Замените на свой URL
     if (freezeBonusImg.complete) {
       specialCtx.drawImage(
         freezeBonusImg,
