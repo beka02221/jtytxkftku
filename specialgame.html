@@ -38,6 +38,15 @@
       background-image: url('1.jpg');
     }
 
+    /* Элемент с никами под игровым полем */
+    #usernamesDisplay {
+      display: none;
+      text-align: center;
+      font-family: 'Press Start 2P', sans-serif;
+      color: #FFF;
+      margin-top: 10px;
+    }
+
     /* Кнопка копирования ссылки */
     #copyButton {
       position: absolute;
@@ -253,6 +262,12 @@
 <body>
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
+  <!-- Элемент для отображения ников под игровым полем -->
+  <div id="usernamesDisplay">
+    <span id="opponentUsername"></span>
+    <span style="margin: 0 20px;">VS</span>
+    <span id="playerUsername"></span>
+  </div>
 
   <!-- Обучающая страница -->
   <div id="landingScreen">
@@ -302,8 +317,8 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Обновлённая версия с исправлением юзернеймов
-  и плавной анимацией змейки
+  Special Snake PvP – Исправленный код с корректной
+  интерполяцией телепортации и отображением ников
 ============================================================
 */
 
@@ -373,7 +388,7 @@ const snakeColors = {
   player2: '#FF0000'  // red
 };
 
-// Логический интервал (мс) – время между обновлениями логики (будет использоваться для интерполяции)
+// Логический интервал (мс)
 const LOGIC_INTERVAL = 150;
 
 // Пригласительная ссылка
@@ -381,6 +396,21 @@ let inviteLink = "";
 
 // Флаг отключения противника (авто-победа)
 let opponentDisconnected = false;
+
+/* ======================================
+   Вспомогательная функция для интерполяции с учетом wrap-around
+====================================== */
+function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
+  let diff = currVal - prevVal;
+  if (Math.abs(diff) > maxVal / 2) {
+    if (diff > 0) diff -= maxVal;
+    else diff += maxVal;
+  }
+  let interp = prevVal + diff * factor;
+  if (interp < 0) interp += maxVal;
+  if (interp >= maxVal) interp -= maxVal;
+  return interp;
+}
 
 /* ======================================
    1. ИНИЦИАЛИЗАЦИЯ И СБРОС
@@ -422,7 +452,6 @@ function resetSpecialGame1() {
   timerCurrent = 60;
   inviteLink = "";
 
-  // Отписываем слушателей для ожидания, если они были установлены
   if (waitingListener && roomId) {
     firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
     waitingListener = null;
@@ -440,7 +469,6 @@ function resetSpecialGame1() {
 function findOrCreateRoom() {
   const queueRef = firebase.database().ref('snakeQueue');
 
-  // Удаляем все "зависшие" комнаты, созданные этим пользователем
   queueRef.orderByChild('creator').equalTo(window.currentUser.username).once('value')
     .then(snapshot => {
       snapshot.forEach(childSnapshot => {
@@ -451,8 +479,6 @@ function findOrCreateRoom() {
     .then((snapshot) => {
       const queueData = snapshot.val() || {};
       let openRoomKey = null;
-
-      // Ищем комнату со статусом "waiting", созданную другим пользователем
       for (const key in queueData) {
         if (queueData[key].status === 'waiting' && queueData[key].creator !== window.currentUser.username) {
           openRoomKey = key;
@@ -460,7 +486,6 @@ function findOrCreateRoom() {
         }
       }
       if (openRoomKey) {
-        // Присоединяемся как player2
         roomId = openRoomKey;
         playerId = 'player2';
         opponentId = 'player1';
@@ -469,7 +494,6 @@ function findOrCreateRoom() {
           .catch((err) => console.error('Error updating room status:', err));
         setupGameReferences();
       } else {
-        // Создаём новую комнату как player1
         roomId = queueRef.push().key;
         playerId = 'player1';
         opponentId = 'player2';
@@ -478,11 +502,9 @@ function findOrCreateRoom() {
           createdAt: firebase.database.ServerValue.TIMESTAMP,
           creator: window.currentUser.username
         }).catch((err) => console.error('Error creating room:', err));
-        // Удаляем комнату при отключении создателя
         queueRef.child(roomId).onDisconnect().remove();
         setupGameReferences();
       }
-      // Генерируем ссылку-приглашение
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
       waitForOpponent();
@@ -500,11 +522,8 @@ function waitForOpponent() {
   waitingListener = statusRef.on('value', async (snapshot) => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
-      // Останавливаем слушание изменений статуса
       statusRef.off('value', waitingListener);
       waitingListener = null;
-
-      // Получаем данные противника перед показом экрана
       try {
         const oppSnapshot = await firebase.database()
           .ref('snakeGames/' + roomId + '/players/' + opponentId)
@@ -526,12 +545,10 @@ function waitForOpponent() {
     }
   });
 
-  // Следим за отключением противника и обновлением его данных
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
   oppListener = oppRef.on('value', (snapshot) => {
     const oppData = snapshot.val();
     if (oppData) {
-      // Сохраняем предыдущие координаты для плавной анимации
       previousOpponentSnake = opponentSnake.length ? opponentSnake.map(seg => ({...seg})) : (oppData.snake || []);
       opponentSnake = oppData.snake || [];
       opponentScore = oppData.score || 0;
@@ -568,7 +585,6 @@ function setupGameReferences() {
         { x: startX - 1, y: startY },
         { x: startX - 2, y: startY }
       ];
-      // Если имя пустое, используем дефолтное "Player"
       playerRef.set({
         snake: initialSnake,
         direction: 'right',
@@ -625,7 +641,6 @@ function launchGame() {
     localDirection = (data && data.direction) ? data.direction : 'right';
     score = (data && data.score) ? data.score : 0;
     
-    // Инициализируем предыдущие координаты для плавной анимации
     previousSnake = localSnake.map(seg => ({...seg}));
     lastLogicUpdateTime = performance.now();
 
@@ -639,6 +654,9 @@ function launchGame() {
     startLogicLoop();
     startTimer();
     requestAnimationFrame(renderLoop);
+    
+    // Обновляем блок с никами под игровым полем
+    updateUsernamesDisplay();
   });
 }
 
@@ -659,7 +677,6 @@ function stopLogicLoop() {
 function gameLogicUpdate() {
   if (!isGameRunning || isGameOver) return;
 
-  // Сохраняем текущее состояние для интерполяции
   previousSnake = localSnake.map(seg => ({...seg}));
   moveLocalSnake();
   lastLogicUpdateTime = performance.now();
@@ -697,7 +714,6 @@ function moveLocalSnake() {
     case 'up':    head.y--; break;
     case 'down':  head.y++; break;
   }
-  // Обход границ
   if (head.x < 0) head.x = tileCountX - 1;
   if (head.x >= tileCountX) head.x = 0;
   if (head.y < 0) head.y = tileCountY - 1;
@@ -707,7 +723,6 @@ function moveLocalSnake() {
 }
 
 function checkSelfCollision() {
-  // Здесь можно добавить логику столкновения с самим собой
   return false;
 }
 
@@ -760,7 +775,6 @@ function endGame() {
       resultTitle = 'Draw';
     }
   }
-
   const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
   showEndGameModal(resultTitle, msg);
   cleanupRoom();
@@ -794,11 +808,10 @@ function renderGame() {
 
   drawMatrixGrid();
 
-  // Расчёт интерполяционного коэффициента для локальной змейки
   let now = performance.now();
   let factor = Math.min((now - lastLogicUpdateTime) / LOGIC_INTERVAL, 1);
 
-  // Рисуем яблоко (без интерполяции)
+  // Рисуем яблоко
   let appleImg = new Image();
   appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
   if (appleImg.complete) {
@@ -811,12 +824,12 @@ function renderGame() {
     );
   }
 
-  // Рисуем локальную змейку с интерполяцией и обводкой
+  // Рисуем локальную змейку с интерполяцией
   for (let i = 0; i < localSnake.length; i++) {
     let curr = localSnake[i];
     let prev = previousSnake[i] || curr;
-    let interpX = prev.x + (curr.x - prev.x) * factor;
-    let interpY = prev.y + (curr.y - prev.y) * factor;
+    let interpX = interpolateCoordinate(prev.x, curr.x, factor, tileCountX);
+    let interpY = interpolateCoordinate(prev.y, curr.y, factor, tileCountY);
     let x = GAME_AREA_X + interpX * gridSize;
     let y = GAME_AREA_Y + interpY * gridSize;
     specialCtx.fillStyle = snakeColors[playerId] || '#800080';
@@ -826,14 +839,13 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
 
-  // Расчёт интерполяционного коэффициента для змейки противника
+  // Интерполяция для змейки противника
   let opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
-  // Рисуем змейку противника с интерполяцией и обводкой
   for (let i = 0; i < opponentSnake.length; i++) {
     let curr = opponentSnake[i];
     let prev = previousOpponentSnake[i] || curr;
-    let interpX = prev.x + (curr.x - prev.x) * opponentFactor;
-    let interpY = prev.y + (curr.y - prev.y) * opponentFactor;
+    let interpX = interpolateCoordinate(prev.x, curr.x, opponentFactor, tileCountX);
+    let interpY = interpolateCoordinate(prev.y, curr.y, opponentFactor, tileCountY);
     let x = GAME_AREA_X + interpX * gridSize;
     let y = GAME_AREA_Y + interpY * gridSize;
     specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
@@ -843,27 +855,27 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
 
-  // Имя противника над головой (используем интерполированную позицию головы)
+  // Отображение имени противника над головой
   if (opponentSnake.length > 0) {
     let curr = opponentSnake[0];
     let prev = previousOpponentSnake[0] || curr;
-    let interpX = prev.x + (curr.x - prev.x) * opponentFactor;
-    let interpY = prev.y + (curr.y - prev.y) * opponentFactor;
+    let interpX = interpolateCoordinate(prev.x, curr.x, opponentFactor, tileCountX);
+    let interpY = interpolateCoordinate(prev.y, curr.y, opponentFactor, tileCountY);
     specialCtx.fillStyle = '#FFF';
     specialCtx.font = '12px "Press Start 2P", sans-serif';
     specialCtx.fillText(
-      '@' + (opponentName && opponentName.trim() !== "" ? opponentName : 'Anonymous'),
+      '@' + ((opponentName && opponentName.trim() !== "") ? opponentName : 'Anonymous'),
       GAME_AREA_X + interpX * gridSize,
       GAME_AREA_Y + interpY * gridSize - 5
     );
   }
 
-  // Имя игрока над головой (используем интерполированную позицию головы)
+  // Отображение имени игрока над головой
   if (localSnake.length > 0) {
     let curr = localSnake[0];
     let prev = previousSnake[0] || curr;
-    let interpX = prev.x + (curr.x - prev.x) * factor;
-    let interpY = prev.y + (curr.y - prev.y) * factor;
+    let interpX = interpolateCoordinate(prev.x, curr.x, factor, tileCountX);
+    let interpY = interpolateCoordinate(prev.y, curr.y, factor, tileCountY);
     specialCtx.fillStyle = '#FFF';
     specialCtx.font = '12px "Press Start 2P", sans-serif';
     const myName = (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'You';
@@ -880,7 +892,7 @@ function renderGame() {
   specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
   specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
 
-  // Таймер (в виде полоски)
+  // Таймер (полоска)
   const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
   specialCtx.fillStyle = '#FF00FF';
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -963,7 +975,6 @@ function drawCountdownScreen(value) {
    13. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
 ====================================== */
 function addSwipeListeners() {
-  // Обработчик для клавиатуры (для десктопа)
   function onKeyDown(e) {
     switch (e.key) {
       case 'ArrowLeft':
@@ -983,7 +994,6 @@ function addSwipeListeners() {
   window.addEventListener('keydown', onKeyDown);
   window.__joystick_keydown = onKeyDown;
 
-  // Для мобильных устройств — джойстик, который появляется там, где начинается касание
   const canvas = specialGameCanvas;
   const joystick = document.getElementById('joystick');
   const joystickStick = document.getElementById('joystick-stick');
@@ -1018,7 +1028,6 @@ function addSwipeListeners() {
         dy = Math.sin(angle) * maxDistance;
       }
       joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
-      // Определяем направление по наибольшему смещению
       if (Math.abs(dx) > Math.abs(dy)) {
         if (dx > 0 && localDirection !== 'left') {
           localDirection = 'right';
@@ -1086,7 +1095,7 @@ function showEndGameModal(title, message) {
 }
 
 /* ======================================
-   16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ (ДЛЯ КЛАВИАТУРЫ)
+   16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
 ====================================== */
 function setupControlButtons() {
   const buttons = document.querySelectorAll('.control-button');
@@ -1141,14 +1150,11 @@ function returnToMain() {
    19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
 ====================================== */
 document.getElementById('startSearchBtn').addEventListener('click', function(){
-  // При старте поиска скрываем обучающий экран (включая шапку с языком и кнопку "Back")
   document.getElementById('landingScreen').style.display = 'none';
-  // Показываем кнопку "Back" для поиска, которая обновляет страницу
   document.getElementById('searchBackBtn').style.display = 'block';
   findOrCreateRoom();
 });
 
-// Кнопка "Back" во время поиска — обновляет страницу
 document.getElementById('searchBackBtn').addEventListener('click', function(){
   window.location.reload();
 });
@@ -1187,12 +1193,10 @@ window.addEventListener('load', () => {
   }
 
   initSpecialGame1();
-
-  // Инициализируем тексты в соответствии с текущим языком
   updateLanguageTexts();
 });
 
-// Функция смены направления (используется для кнопок управления)
+// Функция смены направления
 function changeDirection(newDir) {
   if (
     (newDir === 'up'    && localDirection === 'down') ||
@@ -1206,7 +1210,7 @@ function changeDirection(newDir) {
 }
 
 /* ======================================
-   21. ФУНКЦИИ ДЛЯ РЕАЛИЗАЦИИ СМЕНЫ ЯЗЫКА
+   21. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА
 ====================================== */
 let currentLanguage = "en";
 const languageStrings = {
@@ -1242,6 +1246,19 @@ document.getElementById('langToggleBtn').addEventListener('click', function() {
 document.getElementById('homeBackBtn').addEventListener('click', function() {
   window.location.href = 'index.html';
 });
+
+/* ======================================
+   22. ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ НИКОВ ПОД ИГРОВЫМ ПОЛЕМ
+====================================== */
+function updateUsernamesDisplay() {
+  const opponentDisplay = document.getElementById('opponentUsername');
+  const playerDisplay = document.getElementById('playerUsername');
+  opponentDisplay.textContent = '@' + ((opponentName && opponentName.trim() !== "") ? opponentName : 'Anonymous');
+  const myName = (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'You';
+  playerDisplay.textContent = '@' + myName;
+  document.getElementById('usernamesDisplay').style.display = 'block';
+}
   </script>
 </body>
 </html>
+
