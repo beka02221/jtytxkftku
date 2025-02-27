@@ -328,7 +328,7 @@ const translations = {
     notEnoughTickets: "Not enough tickets",
     notEnoughTicketsText: "You do not have enough tickets to join the game.",
     returnBtn: "Return",
-    back: "Back" // универсальный текст
+    back: "Back"
   },
   ru: {
     landingTitle: "Special Snake PvP",
@@ -402,7 +402,7 @@ function toggleLanguage() {
 
 /* 
 ============================================================
-  3. ОСНОВНОЙ ИГРОВОЙ КОД (ваш оригинальный, адаптированный)
+  3. ОСНОВНОЙ ИГРОВОЙ КОД (адаптированный)
 ============================================================
 */
 
@@ -440,6 +440,18 @@ let opponentName = '';
 // Позиция яблока
 let applePos = { x: 0, y: 0 };
 
+// Бонусы (ускорение и заморозка)
+let bonuses = {
+  speed: null,   // { x, y }
+  freeze: null   // { x, y }
+};
+
+// Локальные флаги бафов (когда истекают)
+let localSpeedUntil = 0;
+let localFrozenUntil = 0;
+let opponentSpeedUntil = 0;
+let opponentFrozenUntil = 0;
+
 // Флаги игры
 let isGameRunning = false;
 let isGameOver = false;
@@ -459,13 +471,12 @@ let waitingListener = null;
 let oppListener = null;
 
 // Цвета змейки
-const snakeColors = {
-  player1: '#FFFF00', // жёлтый
-  player2: '#FF0000'  // красный
-};
+// (Вместо статичных жёлтого/красного теперь мы будем учитывать активные эффекты)
+const defaultColorPlayer1 = '#FFFF00';
+const defaultColorPlayer2 = '#FF0000';
 
 // Логический интервал (мс)
-const LOGIC_INTERVAL = 150;
+let LOGIC_INTERVAL = 150;
 
 // Пригласительная ссылка
 let inviteLink = "";
@@ -512,7 +523,14 @@ function resetSpecialGame1() {
   timerTotal = 60;
   timerCurrent = 60;
   inviteLink = "";
-  
+
+  // Сбрасываем бонусы и локальные времена
+  bonuses = { speed: null, freeze: null };
+  localSpeedUntil = 0;
+  localFrozenUntil = 0;
+  opponentSpeedUntil = 0;
+  opponentFrozenUntil = 0;
+
   if (waitingListener && roomId) {
     firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
     waitingListener = null;
@@ -616,7 +634,7 @@ function waitForOpponent() {
     }
   });
 
-  // Следим за отключением противника
+  // Следим за отключением противника + читаем данные соперника
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
   oppListener = oppRef.on('value', (snapshot) => {
     const oppData = snapshot.val();
@@ -624,7 +642,12 @@ function waitForOpponent() {
       opponentSnake = oppData.snake || [];
       opponentScore = oppData.score || 0;
       opponentName  = oppData.username || "";
+
+      // Читаем бафы соперника
+      opponentSpeedUntil = oppData.speedUntil || 0;
+      opponentFrozenUntil = oppData.frozenUntil || 0;
     } else {
+      // Если запись пропала - соперник отключился
       if (isGameRunning) {
         opponentDisconnected = true;
         setGameOver();
@@ -640,6 +663,7 @@ function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
   const playerRef = gameStateRef.child('players').child(playerId);
 
+  // Создаём начальные данные игрока (если нет)
   playerRef.once('value').then((snapshot) => {
     if (!snapshot.exists()) {
       let startX, startY;
@@ -659,7 +683,9 @@ function setupGameReferences() {
         snake: initialSnake,
         direction: 'right',
         score: 0,
-        username: window.currentUser ? window.currentUser.username : 'Unknown'
+        username: window.currentUser ? window.currentUser.username : 'Unknown',
+        speedUntil: 0,
+        frozenUntil: 0
       }).catch((err) => console.error('Error initializing player data:', err));
 
       playerRef.onDisconnect().remove()
@@ -668,6 +694,7 @@ function setupGameReferences() {
     }
   });
 
+  // Слушаем позицию яблока
   gameStateRef.child('apple').on('value', (snapshot) => {
     const aData = snapshot.val() || {};
     if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -676,6 +703,15 @@ function setupGameReferences() {
     }
   });
 
+  // Слушаем бонусы
+  gameStateRef.child('bonuses').on('value', (snapshot) => {
+    const bData = snapshot.val() || {};
+    // Допускаем, что может не быть отдельных бонусов
+    bonuses.speed = bData.speed || null;
+    bonuses.freeze = bData.freeze || null;
+  });
+
+  // Слушаем флаг gameOver
   gameStateRef.child('gameOver').on('value', (snapshot) => {
     if (snapshot.val() === true && !isGameOver) {
       isGameOver = true;
@@ -703,6 +739,7 @@ function launchGame() {
   isGameRunning = true;
   isGameOver = false;
 
+  // Подтягиваем локальные данные (змейку, бафы, очки)
   gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
     const data = snapshot.val();
     if (data && data.snake) {
@@ -710,12 +747,18 @@ function launchGame() {
     }
     localDirection = (data && data.direction) ? data.direction : 'right';
     score = (data && data.score) ? data.score : 0;
+    localSpeedUntil = (data && data.speedUntil) ? data.speedUntil : 0;
+    localFrozenUntil = (data && data.frozenUntil) ? data.frozenUntil : 0;
 
+    // Если яблока ещё нет – спавним
     gameStateRef.child('apple').once('value').then((appleSnap) => {
       if (!appleSnap.exists()) {
         spawnApple();
       }
     });
+
+    // Спавним бонусы (если их нет)
+    spawnBonuses();
 
     addSwipeListeners();
     startLogicLoop();
@@ -741,20 +784,35 @@ function stopLogicLoop() {
 function gameLogicUpdate() {
   if (!isGameRunning || isGameOver) return;
 
-  moveLocalSnake();
-
-  if (checkSelfCollision()) {
-    setGameOver();
+  // Если заморожены - не двигаемся
+  if (Date.now() < localFrozenUntil) {
+    // Заморожен, пропускаем ход
+    updatePlayerState(false);
     return;
   }
 
-  const head = localSnake[0];
-  if (head.x === applePos.x && head.y === applePos.y) {
-    score++;
-    updatePlayerState(true);
-    spawnApple();
-  } else {
-    updatePlayerState(false);
+  // Если ускорены - двигаемся дважды
+  let moves = 1;
+  if (Date.now() < localSpeedUntil) {
+    moves = 2; 
+  }
+  
+  for (let i = 0; i < moves; i++) {
+    moveLocalSnake();
+    if (checkSelfCollision()) {
+      setGameOver();
+      return;
+    }
+    // Проверяем, не подобрали ли яблоко или бонусы
+    let ateApple = false;
+    const head = localSnake[0];
+    if (head.x === applePos.x && head.y === applePos.y) {
+      ateApple = true;
+      score++;
+      spawnApple();
+    }
+    checkBonusPickup(head);
+    updatePlayerState(ateApple);
   }
 }
 
@@ -763,6 +821,71 @@ function renderLoop() {
   if (!isGameOver) {
     requestAnimationFrame(renderLoop);
   }
+}
+
+/* ======================================
+   СПАВН ЯБЛОКА И БОНУСОВ
+====================================== */
+function spawnApple() {
+  const newApple = {
+    x: Math.floor(Math.random() * tileCountX),
+    y: Math.floor(Math.random() * tileCountY)
+  };
+  gameStateRef.child('apple').set(newApple)
+    .catch((err) => console.error('Error setting apple:', err));
+}
+
+function spawnBonuses() {
+  // Проверяем, есть ли уже
+  gameStateRef.child('bonuses').once('value').then((snapshot) => {
+    const bData = snapshot.val() || {};
+    const needSpeed = !bData || !bData.speed;
+    const needFreeze = !bData || !bData.freeze;
+    
+    // Спавним только если их нет
+    let updates = {};
+    if (needSpeed) {
+      updates['speed'] = {
+        x: Math.floor(Math.random() * tileCountX),
+        y: Math.floor(Math.random() * tileCountY)
+      };
+    }
+    if (needFreeze) {
+      updates['freeze'] = {
+        x: Math.floor(Math.random() * tileCountX),
+        y: Math.floor(Math.random() * tileCountY)
+      };
+    }
+    if (Object.keys(updates).length > 0) {
+      gameStateRef.child('bonuses').update(updates);
+    }
+  });
+}
+
+/* Проверяем, не подобрали ли бонус */
+function checkBonusPickup(head) {
+  for (let bonusType in bonuses) {
+    const bonusPos = bonuses[bonusType];
+    if (bonusPos && head.x === bonusPos.x && head.y === bonusPos.y) {
+      onLocalPickupBonus(bonusType);
+    }
+  }
+}
+
+/* При подборе бонуса */
+function onLocalPickupBonus(bonusType) {
+  if (bonusType === 'speed') {
+    // Ускоряем себя на 5 секунд
+    const newTime = Date.now() + 5000;
+    gameStateRef.child('players').child(playerId).update({ speedUntil: newTime });
+  } else if (bonusType === 'freeze') {
+    // Замораживаем соперника на 5 секунд
+    const newTime = Date.now() + 5000;
+    gameStateRef.child('players').child(opponentId).update({ frozenUntil: newTime });
+  }
+  
+  // Удаляем бонус из БД, чтобы он пропал с поля
+  gameStateRef.child('bonuses').child(bonusType).remove();
 }
 
 /* ======================================
@@ -786,7 +909,13 @@ function moveLocalSnake() {
 }
 
 function checkSelfCollision() {
-  // Доп. логика на самопересечение, при необходимости
+  // Если голова змейки пересекается с её телом (кроме первого сегмента)
+  const head = localSnake[0];
+  for (let i = 1; i < localSnake.length; i++) {
+    if (localSnake[i].x === head.x && localSnake[i].y === head.y) {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -803,15 +932,6 @@ function updatePlayerState(ateApple) {
     direction: localDirection,
     score: score
   }).catch((err) => console.error('Error updating player state:', err));
-}
-
-function spawnApple() {
-  const newApple = {
-    x: Math.floor(Math.random() * tileCountX),
-    y: Math.floor(Math.random() * tileCountY)
-  };
-  gameStateRef.child('apple').set(newApple)
-    .catch((err) => console.error('Error setting apple:', err));
 }
 
 /* ======================================
@@ -876,8 +996,7 @@ function renderGame() {
 
   // Рисуем яблоко
   let appleImg = new Image();
-  // Пример звезды (или поменяйте на вашу иконку)
-  appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
+  appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png'; // Демонстрационный урл
   if (appleImg.complete) {
     specialCtx.drawImage(
       appleImg,
@@ -888,27 +1007,39 @@ function renderGame() {
     );
   }
 
+  // Рисуем бонусы (скорость, заморозка) — картинки-«заглушки»
+  if (bonuses.speed) {
+    let speedBonusImg = new Image();
+    speedBonusImg.src = 'https://static.planetminecraft.com/files/trophy/lightning-pixel-art-free-vector-removebg-preview.png'; // Замените на свой URL
+    if (speedBonusImg.complete) {
+      specialCtx.drawImage(
+        speedBonusImg,
+        GAME_AREA_X + bonuses.speed.x * gridSize,
+        GAME_AREA_Y + bonuses.speed.y * gridSize,
+        gridSize,
+        gridSize
+      );
+    }
+  }
+  if (bonuses.freeze) {
+    let freezeBonusImg = new Image();
+    freezeBonusImg.src = 'https://art.pixilart.com/5ca436ecd228d13.png'; // Замените на свой URL
+    if (freezeBonusImg.complete) {
+      specialCtx.drawImage(
+        freezeBonusImg,
+        GAME_AREA_X + bonuses.freeze.x * gridSize,
+        GAME_AREA_Y + bonuses.freeze.y * gridSize,
+        gridSize,
+        gridSize
+      );
+    }
+  }
+
   // Рисуем локальную змейку
-  localSnake.forEach(seg => {
-    const x = GAME_AREA_X + seg.x * gridSize;
-    const y = GAME_AREA_Y + seg.y * gridSize;
-    specialCtx.fillStyle = snakeColors[playerId] || '#800080';
-    specialCtx.fillRect(x, y, gridSize, gridSize);
-    specialCtx.strokeStyle = '#000';
-    specialCtx.lineWidth = 2;
-    specialCtx.strokeRect(x, y, gridSize, gridSize);
-  });
+  drawSnake(localSnake, getPlayerColor(playerId, Date.now() < localFrozenUntil, Date.now() < localSpeedUntil));
 
   // Рисуем змейку противника
-  opponentSnake.forEach(seg => {
-    const x = GAME_AREA_X + seg.x * gridSize;
-    const y = GAME_AREA_Y + seg.y * gridSize;
-    specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
-    specialCtx.fillRect(x, y, gridSize, gridSize);
-    specialCtx.strokeStyle = '#000';
-    specialCtx.lineWidth = 2;
-    specialCtx.strokeRect(x, y, gridSize, gridSize);
-  });
+  drawSnake(opponentSnake, getPlayerColor(opponentId, Date.now() < opponentFrozenUntil, Date.now() < opponentSpeedUntil));
 
   // Имя противника над головой
   if (opponentSnake.length > 0) {
@@ -947,6 +1078,7 @@ function renderGame() {
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
 }
 
+/* Рисуем сетку */
 function drawMatrixGrid() {
   specialCtx.fillStyle = '#433171';
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
@@ -969,6 +1101,32 @@ function drawMatrixGrid() {
   specialCtx.strokeStyle = '#8F509D';
   specialCtx.lineWidth = 2;
   specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
+}
+
+/* Рисуем змейку (учитывая её цвет) */
+function drawSnake(snakeArray, color) {
+  snakeArray.forEach(seg => {
+    const x = GAME_AREA_X + seg.x * gridSize;
+    const y = GAME_AREA_Y + seg.y * gridSize;
+    specialCtx.fillStyle = color;
+    specialCtx.fillRect(x, y, gridSize, gridSize);
+    specialCtx.strokeStyle = '#000';
+    specialCtx.lineWidth = 2;
+    specialCtx.strokeRect(x, y, gridSize, gridSize);
+  });
+}
+
+/* Получаем цвет в зависимости от бафов */
+function getPlayerColor(id, isFrozen, isSpeed) {
+  // Высший приоритет — заморозка (сделаем, например, голубой)
+  if (isFrozen) return '#00FFFF';
+  // Второй приоритет — ускорение (сделаем, например, оранжевый)
+  if (isSpeed) return '#FFA500';
+  
+  // Иначе возвращаем дефолтный
+  if (id === 'player1') return defaultColorPlayer1;
+  if (id === 'player2') return defaultColorPlayer2;
+  return '#FFFFFF'; 
 }
 
 /* ======================================
@@ -1046,7 +1204,7 @@ function addSwipeListeners() {
   window.addEventListener('keydown', onKeyDown);
   window.__joystick_keydown = onKeyDown;
   
-  // Джойстик
+  // Джойстик (для сенсорных экранов)
   const canvas = specialGameCanvas;
   const joystick = document.getElementById('joystick');
   const joystickStick = document.getElementById('joystick-stick');
@@ -1124,6 +1282,18 @@ function removeSwipeListeners() {
   window.__joystick_touchmove = null;
   window.__joystick_touchend = null;
   window.__joystick_keydown = null;
+}
+
+function changeDirection(newDir) {
+  if (
+    (newDir === 'up'    && localDirection === 'down') ||
+    (newDir === 'down'  && localDirection === 'up')   ||
+    (newDir === 'left'  && localDirection === 'right')||
+    (newDir === 'right' && localDirection === 'left')
+  ) {
+    return;
+  }
+  localDirection = newDir;
 }
 
 /* ======================================
@@ -1235,7 +1405,7 @@ document.getElementById('startSearchBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('cancelSearchBtn').style.display = 'block';
   
-  // Прячем кнопку переключения языка (согласно требованию)
+  // Прячем кнопку переключения языка
   document.getElementById('toggleLanguageBtn').style.display = 'none';
   
   // Меняем кнопку Back: скрываем backToIndexBtn, показываем backToRefreshBtn
@@ -1307,18 +1477,6 @@ window.addEventListener('load', () => {
   // Устанавливаем язык по умолчанию (en) и обновляем текст
   updateLanguageText(currentLanguage);
 });
-
-function changeDirection(newDir) {
-  if (
-    (newDir === 'up'    && localDirection === 'down') ||
-    (newDir === 'down'  && localDirection === 'up')   ||
-    (newDir === 'left'  && localDirection === 'right')||
-    (newDir === 'right' && localDirection === 'left')
-  ) {
-    return;
-  }
-  localDirection = newDir;
-}
   </script>
 </body>
 </html>
