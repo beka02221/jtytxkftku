@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" 
-        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
   
   <!-- Font: Press Start 2P -->
@@ -29,7 +28,6 @@
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
-      overflow: hidden;
     }
     
     #specialGameCanvas {
@@ -38,29 +36,7 @@
       background-image: url('1.jpg');
     }
     
-    /* Стили для динамического джойстика */
-    .joystick {
-      position: absolute;
-      width: 80px;
-      height: 80px;
-      background: rgba(6, 182, 209, 0.5);
-      border-radius: 50%;
-      z-index: 1000;
-      pointer-events: none;
-    }
-    .joystick-knob {
-      position: absolute;
-      width: 40px;
-      height: 40px;
-      background: rgba(6, 182, 209, 0.8);
-      border-radius: 50%;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-    
-    /* Кнопка для копирования inviteLink */
+    /* Стили для кнопки копирования ссылки */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -81,7 +57,6 @@
     #copyButton:active {
       animation: press 0.15s forwards;
       transform: translateY(1px) scale(1.0);
-      box-shadow: 0 1px #6b6b6b;
     }
     
     /* Модальное окно итогов */
@@ -114,7 +89,7 @@
       animation: blink 1.2s infinite;
     }
     
-    /* Стили для панели управления (оставлены для desktop-клавиатуры) */
+    /* Стили для панели управления (если используются клавиши) */
     #controlPanel {
       width: 150px;
       height: 150px;
@@ -135,32 +110,46 @@
       box-shadow: 0 3px #6b6b6b;
       transition: transform 0.1s ease;
     }
+    /* Расположение кнопок (не используется, если только клавиатура) */
     #btn-up {
       top: 0;
       left: 50%;
       transform: translateX(-50%);
     }
-    .dpad-btn.down {
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    #btn-left {
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    #btn-right {
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    #controlPanel .control-button:hover {
+    .control-button:hover {
       transform: scale(1.2);
     }
-    #controlPanel .control-button:active {
+    .control-button:active {
       transform: translateY(1px) scale(1);
       box-shadow: 0 1px #6b6b6b;
+    }
+    
+    /* ================
+       Стили джойстика
+       ================ */
+    #joystick {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      margin: -50px 0 0 -50px; /* центрирование базы джойстика */
+      background: rgba(100, 100, 100, 0.3);
+      border: 2px solid rgba(200, 200, 200, 0.7);
+      border-radius: 50%;
+      display: none;
+      z-index: 1000;
+      touch-action: none;
+    }
+    #joystick-stick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px; /* центрирование стика */
+      background: rgba(200, 200, 200, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      touch-action: none;
     }
   </style>
 </head>
@@ -169,8 +158,19 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
 
-  <!-- Удалён блок D-Pad с кнопками управления -->
-  
+  <!-- Убираем старый контейнер D-Pad -->
+  <!-- <div class="dpad" id="dpad" style="display: none;">
+    <button class="dpad-btn up" onclick="changeDirection('up')">↑</button>
+    <button class="dpad-btn left" onclick="changeDirection('left')">←</button>
+    <button class="dpad-btn down" onclick="changeDirection('down')">↓</button>
+    <button class="dpad-btn right" onclick="changeDirection('right')">→</button>
+  </div> -->
+
+  <!-- Джойстик (будет появляться там, где пользователь начнет касание) -->
+  <div id="joystick">
+    <div id="joystick-stick"></div>
+  </div>
+
   <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
   
@@ -195,88 +195,75 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Corrected Version with Joystick Control
+  Special Snake PvP – Исправленная версия с джойстиком
 ============================================================
 */
 
-/*******************************************************
-  FULL UPDATED JAVASCRIPT
-*******************************************************/
-
-// Global Canvas/Context
+// Глобальные переменные для canvas и контекста
 let specialGameCanvas;
 let specialCtx;
 
-// Game area (centered on canvas)
+// Область игры (центрированная на canvas)
 const GAME_AREA_X = 50;
 const GAME_AREA_Y = 50;
 const GAME_AREA_WIDTH = 300;
 const GAME_AREA_HEIGHT = 500;
 
-// Grid settings
+// Настройки сетки
 const gridSize = 20;
 const tileCountX = GAME_AREA_WIDTH / gridSize;  
 const tileCountY = GAME_AREA_HEIGHT / gridSize; 
 
-// Room and player IDs
+// Идентификаторы комнаты и игроков
 let roomId = null;
 let playerId = null;
 let opponentId = null;
 let gameStateRef = null;
 
-// Local snake state
+// Локальное состояние змейки
 let localSnake = [];
 let localDirection = 'right';
 let score = 0;
 
-// Opponent snake state
+// Состояние змейки противника
 let opponentSnake = [];
 let opponentScore = 0;
 let opponentName = '';
 
-// Apple position
+// Позиция яблока
 let applePos = { x: 0, y: 0 };
 
-// Game flags
+// Флаги игры
 let isGameRunning = false;
 let isGameOver = false;
 let countdownValue = 5;
 let showOpponentNameTimeout = null;
 
-// Timer (1 минута)
+// Таймер (1 минута)
 let timerTotal = 60;
 let timerCurrent = 60;
 
-// Intervals
+// Интервалы
 let logicTimer = null;
 let countdownInterval = null;
 
-// Snake colors
+// Цвета змейки
 const snakeColors = {
-  player1: '#FFFF00', // yellow
-  player2: '#FF0000'  // red
+  player1: '#FFFF00', // жёлтый
+  player2: '#FF0000'  // красный
 };
 
-// Logic interval (ms)
+// Логический интервал (мс)
 const LOGIC_INTERVAL = 150;
 
-// Invite link
+// Пригласительная ссылка
 let inviteLink = "";
 
-// Track whether opponent disconnected (auto-win)
+// Флаг отключения противника (авто-победа)
 let opponentDisconnected = false;
 
 /* ======================================
-   Joystick globals
-====================================== */
-let joystickElement = null;
-let joystickKnob = null;
-let joystickCenterX = 0;
-let joystickCenterY = 0;
-const joystickMaxDistance = 30;
-
-/* ======================================
-   1. INITIALIZATION & RESET
+   1. ИНИЦИАЛИЗАЦИЯ И СБРОС
 ====================================== */
 function initSpecialGame1() {
   specialGameCanvas = document.getElementById('specialGameCanvas');
@@ -286,7 +273,7 @@ function initSpecialGame1() {
   drawWaitingScreen();
 
   findOrCreateRoom();
-  // Убираем старые кнопки управления
+  // Настраиваем слушатели ввода (джойстик + клавиатура)
   setupControlButtons();
 }
 
@@ -314,23 +301,23 @@ function resetSpecialGame1() {
   timerTotal = 60;
   timerCurrent = 60;
   inviteLink = "";
-  removeJoystickListeners();
+  removeSwipeListeners();
+  // Больше не используется D-Pad
 }
 
-  
 /* ======================================
-   2. ROOM SEARCH / CREATION
+   2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
 ====================================== */
 function findOrCreateRoom() {
   const queueRef = firebase.database().ref('snakeQueue');
 
-  // Remove any old queue entry for this user first
+  // Сначала удаляем старую запись для этого пользователя
   queueRef.child(window.currentUser.username).remove().then(() => {
     queueRef.once('value').then((snapshot) => {
       const queueData = snapshot.val() || {};
       let openRoomKey = null;
 
-      // Look for any room that is waiting
+      // Ищем комнату со статусом "waiting"
       for (const key in queueData) {
         if (key !== window.currentUser.username && queueData[key].status === 'waiting') {
           openRoomKey = key;
@@ -338,7 +325,7 @@ function findOrCreateRoom() {
         }
       }
       if (openRoomKey) {
-        // Join as player2
+        // Присоединяемся как player2
         roomId = openRoomKey;
         playerId = 'player2';
         opponentId = 'player1';
@@ -347,7 +334,7 @@ function findOrCreateRoom() {
           .catch((err) => console.error('Error updating room status:', err));
         setupGameReferences();
       } else {
-        // Create a new room as player1
+        // Создаём новую комнату как player1
         roomId = queueRef.push().key;
         playerId = 'player1';
         opponentId = 'player2';
@@ -357,7 +344,7 @@ function findOrCreateRoom() {
         }).catch((err) => console.error('Error creating room:', err));
         setupGameReferences();
       }
-      // Generate invite link
+      // Генерируем ссылку-приглашение
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
       waitForOpponent();
@@ -366,7 +353,7 @@ function findOrCreateRoom() {
 }
 
 /* ======================================
-   3. WAIT FOR OPPONENT
+   3. ОЖИДАНИЕ ПРОТИВНИКА
 ====================================== */
 function waitForOpponent() {
   drawSearchScreen();
@@ -375,10 +362,10 @@ function waitForOpponent() {
   statusRef.on('value', async (snapshot) => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
-      // Stop listening to status changes
+      // Останавливаем слушание изменений статуса
       statusRef.off();
       
-      // FETCH OPPONENT DATA BEFORE showing the found screen
+      // Получаем данные противника перед показом экрана
       try {
         const oppSnapshot = await firebase.database()
           .ref('snakeGames/' + roomId + '/players/' + opponentId)
@@ -400,7 +387,7 @@ function waitForOpponent() {
     }
   });
 
-  // Слежение за данными противника (на случай отключения)
+  // Следим за отключением противника
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
   oppRef.on('value', (snapshot) => {
     const oppData = snapshot.val();
@@ -418,7 +405,7 @@ function waitForOpponent() {
 }
 
 /* ======================================
-   4. SETUP gameStateRef + LISTENERS
+   4. НАСТРОЙКА gameStateRef + СЛУШАТЕЛИ
 ====================================== */
 function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
@@ -452,7 +439,6 @@ function setupGameReferences() {
     }
   });
 
-  // Apple listener
   gameStateRef.child('apple').on('value', (snapshot) => {
     const aData = snapshot.val() || {};
     if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -461,7 +447,6 @@ function setupGameReferences() {
     }
   });
 
-  // GameOver listener
   gameStateRef.child('gameOver').on('value', (snapshot) => {
     if (snapshot.val() === true && !isGameOver) {
       isGameOver = true;
@@ -471,7 +456,7 @@ function setupGameReferences() {
 }
 
 /* ======================================
-   5. COUNTDOWN (5...1) and START GAME
+   5. ОБРАТНЫЙ ОТСЧЁТ (5...1) И СТАРТ ИГРЫ
 ====================================== */
 function startCountdown() {
   countdownValue = 5;
@@ -488,7 +473,7 @@ function startCountdown() {
 function launchGame() {
   isGameRunning = true;
   isGameOver = false;
-  // Здесь больше не используется фиксированный D-Pad, используется джойстик по касанию
+  // При запуске игры теперь используется джойстик (D-Pad больше не показывается)
 
   gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
     const data = snapshot.val();
@@ -504,7 +489,7 @@ function launchGame() {
       }
     });
 
-    addJoystickListeners();
+    addSwipeListeners();
     startLogicLoop();
     startTimer();
     requestAnimationFrame(renderLoop);
@@ -512,7 +497,7 @@ function launchGame() {
 }
 
 /* ======================================
-   6. GAME LOGIC and RENDER
+   6. ЛОГИКА ИГРЫ И РЕНДЕР
 ====================================== */
 function startLogicLoop() {
   logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -553,7 +538,7 @@ function renderLoop() {
 }
 
 /* ======================================
-   7. MOVEMENT AND COLLISIONS
+   7. ДВИЖЕНИЕ И СТОЛКНОВЕНИЯ
 ====================================== */
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
@@ -563,7 +548,7 @@ function moveLocalSnake() {
     case 'up':    head.y--; break;
     case 'down':  head.y++; break;
   }
-  // Обработка выхода за границы
+  // Обход границ
   if (head.x < 0) head.x = tileCountX - 1;
   if (head.x >= tileCountX) head.x = 0;
   if (head.y < 0) head.y = tileCountY - 1;
@@ -577,7 +562,7 @@ function checkSelfCollision() {
 }
 
 /* ======================================
-   8. UPDATE STATE IN FIREBASE
+   8. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
 ====================================== */
 function updatePlayerState(ateApple) {
   if (ateApple) {
@@ -601,7 +586,7 @@ function spawnApple() {
 }
 
 /* ======================================
-   9. GAME OVER
+   9. КОНЕЦ ИГРЫ
 ====================================== */
 function setGameOver() {
   isGameOver = true;
@@ -613,8 +598,6 @@ function setGameOver() {
 function endGame() {
   stopLogicLoop();
   clearInterval(countdownInterval);
-  removeJoystick(); // Удаляем джойстик при окончании игры
-
   let resultTitle = 'Game Over';
   if (opponentDisconnected) {
     resultTitle = 'Opponent Disconnected. You Win!';
@@ -634,7 +617,7 @@ function endGame() {
 }
 
 /* ======================================
-   10. TIMER (1 мин)
+   10. ТАЙМЕР (1 минута)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
@@ -652,7 +635,7 @@ function startTimer() {
 }
 
 /* ======================================
-   11. RENDER GAME
+   11. РЕНДЕР ИГРЫ
 ====================================== */
 function renderGame() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -661,7 +644,7 @@ function renderGame() {
 
   drawMatrixGrid();
 
-  // Draw apple
+  // Рисуем яблоко
   let appleImg = new Image();
   appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
   if (appleImg.complete) {
@@ -674,7 +657,7 @@ function renderGame() {
     );
   }
 
-  // Draw local snake
+  // Рисуем локальную змейку
   specialCtx.fillStyle = snakeColors[playerId] || '#800080';
   localSnake.forEach(seg => {
     specialCtx.fillRect(
@@ -685,7 +668,7 @@ function renderGame() {
     );
   });
 
-  // Draw opponent snake
+  // Рисуем змейку противника
   specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
   opponentSnake.forEach(seg => {
     specialCtx.fillRect(
@@ -696,7 +679,7 @@ function renderGame() {
     );
   });
 
-  // Opponent name above head
+  // Имя противника над головой
   if (opponentSnake.length > 0) {
     const oppHead = opponentSnake[0];
     specialCtx.fillStyle = '#FFF';
@@ -708,7 +691,7 @@ function renderGame() {
     );
   }
 
-  // Local player name above head
+  // Имя игрока над головой
   if (localSnake.length > 0) {
     const myHead = localSnake[0];
     specialCtx.fillStyle = '#FFF';
@@ -721,13 +704,13 @@ function renderGame() {
     );
   }
 
-  // Scores
+  // Счёт
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '12px "Press Start 2P", sans-serif';
   specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
   specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
 
-  // Timer (rendered as a bar)
+  // Таймер (в виде полоски)
   const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
   specialCtx.fillStyle = '#FF00FF';
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -758,7 +741,7 @@ function drawMatrixGrid() {
 }
 
 /* ======================================
-   12. SCREENS: "SEARCHING / WAITING..."
+   12. ЭКРАНЫ: "SEARCHING / WAITING..."
 ====================================== */
 function drawSearchScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -773,7 +756,13 @@ function drawSearchScreen() {
     specialGameCanvas.width / 2,
     specialGameCanvas.height / 2
   );
-  
+  specialCtx.font = '10px "Press Start 2P", sans-serif';
+  specialCtx.fillText(
+    ' ',
+    specialGameCanvas.width / 2,
+    specialGameCanvas.height / 2 + 40
+  );
+
   specialCtx.save();
   specialCtx.globalAlpha = 0;
   specialCtx.fillText(
@@ -815,9 +804,6 @@ function drawOpponentFoundScreen() {
   );
 }
 
-/* ======================================
-   13. COUNTDOWN (5...1) RENDER
-====================================== */
 function drawCountdownScreen(value) {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
   specialCtx.fillStyle = '#1f1c2c';
@@ -834,49 +820,10 @@ function drawCountdownScreen(value) {
 }
 
 /* ======================================
-   14. INPUT HANDLING – JOYSTICK (TOUCH + KEYS)
+   13. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
 ====================================== */
-function addJoystickListeners() {
-  function onTouchStart(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    joystickCenterX = touch.clientX;
-    joystickCenterY = touch.clientY;
-    createJoystick(joystickCenterX, joystickCenterY);
-  }
-  function onTouchMove(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const dx = touch.clientX - joystickCenterX;
-    const dy = touch.clientY - joystickCenterY;
-    updateJoystickKnob(dx, dy);
-    // Определяем направление на основе большего смещения
-    if (Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0 && localDirection !== 'left') {
-        localDirection = 'right';
-      } else if (dx < 0 && localDirection !== 'right') {
-        localDirection = 'left';
-      }
-    } else {
-      if (dy > 0 && localDirection !== 'up') {
-        localDirection = 'down';
-      } else if (dy < 0 && localDirection !== 'down') {
-        localDirection = 'up';
-      }
-    }
-  }
-  function onTouchEnd(e) {
-    e.preventDefault();
-    removeJoystick();
-  }
-  specialGameCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
-  specialGameCanvas.addEventListener('touchmove', onTouchMove, { passive: false });
-  specialGameCanvas.addEventListener('touchend', onTouchEnd, { passive: false });
-
-  window.__special_onTouchStart = onTouchStart;
-  window.__special_onTouchMove = onTouchMove;
-  window.__special_onTouchEnd = onTouchEnd;
-
+function addSwipeListeners() {
+  // Обработчик для клавиатуры (для десктопа)
   function onKeyDown(e) {
     switch (e.key) {
       case 'ArrowLeft':
@@ -894,58 +841,90 @@ function addJoystickListeners() {
     }
   }
   window.addEventListener('keydown', onKeyDown);
-  window.__special_onKeyDown = onKeyDown;
+  window.__joystick_keydown = onKeyDown;
+  
+  // Для мобильных устройств — джойстик, который появляется там, где начинается касание
+  const canvas = specialGameCanvas;
+  const joystick = document.getElementById('joystick');
+  const joystickStick = document.getElementById('joystick-stick');
+  let joystickActive = false;
+  let joystickCenter = { x: 0, y: 0 };
+  const maxDistance = 40;
+  
+  function handleTouchStart(e) {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      joystickCenter.x = touch.clientX;
+      joystickCenter.y = touch.clientY;
+      joystick.style.left = joystickCenter.x + 'px';
+      joystick.style.top = joystickCenter.y + 'px';
+      joystick.style.display = 'block';
+      joystickStick.style.transform = 'translate(0px, 0px)';
+      joystickActive = true;
+      e.preventDefault();
+    }
+  }
+  
+  function handleTouchMove(e) {
+    if (!joystickActive) return;
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      let dx = touch.clientX - joystickCenter.x;
+      let dy = touch.clientY - joystickCenter.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > maxDistance) {
+        const angle = Math.atan2(dy, dx);
+        dx = Math.cos(angle) * maxDistance;
+        dy = Math.sin(angle) * maxDistance;
+      }
+      joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+      // Определяем направление по наибольшему смещению
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 0 && localDirection !== 'left') {
+          localDirection = 'right';
+        } else if (dx < 0 && localDirection !== 'right') {
+          localDirection = 'left';
+        }
+      } else {
+        if (dy > 0 && localDirection !== 'up') {
+          localDirection = 'down';
+        } else if (dy < 0 && localDirection !== 'down') {
+          localDirection = 'up';
+        }
+      }
+      e.preventDefault();
+    }
+  }
+  
+  function handleTouchEnd(e) {
+    joystickActive = false;
+    joystick.style.display = 'none';
+    e.preventDefault();
+  }
+  
+  canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+  canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+  
+  window.__joystick_touchstart = handleTouchStart;
+  window.__joystick_touchmove = handleTouchMove;
+  window.__joystick_touchend = handleTouchEnd;
 }
 
-function removeJoystickListeners() {
+function removeSwipeListeners() {
   if (!specialGameCanvas) return;
-  specialGameCanvas.removeEventListener('touchstart', window.__special_onTouchStart);
-  specialGameCanvas.removeEventListener('touchmove', window.__special_onTouchMove);
-  specialGameCanvas.removeEventListener('touchend', window.__special_onTouchEnd);
-  window.removeEventListener('keydown', window.__special_onKeyDown);
-  window.__special_onTouchStart = null;
-  window.__special_onTouchMove = null;
-  window.__special_onTouchEnd = null;
-  window.__special_onKeyDown = null;
-}
-
-/* Функции создания/обновления/удаления джойстика */
-function createJoystick(x, y) {
-  joystickElement = document.createElement('div');
-  joystickElement.className = 'joystick';
-  // Центрируем джойстик: ширина 80px, поэтому смещаем на 40px
-  joystickElement.style.left = (x - 40) + 'px';
-  joystickElement.style.top = (y - 40) + 'px';
-  joystickKnob = document.createElement('div');
-  joystickKnob.className = 'joystick-knob';
-  joystickElement.appendChild(joystickKnob);
-  document.body.appendChild(joystickElement);
-}
-
-function updateJoystickKnob(dx, dy) {
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  let clampedDx = dx;
-  let clampedDy = dy;
-  if (distance > joystickMaxDistance) {
-    const angle = Math.atan2(dy, dx);
-    clampedDx = Math.cos(angle) * joystickMaxDistance;
-    clampedDy = Math.sin(angle) * joystickMaxDistance;
-  }
-  // Базовый центр джойстика равен 40,40; смещаем центр ручки (knob) на (clampedDx, clampedDy)
-  joystickKnob.style.left = (40 + clampedDx - 20) + 'px';
-  joystickKnob.style.top = (40 + clampedDy - 20) + 'px';
-}
-
-function removeJoystick() {
-  if (joystickElement) {
-    joystickElement.remove();
-    joystickElement = null;
-    joystickKnob = null;
-  }
+  specialGameCanvas.removeEventListener('touchstart', window.__joystick_touchstart);
+  specialGameCanvas.removeEventListener('touchmove', window.__joystick_touchmove);
+  specialGameCanvas.removeEventListener('touchend', window.__joystick_touchend);
+  window.removeEventListener('keydown', window.__joystick_keydown);
+  window.__joystick_touchstart = null;
+  window.__joystick_touchmove = null;
+  window.__joystick_touchend = null;
+  window.__joystick_keydown = null;
 }
 
 /* ======================================
-   15. COPY INVITE LINK
+   14. КОПИРОВАНИЕ ССЫЛКИ
 ====================================== */
 function copyInviteLink() {
   if (!inviteLink) return;
@@ -955,7 +934,7 @@ function copyInviteLink() {
 }
 
 /* ======================================
-   16. END GAME MODAL
+   15. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
 ====================================== */
 function showEndGameModal(title, message) {
   const modal = document.getElementById('endgameBackdrop');
@@ -967,7 +946,7 @@ function showEndGameModal(title, message) {
 }
 
 /* ======================================
-   17. CONTROL BUTTONS SETUP (OPTIONAL)
+   16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ (ДЛЯ КЛАВИАТУРЫ)
 ====================================== */
 function setupControlButtons() {
   const buttons = document.querySelectorAll('.control-button');
@@ -986,7 +965,7 @@ function setupControlButtons() {
 }
 
 /* ======================================
-   18. CLEANUP ROOM AFTER GAME
+   17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -1007,7 +986,7 @@ window.addEventListener('beforeunload', function() {
 });
 
 /* ======================================
-   19. FINISH GAME & RETURN TO MAIN
+   18. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
@@ -1019,7 +998,7 @@ function returnToMain() {
 }
 
 /* ======================================
-   20. GAME INIT ON WINDOW LOAD
+   19. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 ====================================== */
 window.addEventListener('load', () => {
   const firebaseConfig = {
@@ -1050,8 +1029,21 @@ window.addEventListener('load', () => {
       };
     }
   }
+
   initSpecialGame1();
 });
+
+function changeDirection(newDir) {
+  if (
+    (newDir === 'up'    && localDirection === 'down') ||
+    (newDir === 'down'  && localDirection === 'up')   ||
+    (newDir === 'left'  && localDirection === 'right')||
+    (newDir === 'right' && localDirection === 'left')
+  ) {
+    return;
+  }
+  localDirection = newDir;
+}
   </script>
 </body>
 </html>
