@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
-  <!-- Your CSS (e.g., st1.css) -->
+  <!-- Your CSS (например, st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   
   <!-- Firebase SDK -->
@@ -24,7 +24,7 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #00103c;
+      background: #00103c;
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
       position: relative;
@@ -61,7 +61,7 @@
       transform: translateY(1px) scale(1.0);
     }
     
-    /* Модальные окна (конца игры, ошибки и т.д.) */
+    /* Модальные окна */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -81,7 +81,7 @@
       border-radius: 8px;
     }
     
-    /* Анимация мигания для поиска */
+    /* Анимация мигания */
     @keyframes blink {
       0% { opacity: 0.2; }
       50% { opacity: 1; }
@@ -91,7 +91,7 @@
       animation: blink 1.2s infinite;
     }
     
-    /* Стили для панели управления (если используются клавиши) */
+    /* Стили панели управления (при необходимости) */
     #controlPanel {
       width: 150px;
       height: 150px;
@@ -112,7 +112,6 @@
       box-shadow: 0 3px #6b6b6b;
       transition: transform 0.1s ease;
     }
-    /* Расположение кнопок (при необходимости) */
     #btn-up {
       top: 0;
       left: 50%;
@@ -126,9 +125,7 @@
       box-shadow: 0 1px #6b6b6b;
     }
     
-    /* ================
-       Стили джойстика
-       ================ */
+    /* Стили джойстика */
     #joystick {
       position: fixed;
       width: 100px;
@@ -154,16 +151,14 @@
       touch-action: none;
     }
     
-    /* ========================================
-       Стили обучающей (landing) страницы
-       ======================================== */
+    /* Стили обучающей (landing) страницы */
     #landingScreen {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: #00103c;
+      background: linear-gradient(135deg, #00103c, #0a0a23);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -174,19 +169,26 @@
       padding: 20px;
       box-sizing: border-box;
     }
+    .landingContent {
+      max-width: 600px;
+      overflow-y: auto;
+    }
     .landingContent img {
       max-width: 300px;
       height: auto;
       margin-bottom: 20px;
       border: 2px solid #FF00FF;
+      border-radius: 8px;
     }
     .landingContent h1 {
       margin: 10px 0;
-      font-size: 24px;
+      font-size: 28px;
     }
     .landingContent p {
       font-size: 14px;
+      line-height: 1.4;
       margin-bottom: 20px;
+      text-align: left;
     }
     .landingContent button {
       font-family: 'Press Start 2P', sans-serif;
@@ -219,7 +221,11 @@
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Превью игры">
       <h1>Special Snake PvP</h1>
-      <p>Добро пожаловать в игру! Здесь вы можете поучаствовать в захватывающем PvP-сражении змей. Ознакомьтесь с информацией, а затем начните поиск противника.</p>
+      <p>
+        Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы!
+        Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание:
+        избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!
+      </p>
       <button id="startSearchBtn">Начать поиск</button>
       <button id="cancelSearchBtn" style="display: none;">Отмена поиска</button>
     </div>
@@ -254,7 +260,7 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Обновлённая версия с обучающей страницей
+  Special Snake PvP – Обновлённая версия с улучшенным дизайном и описанием
 ============================================================
 */
 
@@ -738,26 +744,26 @@ function renderGame() {
     );
   }
 
-  // Рисуем локальную змейку
-  specialCtx.fillStyle = snakeColors[playerId] || '#800080';
+  // Рисуем локальную змейку с черной обводкой
   localSnake.forEach(seg => {
-    specialCtx.fillRect(
-      GAME_AREA_X + seg.x * gridSize,
-      GAME_AREA_Y + seg.y * gridSize,
-      gridSize,
-      gridSize
-    );
+    const x = GAME_AREA_X + seg.x * gridSize;
+    const y = GAME_AREA_Y + seg.y * gridSize;
+    specialCtx.fillStyle = snakeColors[playerId] || '#800080';
+    specialCtx.fillRect(x, y, gridSize, gridSize);
+    specialCtx.strokeStyle = '#000';
+    specialCtx.lineWidth = 2;
+    specialCtx.strokeRect(x, y, gridSize, gridSize);
   });
 
-  // Рисуем змейку противника
-  specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
+  // Рисуем змейку противника с черной обводкой
   opponentSnake.forEach(seg => {
-    specialCtx.fillRect(
-      GAME_AREA_X + seg.x * gridSize,
-      GAME_AREA_Y + seg.y * gridSize,
-      gridSize,
-      gridSize
-    );
+    const x = GAME_AREA_X + seg.x * gridSize;
+    const y = GAME_AREA_Y + seg.y * gridSize;
+    specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
+    specialCtx.fillRect(x, y, gridSize, gridSize);
+    specialCtx.strokeStyle = '#000';
+    specialCtx.lineWidth = 2;
+    specialCtx.strokeRect(x, y, gridSize, gridSize);
   });
 
   // Имя противника над головой
