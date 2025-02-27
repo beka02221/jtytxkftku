@@ -43,7 +43,6 @@
       display: none;
       text-align: center;
       font-family: 'Press Start 2P', sans-serif;
-      color: #FFF;
       margin-top: 10px;
     }
 
@@ -317,8 +316,8 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Исправленный код с корректной
-  интерполяцией телепортации и отображением ников
+  Special Snake PvP – Исправленный код с изменением цвета
+  текста над головами, ников под полем и скрытием кнопки Back
 ============================================================
 */
 
@@ -384,8 +383,8 @@ let oppListener = null;
 
 // Цвета змейки
 const snakeColors = {
-  player1: '#FFFF00', // yellow
-  player2: '#FF0000'  // red
+  player1: '#FFFF00', // желтый
+  player2: '#FF0000'  // красный
 };
 
 // Логический интервал (мс)
@@ -535,10 +534,10 @@ function waitForOpponent() {
       } catch(e) {
         console.error("Error reading opponent data: ", e);
       }
-
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
-
+      // Скрываем кнопку Back в шапке, когда оппонент найден
+      document.getElementById('homeBackBtn').style.display = 'none';
       showOpponentNameTimeout = setTimeout(() => {
         startCountdown();
       }, 2000);
@@ -655,7 +654,7 @@ function launchGame() {
     startTimer();
     requestAnimationFrame(renderLoop);
     
-    // Обновляем блок с никами под игровым полем
+    // Обновляем нижний блок с никами
     updateUsernamesDisplay();
   });
 }
@@ -839,7 +838,7 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
 
-  // Интерполяция для змейки противника
+  // Рисуем змейку противника с интерполяцией
   let opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
   for (let i = 0; i < opponentSnake.length; i++) {
     let curr = opponentSnake[i];
@@ -855,13 +854,13 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
 
-  // Отображение имени противника над головой
+  // Отрисовка имени противника над головой (цвет – lime)
   if (opponentSnake.length > 0) {
     let curr = opponentSnake[0];
     let prev = previousOpponentSnake[0] || curr;
     let interpX = interpolateCoordinate(prev.x, curr.x, opponentFactor, tileCountX);
     let interpY = interpolateCoordinate(prev.y, curr.y, opponentFactor, tileCountY);
-    specialCtx.fillStyle = '#FFF';
+    specialCtx.fillStyle = "lime";
     specialCtx.font = '12px "Press Start 2P", sans-serif';
     specialCtx.fillText(
       '@' + ((opponentName && opponentName.trim() !== "") ? opponentName : 'Anonymous'),
@@ -870,13 +869,13 @@ function renderGame() {
     );
   }
 
-  // Отображение имени игрока над головой
+  // Отрисовка имени игрока над головой (цвет – lime)
   if (localSnake.length > 0) {
     let curr = localSnake[0];
     let prev = previousSnake[0] || curr;
     let interpX = interpolateCoordinate(prev.x, curr.x, factor, tileCountX);
     let interpY = interpolateCoordinate(prev.y, curr.y, factor, tileCountY);
-    specialCtx.fillStyle = '#FFF';
+    specialCtx.fillStyle = "lime";
     specialCtx.font = '12px "Press Start 2P", sans-serif';
     const myName = (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'You';
     specialCtx.fillText(
@@ -1254,11 +1253,12 @@ function updateUsernamesDisplay() {
   const opponentDisplay = document.getElementById('opponentUsername');
   const playerDisplay = document.getElementById('playerUsername');
   opponentDisplay.textContent = '@' + ((opponentName && opponentName.trim() !== "") ? opponentName : 'Anonymous');
+  opponentDisplay.style.color = snakeColors[opponentId] || 'lime';
   const myName = (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'You';
   playerDisplay.textContent = '@' + myName;
+  playerDisplay.style.color = snakeColors[playerId] || 'lime';
   document.getElementById('usernamesDisplay').style.display = 'block';
 }
   </script>
 </body>
 </html>
-
