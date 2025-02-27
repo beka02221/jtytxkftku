@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
@@ -112,7 +112,6 @@
       box-shadow: 0 3px #6b6b6b;
       transition: transform 0.1s ease;
     }
-
     #btn-up {
       top: 0;
       left: 50%;
@@ -127,8 +126,6 @@
     }
 
     /* Стили джойстика */
-
-
     #joystick {
       position: fixed;
       width: 100px;
@@ -155,8 +152,6 @@
     }
 
     /* Стили обучающей (landing) страницы */
-
-
     #landingScreen {
       position: absolute;
       top: 0;
@@ -173,6 +168,27 @@
       text-align: center;
       padding: 20px;
       box-sizing: border-box;
+    }
+    /* Новый блок для шапки обучающего экрана */
+    #landingHeader {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 2100;
+    }
+    #landingHeader button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
     }
     .landingContent {
       max-width: 600px;
@@ -214,6 +230,23 @@
     .landingContent button:active {
       transform: translateY(1px);
     }
+    
+    /* Кнопка "Back" во время поиска */
+    #searchBackBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2100;
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
   </style>
 </head>
 
@@ -223,18 +256,25 @@
 
   <!-- Обучающая страница -->
   <div id="landingScreen">
+    <div id="landingHeader">
+      <button id="homeBackBtn">Back</button>
+      <button id="langToggleBtn">RU</button>
+    </div>
     <div class="landingContent">
-      <img src="game_preview.jpg" alt="Превью игры">
-      <h1>Special Snake PvP</h1>
-      <p>
-        Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы!
-        Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание:
-        избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!
+      <img src="game_preview.jpg" alt="Game Preview">
+      <h1 id="landingTitle">Special Snake PvP</h1>
+      <p id="landingText">
+        Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
+
+
       </p>
-      <button id="startSearchBtn">Начать поиск</button>
-      <button id="cancelSearchBtn" style="display: none;">Отмена поиска</button>
+      <button id="startSearchBtn">Start Search</button>
+
     </div>
   </div>
+
+  <!-- Кнопка "Back" во время поиска (скрыта до начала поиска) -->
+  <button id="searchBackBtn" style="display: none;">Back</button>
 
   <!-- Джойстик (для мобильных устройств) -->
   <div id="joystick">
@@ -265,7 +305,8 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Обновлённая версия с улучшенным дизайном и описанием
+  Special Snake PvP – Updated version with improved design,
+  language toggle and new Back buttons
 ============================================================
 */
 
@@ -317,14 +358,14 @@ let timerCurrent = 60;
 let logicTimer = null;
 let countdownInterval = null;
 
-// Слушатели Firebase для отмены поиска
+// Слушатели Firebase для ожидания
 let waitingListener = null;
 let oppListener = null;
 
 // Цвета змейки
 const snakeColors = {
-  player1: '#FFFF00', // жёлтый
-  player2: '#FF0000'  // красный
+  player1: '#FFFF00', // yellow
+  player2: '#FF0000'  // red
 };
 
 // Логический интервал (мс)
@@ -376,7 +417,7 @@ function resetSpecialGame1() {
   timerCurrent = 60;
   inviteLink = "";
 
-  // Отписываем слушатели для отмены поиска, если они были установлены
+  // Отписываем слушателей для ожидания, если они были установлены
   if (waitingListener && roomId) {
     firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
     waitingListener = null;
@@ -750,7 +791,6 @@ function renderGame() {
   }
 
   // Рисуем локальную змейку с черной обводкой
-
   localSnake.forEach(seg => {
     const x = GAME_AREA_X + seg.x * gridSize;
     const y = GAME_AREA_Y + seg.y * gridSize;
@@ -762,7 +802,6 @@ function renderGame() {
   });
 
   // Рисуем змейку противника с черной обводкой
-
   opponentSnake.forEach(seg => {
     const x = GAME_AREA_X + seg.x * gridSize;
     const y = GAME_AREA_Y + seg.y * gridSize;
@@ -853,13 +892,13 @@ function drawSearchScreen() {
   specialCtx.font = '10px "Press Start 2P", sans-serif';
   specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
 
-  specialCtx.save();
-  specialCtx.globalAlpha = 0;
-  specialCtx.fillText(inviteLink, specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 60);
-  specialCtx.restore();
 
-  specialCtx.font = '8px "Press Start 2P", sans-serif';
-  specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 80);
+
+
+
+
+
+
 }
 
 function drawWaitingScreen() {
@@ -1037,30 +1076,30 @@ function setupControlButtons() {
 }
 
 /* ======================================
-   17. ФУНКЦИЯ ОТМЕНЫ ПОИСКА
-====================================== */
-function cancelSearch() {
-  // Отписываем слушателей поиска
-  if (roomId) {
-    const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
-    if (waitingListener) {
-      statusRef.off('value', waitingListener);
-      waitingListener = null;
-    }
-    const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
-    if (oppListener) {
-      oppRef.off('value', oppListener);
-      oppListener = null;
-    }
-    cleanupRoom();
-  }
-  resetSpecialGame1();
-  document.getElementById('cancelSearchBtn').style.display = 'none';
-  document.getElementById('landingScreen').style.display = 'flex';
-}
+   17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
 
-/* ======================================
-   18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -1081,7 +1120,7 @@ window.addEventListener('beforeunload', function() {
 });
 
 /* ======================================
-   19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+   18. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
@@ -1093,20 +1132,23 @@ function returnToMain() {
 }
 
 /* ======================================
-   20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
 ====================================== */
 document.getElementById('startSearchBtn').addEventListener('click', function(){
+  // При старте поиска скрываем обучающий экран (включая шапку с языком и кнопку "Back")
   document.getElementById('landingScreen').style.display = 'none';
-  document.getElementById('cancelSearchBtn').style.display = 'block';
+  // Показываем кнопку "Back" для поиска, которая обновляет страницу
+  document.getElementById('searchBackBtn').style.display = 'block';
   findOrCreateRoom();
 });
 
-document.getElementById('cancelSearchBtn').addEventListener('click', function(){
-  cancelSearch();
+// Кнопка "Back" во время поиска — обновляет страницу
+document.getElementById('searchBackBtn').addEventListener('click', function(){
+  window.location.reload();
 });
 
 /* ======================================
-   21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+   20. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 ====================================== */
 window.addEventListener('load', () => {
   const firebaseConfig = {
@@ -1139,8 +1181,12 @@ window.addEventListener('load', () => {
   }
 
   initSpecialGame1();
+
+  // Инициализируем тексты в соответствии с текущим языком
+  updateLanguageTexts();
 });
 
+// Функция смены направления (используется для кнопок управления)
 function changeDirection(newDir) {
   if (
     (newDir === 'up'    && localDirection === 'down') ||
@@ -1152,6 +1198,44 @@ function changeDirection(newDir) {
   }
   localDirection = newDir;
 }
+
+/* ======================================
+   21. ФУНКЦИИ ДЛЯ РЕАЛИЗАЦИИ СМЕНЫ ЯЗЫКА
+====================================== */
+let currentLanguage = "en";
+const languageStrings = {
+  en: {
+    landingTitle: "Special Snake PvP",
+    landingText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
+    startSearch: "Start Search",
+    homeBack: "Back",
+    languageToggle: "RU"
+  },
+  ru: {
+    landingTitle: "Спешл Снейк PvP",
+    landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
+    startSearch: "Начать поиск",
+    homeBack: "Назад",
+    languageToggle: "EN"
+  }
+};
+
+function updateLanguageTexts() {
+  document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
+  document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
+  document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch;
+  document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
+  document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
+}
+
+document.getElementById('langToggleBtn').addEventListener('click', function() {
+  currentLanguage = currentLanguage === "en" ? "ru" : "en";
+  updateLanguageTexts();
+});
+
+document.getElementById('homeBackBtn').addEventListener('click', function() {
+  window.location.href = 'index.html';
+});
   </script>
 </body>
 </html>
