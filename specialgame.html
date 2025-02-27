@@ -9,14 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
-  <!-- Your CSS (например, st1.css) -->
+  <!-- Your CSS -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   
-  <!-- Telegram Web App API -->
+  <!-- Telegram Web App API (если нужно) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
@@ -31,11 +31,51 @@
       overflow: hidden;
     }
     
+    /* Кнопка переключения языка и кнопки Back */
+    #toggleLanguageBtn, #backToIndexBtn, #backToRefreshBtn {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 8px 14px;
+      background: #06B6D1;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      box-shadow: 0 3px #6b6b6b;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    #toggleLanguageBtn:hover, #backToIndexBtn:hover, #backToRefreshBtn:hover {
+      transform: scale(1.05);
+    }
+    #toggleLanguageBtn:active, #backToIndexBtn:active, #backToRefreshBtn:active {
+      transform: translateY(1px) scale(1.0);
+    }
+
+    #toggleLanguageBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2001;
+    }
+    #backToIndexBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2001;
+    }
+    #backToRefreshBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 2001;
+      display: none; /* Изначально скрыт, показывается при поиске */
+    }
+
     /* Canvas для игры */
     #specialGameCanvas {
       display: block;
       margin: 0 auto;
-      background-image: url('1.jpg');
+      background-image: url('1.jpg'); /* Задний фон для канваса (если нужен) */
     }
     
     /* Кнопка копирования ссылки */
@@ -91,7 +131,7 @@
       animation: blink 1.2s infinite;
     }
     
-    /* Стили панели управления (при необходимости) */
+    /* Стили панели управления (если нужно) */
     #controlPanel {
       width: 150px;
       height: 150px;
@@ -169,27 +209,6 @@
       padding: 20px;
       box-sizing: border-box;
     }
-    /* Новый блок для шапки обучающего экрана */
-    #landingHeader {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      justify-content: space-between;
-      z-index: 2100;
-    }
-    #landingHeader button {
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
-      padding: 5px 10px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-    }
     .landingContent {
       max-width: 600px;
       overflow-y: auto;
@@ -231,47 +250,31 @@
       transform: translateY(1px);
     }
     
-    /* Кнопка "Back" во время поиска */
-    #searchBackBtn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 2100;
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
-      padding: 5px 10px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-    }
   </style>
 </head>
-
 <body>
+  <!-- Кнопка переключения языка (EN -> RU) -->
+  <button id="toggleLanguageBtn">RU</button>
+  <!-- Кнопка Back (на главном экране - ведёт на index.html) -->
+  <button id="backToIndexBtn">Back</button>
+  <!-- Кнопка Back (во время поиска - просто перезагружает страницу) -->
+  <button id="backToRefreshBtn">Back</button>
+
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   
-  <!-- Обучающая страница -->
+  <!-- Обучающая (landing) страница -->
   <div id="landingScreen">
-    <div id="landingHeader">
-      <button id="homeBackBtn">Back</button>
-      <button id="langToggleBtn">RU</button>
-    </div>
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Game Preview">
       <h1 id="landingTitle">Special Snake PvP</h1>
-      <p id="landingText">
-        Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
+      <p id="landingDescription">
+        <!-- Текст будет меняться в зависимости от языка через JS -->
       </p>
       <button id="startSearchBtn">Start Search</button>
+      <button id="cancelSearchBtn" style="display: none;">Cancel Search</button>
     </div>
   </div>
-
-  <!-- Кнопка "Back" во время поиска (скрыта до начала поиска) -->
-  <button id="searchBackBtn" style="display: none;">Back</button>
 
   <!-- Джойстик (для мобильных устройств) -->
   <div id="joystick">
@@ -279,31 +282,127 @@
   </div>
 
   <!-- Кнопка для копирования ссылки -->
-  <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
+  <button id="copyButton" onclick="copyInviteLink()" style="display: none;">Copy Invite Link</button>
   
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
       <p id="endgameMessage"></p>
-      <button onclick="finishGame()">Continue</button>
+      <button onclick="finishGame()" id="endgameContinueBtn">Continue</button>
     </div>
   </div>
   
   <!-- Модальное окно "Not enough tickets" -->
   <div id="noTicketsModal" class="modal-backdrop">
     <div class="modal">
-      <h2>Not enough tickets</h2>
-      <p>You do not have enough tickets to join the game.</p>
-      <button onclick="returnToMain()">Return</button>
+      <h2 id="noTicketsTitle">Not enough tickets</h2>
+      <p id="noTicketsText">You do not have enough tickets to join the game.</p>
+      <button onclick="returnToMain()" id="noTicketsReturnBtn">Return</button>
     </div>
   </div>
   
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Updated version with improved design,
-  language toggle and new Back buttons
+  0. ПЕРЕВОДЫ (ANGL/RUS)
+============================================================
+*/
+const translations = {
+  en: {
+    landingTitle: "Special Snake PvP",
+    landingDescription: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes decide the fate of every encounter! Control your unique snake in a retro-style arena with impressive visuals and an immersive soundtrack. Every second is a fight for survival: avoid collisions, collect bonuses, and outsmart your opponent in the labyrinth. Play with friends or random opponents in real-time and prove you're the true snake master!",
+    startSearch: "Start Search",
+    cancelSearch: "Cancel Search",
+    searchingForOpponent: "Searching for opponent...",
+    copyInviteLink: "Copy Invite Link",
+    opponentFound: "Opponent found: ",
+    gameOver: "Game Over!",
+    youWin: "You Win!",
+    youLose: "You Lose...",
+    draw: "Draw",
+    opponentDisconnected: "Opponent Disconnected. You Win!",
+    yourScore: "Your score",
+    opponentScore: "Opponent score",
+    endgameContinue: "Continue",
+    notEnoughTickets: "Not enough tickets",
+    notEnoughTicketsText: "You do not have enough tickets to join the game.",
+    returnBtn: "Return",
+    back: "Back" // универсальный текст
+  },
+  ru: {
+    landingTitle: "Special Snake PvP",
+    landingDescription: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеёй в ретро-стилистике с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и перехитрите соперника в лабиринте арены. Играйте с друзьями или случайными соперниками в реальном времени и докажите, что вы – настоящий мастер змей!",
+    startSearch: "Начать поиск",
+    cancelSearch: "Отмена поиска",
+    searchingForOpponent: "Поиск соперника...",
+    copyInviteLink: "Скопировать ссылку-приглашение",
+    opponentFound: "Соперник найден: ",
+    gameOver: "Конец игры!",
+    youWin: "Вы победили!",
+    youLose: "Вы проиграли...",
+    draw: "Ничья",
+    opponentDisconnected: "Соперник отключился. Вы победили!",
+    yourScore: "Ваш счёт",
+    opponentScore: "Счёт соперника",
+    endgameContinue: "Продолжить",
+    notEnoughTickets: "Недостаточно билетов",
+    notEnoughTicketsText: "У вас недостаточно билетов, чтобы присоединиться к игре.",
+    returnBtn: "Вернуться",
+    back: "Назад"
+  }
+};
+
+let currentLanguage = 'en';
+
+/* 
+============================================================
+  1. ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ ТЕКСТА НА СТРАНИЦЕ ПРИ СМЕНЕ ЯЗЫКА
+============================================================
+*/
+function updateLanguageText(lang) {
+  // Заголовок и описание на landing-экране
+  document.getElementById('landingTitle').textContent = translations[lang].landingTitle;
+  document.getElementById('landingDescription').textContent = translations[lang].landingDescription;
+  
+  // Кнопки
+  document.getElementById('startSearchBtn').textContent = translations[lang].startSearch;
+  document.getElementById('cancelSearchBtn').textContent = translations[lang].cancelSearch;
+  document.getElementById('copyButton').textContent = translations[lang].copyInviteLink;
+  
+  // Модальное окно "End Game"
+  document.getElementById('endgameTitle').textContent = translations[lang].gameOver;
+  document.getElementById('endgameContinueBtn').textContent = translations[lang].endgameContinue;
+  
+  // Модальное окно "Not enough tickets"
+  document.getElementById('noTicketsTitle').textContent = translations[lang].notEnoughTickets;
+  document.getElementById('noTicketsText').textContent = translations[lang].notEnoughTicketsText;
+  document.getElementById('noTicketsReturnBtn').textContent = translations[lang].returnBtn;
+  
+  // Кнопки Back
+  document.getElementById('backToIndexBtn').textContent = translations[lang].back;
+  document.getElementById('backToRefreshBtn').textContent = translations[lang].back;
+}
+
+/* 
+============================================================
+  2. ПЕРЕКЛЮЧЕНИЕ ЯЗЫКА ПО КНОПКЕ (RU <-> EN)
+============================================================
+*/
+function toggleLanguage() {
+  if (currentLanguage === 'en') {
+    currentLanguage = 'ru';
+    document.getElementById('toggleLanguageBtn').textContent = 'EN';
+  } else {
+    currentLanguage = 'en';
+    document.getElementById('toggleLanguageBtn').textContent = 'RU';
+  }
+  updateLanguageText(currentLanguage);
+}
+
+/* 
+============================================================
+  3. ОСНОВНОЙ ИГРОВОЙ КОД (ваш оригинальный, адаптированный)
 ============================================================
 */
 
@@ -319,8 +418,8 @@ const GAME_AREA_HEIGHT = 500;
 
 // Настройки сетки
 const gridSize = 20;
-const tileCountX = GAME_AREA_WIDTH / gridSize;  
-const tileCountY = GAME_AREA_HEIGHT / gridSize; 
+const tileCountX = GAME_AREA_WIDTH / gridSize;
+const tileCountY = GAME_AREA_HEIGHT / gridSize;
 
 // Идентификаторы комнаты и игроков
 let roomId = null;
@@ -355,14 +454,14 @@ let timerCurrent = 60;
 let logicTimer = null;
 let countdownInterval = null;
 
-// Слушатели Firebase для ожидания
+// Слушатели Firebase для отмены поиска
 let waitingListener = null;
 let oppListener = null;
 
 // Цвета змейки
 const snakeColors = {
-  player1: '#FFFF00', // yellow
-  player2: '#FF0000'  // red
+  player1: '#FFFF00', // жёлтый
+  player2: '#FF0000'  // красный
 };
 
 // Логический интервал (мс)
@@ -375,7 +474,7 @@ let inviteLink = "";
 let opponentDisconnected = false;
 
 /* ======================================
-   1. ИНИЦИАЛИЗАЦИЯ И СБРОС
+   ИНИЦИАЛИЗАЦИЯ ИГРЫ
 ====================================== */
 function initSpecialGame1() {
   specialGameCanvas = document.getElementById('specialGameCanvas');
@@ -384,11 +483,11 @@ function initSpecialGame1() {
   resetSpecialGame1();
   drawWaitingScreen();
   
-  // Настраиваем слушатели ввода (джойстик + клавиатура)
+  // Настраиваем кнопки управления (если нужны кнопки-стрелки)
   setupControlButtons();
 }
 
-// Обнуление глобальных переменных и остановка таймеров/логики
+/* Сброс */
 function resetSpecialGame1() {
   stopLogicLoop();
   clearInterval(countdownInterval);
@@ -414,7 +513,6 @@ function resetSpecialGame1() {
   timerCurrent = 60;
   inviteLink = "";
   
-  // Отписываем слушателей для ожидания, если они были установлены
   if (waitingListener && roomId) {
     firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
     waitingListener = null;
@@ -427,7 +525,7 @@ function resetSpecialGame1() {
 }
 
 /* ======================================
-   2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
+   ПОИСК / СОЗДАНИЕ КОМНАТЫ
 ====================================== */
 function findOrCreateRoom() {
   const queueRef = firebase.database().ref('snakeQueue');
@@ -483,7 +581,7 @@ function findOrCreateRoom() {
 }
 
 /* ======================================
-   3. ОЖИДАНИЕ ПРОТИВНИКА
+   ОЖИДАНИЕ ПРОТИВНИКА
 ====================================== */
 function waitForOpponent() {
   drawSearchScreen();
@@ -496,7 +594,7 @@ function waitForOpponent() {
       statusRef.off('value', waitingListener);
       waitingListener = null;
       
-      // Получаем данные противника перед показом экрана
+      // Получаем данные противника
       try {
         const oppSnapshot = await firebase.database()
           .ref('snakeGames/' + roomId + '/players/' + opponentId)
@@ -536,7 +634,7 @@ function waitForOpponent() {
 }
 
 /* ======================================
-   4. НАСТРОЙКА gameStateRef + СЛУШАТЕЛИ
+   НАСТРОЙКА gameStateRef + СЛУШАТЕЛИ
 ====================================== */
 function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
@@ -587,7 +685,7 @@ function setupGameReferences() {
 }
 
 /* ======================================
-   5. ОБРАТНЫЙ ОТСЧЁТ (5...1) И СТАРТ ИГРЫ
+   ОБРАТНЫЙ ОТСЧЁТ (5...1) И СТАРТ ИГРЫ
 ====================================== */
 function startCountdown() {
   countdownValue = 5;
@@ -627,7 +725,7 @@ function launchGame() {
 }
 
 /* ======================================
-   6. ЛОГИКА ИГРЫ И РЕНДЕР
+   ЛОГИКА ИГРЫ И РЕНДЕР
 ====================================== */
 function startLogicLoop() {
   logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -668,7 +766,7 @@ function renderLoop() {
 }
 
 /* ======================================
-   7. ДВИЖЕНИЕ И СТОЛКНОВЕНИЯ
+   ДВИЖЕНИЕ И СТОЛКНОВЕНИЯ
 ====================================== */
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
@@ -688,11 +786,12 @@ function moveLocalSnake() {
 }
 
 function checkSelfCollision() {
+  // Доп. логика на самопересечение, при необходимости
   return false;
 }
 
 /* ======================================
-   8. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
+   ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
 ====================================== */
 function updatePlayerState(ateApple) {
   if (ateApple) {
@@ -716,7 +815,7 @@ function spawnApple() {
 }
 
 /* ======================================
-   9. КОНЕЦ ИГРЫ
+   КОНЕЦ ИГРЫ
 ====================================== */
 function setGameOver() {
   isGameOver = true;
@@ -728,26 +827,27 @@ function setGameOver() {
 function endGame() {
   stopLogicLoop();
   clearInterval(countdownInterval);
-  let resultTitle = 'Game Over';
+  
+  let resultTitle = translations[currentLanguage].gameOver; // "Game Over!"
   if (opponentDisconnected) {
-    resultTitle = 'Opponent Disconnected. You Win!';
+    resultTitle = translations[currentLanguage].opponentDisconnected; 
   } else {
     if (score > opponentScore) {
-      resultTitle = 'You Win!';
+      resultTitle = translations[currentLanguage].youWin;
     } else if (score < opponentScore) {
-      resultTitle = 'You Lose...';
+      resultTitle = translations[currentLanguage].youLose;
     } else {
-      resultTitle = 'Draw';
+      resultTitle = translations[currentLanguage].draw;
     }
   }
 
-  const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
+  const msg = `${translations[currentLanguage].yourScore}: ${score} | ${translations[currentLanguage].opponentScore}: ${opponentScore}`;
   showEndGameModal(resultTitle, msg);
   cleanupRoom();
 }
 
 /* ======================================
-   10. ТАЙМЕР (1 минута)
+   ТАЙМЕР (1 минута)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
@@ -765,7 +865,7 @@ function startTimer() {
 }
 
 /* ======================================
-   11. РЕНДЕР ИГРЫ
+   РЕНДЕР ИГРЫ
 ====================================== */
 function renderGame() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -776,6 +876,7 @@ function renderGame() {
 
   // Рисуем яблоко
   let appleImg = new Image();
+  // Пример звезды (или поменяйте на вашу иконку)
   appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
   if (appleImg.complete) {
     specialCtx.drawImage(
@@ -787,7 +888,7 @@ function renderGame() {
     );
   }
 
-  // Рисуем локальную змейку с черной обводкой
+  // Рисуем локальную змейку
   localSnake.forEach(seg => {
     const x = GAME_AREA_X + seg.x * gridSize;
     const y = GAME_AREA_Y + seg.y * gridSize;
@@ -798,7 +899,7 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   });
 
-  // Рисуем змейку противника с черной обводкой
+  // Рисуем змейку противника
   opponentSnake.forEach(seg => {
     const x = GAME_AREA_X + seg.x * gridSize;
     const y = GAME_AREA_Y + seg.y * gridSize;
@@ -871,7 +972,7 @@ function drawMatrixGrid() {
 }
 
 /* ======================================
-   12. ЭКРАНЫ: "SEARCHING / WAITING..."
+   ЭКРАН "SEARCHING / WAITING..."
 ====================================== */
 function drawSearchScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -882,12 +983,10 @@ function drawSearchScreen() {
   specialCtx.font = '15px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
   specialCtx.fillText(
-    'Searching for opponent...',
+    translations[currentLanguage].searchingForOpponent,
     specialGameCanvas.width / 2,
     specialGameCanvas.height / 2
   );
-  specialCtx.font = '10px "Press Start 2P", sans-serif';
-  specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
 }
 
 function drawWaitingScreen() {
@@ -905,7 +1004,11 @@ function drawOpponentFoundScreen() {
   specialCtx.font = '16px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
   const displayName = opponentName ? opponentName : "Anonymous";
-  specialCtx.fillText('Opponent: @' + displayName, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+  specialCtx.fillText(
+    translations[currentLanguage].opponentFound + '@' + displayName,
+    specialGameCanvas.width / 2,
+    specialGameCanvas.height / 2
+  );
 }
 
 function drawCountdownScreen(value) {
@@ -920,10 +1023,10 @@ function drawCountdownScreen(value) {
 }
 
 /* ======================================
-   13. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
+   УПРАВЛЕНИЕ: ДЖОЙСТИК + КЛАВИАТУРА
 ====================================== */
 function addSwipeListeners() {
-  // Обработчик для клавиатуры (для десктопа)
+  // Клавиатура
   function onKeyDown(e) {
     switch (e.key) {
       case 'ArrowLeft':
@@ -943,7 +1046,7 @@ function addSwipeListeners() {
   window.addEventListener('keydown', onKeyDown);
   window.__joystick_keydown = onKeyDown;
   
-  // Для мобильных устройств — джойстик, который появляется там, где начинается касание
+  // Джойстик
   const canvas = specialGameCanvas;
   const joystick = document.getElementById('joystick');
   const joystickStick = document.getElementById('joystick-stick');
@@ -978,7 +1081,7 @@ function addSwipeListeners() {
         dy = Math.sin(angle) * maxDistance;
       }
       joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
-      // Определяем направление по наибольшему смещению
+      // Определяем направление
       if (Math.abs(dx) > Math.abs(dy)) {
         if (dx > 0 && localDirection !== 'left') {
           localDirection = 'right';
@@ -1024,7 +1127,7 @@ function removeSwipeListeners() {
 }
 
 /* ======================================
-   14. КОПИРОВАНИЕ ССЫЛКИ
+   КОПИРОВАНИЕ ССЫЛКИ
 ====================================== */
 function copyInviteLink() {
   if (!inviteLink) return;
@@ -1034,7 +1137,7 @@ function copyInviteLink() {
 }
 
 /* ======================================
-   15. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+   МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
 ====================================== */
 function showEndGameModal(title, message) {
   const modal = document.getElementById('endgameBackdrop');
@@ -1042,11 +1145,11 @@ function showEndGameModal(title, message) {
   const msgEl = document.getElementById('endgameMessage');
   titleEl.textContent = title;
   msgEl.textContent = message;
-  modal.classList.add('active');
+  modal.style.display = 'flex';
 }
 
 /* ======================================
-   16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ (ДЛЯ КЛАВИАТУРЫ)
+   НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
 ====================================== */
 function setupControlButtons() {
   const buttons = document.querySelectorAll('.control-button');
@@ -1065,7 +1168,34 @@ function setupControlButtons() {
 }
 
 /* ======================================
-   17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+   ОТМЕНА ПОИСКА
+====================================== */
+function cancelSearch() {
+  if (roomId) {
+    const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
+    if (waitingListener) {
+      statusRef.off('value', waitingListener);
+      waitingListener = null;
+    }
+    const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
+    if (oppListener) {
+      oppRef.off('value', oppListener);
+      oppListener = null;
+    }
+    cleanupRoom();
+  }
+  resetSpecialGame1();
+  document.getElementById('cancelSearchBtn').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+  
+  // Возвращаем исходный вид кнопок (язык, back и т.д.)
+  document.getElementById('backToIndexBtn').style.display = 'block';
+  document.getElementById('backToRefreshBtn').style.display = 'none';
+  document.getElementById('toggleLanguageBtn').style.display = 'block';
+}
+
+/* ======================================
+   УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -1086,37 +1216,61 @@ window.addEventListener('beforeunload', function() {
 });
 
 /* ======================================
-   18. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+   ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
 ====================================== */
 function finishGame() {
-  document.getElementById('endgameBackdrop').classList.remove('active');
+  document.getElementById('endgameBackdrop').style.display = 'none';
   window.location.href = 'index.html';
 }
 function returnToMain() {
-  document.getElementById('noTicketsModal').classList.remove('active');
+  document.getElementById('noTicketsModal').style.display = 'none';
   window.location.href = 'index.html';
 }
 
 /* ======================================
-   19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   СЛУШАТЕЛИ КНОПОК НА LANDING
 ====================================== */
 document.getElementById('startSearchBtn').addEventListener('click', function(){
-  // При старте поиска скрываем обучающий экран (включая шапку с языком и кнопку "Back")
+  // Скрываем экран обучения, показываем кнопку "cancelSearch"
   document.getElementById('landingScreen').style.display = 'none';
-  // Показываем кнопку "Back" для поиска, которая обновляет страницу
-  document.getElementById('searchBackBtn').style.display = 'block';
+  document.getElementById('cancelSearchBtn').style.display = 'block';
+  
+  // Прячем кнопку переключения языка (согласно требованию)
+  document.getElementById('toggleLanguageBtn').style.display = 'none';
+  
+  // Меняем кнопку Back: скрываем backToIndexBtn, показываем backToRefreshBtn
+  document.getElementById('backToIndexBtn').style.display = 'none';
+  document.getElementById('backToRefreshBtn').style.display = 'block';
+
   findOrCreateRoom();
 });
 
-// Кнопка "Back" во время поиска — обновляет страницу
-document.getElementById('searchBackBtn').addEventListener('click', function(){
+document.getElementById('cancelSearchBtn').addEventListener('click', function(){
+  cancelSearch();
+});
+
+/* ======================================
+   ОБРАБОТКА КНОПОК BACK
+====================================== */
+document.getElementById('backToIndexBtn').addEventListener('click', function() {
+  // Кнопка Back на главном экране – ведёт на index.html
+  window.location.href = 'index.html';
+});
+document.getElementById('backToRefreshBtn').addEventListener('click', function() {
+  // Кнопка Back во время поиска – перезагружает страницу
   window.location.reload();
 });
 
 /* ======================================
-   20. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+   СЛУШАТЕЛЬ ДЛЯ КНОПКИ СМЕНЫ ЯЗЫКА
+====================================== */
+document.getElementById('toggleLanguageBtn').addEventListener('click', toggleLanguage);
+
+/* ======================================
+   ЗАПУСК ПРИ ЗАГРУЗКЕ
 ====================================== */
 window.addEventListener('load', () => {
+  // Инициализация Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
     authDomain: "test-with-likes.firebaseapp.com",
@@ -1131,6 +1285,7 @@ window.addEventListener('load', () => {
     firebase.initializeApp(firebaseConfig);
   }
 
+  // Псевдо-логика для currentUser
   if (!window.currentUser) {
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
       const tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -1146,13 +1301,13 @@ window.addEventListener('load', () => {
     }
   }
 
+  // Запуск игры
   initSpecialGame1();
-
-  // Инициализируем тексты в соответствии с текущим языком
-  updateLanguageTexts();
+  
+  // Устанавливаем язык по умолчанию (en) и обновляем текст
+  updateLanguageText(currentLanguage);
 });
 
-// Функция смены направления (используется для кнопок управления)
 function changeDirection(newDir) {
   if (
     (newDir === 'up'    && localDirection === 'down') ||
@@ -1164,44 +1319,6 @@ function changeDirection(newDir) {
   }
   localDirection = newDir;
 }
-
-/* ======================================
-   21. ФУНКЦИИ ДЛЯ РЕАЛИЗАЦИИ СМЕНЫ ЯЗЫКА
-====================================== */
-let currentLanguage = "en";
-const languageStrings = {
-  en: {
-    landingTitle: "Special Snake PvP",
-    landingText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
-    startSearch: "Start Search",
-    homeBack: "Back",
-    languageToggle: "RU"
-  },
-  ru: {
-    landingTitle: "Спешл Снейк PvP",
-    landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
-    startSearch: "Начать поиск",
-    homeBack: "Назад",
-    languageToggle: "EN"
-  }
-};
-
-function updateLanguageTexts() {
-  document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
-  document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
-  document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch;
-  document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
-  document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
-}
-
-document.getElementById('langToggleBtn').addEventListener('click', function() {
-  currentLanguage = currentLanguage === "en" ? "ru" : "en";
-  updateLanguageTexts();
-});
-
-document.getElementById('homeBackBtn').addEventListener('click', function() {
-  window.location.href = 'index.html';
-});
   </script>
 </body>
 </html>
