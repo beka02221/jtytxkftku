@@ -158,14 +158,6 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
 
-  <!-- Убираем старый контейнер D-Pad -->
-  <!-- <div class="dpad" id="dpad" style="display: none;">
-    <button class="dpad-btn up" onclick="changeDirection('up')">↑</button>
-    <button class="dpad-btn left" onclick="changeDirection('left')">←</button>
-    <button class="dpad-btn down" onclick="changeDirection('down')">↓</button>
-    <button class="dpad-btn right" onclick="changeDirection('right')">→</button>
-  </div> -->
-
   <!-- Джойстик (будет появляться там, где пользователь начнет касание) -->
   <div id="joystick">
     <div id="joystick-stick"></div>
@@ -302,7 +294,6 @@ function resetSpecialGame1() {
   timerCurrent = 60;
   inviteLink = "";
   removeSwipeListeners();
-  // Больше не используется D-Pad
 }
 
 /* ======================================
@@ -310,16 +301,22 @@ function resetSpecialGame1() {
 ====================================== */
 function findOrCreateRoom() {
   const queueRef = firebase.database().ref('snakeQueue');
-
-  // Сначала удаляем старую запись для этого пользователя
-  queueRef.child(window.currentUser.username).remove().then(() => {
-    queueRef.once('value').then((snapshot) => {
+  
+  // Удаляем все "зависшие" комнаты, созданные этим пользователем
+  queueRef.orderByChild('creator').equalTo(window.currentUser.username).once('value')
+    .then(snapshot => {
+      snapshot.forEach(childSnapshot => {
+        childSnapshot.ref.remove();
+      });
+      return queueRef.once('value');
+    })
+    .then((snapshot) => {
       const queueData = snapshot.val() || {};
       let openRoomKey = null;
 
-      // Ищем комнату со статусом "waiting"
+      // Ищем комнату со статусом "waiting", созданную другим пользователем
       for (const key in queueData) {
-        if (key !== window.currentUser.username && queueData[key].status === 'waiting') {
+        if (queueData[key].status === 'waiting' && queueData[key].creator !== window.currentUser.username) {
           openRoomKey = key;
           break;
         }
@@ -334,22 +331,25 @@ function findOrCreateRoom() {
           .catch((err) => console.error('Error updating room status:', err));
         setupGameReferences();
       } else {
-        // Создаём новую комнату как player1
+        // Создаём новую комнату как player1 с информацией о создателе
         roomId = queueRef.push().key;
         playerId = 'player1';
         opponentId = 'player2';
         queueRef.child(roomId).set({
           status: 'waiting',
-          createdAt: firebase.database.ServerValue.TIMESTAMP
+          createdAt: firebase.database.ServerValue.TIMESTAMP,
+          creator: window.currentUser.username
         }).catch((err) => console.error('Error creating room:', err));
+        // Удаляем комнату при отключении создателя
+        queueRef.child(roomId).onDisconnect().remove();
         setupGameReferences();
       }
       // Генерируем ссылку-приглашение
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
       waitForOpponent();
-    }).catch((err) => console.error('Error reading queue:', err));
-  });
+    })
+    .catch((err) => console.error('Error in findOrCreateRoom:', err));
 }
 
 /* ======================================
@@ -473,7 +473,6 @@ function startCountdown() {
 function launchGame() {
   isGameRunning = true;
   isGameOver = false;
-  // При запуске игры теперь используется джойстик (D-Pad больше не показывается)
 
   gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
     const data = snapshot.val();
@@ -757,27 +756,15 @@ function drawSearchScreen() {
     specialGameCanvas.height / 2
   );
   specialCtx.font = '10px "Press Start 2P", sans-serif';
-  specialCtx.fillText(
-    ' ',
-    specialGameCanvas.width / 2,
-    specialGameCanvas.height / 2 + 40
-  );
+  specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
 
   specialCtx.save();
   specialCtx.globalAlpha = 0;
-  specialCtx.fillText(
-    inviteLink,
-    specialGameCanvas.width / 2,
-    specialGameCanvas.height / 2 + 60
-  );
+  specialCtx.fillText(inviteLink, specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 60);
   specialCtx.restore();
 
   specialCtx.font = '8px "Press Start 2P", sans-serif';
-  specialCtx.fillText(
-    ' ',
-    specialGameCanvas.width / 2,
-    specialGameCanvas.height / 2 + 80
-  );
+  specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 80);
 
   document.getElementById('copyButton').style.display = 'block';
 }
@@ -797,11 +784,7 @@ function drawOpponentFoundScreen() {
   specialCtx.font = '16px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
   const displayName = opponentName ? opponentName : "Anonymous";
-  specialCtx.fillText(
-    'Opponent: @' + displayName,
-    specialGameCanvas.width / 2,
-    specialGameCanvas.height / 2
-  );
+  specialCtx.fillText('Opponent: @' + displayName, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
 }
 
 function drawCountdownScreen(value) {
@@ -812,11 +795,7 @@ function drawCountdownScreen(value) {
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '60px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
-  specialCtx.fillText(
-    value.toString(),
-    specialGameCanvas.width / 2,
-    specialGameCanvas.height / 2
-  );
+  specialCtx.fillText(value.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 2);
 }
 
 /* ======================================
