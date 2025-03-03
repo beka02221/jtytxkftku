@@ -4,728 +4,633 @@
 
 /* СБРОС */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  /* Убираем горизонтальную прокрутку */
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow-x: hidden;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    display: flex;
-    flex-direction: column;
-    background-color: #00103c;
-    color: #fff;
-    font-family: 'Courier New', monospace; /* общий базовый шрифт */
-  }
-  
-  /* Шрифты заголовков */
-  h1, h2, h3, h4 {
-    font-family: 'Press Start 2P', cursive;
-    text-transform: uppercase;
-    color: #FF00FF;
-  }
-  
-  /* Анимация "нажатия" */
-  @keyframes press {
-    0%   { transform: translateY(0) scale(1); }
-    50%  { transform: translateY(2px) scale(0.97); }
-    100% { transform: translateY(0) scale(1); }
-  }
-  
-  /* ---------- Кнопка дизайна (гамбургер) ---------- */
-  #design-settings {
-    position: fixed;
-    top: 20px;
-    left: 10px;
-    z-index: 1100;
-  }
-  #design-options {
-    display: none;
-    background: rgba(0, 0, 0, 0.85);
-    padding: 10px;
-    border: 1px solid #FF69B4;
-    text-align: center;
-    margin-top: 5px;
-    font-size: 14px;
-    color: #FF69B4;
-  }
-  #design-options p {
-    display: inline-block;
-    background: transparent;
-    border: 2px solid #FF69B4;
-    padding: 5px 10px;
-    margin: 5px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background 0.2s, transform 0.2s;
-  }
-  #design-options p:hover {
-    background: #FF69B4;
-    color: #000;
-    transform: translateY(-2px);
-  }
-  #design-settings button {
-    width: 30px;
-    height: 20px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: center;
-    padding: 0;
-  }
-  #design-settings .hamburger-line {
-    width: 80%;
-    height: 3px;
-    background: #FF00FF;
-    border-radius: 2px;
-  }
-  #design-settings button:hover .hamburger-line {
-    background: #ff0037;
-  }
-  #design-settings button:active {
-    transform: translateY(2px);
-  }
-  
-  /* ---------- Шапка (header) ---------- */
-  header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding: 12px;
-    background: #49357d;
-    border-bottom: 2px solid #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 100;
-  }
-  
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .user-info img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid #ffffff;
-    object-fit: cover;
-  }
-  
-  .balances {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    margin-top: 6px;
-  }
-  .balances span {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .balances img {
-    width: 18px;
-    height: 18px;
-    filter: brightness(1.2) contrast(1.1);
-  }
-  
-  /* ---------- Основной блок (main) ---------- */
-  main {
-    flex: 1;
-    overflow-y: auto;
-    padding: 30px 0;
-    padding-bottom: 70px; /* отступ, чтобы не наезжать на нижнюю навигацию */
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* ---------- Секции (section) ---------- */
-  .section {
-    display: none;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    width: 100%;
-    margin-top: 60px; /* отступ под шапку */
-    margin-bottom: 20px;
-    background-color: rgba(68, 0, 82, 0.0);
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  .section.active {
-    display: block;
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .section h2 {
-    font-size: 16px;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  .section h3 {
-    font-size: 20px;
-    margin: 50px 0 20px;
-    text-align: center;
-  }
-  
-  /* ---------- Галерея (2 колонки) ---------- */
-  .games-gallery {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 0 10px;
-    box-sizing: border-box;
-  }
-  
-  /* ---------- Карточка игры ---------- */
-    
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
+/* Убираем горизонтальную прокрутку */
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
 
-    /* ---------- main games card игры ---------- */
+body {
+  display: flex;
+  flex-direction: column;
+  background-color: #00103c;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
 
-  .game-card1 {
-    background-color: #45cac5;
-    color: #ff2553;
-    padding: 10px;
-    text-align: center;
-    font-size: 0.8rem;
-    position: relative;
-    box-shadow:
-      inset -2px 2px 1px 1px grey,
-      inset -2px -2px 1px 1px lightgray,
-      inset 2px 0px 1px 1px lightgray;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .game-card1:hover {
-    cursor: pointer;
-    transform: scale(1.02);
-  }
-  .game-card1:active {
-    transform: translateY(3px);
-    box-shadow:
-      -2px 2px 1px 1px grey,
-      -2px -2px 1px 1px lightgray,
-      2px 0px 1px 1px lightgray;
-  }
-  .game-card1 img {
-    width: 150px;
-    height: 150px;
-    object-fit: contain;
-    margin-bottom: 6px;
-   
-  }
-  .game-card1 p {
-    margin-bottom: 6px;
-    color: #000;
-  }
-  .game-card1 button {
-    background: #06B6D1;
-    color: #262626;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 0.7rem;
-    box-shadow: 0 2px #6b6b6b;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  .game-card1 button:hover {
-    transform: scale(1.05);
-  }
-  .game-card1 button:active {
-    animation: press 0.15s forwards;
-    box-shadow: 0 1px #6b6b6b;
-    transform: translateY(1px) scale(1.0);
-  }
+/* Шрифты заголовков */
+h1, h2, h3, h4 {
+  font-family: 'Press Start 2P', cursive;
+  text-transform: uppercase;
+  color: #FF00FF;
+}
 
+/* Анимация "нажатия" */
+@keyframes press {
+  0%   { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(2px) scale(0.97); }
+  100% { transform: translateY(0) scale(1); }
+}
 
+/* ---------- Базовый стиль для всех кнопок (интерактивных) ---------- */
+button {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: #06C1DE;
+  color: #262626;
+  border: 1px solid #4b4b4b;
+  border-radius: 4px;
+  padding: 4px 6px;
+  box-shadow: 0 3px #6b6b6b;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
 
+button:hover {
+  transform: scale(1.05);
+}
 
+button:active {
+  animation: press 0.15s forwards;
+  transform: translateY(1px) scale(1.0);
+  box-shadow: 0 1px #6b6b6b;
+}
 
-  
-  .game-card {
-    background-color: #45cac5;
-    color: #ff2553;
-    padding: 10px;
-    text-align: center;
-    font-size: 0.8rem;
-    position: relative;
-    box-shadow:
-      inset -2px 2px 1px 1px grey,
-      inset -2px -2px 1px 1px lightgray,
-      inset 2px 0px 1px 1px lightgray;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .game-card:hover {
-    cursor: pointer;
-    transform: scale(1.02);
-  }
-  .game-card:active {
-    transform: translateY(3px);
-    box-shadow:
-      -2px 2px 1px 1px grey,
-      -2px -2px 1px 1px lightgray,
-      2px 0px 1px 1px lightgray;
-  }
-  .game-card img {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    margin-bottom: 6px;
-   
-  }
-  .game-card p {
-    margin-bottom: 6px;
-    color: #000;
-  }
-  .game-card button {
-    background: #06B6D1;
-    color: #262626;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 0.7rem;
-    box-shadow: 0 2px #6b6b6b;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  .game-card button:hover {
-    transform: scale(1.05);
-  }
-  .game-card button:active {
-    animation: press 0.15s forwards;
-    box-shadow: 0 1px #6b6b6b;
-    transform: translateY(1px) scale(1.0);
-  }
-  
-  /* ---------- Навигация внизу (nav) ---------- */
-  nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 8px 0;
-    background-color: #6d4fba;
-    z-index: 1000;
-  }
-  nav button {
-    width: 50px;
-    height: 50px;
-    background: #06C1DE;
-    border: none;
-    position: relative;
-    box-shadow:
-      inset -3px 1px 1px 1px grey,
-      inset -3px -1px 1px 1px lightgray,
-      inset 3px 0px 1px 1px lightgray;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  nav button:hover {
-    background-color: #06B6D1;
-  }
-  nav button:active {
-    top: 2px;
-  }
-  nav button img {
-    width: 20px;
-    height: 20px;
-    filter: brightness(0) saturate(100%);
-  }
-  
-  /* ---------- Модалки ---------- */
-  .modal-backdrop {
-    position: fixed;
-    top: 0; 
-    left: 0;
-    width: 100%; 
-    height: 100%;
-    background: rgba(0,0,0,0.3);
-    display: none; 
-    align-items: center; 
-    justify-content: center;
-    z-index: 9999;
-  }
-  .modal-backdrop.active {
-    display: flex;
-  }
-  .modal {
-    background-color: #6d4fba;
-    border: 2px solid #3b3b3b;
-    padding: 20px;
-    width: 80%;
-    max-width: 360px;
-    text-align: center;
-    border-radius: 4px;
-  }
-  .modal h2 {
-    margin-bottom: 10px;
-    font-size: 12px;
-  }
-  .modal p {
-    margin-bottom: 16px;
-    font-size: 10px;
-  }
-  .close-modal {
-    background: #06C1DE;
-    color: #262626;
-    padding: 4px 8px;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    font-size: 10px;
-    box-shadow: 0 3px #6b6b6b;
-    cursor: pointer;
-  }
-  .close-modal:hover {
-    transform: scale(1.05);
-  }
-  .close-modal:active {
-    animation: press 0.15s forwards;
-    transform: translateY(1px) scale(1.0);
-  }
-  .modal-season {
-    text-align: left;
-  }
-  
-  /* ---------- Модал игры на весь экран ---------- */
-  .game-modal-backdrop {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 60px);
-    background: #6d4fba;
-    display: none;
-    flex-direction: column;
-    z-index: 10000;
-  }
-  .game-modal-backdrop.active {
-    display: flex;
-  }
-  .game-modal-content {
-    flex: 1;
-    display: flex; 
-    flex-direction: column;
-    margin-top: 60px;
-  }
-  .hidden {
-    display: none !important;
-  }
-  .game-canvas {
-    flex: 1;
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-  }
-  
-  /* ---------- Модал результата игры ---------- */
-  .endgame-backdrop {
-    position: fixed; 
-    top: 0; 
-    left: 0;
-    width: 100%; 
-    height: 100%;
-    background: rgba(0,0,0,0.3);
-    display: none; 
-    align-items: center; 
-    justify-content: center;
-    z-index: 10001;
-  }
-  .endgame-backdrop.active {
-    display: flex;
-  }
-  .endgame-modal {
-    background-color: #6d4fba;
-    border: 2px solid #3b3b3b;
-    border-radius: 4px;
-    padding: 16px;
-    width: 80%;
-    max-width: 360px;
-    text-align: center;
-    box-shadow: 0 0 15px #0ff;
-  }
-  .endgame-modal h2 {
-    margin-bottom: 10px;
-    font-size: 12px;
-  }
-  .endgame-modal p {
-    margin-bottom: 16px;
-    font-size: 10px;
-  }
-  .endgame-modal button {
-    background: #6d4fba;
-    color: #0ff;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 10px;
-    box-shadow: 0 3px #6b6b6b;
-    cursor: pointer;
-  }
-  .endgame-modal button:hover {
-    transform: scale(1.05);
-  }
-  .endgame-modal button:active {
-    animation: press 0.15s forwards;
-    transform: translateY(1px) scale(1.0);
-  }
-  
-  /* ---------- Таблицы (Лидерборд) ---------- */
-  .leaderboard-container {
-    margin-top: 20px;
-    padding: 0 10px;
-    box-sizing: border-box;
-  }
-  
-  #leaderboardSection h2 {
-    margin-top: 40px;
-    margin-bottom: 30px;
-  }
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #150069;
-    font-size: 10px;
-  }
-  table th,
-  table td {
-    padding: 8px;
-    text-align: left;
-    border: 1px solid #3b3b3b;
-  }
-  table th {
-    background-color: #1f1c2c;
-    color: #FF00FF;
-    font-weight: bold;
-  }
-  table tr:nth-child(even) {
-    background-color: #1f1c2c;
-  }
-  table tr:nth-child(odd) {
-    background-color: #150069;
-  }
-  table tr {
-    background-color: #150069;
-    color: #fff;
-  }
-  /* Строка текущего пользователя */
-  table tr.current-user {
-    background-color: #FF00FF;
-    color: #000;
-  }
-  
-  .info-button {
-    display: block;
-    margin: 20px;
-    background: #06B6D1;
-    color: #262626;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 10px;
-    box-shadow: 0 3px #6b6b6b;
-    cursor: pointer;
-    float: right;
-  
-  
-  }
-  .info-button:hover {
-    transform: scale(1.05);
-  }
-  .info-button:active {
-    animation: press 0.15s forwards;
-    transform: translateY(1px) scale(1.0);
-  }
-  
-  /* ---------- Реферальная секция ---------- */
-  .referral-container {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-    align-items: center;
-    text-align: center;
-    padding: 0 10px;
-  }
-  #referralSection h2 {
-    margin-top: 40px;  /* увеличенный верхний отступ */
-    font-size: 16px;
-    text-align: center;
-  }
-  .referral-link {
-    word-wrap: break-word;
-    
-    background-color: #06C1DE;
-    border-radius: 4px;
-    padding: 10px;
-    width: 100%;
-    max-width: 400px;
-    font-size: 10px;
-  }
-  .copy-button {
-    background: #d0dab4;
-    color: #262626;
-    border: 1px solid #4b4b4b;
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 10px;
-    box-shadow: 0 3px #6b6b6b;
-    cursor: pointer;
-  }
-  .copy-button:hover {
-    transform: scale(1.05);
-  }
-  .copy-button:active {
-    animation: press 0.15s forwards;
-    transform: translateY(1px) scale(1.0);
-  }
-  
-  /* ============ Новый блок: Колесо фортуны (Tickets) ============ */
-  /* ============ Новый блок: Колесо фортуны (Tickets) ============ */
+/* Специфичные стили для кнопок, если требуются дополнительные отступы или позиционирование */
+.info-button {
+  margin: 20px;
+  float: right;
+}
 
-/* ============ Новый блок: Колесо фортуны (Tickets) ============ */
+.copy-button {
+  /* Дополнительные отступы можно задать при необходимости */
+}
 
-/* Контейнер колеса (аналог .container) */
-/* ============ Новый блок: Колесо фортуны (Tickets) ============ */
+/* ---------- Кнопка дизайна (гамбургер) ---------- */
+#design-settings {
+  position: fixed;
+  top: 20px;
+  left: 10px;
+  z-index: 1100;
+}
 
-/* Контейнер колеса (аналог .container) */
+#design-options {
+  display: none;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 10px;
+  border: 1px solid #FF69B4;
+  text-align: center;
+  margin-top: 5px;
+  font-size: 14px;
+  color: #FF69B4;
+}
+
+#design-options p {
+  display: inline-block;
+  background: transparent;
+  border: 2px solid #FF69B4;
+  padding: 5px 10px;
+  margin: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+#design-options p:hover {
+  background: #FF69B4;
+  color: #000;
+  transform: translateY(-2px);
+}
+
+#design-settings button {
+  width: 30px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0;
+}
+
+#design-settings .hamburger-line {
+  width: 80%;
+  height: 3px;
+  background: #FF00FF;
+  border-radius: 2px;
+}
+
+#design-settings button:hover .hamburger-line {
+  background: #ff0037;
+}
+
+#design-settings button:active {
+  transform: translateY(2px);
+}
+
+/* ---------- Шапка (header) ---------- */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px;
+  background: #49357d;
+  border-bottom: 2px solid #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 100;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-info img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  object-fit: cover;
+}
+
+.balances {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.balances span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.balances img {
+  width: 18px;
+  height: 18px;
+  filter: brightness(1.2) contrast(1.1);
+}
+
+/* ---------- Основной блок (main) ---------- */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px 0;
+  padding-bottom: 70px; /* отступ для нижней навигации */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Секции (section) ---------- */
+.section {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  width: 100%;
+  margin-top: 60px; /* отступ под шапку */
+  margin-bottom: 20px;
+  background-color: rgba(68, 0, 82, 0);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.section.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section h2 {
+  font-size: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.section h3 {
+  font-size: 20px;
+  margin: 50px 0 20px;
+  text-align: center;
+}
+
+/* ---------- Галерея (2 колонки) ---------- */
+.games-gallery {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* ---------- Карточка игры ---------- */
+.game-card,
+.game-card1 {
+  background-color: #45cac5;
+  color: #ff2553;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  position: relative;
+  box-shadow:
+    inset -2px 2px 1px 1px grey,
+    inset -2px -2px 1px 1px lightgray,
+    inset 2px 0px 1px 1px lightgray;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.game-card:hover,
+.game-card1:hover {
+  cursor: pointer;
+  transform: scale(1.02);
+}
+
+.game-card:active,
+.game-card1:active {
+  transform: translateY(3px);
+  box-shadow:
+    -2px 2px 1px 1px grey,
+    -2px -2px 1px 1px lightgray,
+    2px 0px 1px 1px lightgray;
+}
+
+.game-card img,
+.game-card1 img {
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+.game-card img {
+  width: 120px;
+  height: 120px;
+}
+
+.game-card1 img {
+  width: 150px;
+  height: 150px;
+}
+
+.game-card p,
+.game-card1 p {
+  margin-bottom: 6px;
+  color: #000;
+}
+
+/* ---------- Навигация внизу (nav) ---------- */
+nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 8px 0;
+  background-color: #6d4fba;
+  z-index: 1000;
+}
+
+nav button {
+  width: 50px;
+  height: 50px;
+  border: none;
+  position: relative;
+  box-shadow:
+    inset -3px 1px 1px 1px grey,
+    inset -3px -1px 1px 1px lightgray,
+    inset 3px 0px 1px 1px lightgray;
+  transition: transform 0.2s;
+}
+
+nav button:hover {
+  background-color: #06B6D1;
+}
+
+nav button:active {
+  top: 2px;
+}
+
+nav button img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%);
+}
+
+/* ---------- Модалки ---------- */
+.modal-backdrop {
+  position: fixed;
+  top: 0; 
+  left: 0;
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  display: none; 
+  align-items: center; 
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-backdrop.active {
+  display: flex;
+}
+
+.modal {
+  background-color: #6d4fba;
+  border: 2px solid #3b3b3b;
+  padding: 20px;
+  width: 80%;
+  max-width: 360px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.modal h2 {
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.modal p {
+  margin-bottom: 16px;
+  font-size: 10px;
+}
+
+/* Модальные кнопки наследуют базовый стиль */
+.close-modal {
+  /* Дополнительные отступы при необходимости */
+}
+
+.modal-season {
+  text-align: left;
+}
+
+/* ---------- Модал игры на весь экран ---------- */
+.game-modal-backdrop {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 60px);
+  background: #6d4fba;
+  display: none;
+  flex-direction: column;
+  z-index: 10000;
+}
+
+.game-modal-backdrop.active {
+  display: flex;
+}
+
+.game-modal-content {
+  flex: 1;
+  display: flex; 
+  flex-direction: column;
+  margin-top: 60px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.game-canvas {
+  flex: 1;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+
+/* ---------- Модал результата игры ---------- */
+.endgame-backdrop {
+  position: fixed; 
+  top: 0; 
+  left: 0;
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  display: none; 
+  align-items: center; 
+  justify-content: center;
+  z-index: 10001;
+}
+
+.endgame-backdrop.active {
+  display: flex;
+}
+
+.endgame-modal {
+  background-color: #6d4fba;
+  border: 2px solid #3b3b3b;
+  border-radius: 4px;
+  padding: 16px;
+  width: 80%;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 0 15px #0ff;
+}
+
+.endgame-modal h2 {
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.endgame-modal p {
+  margin-bottom: 16px;
+  font-size: 10px;
+}
+
+/* Модальные кнопки наследуют базовый стиль */
+
+/* ---------- Таблицы (Лидерборд) ---------- */
+.leaderboard-container {
+  margin-top: 20px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+#leaderboardSection h2 {
+  margin-top: 40px;
+  margin-bottom: 30px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #150069;
+  font-size: 10px;
+}
+
+table th,
+table td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #3b3b3b;
+}
+
+table th {
+  background-color: #1f1c2c;
+  color: #FF00FF;
+  font-weight: bold;
+}
+
+table tr:nth-child(even) {
+  background-color: #1f1c2c;
+}
+
+table tr:nth-child(odd) {
+  background-color: #150069;
+}
+
+table tr {
+  background-color: #150069;
+  color: #fff;
+}
+
+/* Строка текущего пользователя */
+table tr.current-user {
+  background-color: #FF00FF;
+  color: #000;
+}
+
+/* ---------- Реферальная секция ---------- */
+.referral-container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  align-items: center;
+  text-align: center;
+  padding: 0 10px;
+}
+
+#referralSection h2 {
+  margin-top: 40px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.referral-link {
+  word-wrap: break-word;
+  background-color: #06C1DE;
+  border-radius: 4px;
+  padding: 10px;
+  width: 100%;
+  max-width: 400px;
+  font-size: 10px;
+}
+
+/* ---------- Новый блок: Колесо фортуны (Tickets) ---------- */
 .wheel {
-    width: 250px;
-    height: 250px;
-    background: #4ed4c6;
-    position: relative;
-    border-radius: 50%;
-    overflow: hidden;
-    box-shadow: 0 0 10px gray;
-    transition: all 3s;
-    margin: 20px auto;  /* центрирование по горизонтали */
-  }
-  
-  /* Каждый сектор колеса (аналог .container div) */
-  .slice {
-    height: 50%;
-    width: 60%;              /* примерно 60% от ширины колеса */
-    clip-path: polygon(100% 0, 50% 100%, 0 0);
-    transform: translateX(-50%); /* сдвиг по горизонтали для центрирования */
-    transform-origin: bottom;
-    position: absolute;
-    left: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;  /* уменьшенный размер текста билетов */
-    font-family: monospace;
-    font-weight: 1000;
-    color: #ffffff;
-    writing-mode: vertical-rl;
-  }
-  
-  /* Раскладываем 6 секторов по кругу (каждый с поворотом на 60°) */
-  .slice1 {
-    background: #6d4fba;
-    /* для первого сектора не задаём дополнительный rotate, чтобы сохранить первоначальное состояние */
-  }
-  .slice2 {
-    background: #06C1DE;
-    transform: translateX(-50%) rotate(60deg);
-  }
-  .slice3 {
-    background: #6d4fba;
-    
-    transform: translateX(-50%) rotate(120deg);
-  }
-  .slice4 {
-    background: #06C1DE;
-    transform: translateX(-50%) rotate(180deg);
-  }
-  .slice5 {
-    background: #6d4fba;
-    transform: translateX(-50%) rotate(240deg);
-  }
-  .slice6 {
-    background: #06C1DE;
-    transform: translateX(-50%) rotate(300deg);
-  }
-  
-  /* Центральная точка (если нужна) */
-  .mid {
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    position: absolute;
-    background: #000000;
-    top: calc(50% - 10px);
-    left: calc(50% - 10px);
-    z-index: 5;
-  }
-  
-  /* Стрелка-указатель (верхняя стрелка) */
-  .wheel-pointer {
-    position: absolute;
-    top: -15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-bottom: 15px solid #ffd600;
-    z-index: 10;
-  }
-  
-  /* ---------- Специфические стили для секции Tickets ---------- */
+  width: 250px;
+  height: 250px;
+  background: #4ed4c6;
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 10px gray;
+  transition: all 3s;
+  margin: 20px auto;
+}
 
-/* Заголовок секции Tickets: опускаем немного ниже */
+.slice {
+  height: 50%;
+  width: 60%;
+  clip-path: polygon(100% 0, 50% 100%, 0 0);
+  transform: translateX(-50%);
+  transform-origin: bottom;
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-family: monospace;
+  font-weight: 1000;
+  color: #ffffff;
+  writing-mode: vertical-rl;
+}
+
+.slice1 {
+  background: #6d4fba;
+}
+
+.slice2 {
+  background: #06C1DE;
+  transform: translateX(-50%) rotate(60deg);
+}
+
+.slice3 {
+  background: #6d4fba;
+  transform: translateX(-50%) rotate(120deg);
+}
+
+.slice4 {
+  background: #06C1DE;
+  transform: translateX(-50%) rotate(180deg);
+}
+
+.slice5 {
+  background: #6d4fba;
+  transform: translateX(-50%) rotate(240deg);
+}
+
+.slice6 {
+  background: #06C1DE;
+  transform: translateX(-50%) rotate(300deg);
+}
+
+.mid {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  position: absolute;
+  background: #000000;
+  top: calc(50% - 10px);
+  left: calc(50% - 10px);
+  z-index: 5;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 15px solid #ffd600;
+  z-index: 10;
+}
+
+/* Специфические стили для секции Tickets */
 #ticketsSection h2 {
-    margin-top: 40px;  /* увеличенный верхний отступ */
-    font-size: 16px;
-    text-align: center;
-  }
-  
-  /* Кнопки под колесом (tickets-actions) */
-  .tickets-actions {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    margin-top: 20px;
-  }
-  
-  /* Стили для кнопок — угловатые (border-radius небольшое) и с тенью */
-  .tickets-actions button {
-    background: #06C1DE;
-    color: #262626;
-    border: 1px solid #4b4b4b;
-    border-radius: 10px;            /* угловатые края */
-    padding: 5px 12px;             /* чуть больше внутреннего отступа */
-    font-size: 12px;
-    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* лёгкая тень */
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  
-  .tickets-actions button:hover {
-    transform: scale(1.05);
-  }
-  
-  .tickets-actions button:active {
-    transform: translateY(1px);
-  }
-  
+  margin-top: 40px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.tickets-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Кнопки в блоке Tickets наследуют базовый стиль */
+
