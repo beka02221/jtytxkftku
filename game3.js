@@ -1,11 +1,3 @@
-/* ===============================
-   game3.js — Tetris в стиле Матрицы
-   Управление:
-    - Стрелки клавиатуры: ←, →, ↓ для перемещения, ↑ для поворота
-    - Мобильные кнопки (создаётся динамически)
-   Таймер игры — 2 минуты (отображается в виде слайдера вверху)
-   По завершении игры сумма набранных очков прибавляется к балансу
-=============================== */
 (function () {
   // Размеры игрового поля и базовые константы
   const COLS = 10;
@@ -13,11 +5,11 @@
   const BLOCK_SIZE = 30; // размер клетки в пикселях
   const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 300px
   const BOARD_HEIGHT = ROWS * BLOCK_SIZE;    // 600px
-  const SCORE_AREA_HEIGHT = 30; // отступ для отображения счёта (выше поля)
-  const DROP_INTERVAL = 1000; // интервал падения фигуры (мс)
+  const DROP_INTERVAL = 1000; // интервал падения фигуры (мс) при обычном режиме
+  const FAST_DROP_INTERVAL = 100; // интервал падения при быстром режиме (мс)
   const GAME_DURATION = 120000; // длительность игры: 2 минуты (120000 мс)
   const PIECE_COLOR = "#00FF00"; // неоново-зелёный (стиль Матрицы)
-
+  
   // Глобальные переменные для игры
   let canvas, ctx;
   let board;
@@ -29,7 +21,7 @@
   let game3Running = false;
   let game3AnimationFrameId;
   let controlDiv; // контейнер мобильных кнопок
-  let downInterval = null; // для ускоренного спуска при зажатой стрелке вниз
+  let fastDrop = false; // флаг быстрого падения
 
   // Определения тетрамино (все фигуры будут зелёного цвета)
   const tetrominoes = {
@@ -101,17 +93,15 @@
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        // Добавляем вертикальный отступ для SCORE_AREA_HEIGHT
-        const posY = SCORE_AREA_HEIGHT + r * BLOCK_SIZE;
         if (board[r][c] !== 0) {
           ctx.fillStyle = PIECE_COLOR;
-          ctx.fillRect(offsetX + c * BLOCK_SIZE, posY, BLOCK_SIZE, BLOCK_SIZE);
-          ctx.strokeStyle = "#003300";
-          ctx.strokeRect(offsetX + c * BLOCK_SIZE, posY, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.fillRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#005500"; // чуть ярче
+          ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         } else {
-          // Для пустых клеток делаем сетку чуть ярче
-          ctx.strokeStyle = "#004400";
-          ctx.strokeRect(offsetX + c * BLOCK_SIZE, posY, BLOCK_SIZE, BLOCK_SIZE);
+          // Рисуем тонкую сетку с чуть ярким цветом
+          ctx.strokeStyle = "#002200";
+          ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         }
       }
     }
@@ -120,7 +110,6 @@
   // Рисуем текущую фигуру
   function drawPiece(piece) {
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
-    const offsetY = SCORE_AREA_HEIGHT;
     ctx.fillStyle = PIECE_COLOR;
     // Эффект свечения
     ctx.shadowColor = PIECE_COLOR;
@@ -128,9 +117,9 @@
     piece.shape.forEach((row, r) => {
       row.forEach((value, c) => {
         if (value) {
-          ctx.fillRect(offsetX + (piece.x + c) * BLOCK_SIZE, offsetY + (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-          ctx.strokeStyle = "#003300";
-          ctx.strokeRect(offsetX + (piece.x + c) * BLOCK_SIZE, offsetY + (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.fillRect(offsetX + (piece.x + c) * BLOCK_SIZE, (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#005500";
+          ctx.strokeRect(offsetX + (piece.x + c) * BLOCK_SIZE, (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         }
       });
     });
@@ -197,7 +186,7 @@
     return createPiece(rand);
   }
 
-  // Проверка и удаление заполненных строк; за каждый ряд начисляется 30 очков
+  // Проверка и удаление заполненных строк
   function clearLines() {
     let linesCleared = 0;
     outer: for (let r = ROWS - 1; r >= 0; r--) {
@@ -238,7 +227,7 @@
     const deltaTime = time - lastTime;
     lastTime = time;
     dropCounter += deltaTime;
-    if (dropCounter > DROP_INTERVAL) {
+    if (dropCounter > (fastDrop ? FAST_DROP_INTERVAL : DROP_INTERVAL)) {
       dropPiece();
     }
 
@@ -265,14 +254,18 @@
     ctx.fillStyle = "#00FF00";
     ctx.fillRect(0, 0, sliderWidth, 5);
 
-    // Отрисовываем счёт выше игрового поля
+    // Рисуем текущий счёт выше игрового поля
     ctx.fillStyle = "#00FF00";
     ctx.font = "20px 'Press Start 2P'";
-    ctx.fillText("Score: " + score, 10, 20);
+    ctx.textAlign = "center";
+    ctx.fillText("Score: " + score, canvas.width / 2, 30);
 
-    // Рисуем игровое поле и текущую фигуру с отступом сверху
+    // Сдвигаем контекст вниз для отрисовки игрового поля
+    ctx.save();
+    ctx.translate(0, 50);
     drawBoard();
     drawPiece(currentPiece);
+    ctx.restore();
   }
 
   // Обработчик клавиш для управления
@@ -289,15 +282,8 @@
         currentPiece.x--;
       }
     } else if (event.key === "ArrowDown") {
-      // Если кнопка вниз уже зажата – ничего не делаем, иначе запускаем ускоренный спуск
-      if (!downInterval) {
-        // Первый вызов dropPiece() можно выполнить сразу
-        dropPiece();
-        downInterval = setInterval(() => {
-          dropPiece();
-          drawGame3();
-        }, 100);
-      }
+      // Включаем режим быстрого падения
+      fastDrop = true;
     } else if (event.key === "ArrowUp") {
       // Поворот фигуры
       const rotated = rotate(currentPiece.shape);
@@ -317,13 +303,10 @@
     drawGame3();
   }
 
-  // Обработчик отпускания клавиши (для сброса ускоренного спуска)
+  // Обработчик отпускания клавиши (для ArrowDown)
   function handleKeyUp(event) {
     if (event.key === "ArrowDown") {
-      if (downInterval) {
-        clearInterval(downInterval);
-        downInterval = null;
-      }
+      fastDrop = false;
     }
   }
 
@@ -341,17 +324,19 @@
     controlDiv.style.gap = "10px";
     controlDiv.style.zIndex = "1100"; // чуть выше, чем у остальных элементов
 
-    // Функция для стилизации кнопки (добавлен пиксельный шрифт)
+    // Функция для стилизации кнопки
     function styleControlButton(btn) {
       btn.style.width = "50px";
       btn.style.height = "50px";
       btn.style.fontSize = "24px";
-      btn.style.fontFamily = "'Press Start 2P', monospace";
       btn.style.borderRadius = "5px";
       btn.style.border = "2px solid #00FF00";
       btn.style.background = "#000";
       btn.style.color = "#00FF00";
       btn.style.outline = "none";
+      // Задаём пиксельный шрифт
+      btn.style.fontFamily = "'Press Start 2P', monospace";
+      btn.style.fontWeight = "bold";
     }
 
     // Кнопка влево
@@ -437,11 +422,6 @@
     ctx = canvas.getContext("2d");
     // Задаём фон canvas (стиль Матрицы)
     canvas.style.background = "#000";
-    // Убираем возможные отступы сверху
-    canvas.style.marginTop = "0";
-    // Устанавливаем высоту canvas с учётом SCORE_AREA_HEIGHT
-    canvas.height = BOARD_HEIGHT + SCORE_AREA_HEIGHT;
-    canvas.width = BOARD_WIDTH + 100; // можно настроить по необходимости
     createBoard();
     currentPiece = randomPiece();
     score = 0;
@@ -491,3 +471,4 @@
   window.initGame3 = initGame3;
   window.resetGame3 = resetGame3;
 })();
+
