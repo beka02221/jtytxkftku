@@ -45,90 +45,76 @@
         <span id="pointCount">0</span>
       </span>
     </div>
-
-    <!-- Кнопка и меню дизайна (гамбургер) 
-    <div class="header-left" id="design-settings">
-      <button onclick="toggleDesignMenu()">
-        <span class="hamburger-line"></span>
-        <span class="hamburger-line"></span>
-        <span class="hamburger-line"></span>
-      </button>
-      <div id="design-options">
-        <p onclick="changeDesign('st1.css')" style="cursor: pointer; margin: 5px 0;">Дизайн (применен)</p>
-        <p onclick="changeDesign('st2.css')" style="cursor: pointer; margin: 5px 0;">Ретро дизайн</p>
-        <p onclick="changeDesign('st3.css')" style="cursor: pointer; margin: 5px 0;">Киберпанк дизайн</p>
-      </div>
-    </div> -->
+    <!-- Кнопка переключения языка -->
+    <button id="languageSwitchBtn" style="position: absolute; top: 10px; right: 10px;" onclick="toggleLanguage()">rus</button>
   </header>
 
   <!-- Main Content -->
   <main>
     <!-- PLAY SECTION (Галерея игр) -->
-    <section id="playSection" class="section active">
-      <h2>   </h2>
+    <section id="playSectкийion" class="section active">
+      <!-- Заголовок можно оставить пустым или добавить дополнительный, если потребуется -->
       
       <!-- Main Online Games Section -->
       <div class="games-section">
         <h3>
-          Main Online Games
-          <button class="info-button" onclick="openMainOnlineInfoModal()">Info 2 игры</button>
+          <span id="mainOnlineHeaderText">Main Online Games</span>
+          <button id="mainOnlineInfoBtn" class="info-button" onclick="openMainOnlineInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
           <!-- Game Card 1: Dino Runner -->
           <div class="game-card">
             <img src="1.jpg" alt="Special Game">
-            <p>Online snake</p>
-            <button onclick="window.location.href='specialgame.html'">Подробнее</button>
+            <p id="gameCard1Title">Online snake</p>
+            <button id="gameCard1Button" onclick="window.location.href='specialgame.html'">More Details</button>
           </div>
-          
-          
         </div>
       </div>
       
       <!-- Mini Games Section -->
       <div class="games-section">
         <h3>
-          Mini Games
-          <button class="info-button" onclick="openMiniGamesInfoModal()">Info 3 игры</button>
+          <span id="miniGamesHeaderText">Mini Games</span>
+          <button id="miniGamesInfoBtn" class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
           <!-- Game Card: Match-3 -->
           <div class="game-card">
             <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png" alt="Match-3">
-            <p>Match-3</p>
-            <button onclick="openGameInfoModal({
+            <p id="gameCard2Title">Match-3</p>
+            <button id="gameCard2Button" onclick="openGameInfoModal({
               gameId: 'game2',
               title: 'Match-3',
               img: 'https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png',
-              desc: 'Соединяйте три и более конфет в ряд, чтобы проходить уровни.',
+              desc: 'Connect three or more candies to pass levels.',
               cost: 1
-            })">Подробнее</button>
+            })">More Details</button>
           </div>
           
           <!-- Game Card: Game 3 -->
           <div class="game-card">
             <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png" alt="Game 3">
-            <p>Game 3</p>
-            <button onclick="openGameInfoModal({
+            <p id="gameCard3Title">Game 3</p>
+            <button id="gameCard3Button" onclick="openGameInfoModal({
               gameId: 'game3',
               title: 'Game 3',
               img: 'https://img.icons8.com/ios-filled/50/00FF00/controller.png',
-              desc: 'Описание третьей игры...',
+              desc: 'Description of Game 3...',
               cost: 1
-            })">Подробнее</button>
+            })">More Details</button>
           </div>
           
           <!-- Game Card: Space Explorer -->
           <div class="game-card">
             <img src="https://img.icons8.com/ios-filled/64/00FF00/rocket.png" alt="Space Explorer">
-            <p>Space Explorer</p>
-            <button onclick="openGameInfoModal({
+            <p id="gameCard4Title">Space Explorer</p>
+            <button id="gameCard4Button" onclick="openGameInfoModal({
               gameId: 'game4',
               title: 'Space Explorer',
               img: 'https://img.icons8.com/ios-filled/64/00FF00/rocket.png',
-              desc: 'Исследуй космос, избегай астероидов и собирай звезды.',
+              desc: 'Explore space, avoid asteroids, and collect stars.',
               cost: 1
-            })">Подробнее</button>
+            })">More Details</button>
           </div>
         </div>
       </div>
@@ -136,21 +122,21 @@
       <!-- Partner Games Section -->
       <div class="games-section">
         <h3>
-          Partner Games
-          <button class="info-button" onclick="openPartnerInfoModal()">Info 1 игра</button>
+          <span id="partnerGamesHeaderText">Partner Games</span>
+          <button id="partnerInfoBtn" class="info-button" onclick="openPartnerInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
           <!-- Game Card: Partner Game -->
           <div class="game-card">
             <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png" alt="Partner Game">
-            <p>Partner Game</p>
-            <button onclick="openGameInfoModal({
+            <p id="gameCard5Title">Partner Game</p>
+            <button id="gameCard5Button" onclick="openGameInfoModal({
               gameId: 'partnergame1',
               title: 'Partner Game',
               img: 'https://img.icons8.com/ios-filled/50/00FF00/handshake.png',
-              desc: 'Игра от нашего партнёра.',
+              desc: 'Game from our partner.',
               cost: 1
-            })">Подробнее</button>
+            })">More Details</button>
           </div>
         </div>
       </div>
@@ -158,7 +144,7 @@
 
     <!-- TICKETS SECTION (Колесо) -->
     <section id="ticketsSection" class="section">
-      <h2>Tickets</h2>
+      <h2 id="ticketsHeader">Tickets</h2>
       <div class="wheel-container">
         <div class="wheel" id="wheel">
           <div class="slice slice1">
@@ -188,8 +174,9 @@
         </div>
         <div class="wheel-pointer"></div>
         <div class="tickets-actions">
-          <button onclick="spinWheel()">Spin (once every 24h)</button>
-          <button onclick="buyTickets()">Buy Tickets</button>
+          <!-- Кнопка спина с динамическим текстом -->
+          <button id="spinButton" onclick="spinWheel()">Spin</button>
+          <button id="buyTicketsBtn" onclick="buyTickets()">Buy Tickets</button>
         </div>
         <div class="spin-result" id="spinResult"></div>
       </div>
@@ -197,7 +184,7 @@
 
     <!-- Leaderboard Section -->
     <section id="leaderboardSection" class="section">
-      <h2>Leaderboard</h2>
+      <h2 id="leaderboardHeader">Leaderboard</h2>
       <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
       <div class="leaderboard-container">
         <table id="leaderboardTable">
@@ -209,7 +196,7 @@
             </tr>
           </thead>
           <tbody id="leaderboardBody">
-            <!-- Leaderboard data populated dynamically -->
+            <!-- Данные лидерборда обновляются динамически -->
           </tbody>
         </table>
       </div>
@@ -217,13 +204,13 @@
 
     <!-- Referral Section -->
     <section id="referralSection" class="section">
-      <h2>Referral</h2>
+      <h2 id="referralHeader">Referral</h2>
       <div class="referral-container">
-        <p>Invite your friends using the link and earn bonuses!</p>
+        <p id="referralText">Invite your friends using the link and earn bonuses!</p>
         <div class="referral-link" id="referralLink">
           Link will appear after login...
         </div>
-        <button class="copy-button" onclick="copyReferralLink()">Copy</button>
+        <button id="copyInviteBtn" class="copy-button" onclick="copyReferralLink()">Copy Link</button>
       </div>
     </section>
   </main>
@@ -231,16 +218,16 @@
   <!-- Bottom Navigation -->
   <nav id="mainNav">
     <button onclick="showSection('playSection')">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/playing.png" alt="Play"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/playing.png" alt="Play" id="navPlayAlt"/>
     </button>
     <button onclick="showSection('ticketsSection')">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/ticket.png" alt="Tickets"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/ticket.png" alt="Tickets" id="navTicketsAlt"/>
     </button>
     <button onclick="showSection('leaderboardSection')">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/trophy.png" alt="Leaderboard"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/trophy.png" alt="Leaderboard" id="navLeaderboardAlt"/>
     </button>
     <button onclick="showSection('referralSection')">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/share.png" alt="Referral"/>
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/share.png" alt="Referral" id="navReferralAlt"/>
     </button>
   </nav>
 
@@ -256,8 +243,8 @@
   <!-- Season Info Modal -->
   <div class="modal-backdrop" id="seasonModalBackdrop">
     <div class="modal modal-season">
-      <h2>Season Information</h2>
-      <p>Details about the season, prizes, deadlines, etc.</p>
+      <h2 id="seasonModalTitle">Season Information</h2>
+      <p id="seasonModalDesc">Details about the season, prizes, deadlines, etc.</p>
       <button class="close-modal" onclick="closeSeasonModal()">Close</button>
     </div>
   </div>
@@ -268,37 +255,29 @@
       <img id="gameInfoImg" src="" alt="Game Image" style="max-width:100px; display:block; margin:0 auto 10px;" />
       <h2 id="gameInfoTitle" style="text-align:center;"></h2>
       <p id="gameInfoDesc"></p>
-      <button id="gameInfoPlayBtn">Играть</button>
-      <button onclick="closeGameInfoModal()">Закрыть</button>
+      <button id="gameInfoPlayBtn">Play</button>
+      <button class="close-modal" onclick="closeGameInfoModal()">Close</button>
     </div>
   </div>
 
   <!-- Spin Result Modal -->
   <div class="modal-backdrop" id="spinModalBackdrop">
     <div class="modal">
-      <h2>You won!</h2>
-      <p id="spinModalMessage"></p>
+      <h2 id="spinModalTitle">You won <span id="wheelTicketCount"></span> tickets!</h2>
       <button class="close-modal" onclick="closeSpinModal()">OK</button>
     </div>
   </div>
 
-  <!-- Fullscreen Game Modal (без canvas для Special Game) -->
+  <!-- Fullscreen Game Modal -->
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
       <div class="game-canvas">
-        <!-- Canvas for Game 1 -->
         <canvas id="gameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <!-- Canvas for Game 2 -->
         <canvas id="match3Canvas" width="400" height="400" style="display: none;"></canvas>
-        <!-- Canvas for Partner Game -->
         <canvas id="partnerGameCanvas" width="400" height="200" style="display: none;"></canvas>
-        <!-- Canvas for Game 3 -->
         <canvas id="game3Canvas" width="400" height="650" style="display: none;"></canvas>
-        <!-- Canvas for Game 4: Space Explorer -->
         <canvas id="game4Canvas" width="400" height="650" style="display: none;"></canvas>
-        <!-- Canvas for Game 5 -->
         <canvas id="game5Canvas" width="400" height="650" style="display: none;"></canvas>
-        <!-- Canvas for Game 6 -->
         <canvas id="game6Canvas" width="400" height="650" style="display: none;"></canvas>
       </div>
     </div>
@@ -316,44 +295,36 @@
   <!-- Modal for Main Online Games Info -->
   <div class="modal-backdrop" id="mainOnlineInfoModal">
     <div class="modal">
-      <h2>Информация о Main Online Games</h2>
-      <p>Здесь представлено 2 основных игры: Dino Runner и Special Game.</p>
-      <button onclick="closeMainOnlineInfoModal()">Закрыть</button>
+      <h2 id="mainOnlineInfoTitle">Main Online Games Info</h2>
+      <p id="mainOnlineInfoDesc">This section includes 2 main games: Dino Runner and Special Game.</p>
+      <button class="close-modal" onclick="closeMainOnlineInfoModal()">Close</button>
     </div>
   </div>
 
   <!-- Modal for Mini Games Info -->
   <div class="modal-backdrop" id="miniGamesInfoModal">
     <div class="modal">
-      <h2>Информация о мини-играх</h2>
-      <p>Игроки участвуют в мини-играх, зарабатывая очки за свою активность. Раз в 3 дня топ-10 игроков в лидерборде получают кейсы с наградами.</p>
-      <button onclick="closeMiniGamesInfoModal()">Закрыть</button>
+      <h2 id="miniGamesInfoTitle">Mini Games Info</h2>
+      <p id="miniGamesInfoDesc">Players participate in mini games, earning points for their activity. Every 3 days, top 10 players receive reward cases.</p>
+      <button class="close-modal" onclick="closeMiniGamesInfoModal()">Close</button>
     </div>
   </div>
 
   <!-- Modal for Partner Games Info -->
   <div class="modal-backdrop" id="partnerInfoModal">
     <div class="modal">
-      <h2>Информация о Partner Games</h2>
-      <p>Партнерская игра от нашего партнёра.</p>
-      <button onclick="closePartnerInfoModal()">Закрыть</button>
+      <h2 id="partnerInfoTitle">Partner Games Info</h2>
+      <p id="partnerInfoDesc">Partner game from our partner.</p>
+      <button class="close-modal" onclick="closePartnerInfoModal()">Close</button>
     </div>
   </div>
 
   <!-- Modal for Deposit -->
   <div class="modal-backdrop" id="depositModal">
     <div class="modal">
-      <h2>Недостаточно монет</h2>
-      <p>У вас недостаточно монет для участия. Пожалуйста, пополните баланс.</p>
-      <button onclick="closeDepositModal()">Закрыть</button>
-    </div>
-  </div>
-
-  <!-- Modal for Wheel Result -->
-  <div class="modal-backdrop" id="wheelResultModal">
-    <div class="modal">
-      <h2>Вы выиграли <span id="wheelTicketCount"></span> билетов!</h2>
-      <button class="close-modal" onclick="closeWheelResult()">OK</button>
+      <h2 id="depositModalTitle">Not enough coins</h2>
+      <p id="depositModalDesc">You do not have enough coins to play. Please top up your balance.</p>
+      <button class="close-modal" onclick="closeDepositModal()">Close</button>
     </div>
   </div>
 
@@ -368,13 +339,167 @@
   <script src="game6.js"></script>
   <script src="case.js"></script>
 
-  <button style="position: absolute; bottom: 10px; left: 10px;" onclick="copyInviteLink()">
-    Скопировать ссылку
-  </button>
-  
   <script>
     /* ----------------------------------------------
-       1. Firebase Initialization
+       1. Translation Settings
+    ---------------------------------------------- */
+    let currentLanguage = 'en';
+    const translations = {
+      en: {
+        pageTitle: "Mobile Games Site",
+        languageButton: "rus",
+        mainOnlineGames: "Main Online Games",
+        miniGames: "Mini Games",
+        partnerGames: "Partner Games",
+        tickets: "Tickets",
+        spinButton: "Spin",
+        buyTickets: "Buy Tickets",
+        leaderboard: "Leaderboard",
+        referral: "Referral",
+        copyLink: "Copy Link",
+        info: "Info",
+        play: "Play",
+        moreDetails: "More Details",
+        error: "Error",
+        noUserData: "No user data available!",
+        notEnoughTickets: "Not enough tickets",
+        notEnoughTicketsMsg: "You do not have enough tickets to play!",
+        wheelModalTitle: "Wheel of Fortune",
+        wheelModalMsg: "Free spin available once every 24 hours!",
+        youWon: "You won",
+        ticketsPlural: "tickets",
+        result: "Result",
+        close: "Close",
+        seasonInfoTitle: "Season Information",
+        seasonInfoDesc: "Details about the season, prizes, deadlines, etc.",
+        depositModalTitle: "Not enough coins",
+        depositModalDesc: "You do not have enough coins to play. Please top up your balance.",
+        copied: "Copied",
+        copiedMsg: "Copied to clipboard!",
+        inviteLink: "Invite your friends using the link and earn bonuses!",
+        mainOnlineGamesInfo: "This section includes 2 main games: Dino Runner and Special Game.",
+        miniGamesInfo: "Players participate in mini games, earning points for their activity. Every 3 days, top 10 players receive reward cases.",
+        partnerGamesInfo: "Partner game from our partner.",
+        // Game Cards
+        gameCard1Title: "Online snake",
+        gameCard1Button: "More Details",
+        gameCard2Title: "Match-3",
+        gameCard2Button: "More Details",
+        gameCard3Title: "Game 3",
+        gameCard3Button: "More Details",
+        gameCard4Title: "Space Explorer",
+        gameCard4Button: "More Details",
+        gameCard5Title: "Partner Game",
+        gameCard5Button: "More Details"
+      },
+      ru: {
+        pageTitle: "Мобильные игры",
+        languageButton: "Eng",
+        mainOnlineGames: "Основные онлайн игры",
+        miniGames: "Мини игры",
+        partnerGames: "Партнерские игры",
+        tickets: "Билеты",
+        spinButton: "Крутить",
+        buyTickets: "Купить билеты",
+        leaderboard: "Таблица лидеров",
+        referral: "Реферальная программа",
+        copyLink: "Скопировать ссылку",
+        info: "Инфо",
+        play: "Играть",
+        moreDetails: "Подробнее",
+        error: "Ошибка",
+        noUserData: "Данные пользователя недоступны!",
+        notEnoughTickets: "Недостаточно билетов",
+        notEnoughTicketsMsg: "У вас недостаточно билетов для игры!",
+        wheelModalTitle: "Колесо фортуны",
+        wheelModalMsg: "Бесплатный спин доступен раз в 24 часа!",
+        youWon: "Вы выиграли",
+        ticketsPlural: "билетов",
+        result: "Результат",
+        close: "Закрыть",
+        seasonInfoTitle: "Информация о сезоне",
+        seasonInfoDesc: "Детали о сезоне, призы, сроки и т.д.",
+        depositModalTitle: "Недостаточно монет",
+        depositModalDesc: "У вас недостаточно монет для игры. Пожалуйста, пополните баланс.",
+        copied: "Скопировано",
+        copiedMsg: "Ссылка скопирована в буфер обмена!",
+        inviteLink: "Пригласите друзей по ссылке и зарабатывайте бонусы!",
+        mainOnlineGamesInfo: "В этом разделе представлены 2 основные игры: Dino Runner и Special Game.",
+        miniGamesInfo: "Игроки участвуют в мини играх, зарабатывая очки за активность. Каждые 3 дня топ-10 игроков получают кейсы с наградами.",
+        partnerGamesInfo: "Партнерская игра от нашего партнёра.",
+        // Game Cards
+        gameCard1Title: "Онлайн змейка",
+        gameCard1Button: "Подробнее",
+        gameCard2Title: "Match-3",
+        gameCard2Button: "Подробнее",
+        gameCard3Title: "Игра 3",
+        gameCard3Button: "Подробнее",
+        gameCard4Title: "Космический исследователь",
+        gameCard4Button: "Подробнее",
+        gameCard5Title: "Партнерская игра",
+        gameCard5Button: "Подробнее"
+      }
+    };
+
+    function updateLanguage() {
+      document.title = translations[currentLanguage].pageTitle;
+      document.getElementById('languageSwitchBtn').textContent = translations[currentLanguage].languageButton;
+      document.getElementById('ticketsHeader').textContent = translations[currentLanguage].tickets;
+      document.getElementById('leaderboardHeader').textContent = translations[currentLanguage].leaderboard;
+      document.getElementById('referralHeader').textContent = translations[currentLanguage].referral;
+      document.getElementById('mainOnlineHeaderText').textContent = translations[currentLanguage].mainOnlineGames;
+      document.getElementById('miniGamesHeaderText').textContent = translations[currentLanguage].miniGames;
+      document.getElementById('partnerGamesHeaderText').textContent = translations[currentLanguage].partnerGames;
+      if (!document.getElementById('spinButton').disabled) {
+        document.getElementById('spinButton').textContent = translations[currentLanguage].spinButton;
+      }
+      document.getElementById('buyTicketsBtn').textContent = translations[currentLanguage].buyTickets;
+      document.getElementById('copyInviteBtn').textContent = translations[currentLanguage].copyLink;
+      
+      // Обновление навигационных кнопок (alt-атрибуты)
+      document.getElementById('navPlayAlt').alt = translations[currentLanguage].play;
+      document.getElementById('navTicketsAlt').alt = translations[currentLanguage].tickets;
+      document.getElementById('navLeaderboardAlt').alt = translations[currentLanguage].leaderboard;
+      document.getElementById('navReferralAlt').alt = translations[currentLanguage].referral;
+      
+      // Обновление текстов игровых карточек
+      document.getElementById('gameCard1Title').textContent = translations[currentLanguage].gameCard1Title;
+      document.getElementById('gameCard1Button').textContent = translations[currentLanguage].gameCard1Button;
+      document.getElementById('gameCard2Title').textContent = translations[currentLanguage].gameCard2Title;
+      document.getElementById('gameCard2Button').textContent = translations[currentLanguage].gameCard2Button;
+      document.getElementById('gameCard3Title').textContent = translations[currentLanguage].gameCard3Title;
+      document.getElementById('gameCard3Button').textContent = translations[currentLanguage].gameCard3Button;
+      document.getElementById('gameCard4Title').textContent = translations[currentLanguage].gameCard4Title;
+      document.getElementById('gameCard4Button').textContent = translations[currentLanguage].gameCard4Button;
+      document.getElementById('gameCard5Title').textContent = translations[currentLanguage].gameCard5Title;
+      document.getElementById('gameCard5Button').textContent = translations[currentLanguage].gameCard5Button;
+      
+      // Обновление модальных окон
+      document.getElementById('seasonModalTitle').textContent = translations[currentLanguage].seasonInfoTitle;
+      document.getElementById('seasonModalDesc').textContent = translations[currentLanguage].seasonInfoDesc;
+      document.getElementById('depositModalTitle').textContent = translations[currentLanguage].depositModalTitle;
+      document.getElementById('depositModalDesc').textContent = translations[currentLanguage].depositModalDesc;
+      document.getElementById('mainOnlineInfoTitle').textContent = translations[currentLanguage].mainOnlineGamesInfo;
+      document.getElementById('mainOnlineInfoDesc').textContent = translations[currentLanguage].mainOnlineGamesInfo;
+      document.getElementById('miniGamesInfoTitle').textContent = translations[currentLanguage].miniGamesInfo;
+      document.getElementById('miniGamesInfoDesc').textContent = translations[currentLanguage].miniGamesInfo;
+      document.getElementById('partnerInfoTitle').textContent = translations[currentLanguage].partnerGamesInfo;
+      document.getElementById('partnerInfoDesc').textContent = translations[currentLanguage].partnerGamesInfo;
+      document.getElementById('endgameTitle').textContent = translations[currentLanguage].result;
+      
+      // Обновление всех кнопок закрытия
+      document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.textContent = translations[currentLanguage].close;
+      });
+    }
+
+    function toggleLanguage() {
+      currentLanguage = (currentLanguage === 'en') ? 'ru' : 'en';
+      updateLanguage();
+    }
+
+    /* ----------------------------------------------
+       2. Firebase Initialization
     ---------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
@@ -390,13 +515,13 @@
     const db = firebase.database();
 
     /* ----------------------------------------------
-       2. Telegram Web App
+       3. Telegram Web App
     ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
     tg.expand();
 
     /* ----------------------------------------------
-       3. Global Variables
+       4. Global Variables & User Data
     ---------------------------------------------- */
     let currentUser = null;
     let userRef = null;
@@ -404,7 +529,8 @@
       photo: '',
       tickets: 0,
       coins: 0,
-      points: 0
+      points: 0,
+      lastSpinTime: 0
     };
     let gameInProgress = false;
 
@@ -421,24 +547,27 @@
             photo: currentUser.photo_url || '',
             tickets: 0,
             coins: 0,
-            points: 0
+            points: 0,
+            lastSpinTime: 0
           });
         }
       });
       userRef.on('value', snapshot => {
         const data = snapshot.val() || {};
-        if (!gameInProgress) {
-          localUserData = data;
-        } else {
-          localUserData.tickets = data.tickets || 0;
-          localUserData.coins   = data.coins   || 0;
-        }
+        localUserData = {
+          photo: data.photo || '',
+          tickets: data.tickets || 0,
+          coins: data.coins || 0,
+          points: data.points || 0,
+          lastSpinTime: data.lastSpinTime || 0
+        };
         updateTopBar();
+        updateSpinButton();
       });
     }
 
     /* ----------------------------------------------
-       4. Update Top Bar
+       5. Update Top Bar
     ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
@@ -447,7 +576,7 @@
     }
 
     /* ----------------------------------------------
-       5. Section Switching
+       6. Section Switching
     ---------------------------------------------- */
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
@@ -455,7 +584,7 @@
     }
 
     /* ----------------------------------------------
-       6. Global Modal
+       7. Global Modal
     ---------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
@@ -467,14 +596,14 @@
     }
 
     /* ----------------------------------------------
-       7. Game Info Modal (Подробнее)
+       8. Game Info Modal (Подробнее)
     ---------------------------------------------- */
     function openGameInfoModal(gameData) {
       document.getElementById('gameInfoImg').src = gameData.img;
       document.getElementById('gameInfoTitle').textContent = gameData.title;
       document.getElementById('gameInfoDesc').textContent = gameData.desc;
       const playBtn = document.getElementById('gameInfoPlayBtn');
-      playBtn.textContent = `Играть (${gameData.cost} ticket)`;
+      playBtn.textContent = translations[currentLanguage].play + ` (${gameData.cost} ticket)`;
       playBtn.onclick = function() {
         closeGameInfoModal();
         handleStartGame(gameData.gameId, gameData.cost);
@@ -486,17 +615,17 @@
     }
 
     /* ----------------------------------------------
-       8. Start Game
+       9. Start Game
     ---------------------------------------------- */
     let currentGame = null;
     function handleStartGame(gameName, ticketCost) {
       document.querySelector('.user-info').style.display = 'none';
       if (!currentUser || !userRef) {
-        showGlobalModal('Error', 'No user data available!');
+        showGlobalModal(translations[currentLanguage].error, translations[currentLanguage].noUserData);
         return;
       }
       if ((localUserData.tickets || 0) < ticketCost) {
-        showGlobalModal('Not enough tickets', 'You do not have enough tickets to play!');
+        showGlobalModal(translations[currentLanguage].notEnoughTickets, translations[currentLanguage].notEnoughTicketsMsg);
         return;
       }
       localUserData.tickets -= ticketCost;
@@ -541,7 +670,7 @@
     }
 
     /* ----------------------------------------------
-       9. End Game Modal
+       10. End Game Modal
     ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = title;
@@ -579,18 +708,20 @@
     }
 
     /* ----------------------------------------------
-       10. Wheel of Fortune / Tickets
+       11. Wheel of Fortune / Tickets
     ---------------------------------------------- */
-    let lastSpinTime = 0;
     let spinDuration = 4000;
     function spinWheel() {
       if (!currentUser) return;
       const now = Date.now();
-      if (now - lastSpinTime < 24 * 60 * 60 * 1000) {
-        showGlobalModal('Wheel of Fortune', 'Free spin available once every 24 hours!');
+      if (now - (localUserData.lastSpinTime || 0) < 24 * 60 * 60 * 1000) {
+        showGlobalModal(translations[currentLanguage].wheelModalTitle, translations[currentLanguage].wheelModalMsg);
         return;
       }
-      lastSpinTime = now;
+      // Обновляем время последнего спина
+      localUserData.lastSpinTime = now;
+      userRef.update({ lastSpinTime: now });
+      updateSpinButton();
       let randomRotation = 1080 + Math.floor(Math.random() * 360);
       const wheelEl = document.getElementById('wheel');
       wheelEl.style.transform = `rotate(${randomRotation}deg)`;
@@ -617,15 +748,35 @@
       }, spinDuration);
     }
     function showSpinModal(amount) {
-      document.getElementById("spinModalMessage").textContent = `You won ${amount} tickets!`;
+      document.getElementById("wheelTicketCount").textContent = amount;
+      document.getElementById("spinModalTitle").innerHTML = translations[currentLanguage].youWon + " <span id='wheelTicketCount'>" + amount + "</span> " + translations[currentLanguage].ticketsPlural + "!";
       document.getElementById("spinModalBackdrop").classList.add("active");
     }
     function closeSpinModal() {
       document.getElementById("spinModalBackdrop").classList.remove("active");
     }
+    // Обновление кнопки спина с обратным отсчетом
+    function updateSpinButton() {
+      const btn = document.getElementById('spinButton');
+      const now = Date.now();
+      const last = localUserData.lastSpinTime || 0;
+      const diff = now - last;
+      const wait = 24 * 60 * 60 * 1000 - diff;
+      if(wait <= 0) {
+         btn.textContent = translations[currentLanguage].spinButton;
+         btn.disabled = false;
+      } else {
+         const seconds = Math.floor(wait / 1000) % 60;
+         const minutes = Math.floor(wait / (1000 * 60)) % 60;
+         const hours = Math.floor(wait / (1000 * 60 * 60));
+         btn.textContent = `${translations[currentLanguage].spinButton} (${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')})`;
+         btn.disabled = true;
+      }
+    }
+    setInterval(updateSpinButton, 1000);
 
     /* ----------------------------------------------
-       11. Leaderboard
+       12. Leaderboard (Показываем всех пользователей)
     ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
@@ -635,10 +786,9 @@
         points: obj.points || 0
       }));
       usersArray.sort((a, b) => b.points - a.points);
-      const topUsers = usersArray.slice(0, 10);
       const tbody = document.getElementById('leaderboardBody');
       tbody.innerHTML = '';
-      topUsers.forEach((user, i) => {
+      usersArray.forEach((user, i) => {
         const tr = document.createElement('tr');
         if (currentUser && user.username === currentUser.username) {
           tr.classList.add('current-user');
@@ -660,64 +810,20 @@
     }
 
     /* ----------------------------------------------
-       12. Referral
+       13. Referral
     ---------------------------------------------- */
     function copyReferralLink() {
       const link = document.getElementById('referralLink').textContent;
       navigator.clipboard.writeText(link).then(() => {
-        showGlobalModal('Copied', 'Referral link copied to clipboard!');
+        showGlobalModal(translations[currentLanguage].copied, translations[currentLanguage].copiedMsg);
       });
     }
 
     /* ----------------------------------------------
-       13. Настройки дизайна
+       14. Buy Tickets
     ---------------------------------------------- */
-    function toggleDesignMenu() {
-      var menu = document.getElementById('design-options');
-      if (menu.style.display === 'none' || menu.style.display === '') {
-        menu.style.display = 'block';
-      } else {
-        menu.style.display = 'none';
-      }
-    }
-    function changeDesign(theme) {
-      document.getElementById('themeStylesheet').setAttribute('href', theme);
-      toggleDesignMenu();
-    }
-
-    /* ----------------------------------------------
-       14. Модалки для разделов
-    ---------------------------------------------- */
-    function openMainOnlineInfoModal() {
-      document.getElementById('mainOnlineInfoModal').classList.add('active');
-    }
-    function closeMainOnlineInfoModal() {
-      document.getElementById('mainOnlineInfoModal').classList.remove('active');
-    }
-
-    function openMiniGamesInfoModal() {
-      document.getElementById('miniGamesInfoModal').classList.add('active');
-    }
-    function closeMiniGamesInfoModal() {
-      document.getElementById('miniGamesInfoModal').classList.remove('active');
-    }
-
-    function openPartnerInfoModal() {
-      document.getElementById('partnerInfoModal').classList.add('active');
-    }
-    function closePartnerInfoModal() {
-      document.getElementById('partnerInfoModal').classList.remove('active');
-    }
-
-    function openDepositModal() {
-      document.getElementById('depositModal').classList.add('active');
-    }
-    function closeDepositModal() {
-      document.getElementById('depositModal').classList.remove('active');
-    }
-
-    function closeWheelResult() {
-      document.getElementById("wheelResultModal").classList.remove('active');
+    function buyTickets() {
+      window.location.href = 'buy.html';
     }
 
     /* ----------------------------------------------
@@ -726,9 +832,12 @@
     function copyInviteLink() {
       const link = window.location.href;
       navigator.clipboard.writeText(link).then(() => {
-        showGlobalModal('Copied', 'Invite link copied to clipboard!');
+        showGlobalModal(translations[currentLanguage].copied, translations[currentLanguage].copiedMsg);
       });
     }
+
+    // Инициализация языка при загрузке страницы
+    updateLanguage();
   </script>
 </body>
 </html>
