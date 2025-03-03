@@ -387,7 +387,7 @@ nav button img {
   left: 0;
   width: 100%;
   height: calc(100% - 60px);
-  background: #6d4fba;
+  background: #150069;
   display: none;
   flex-direction: column;
   z-index: 10000;
