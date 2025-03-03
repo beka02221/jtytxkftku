@@ -9,7 +9,7 @@
   const FAST_DROP_INTERVAL = 100; // интервал падения при быстром режиме (мс)
   const GAME_DURATION = 120000; // длительность игры: 2 минуты (120000 мс)
   const PIECE_COLOR = "#00FF00"; // неоново-зелёный (стиль Матрицы)
-  
+
   // Глобальные переменные для игры
   let canvas, ctx;
   let board;
@@ -22,6 +22,7 @@
   let game3AnimationFrameId;
   let controlDiv; // контейнер мобильных кнопок
   let fastDrop = false; // флаг быстрого падения
+  let arrowDownTimeout = null; // для отслеживания длительности нажатия стрелки вниз
 
   // Определения тетрамино (все фигуры будут зелёного цвета)
   const tetrominoes = {
@@ -89,17 +90,15 @@
 
   // Рисуем игровое поле с заблокированными блоками
   function drawBoard() {
-    // Центрируем поле по горизонтали
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (board[r][c] !== 0) {
           ctx.fillStyle = PIECE_COLOR;
           ctx.fillRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-          ctx.strokeStyle = "#005500"; // чуть ярче
+          ctx.strokeStyle = "#005500";
           ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         } else {
-          // Рисуем тонкую сетку с чуть ярким цветом
           ctx.strokeStyle = "#002200";
           ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         }
@@ -111,7 +110,6 @@
   function drawPiece(piece) {
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     ctx.fillStyle = PIECE_COLOR;
-    // Эффект свечения
     ctx.shadowColor = PIECE_COLOR;
     ctx.shadowBlur = 10;
     piece.shape.forEach((row, r) => {
@@ -173,7 +171,6 @@
   function createPiece(type) {
     return {
       shape: tetrominoes[type].shape,
-      // Начальная позиция по горизонтали — по центру
       x: Math.floor(COLS / 2) - Math.floor(tetrominoes[type].shape[0].length / 2),
       y: 0,
     };
@@ -195,11 +192,10 @@
           continue outer;
         }
       }
-      // Если строка заполнена – удаляем её
       board.splice(r, 1);
       board.unshift(new Array(COLS).fill(0));
       linesCleared++;
-      r++; // повторная проверка той же строки (так как строки сдвинулись)
+      r++;
     }
     if (linesCleared > 0) {
       score += linesCleared * 30;
@@ -215,7 +211,6 @@
       clearLines();
       currentPiece = randomPiece();
       if (collide(currentPiece)) {
-        // Если новая фигура сразу столкнулась – игра окончена
         endGame();
       }
     }
@@ -231,7 +226,6 @@
       dropPiece();
     }
 
-    // Проверяем, истёк ли игровой таймер (2 минуты)
     const elapsed = Date.now() - gameStartTime;
     if (elapsed >= GAME_DURATION) {
       endGame();
@@ -242,25 +236,21 @@
     game3AnimationFrameId = requestAnimationFrame(updateGame3);
   }
 
-  // Отрисовка всего игрового состояния
+  // Отрисовка игрового состояния
   function drawGame3() {
-    // Заливаем фон (стиль Матрицы: чёрный)
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Рисуем таймер в виде слайдера вверху
     const timeLeft = Math.max(GAME_DURATION - (Date.now() - gameStartTime), 0);
     const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
     ctx.fillStyle = "#00FF00";
     ctx.fillRect(0, 0, sliderWidth, 5);
 
-    // Рисуем текущий счёт выше игрового поля
     ctx.fillStyle = "#00FF00";
     ctx.font = "20px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.fillText("Score: " + score, canvas.width / 2, 30);
 
-    // Сдвигаем контекст вниз для отрисовки игрового поля
     ctx.save();
     ctx.translate(0, 50);
     drawBoard();
@@ -282,21 +272,24 @@
         currentPiece.x--;
       }
     } else if (event.key === "ArrowDown") {
-      // Включаем режим быстрого падения
-      fastDrop = true;
+      // Если пользователь быстро нажал, запускаем таймер для определения длительности
+      if (!arrowDownTimeout) {
+        arrowDownTimeout = setTimeout(() => {
+          fastDrop = true; // удержание — включаем быстрый режим
+          arrowDownTimeout = null;
+        }, 150);
+      }
     } else if (event.key === "ArrowUp") {
-      // Поворот фигуры
       const rotated = rotate(currentPiece.shape);
       const oldShape = currentPiece.shape;
       currentPiece.shape = rotated;
       if (collide(currentPiece)) {
-        // Пробуем сдвиг ("wall kick")
         if (!collide({ ...currentPiece, x: currentPiece.x - 1 })) {
           currentPiece.x--;
         } else if (!collide({ ...currentPiece, x: currentPiece.x + 1 })) {
           currentPiece.x++;
         } else {
-          currentPiece.shape = oldShape; // откат
+          currentPiece.shape = oldShape;
         }
       }
     }
@@ -306,6 +299,12 @@
   // Обработчик отпускания клавиши (для ArrowDown)
   function handleKeyUp(event) {
     if (event.key === "ArrowDown") {
+      if (arrowDownTimeout) {
+        clearTimeout(arrowDownTimeout);
+        arrowDownTimeout = null;
+        // Быстрое нажатие — сброс на 1 клетку вниз
+        dropPiece();
+      }
       fastDrop = false;
     }
   }
@@ -314,7 +313,6 @@
   function createMobileControls() {
     controlDiv = document.createElement("div");
     controlDiv.id = "tetrisControls";
-    // Стили для контейнера кнопок
     controlDiv.style.position = "fixed";
     controlDiv.style.bottom = "20px";
     controlDiv.style.left = "50%";
@@ -322,9 +320,9 @@
     controlDiv.style.display = "flex";
     controlDiv.style.justifyContent = "center";
     controlDiv.style.gap = "10px";
-    controlDiv.style.zIndex = "1100"; // чуть выше, чем у остальных элементов
+    controlDiv.style.zIndex = "1100";
 
-    // Функция для стилизации кнопки
+    // Функция для стилизации кнопки с пиксельным эффектом
     function styleControlButton(btn) {
       btn.style.width = "50px";
       btn.style.height = "50px";
@@ -334,12 +332,13 @@
       btn.style.background = "#000";
       btn.style.color = "#00FF00";
       btn.style.outline = "none";
-      // Задаём пиксельный шрифт
       btn.style.fontFamily = "'Press Start 2P', monospace";
       btn.style.fontWeight = "bold";
+      btn.style.webkitFontSmoothing = "none";
+      btn.style.mozOsxFontSmoothing = "grayscale";
+      btn.style.imageRendering = "pixelated";
     }
 
-    // Кнопка влево
     const btnLeft = document.createElement("button");
     btnLeft.textContent = "←";
     styleControlButton(btnLeft);
@@ -351,7 +350,6 @@
       simulateKey("ArrowLeft");
     });
 
-    // Кнопка поворота
     const btnRotate = document.createElement("button");
     btnRotate.textContent = "⟳";
     styleControlButton(btnRotate);
@@ -363,7 +361,6 @@
       simulateKey("ArrowUp");
     });
 
-    // Кнопка вниз
     const btnDown = document.createElement("button");
     btnDown.textContent = "↓";
     styleControlButton(btnDown);
@@ -375,7 +372,6 @@
       simulateKey("ArrowDown");
     });
 
-    // Кнопка вправо
     const btnRight = document.createElement("button");
     btnRight.textContent = "→";
     styleControlButton(btnRight);
@@ -387,13 +383,11 @@
       simulateKey("ArrowRight");
     });
 
-    // Добавляем кнопки в контейнер
     controlDiv.appendChild(btnLeft);
     controlDiv.appendChild(btnRotate);
     controlDiv.appendChild(btnDown);
     controlDiv.appendChild(btnRight);
 
-    // Если модальное окно игры существует, добавляем контейнер внутрь него, иначе в body
     const gameModal = document.getElementById("gameModalBackdrop");
     if (gameModal) {
       gameModal.appendChild(controlDiv);
@@ -416,11 +410,10 @@
     handleKeyDown(event);
   }
 
-  // Инициализация игры (вызывается из основного скрипта)
+  // Инициализация игры
   function initGame3() {
     canvas = document.getElementById("game3Canvas");
     ctx = canvas.getContext("2d");
-    // Задаём фон canvas (стиль Матрицы)
     canvas.style.background = "#000";
     createBoard();
     currentPiece = randomPiece();
@@ -429,12 +422,9 @@
     lastTime = 0;
     gameStartTime = Date.now();
     game3Running = true;
-    // Добавляем обработчики клавиатуры
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("keyup", handleKeyUp);
-    // Создаём мобильные кнопки
     createMobileControls();
-    // Запускаем игровой цикл
     updateGame3();
   }
 
@@ -442,7 +432,6 @@
   function endGame() {
     if (!game3Running) return;
     game3Running = false;
-    // Добавляем набранный счёт к балансу пользователя
     localUserData.points += score;
     if (userRef) {
       userRef.update({ points: localUserData.points });
@@ -451,11 +440,10 @@
     document.removeEventListener("keydown", handleKeyDown);
     document.removeEventListener("keyup", handleKeyUp);
     removeMobileControls();
-    // Вызываем модальное окно завершения игры (функция определена в основном скрипте)
     showEndGameModal("Time's up!", "Your score: " + score);
   }
 
-  // Сброс игры (вызывается при закрытии игрового модала)
+  // Сброс игры
   function resetGame3() {
     cancelAnimationFrame(game3AnimationFrameId);
     game3Running = false;
@@ -467,7 +455,6 @@
     }
   }
 
-  // Экспорт функций в глобальную область, чтобы основной скрипт мог их вызвать
   window.initGame3 = initGame3;
   window.resetGame3 = resetGame3;
 })();
