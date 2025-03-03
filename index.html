@@ -46,15 +46,13 @@
       </span>
     </div>
     <!-- Кнопка переключения языка -->
-    <button id="languageSwitchBtn" style="position: absolute; top: 10px; right: 10px;" onclick="toggleLanguage()">rus</button>
+    <button id="languageSwitchBtn" style="position: absolute; top: 10px; right: 10px;" onclick="toggleLanguage()">Русский</button>
   </header>
 
   <!-- Main Content -->
   <main>
     <!-- PLAY SECTION (Галерея игр) -->
-    <section id="playSectкийion" class="section active">
-      <!-- Заголовок можно оставить пустым или добавить дополнительный, если потребуется -->
-      
+    <section id="playSection" class="section active">
       <!-- Main Online Games Section -->
       <div class="games-section">
         <h3>
@@ -174,7 +172,6 @@
         </div>
         <div class="wheel-pointer"></div>
         <div class="tickets-actions">
-          <!-- Кнопка спина с динамическим текстом -->
           <button id="spinButton" onclick="spinWheel()">Spin</button>
           <button id="buyTicketsBtn" onclick="buyTickets()">Buy Tickets</button>
         </div>
@@ -577,9 +574,17 @@
 
     /* ----------------------------------------------
        6. Section Switching
+       Обновлённая функция: при переключении разделов закрываются все модальные окна и игровые оверлеи,
+       чтобы основной контент не был перекрыт.
     ---------------------------------------------- */
     function showSection(sectionId) {
+      // Скрываем все секции
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      // Закрываем все модальные окна и оверлеи
+      document.querySelectorAll('.modal-backdrop').forEach(modal => modal.classList.remove('active'));
+      document.getElementById('gameModalBackdrop').classList.remove('active');
+      document.getElementById('endgameBackdrop').classList.remove('active');
+      // Отображаем выбранную секцию
       document.getElementById(sectionId).classList.add('active');
     }
 
@@ -841,3 +846,4 @@
   </script>
 </body>
 </html>
+
