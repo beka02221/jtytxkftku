@@ -23,23 +23,21 @@
     /* Основные стили страницы */
     body {
       margin: 0;
-      padding-top: 60px; /* Отступ для фиксированной верхней панели */
+      padding: 0;
       background: #00103c;
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
       overflow: hidden;
     }
-    /* Верхняя панель – фиксированная, чтобы всегда оставаться вверху экрана */
+    /* Верхняя панель – обычный поток, flex-контейнер с тремя элементами */
     #topBar {
-      position: fixed;
-      top: 0;
-      left: 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
       height: 50px;
       padding: 0 10px;
+      margin-top: 5px;
       box-sizing: border-box;
       z-index: 2100;
     }
@@ -79,17 +77,17 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Canvas для игры – смещён вниз, чтобы не перекрывать верхнюю панель */
+    /* Canvas для игры */
     #specialGameCanvas {
       display: block;
-      margin: 60px auto 0 auto;
+      margin: 0 auto;
       background-image: url('1.jpg');
     }
     /* Элемент для отображения ников под игровым полем – теперь не используется */
     #usernamesDisplay {
       display: none;
     }
-    /* Кнопка для копирования ссылки – центрируется по горизонтали */
+    /* Кнопка для копирования ссылки */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -105,12 +103,12 @@
       cursor: pointer;
       display: none;
     }
+    /* При hover и active добавляем сохранение translateX(-50%) */
     #copyButton:hover {
       transform: translateX(-50%) scale(1.05);
     }
     #copyButton:active {
-      animation: press 0.15s forwards;
-      transform: translateX(-50%) translateY(1px) scale(1.0);
+      transform: translate(-50%, 1px) scale(1.0);
     }
     /* Модальные окна */
     .endgame-backdrop, .modal-backdrop {
@@ -210,13 +208,12 @@
       top: 50%;
       touch-action: none;
     }
-    /* Заставка – смещена вниз, чтобы не перекрывать фиксированную верхнюю панель */
     #landingScreen {
       position: absolute;
-      top: 60px;
+      top: 0;
       left: 0;
       width: 100%;
-      height: calc(100% - 60px);
+      height: 100%;
       background: linear-gradient(135deg, #00103c, #0a0a23);
       display: flex;
       align-items: center;
@@ -362,7 +359,7 @@
 /* 
 ============================================================
   Special Snake PvP – Исправленный код с изменённым расположением кнопок,
-  корректировкой подключения к бесплатной игре и фиксацией сдвига кнопки "Copy Invite Link"
+  автоматическим скрытием верхней панели в игровых/поисковых режимах и корректным копированием ссылки.
 ============================================================
 */
 
@@ -570,7 +567,9 @@ function actuallyCreateRoom(bet) {
   waitForOpponent();
 }
 
-// Функция для поиска комнат и заполнения списка карточками
+/* ======================================
+   Функция для поиска комнат и заполнения списка карточками
+====================================== */
 function searchRooms() {
   const queueRef = firebase.database().ref('snakeQueue');
   queueRef.orderByChild('status').equalTo('waiting').once('value')
@@ -635,7 +634,9 @@ function searchRooms() {
     .catch(err => console.error('Error searching rooms:', err));
 }
 
-// Функция для присоединения к выбранной комнате
+/* ======================================
+   Функция для присоединения к выбранной комнате
+====================================== */
 function joinRoom(roomKey) {
   firebase.database().ref('snakeQueue/' + roomKey).once('value').then(snapshot => {
       const room = snapshot.val();
@@ -694,7 +695,8 @@ function waitForOpponent() {
       }
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
-      document.getElementById('homeBackBtn').style.display = 'none';
+      // Скрываем верхнюю панель во время игры
+      document.getElementById('topBar').style.display = 'none';
       showOpponentNameTimeout = setTimeout(() => {
         startCountdown();
       }, 2000);
@@ -786,6 +788,8 @@ function startCountdown() {
 }
 
 function launchGame() {
+  // Скрываем верхнюю панель, если она ещё видна
+  document.getElementById('topBar').style.display = 'none';
   isGameRunning = true;
   isGameOver = false;
 
@@ -1267,26 +1271,31 @@ function returnToMain() {
 
 /* ======================================
    19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   (Добавлено скрытие/отображение topBar)
 ====================================== */
 document.getElementById('createRoomBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('topBar').style.display = 'none'; // скрываем панель
   document.getElementById('createRoomModal').style.display = 'flex';
 });
 
 document.getElementById('searchRoomBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('topBar').style.display = 'none'; // скрываем панель
   document.getElementById('searchRoomModal').style.display = 'flex';
   searchRooms();
 });
 
 document.getElementById('playFreeBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('topBar').style.display = 'none'; // скрываем панель
   createRoom(0);
 });
 
 document.getElementById('cancelCreateRoomBtn').addEventListener('click', function(){
   document.getElementById('createRoomModal').style.display = 'none';
   document.getElementById('landingScreen').style.display = 'flex';
+  document.getElementById('topBar').style.display = 'flex'; // возвращаем панель
 });
 document.getElementById('confirmCreateRoomBtn').addEventListener('click', function(){
   let betValue = parseInt(document.getElementById('betSlider').value);
@@ -1300,6 +1309,7 @@ document.getElementById('betSlider').addEventListener('input', function(){
 document.getElementById('cancelSearchRoomBtn').addEventListener('click', function(){
   document.getElementById('searchRoomModal').style.display = 'none';
   document.getElementById('landingScreen').style.display = 'flex';
+  document.getElementById('topBar').style.display = 'flex'; // возвращаем панель
 });
 
 /* ======================================
@@ -1418,3 +1428,4 @@ function updateCoinDisplay(coins) {
   </script>
 </body>
 </html>
+
