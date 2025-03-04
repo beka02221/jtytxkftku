@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Пополнение баланса TON</title>
   
@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <!-- Подключаем шрифты -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+New&display=swap" rel="stylesheet">
-
+  
   <style>
     /* =========================
        Сброс и базовые стили
@@ -24,28 +24,24 @@
       padding: 0;
       box-sizing: border-box;
     }
-    
     html, body {
       width: 100%;
       height: 100%;
       overflow-x: hidden;
       font-family: 'Courier New', monospace;
     }
-    
     body {
-      background-color: #00103c;
+      background-color: #6d4fba;
       color: #fff;
       display: flex;
       flex-direction: column;
     }
-    
     h1, h2, h3, h4 {
       font-family: 'Press Start 2P', cursive;
       text-transform: uppercase;
       color: #FF00FF;
     }
-    
-    /* ---------- Базовый стиль для кнопок ---------- */
+    /* ---------- Стиль для всех кнопок (пиксельный шрифт) ---------- */
     button {
       font-family: 'Press Start 2P', monospace;
       font-size: 10px;
@@ -60,28 +56,28 @@
       cursor: pointer;
       transition: transform 0.2s;
     }
-    
     button:hover {
       transform: scale(1.05);
     }
-    
     button:active {
       transform: translateY(1px);
       box-shadow: 0 1px #6b6b6b;
     }
     
-    /* ---------- Элементы страницы пополнения ---------- */
-    /* Кнопка "Назад" */
-    #backButton {
+    /* ---------- Верхние элементы: кнопка "Назад" и переключатель языка ---------- */
+    #backButton, #langToggle {
       position: absolute;
       top: 10px;
-      left: 10px;
-      padding: 8px 12px;
-      font-size: 10px;
       z-index: 1100;
     }
+    #backButton {
+      left: 10px;
+    }
+    #langToggle {
+      left: 90px; /* кнопка справа от "Назад" */
+    }
     
-    /* Контейнер для кнопки подключения кошелька */
+    /* ---------- Контейнер для кнопки TonConnect ---------- */
     #connect {
       position: absolute;
       top: 10px;
@@ -89,7 +85,7 @@
       z-index: 1100;
     }
     
-    /* Основной контейнер */
+    /* ---------- Основной контейнер страницы ---------- */
     .container {
       margin-top: 80px;
       width: 100%;
@@ -99,40 +95,85 @@
       padding: 20px;
     }
     
-    /* Отображение имени пользователя */
+    /* ---------- Стили для юзернейма и баланса ----------
+         (увеличенные шрифты, убрано слово "Ваш баланс")
+    */
     #username {
       font-weight: bold;
+      font-size: 24px;
       margin-bottom: 20px;
-      font-size: 14px;
     }
-    
-    /* Блок баланса */
     .balance-block {
       text-align: center;
       margin-bottom: 30px;
-      font-size: 14px;
+      font-size: 32px;
     }
     .balance-block img {
       vertical-align: middle;
       margin-left: 5px;
+      width: 30px;
+      height: 30px;
     }
     
-    /* Блок выбора суммы пополнения */
+    /* ---------- Стили для ползунка и текстового поля ---------- */
     .slider-block {
       width: 80%;
       max-width: 400px;
       margin: 20px auto;
       text-align: center;
-      font-size: 12px;
+      font-size: 14px;
     }
     .slider-block input[type="range"] {
       width: 100%;
+      -webkit-appearance: none;
+      background: #fff;
+      height: 8px;
+      border-radius: 4px;
+      outline: none;
     }
-    .slider-block p {
+    .slider-block input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #06C1DE;
+      cursor: pointer;
+      border: 2px solid #262626;
+    }
+    .slider-block input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #06C1DE;
+      cursor: pointer;
+      border: 2px solid #262626;
+    }
+    .slider-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       margin-top: 10px;
     }
+    .slider-group input[type="number"] {
+      width: 80px;
+      padding: 4px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      border: 1px solid #fff;
+      border-radius: 4px;
+      background: #6d4fba;
+      color: #fff;
+    }
+    .slider-group span {
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+    }
     
-    /* Кнопка пополнения */
+    /* ---------- Кнопка пополнения ----------
+         (также пиксельный стиль)
+    */
     .deposit-button {
       margin-top: 20px;
       padding: 12px 20px;
@@ -176,27 +217,33 @@
 <body>
   <!-- Кнопка "Назад" -->
   <button id="backButton" onclick="goBack()">Назад</button>
-
-  <!-- Контейнер для кнопки TonConnect -->
+  <!-- Кнопка переключения языка -->
+  <button id="langToggle" onclick="toggleLanguage()">ru/ang</button>
+  
+  <!-- Контейнер для TonConnect -->
   <div id="connect"></div>
-
+  
   <div class="container">
-    <!-- Имя пользователя Telegram -->
+    <!-- Юзернейм из Telegram -->
     <p id="username"></p>
-    <!-- Блок баланса -->
+    <!-- Блок баланса (только число и иконка) -->
     <div class="balance-block">
-      <p>Ваш баланс: <span id="balance">0</span> <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coin" width="20" /></p>
+      <span id="balance">0</span>
+      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coin" />
     </div>
     <!-- Блок выбора суммы пополнения -->
     <div class="slider-block">
       <p>Выберите количество TON для пополнения:</p>
-      <input type="range" id="tonRange" min="1" max="10" step="1" value="1" oninput="updateRangeValue()" />
-      <p id="rangeValue">1 TON</p>
-      <!-- Кнопка пополнения -->
-      <button class="deposit-button" onclick="makeDeposit()">Пополнить</button>
+      <input type="range" id="tonRange" min="1" max="10" step="1" value="1" oninput="syncInputsFromRange()" />
+      <div class="slider-group">
+        <input type="number" id="tonInput" min="1" step="1" value="1" oninput="syncInputsFromInput()" />
+        <span>TON</span>
+      </div>
     </div>
+    <!-- Кнопка пополнения -->
+    <button class="deposit-button" onclick="makeDeposit()">Пополнить</button>
   </div>
-
+  
   <!-- Модальное окно уведомлений -->
   <div id="notificationModal">
     <div class="modal-content">
@@ -204,18 +251,22 @@
       <button class="modal-close" onclick="closeModal()">Закрыть</button>
     </div>
   </div>
-
+  
   <script>
-    /* ---------------------------
-       Функция перехода "Назад"
-    ---------------------------- */
+    // Функция перехода "Назад"
     function goBack() {
       window.location.href = 'index.html';
     }
     
-    /* ---------------------------
-       Инициализация Telegram WebApp
-    ---------------------------- */
+    // Функция переключения языка (базовый пример)
+    let currentLanguage = 'ru';
+    function toggleLanguage() {
+      currentLanguage = (currentLanguage === 'ru') ? 'ang' : 'ru';
+      document.getElementById('langToggle').textContent = (currentLanguage === 'ru') ? 'ru/ang' : 'ang/ru';
+      // Здесь можно добавить дополнительную логику смены текстов
+    }
+    
+    // Инициализация Telegram WebApp
     const tg = window.Telegram.WebApp;
     tg.expand();
     
@@ -223,9 +274,7 @@
     let userRef = null;
     let localCoins = 0;
     
-    /* ---------------------------
-       Инициализация Firebase
-    ---------------------------- */
+    // Инициализация Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -239,9 +288,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
-    /* ---------------------------
-       Работа с данными пользователя Telegram
-    ---------------------------- */
+    // Работа с данными пользователя Telegram
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUsername = tg.initDataUnsafe.user.username || '';
       document.getElementById('username').textContent = '@' + currentUsername;
@@ -271,25 +318,26 @@
       document.getElementById('balance').textContent = coins;
     }
     
-    /* ---------------------------
-       Инициализация TonConnect UI
-    ---------------------------- */
+    // Инициализация TonConnect UI
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
       buttonRootId: 'connect'
     });
     
-    /* ---------------------------
-       Обработка ползунка для выбора суммы TON
-    ---------------------------- */
-    function updateRangeValue() {
-      const val = document.getElementById('tonRange').value;
-      document.getElementById('rangeValue').textContent = val + ' TON';
+    // Синхронизация значений ползунка и текстового поля
+    function syncInputsFromRange() {
+      const rangeVal = document.getElementById('tonRange').value;
+      document.getElementById('tonInput').value = rangeVal;
+    }
+    function syncInputsFromInput() {
+      let inputVal = parseInt(document.getElementById('tonInput').value) || 1;
+      if (inputVal < 1) inputVal = 1;
+      if (inputVal > 10) inputVal = 10;
+      document.getElementById('tonInput').value = inputVal;
+      document.getElementById('tonRange').value = inputVal;
     }
     
-    /* ---------------------------
-       Функции работы с модальным окном
-    ---------------------------- */
+    // Функции работы с модальным окном
     function showModal(message) {
       document.getElementById('modalMessage').textContent = message;
       document.getElementById('notificationModal').style.display = 'flex';
@@ -298,30 +346,26 @@
       document.getElementById('notificationModal').style.display = 'none';
     }
     
-    /* ---------------------------
-       Функция пополнения баланса
-       Отправляет транзакцию с суммой, равной выбранному значению (TON → нанотоны)
-    ---------------------------- */
+    // Функция пополнения: отправка транзакции с суммой (TON → нанотоны)
     async function makeDeposit() {
-      const val = document.getElementById('tonRange').value;
-      const tonAmount = parseInt(val) || 0;
+      const tonAmount = parseInt(document.getElementById('tonRange').value) || 0;
       const nanoAmount = (tonAmount * 1e9).toString();
-    
+      
       if (!currentUsername || !userRef) {
         showModal('Ошибка: пользователь Telegram не определён!');
         return;
       }
-    
+      
       const transaction = {
         validUntil: Math.round(Date.now() / 1000) + 60,
         messages: [
           {
-            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // Замените на нужный адрес
+            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78',
             amount: nanoAmount
           }
         ]
       };
-    
+      
       try {
         await tonConnectUI.sendTransaction(transaction);
         localCoins += tonAmount;
