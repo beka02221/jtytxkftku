@@ -27,7 +27,7 @@
       width: 100%; 
       height: 100%; 
       overflow-x: hidden; 
-      background-color: #00103c; /* Тёмно-синий фон */
+      background-color: #00103c;
     }
     body {
       display: flex; 
@@ -35,12 +35,10 @@
     }
 
     /* ======= Шрифты и цвета ======= */
-    /* Заголовки (h1, h2, h3...) – Press Start 2P, цвет #FF00FF */
     h1, h2, h3, h4 {
       font-family: 'Press Start 2P', monospace;
       color: #FF00FF;
     }
-    /* Обычный текст – белый, стандартный шрифт */
     p, span, label, input, div {
       font-family: sans-serif; 
       color: #ffffff;
@@ -48,18 +46,19 @@
 
     /* ======= Кнопки ======= */
     button {
-      font-family: 'Press Start 2P', monospace; /* Шрифт Press Start 2P */
-      font-size: 10px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px; /* увеличен размер шрифта */
       text-transform: uppercase;
       letter-spacing: 1px;
       background: #06C1DE;
-      color: #000000; /* Текст кнопок – чёрный */
+      color: #000000;
       border: 1px solid #4b4b4b;
       border-radius: 4px;
-      padding: 6px 10px;
+      padding: 10px 20px; /* увеличены отступы */
       box-shadow: 0 3px #6b6b6b;
       cursor: pointer;
       transition: transform 0.2s;
+      margin-top: 10px; /* отступ сверху для кнопки */
     }
     button:hover {
       transform: scale(1.05);
@@ -87,13 +86,12 @@
     }
     #connect {
       position: static; 
-      margin-left: auto; 
-      /* Кнопка TonConnect окажется справа */
+      margin-left: auto;
     }
 
     /* ======= Контейнер всей страницы ======= */
     .container {
-      margin-top: 20px;
+      margin-top: 50px; /* увеличен отступ сверху */
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -104,57 +102,56 @@
     /* ======= Блок "Баланс" ======= */
     .balance-block {
       display: flex;
+      flex-direction: column; /* располагаем элементы вертикально */
       align-items: center;
-      margin-bottom: 30px;
-      font-size: 12px;
-      gap: 10px;
+      margin-bottom: 50px; /* увеличенный отступ снизу */
     }
     .balance-block img {
       width: 18px; 
       height: 18px;
+      margin-top: 5px; /* небольшой отступ сверху для иконки */
     }
     .username {
       font-family: 'Press Start 2P', monospace; 
-      color: #FF00FF; /* Выделим имя розовым */
-      font-size: 12px;
+      color: #FF00FF;
+      font-size: 16px; /* увеличен размер шрифта */
+      margin-bottom: 5px; /* отступ между именем и балансом */
     }
     .coins-count {
       font-family: sans-serif;
       color: #ffffff;
-      font-size: 12px;
+      font-size: 28px; /* значительно увеличен размер баланса */
     }
 
     /* ======= Слайдер и инпут ======= */
     .slider-block {
       width: 100%;
       max-width: 400px;
-      margin: 10px 0;
+      margin: 20px 0; /* увеличены отступы сверху/снизу */
       display: flex;
       flex-direction: column;
       align-items: center;
-      font-size: 12px;
-      gap: 10px;
+      font-size: 14px; /* базовый размер шрифта увеличен */
+      gap: 15px; /* увеличен промежуток между элементами */
     }
-    /* Подпись над слайдером */
     .slider-title {
       font-family: 'Press Start 2P', monospace;
       color: #FF00FF;
-      font-size: 11px;
+      font-size: 16px; /* увеличен размер текста */
       text-align: center;
+      margin-bottom: 10px;
     }
-    /* Строка ползунок + инпут */
     .slider-row {
       width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
     }
-    /* Сам ползунок */
     input[type="range"] {
       -webkit-appearance: none;
-      width: 60%;
-      height: 6px;
+      width: 70%;
+      height: 10px; /* увеличена высота */
       background: #ddd;
       border-radius: 3px;
       outline: none;
@@ -162,23 +159,22 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 20px; /* увеличен размер ползунка */
+      height: 20px;
       background: #FF00FF;
       border-radius: 50%;
       cursor: pointer;
       border: 2px solid #06C1DE;
     }
-    /* Инпут, куда вводим целое число (1–10) */
     #millionInput {
-      width: 70px;
+      width: 100px; /* увеличена ширина инпута */
       text-align: center;
-      font-size: 12px;
+      font-size: 16px; /* увеличен размер шрифта */
       border: 1px solid #06C1DE;
       border-radius: 4px;
-      padding: 4px;
+      padding: 6px; /* увеличены отступы */
       color: #ffffff;
-      background-color: #00103c; /* Тёмно-синий фон */
+      background-color: #00103c;
     }
     #millionInput:focus {
       outline: 1px solid #FF00FF;
@@ -326,7 +322,7 @@ const firebaseConfig = {
   authDomain: "test-with-likes.firebaseapp.com",
   databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
   projectId: "test-with-likes",
-  storageBucket: "test-with-likes.appspot.com",
+  storageBucket: "test-with-likes",
   messagingSenderId: "764738820142",
   appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
   measurementId: "G-WJNF0HSN9P"
@@ -374,7 +370,6 @@ function updateCoinsDisplay(coins) {
    6. Кнопка "Назад"
 -------------------------------------------------- */
 function goBack() {
-  // Переход на index.html или другую страницу
   window.location.href = 'index.html';
 }
 
@@ -415,27 +410,20 @@ function closeModal() {
 
 /* --------------------------------------------------
    10. makeDeposit: отправка транзакции
-       Здесь воспринимаем 1..10 как "N млн", 
-       и условно зачисляем N монет в Firebase 
-       (в реальности 1 "млн" может = 1 TON, как пример)
 -------------------------------------------------- */
 async function makeDeposit() {
   if (!currentUsername || !userRef) {
     showModal(translations[currentLanguage].userError);
     return;
   }
-  // Считаем выбранное число миллионов
   const val = parseInt(document.getElementById('millionInput').value, 10);
   const millionAmount = isNaN(val) ? 1 : val;
-  // Предположим, 1 "миллион" = 1 TON => Нанотоны:
   const nanoAmount = (millionAmount * 1e9).toString();
 
-  // Формируем транзакцию
   const transaction = {
     validUntil: Math.round(Date.now() / 1000) + 60,
     messages: [
       {
-        // Замените на ваш адрес
         address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78',
         amount: nanoAmount
       }
@@ -444,7 +432,6 @@ async function makeDeposit() {
 
   try {
     await tonConnectUI.sendTransaction(transaction);
-    // "Виртуально" увеличиваем баланс на millionAmount
     localCoins += millionAmount;
     updateCoinsDisplay(localCoins);
     userRef.update({ coins: localCoins });
