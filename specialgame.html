@@ -255,6 +255,27 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
+
+    /* Стили для баланса игрока */
+    #balanceDisplay {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 14px;
+      color: #FF00FF;
+      z-index: 2100;
+    }
+
+    /* Стили модального окна комнат */
+    #roomsModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2200;
+    }
   </style>
 </head>
 
@@ -277,10 +298,26 @@
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Game Preview">
       <h1 id="landingTitle">Special Snake PvP</h1>
-      <p id="landingText">
-        Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
-      </p>
+      <!-- Описание – изначально сокращённое -->
+      <p id="landingText"></p>
+      <button id="toggleDescriptionBtn">Показать больше</button>
+      <!-- Слайдер для выбора ставки -->
+      <div style="margin: 20px 0;">
+        <label for="betSlider" style="font-size:14px;">Ставка (млн): </label>
+        <input type="range" id="betSlider" min="1" max="10" step="1" value="1">
+        <span id="betDisplay">1 млн</span>
+      </div>
       <button id="startSearchBtn">Start Search</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно для отображения комнат -->
+  <div id="roomsModal" class="modal-backdrop">
+    <div class="modal" style="max-width:500px;">
+      <h2>Доступные комнаты</h2>
+      <div id="roomsList" style="max-height:300px; overflow-y:auto; margin-bottom:10px;"></div>
+      <button id="createRoomBtn">Создать комнату</button>
+      <button id="closeRoomsModalBtn">Закрыть</button>
     </div>
   </div>
 
@@ -313,11 +350,20 @@
     </div>
   </div>
 
+  <!-- Блок отображения баланса игрока -->
+  <div id="balanceDisplay">
+    <img src="coin_icon.png" alt="Coin" style="width:20px; vertical-align:middle;">
+    <span id="balanceAmount"></span>
+  </div>
+
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Исправленный код с изменением цвета
-  текста над головами, ников под полем и скрытием кнопки Back
+  Special Snake PvP – Исправленный код с добавлением:
+   • Сокращённого/разворачиваемого описания
+   • Баланса игрока (иконка монеты)
+   • Слайдера для выбора ставки
+   • Модального окна с доступными комнатами
 ============================================================
 */
 
@@ -464,51 +510,64 @@ function resetSpecialGame1() {
 
 /* ======================================
    2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
+   (Новые функции для показа модального окна с комнатами)
 ====================================== */
-function findOrCreateRoom() {
-  const queueRef = firebase.database().ref('snakeQueue');
+function showRoomsModal() {
+  firebase.database().ref('snakeQueue').orderByChild('status').equalTo('waiting').once('value').then(snapshot => {
+    const roomsListDiv = document.getElementById('roomsList');
+    roomsListDiv.innerHTML = "";
+    const roomsData = snapshot.val();
+    if (roomsData) {
+      for (const key in roomsData) {
+        const room = roomsData[key];
+        const roomItem = document.createElement('div');
+        roomItem.style.border = "1px solid #FF00FF";
+        roomItem.style.padding = "5px";
+        roomItem.style.margin = "5px";
+        roomItem.style.cursor = "pointer";
+        roomItem.textContent = "@" + room.creator + " - Ставка: " + room.bet + " млн";
+        roomItem.addEventListener('click', function() {
+          joinRoom(key);
+          document.getElementById('roomsModal').style.display = "none";
+        });
+        roomsListDiv.appendChild(roomItem);
+      }
+    } else {
+      roomsListDiv.textContent = "Нет доступных комнат.";
+    }
+    document.getElementById('roomsModal').style.display = "flex";
+  });
+}
 
-  queueRef.orderByChild('creator').equalTo(window.currentUser.username).once('value')
-    .then(snapshot => {
-      snapshot.forEach(childSnapshot => {
-        childSnapshot.ref.remove();
-      });
-      return queueRef.once('value');
-    })
-    .then((snapshot) => {
-      const queueData = snapshot.val() || {};
-      let openRoomKey = null;
-      for (const key in queueData) {
-        if (queueData[key].status === 'waiting' && queueData[key].creator !== window.currentUser.username) {
-          openRoomKey = key;
-          break;
-        }
-      }
-      if (openRoomKey) {
-        roomId = openRoomKey;
-        playerId = 'player2';
-        opponentId = 'player1';
-        firebase.database().ref('snakeQueue/' + roomId)
-          .update({ status: 'ready' })
-          .catch((err) => console.error('Error updating room status:', err));
-        setupGameReferences();
-      } else {
-        roomId = queueRef.push().key;
-        playerId = 'player1';
-        opponentId = 'player2';
-        queueRef.child(roomId).set({
-          status: 'waiting',
-          createdAt: firebase.database.ServerValue.TIMESTAMP,
-          creator: window.currentUser.username
-        }).catch((err) => console.error('Error creating room:', err));
-        queueRef.child(roomId).onDisconnect().remove();
-        setupGameReferences();
-      }
-      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-      document.getElementById('copyButton').style.display = 'block';
-      waitForOpponent();
-    })
-    .catch((err) => console.error('Error in findOrCreateRoom:', err));
+function joinRoom(roomKey) {
+  roomId = roomKey;
+  playerId = 'player2';
+  opponentId = 'player1';
+  firebase.database().ref('snakeQueue/' + roomId).update({
+    status: 'ready'
+  }).catch((err) => console.error('Error updating room status:', err));
+  setupGameReferences();
+  inviteLink = "https://mygame.example.com/invite?room=" + roomId;
+  document.getElementById('copyButton').style.display = 'block';
+  waitForOpponent();
+}
+
+function createRoom() {
+  let betAmount = document.getElementById('betSlider').value;
+  roomId = firebase.database().ref('snakeQueue').push().key;
+  playerId = 'player1';
+  opponentId = 'player2';
+  firebase.database().ref('snakeQueue/' + roomId).set({
+    status: 'waiting',
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
+    creator: window.currentUser.username,
+    bet: betAmount
+  }).catch((err) => console.error('Error creating room:', err));
+  firebase.database().ref('snakeQueue/' + roomId).onDisconnect().remove();
+  setupGameReferences();
+  inviteLink = "https://mygame.example.com/invite?room=" + roomId;
+  document.getElementById('copyButton').style.display = 'block';
+  waitForOpponent();
 }
 
 /* ======================================
@@ -1149,13 +1208,21 @@ function returnToMain() {
    19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
 ====================================== */
 document.getElementById('startSearchBtn').addEventListener('click', function(){
-  document.getElementById('landingScreen').style.display = 'none';
-  document.getElementById('searchBackBtn').style.display = 'block';
-  findOrCreateRoom();
+  // При нажатии показываем окно с доступными комнатами
+  showRoomsModal();
 });
 
 document.getElementById('searchBackBtn').addEventListener('click', function(){
   window.location.reload();
+});
+
+// Слушатели для модального окна комнат
+document.getElementById('createRoomBtn').addEventListener('click', function(){
+  createRoom();
+  document.getElementById('roomsModal').style.display = 'none';
+});
+document.getElementById('closeRoomsModalBtn').addEventListener('click', function(){
+  document.getElementById('roomsModal').style.display = 'none';
 });
 
 /* ======================================
@@ -1181,19 +1248,26 @@ window.addEventListener('load', () => {
       const tgUser = Telegram.WebApp.initDataUnsafe.user;
       window.currentUser = {
         username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
-        photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+        photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png",
+        balance: "10M"  // Пример баланса
       };
     } else {
       window.currentUser = {
         username: "TestUser",
-        photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+        photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png",
+        balance: "10M"
       };
     }
   }
-
+  updateBalanceDisplay();
   initSpecialGame1();
   updateLanguageTexts();
 });
+
+// Функция для обновления баланса
+function updateBalanceDisplay() {
+  document.getElementById('balanceAmount').textContent = window.currentUser.balance || "10M";
+}
 
 // Функция смены направления
 function changeDirection(newDir) {
@@ -1209,20 +1283,22 @@ function changeDirection(newDir) {
 }
 
 /* ======================================
-   21. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА
+   21. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА И ОПИСАНИЯ
 ====================================== */
 let currentLanguage = "en";
 const languageStrings = {
   en: {
     landingTitle: "Special Snake PvP",
-    landingText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
+    landingFullText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes decide every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
+    landingShortText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles!",
     startSearch: "Start Search",
     homeBack: "Back",
     languageToggle: "RU"
   },
   ru: {
     landingTitle: "Спешл Снейк PvP",
-    landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
+    landingFullText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
+    landingShortText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений!",
     startSearch: "Начать поиск",
     homeBack: "Назад",
     languageToggle: "EN"
@@ -1231,7 +1307,8 @@ const languageStrings = {
 
 function updateLanguageTexts() {
   document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
-  document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
+  // По умолчанию отображаем сокращённое описание
+  document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingShortText;
   document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch;
   document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
   document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
@@ -1244,6 +1321,23 @@ document.getElementById('langToggleBtn').addEventListener('click', function() {
 
 document.getElementById('homeBackBtn').addEventListener('click', function() {
   window.location.href = 'index.html';
+});
+
+// Обработчик для кнопки разворачивания/сжатия описания
+document.getElementById('toggleDescriptionBtn').addEventListener('click', function() {
+  const landingTextEl = document.getElementById('landingText');
+  if (landingTextEl.textContent === languageStrings[currentLanguage].landingShortText) {
+    landingTextEl.textContent = languageStrings[currentLanguage].landingFullText;
+    this.textContent = "Свернуть";
+  } else {
+    landingTextEl.textContent = languageStrings[currentLanguage].landingShortText;
+    this.textContent = "Показать больше";
+  }
+});
+
+// Обработчик для слайдера ставки
+document.getElementById('betSlider').addEventListener('input', function() {
+  document.getElementById('betDisplay').textContent = this.value + " млн";
 });
 
 /* ======================================
@@ -1262,3 +1356,4 @@ function updateUsernamesDisplay() {
   </script>
 </body>
 </html>
+
