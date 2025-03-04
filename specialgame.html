@@ -30,7 +30,25 @@
       position: relative;
       overflow: hidden;
     }
-
+    
+    /* Баланс игрока (наверху по центру) */
+    #balanceDisplay {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #06B6D1;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+    }
+    #balanceDisplay img {
+      margin-right: 5px;
+    }
+    
     /* Canvas для игры */
     #specialGameCanvas {
       display: block;
@@ -87,6 +105,9 @@
       max-width: 400px;
       text-align: center;
       border-radius: 8px;
+    }
+    .modal-backdrop.active {
+      display: flex;
     }
 
     /* Анимация мигания */
@@ -255,64 +276,25 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-
-    /* Стили для баланса игрока (отображается вверху по центру) */
-    #balanceDisplay {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 14px;
-      color: #FF00FF;
-      z-index: 2100;
-      background: #06B6D1;
-      padding: 5px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    /* Стили модального окна комнат – на весь экран */
-    #roomsModal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.8);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 2200;
-    }
-    #roomsModal .modal {
-      width: 100%;
-      height: 100%;
-      background: #00103c;
-      overflow-y: auto;
-      position: relative;
-      border: none;
-      border-radius: 0;
-    }
-    #roomsModal h2 {
-      color: #FF00FF;
-      margin-top: 20px;
-    }
-    #roomsModal button {
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
-      padding: 5px 10px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #roomsModal #closeRoomsModalBtn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
+    
+    /* Стили для модальных окон списка и создания румов */
+    #roomListModal .modal, #createRoomModal .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
     }
   </style>
 </head>
 
 <body>
+  <!-- Баланс игрока -->
+  <div id="balanceDisplay" onclick="window.location.href='buy.html'">
+    <img src="https://img.icons8.com/ios-filled/24/ffffff/coins.png" alt="coin icon">
+    <span id="balanceAmount">100M</span>
+  </div>
+  
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
   <!-- Элемент для отображения ников под игровым полем -->
@@ -331,28 +313,19 @@
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Game Preview">
       <h1 id="landingTitle">Special Snake PvP</h1>
-      <!-- Описание – изначально сокращённое -->
-      <p id="landingText"></p>
-      <button id="toggleDescriptionBtn">Показать больше</button>
-      <!-- Блок для управления румами -->
-      <div style="margin:20px 0;">
-        <button id="viewRoomsBtn" style="margin: 0 10px;">Посмотреть румы</button>
-        <div style="display:inline-block; vertical-align:middle;">
-          <label for="betSlider" style="font-size:14px;">Ставка (млн): </label>
-          <input type="range" id="betSlider" min="1" max="10" step="1" value="1">
-          <span id="betDisplay">1</span>
-        </div>
-        <button id="createRoomBtnLanding" style="margin: 0 10px;">Создать рум</button>
+      <!-- Контейнер с описанием (сокращено) -->
+      <div id="landingTextContainer" style="max-height: 80px; overflow: hidden;">
+        <p id="landingText">
+          Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
+        </p>
       </div>
-    </div>
-  </div>
-
-  <!-- Модальное окно для отображения комнат (на весь экран) -->
-  <div id="roomsModal" class="modal-backdrop">
-    <div class="modal">
-      <h2>Комнаты</h2>
-      <div id="roomsList" style="margin:20px;"></div>
-      <button id="closeRoomsModalBtn">Закрыть</button>
+      <button id="toggleDescriptionBtn">Показать больше</button>
+      <!-- Кнопки для румов -->
+      <div id="roomButtons" style="margin-top: 20px;">
+        <button id="viewRoomsBtn">Посмотреть румы</button>
+        <button id="createRoomBtn">Создать рум</button>
+      </div>
+      <!-- Исходная кнопка Start Search убрана -->
     </div>
   </div>
 
@@ -384,23 +357,39 @@
       <button onclick="returnToMain()">Return</button>
     </div>
   </div>
-
-  <!-- Блок отображения баланса игрока (отображается вверху по центру) -->
-  <div id="balanceDisplay" onclick="window.location.href='buy.html'">
-    <img src="coin_icon.png" alt="Coin" style="width:20px; vertical-align:middle;">
-    <span id="balanceAmount"></span>
+  
+  <!-- Модальное окно для списка румов -->
+  <div id="roomListModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 600px; width: 90%;">
+      <h2>Открытые румы</h2>
+      <div id="roomListContainer" style="max-height: 300px; overflow-y: auto;"></div>
+      <button onclick="closeRoomList()">Закрыть</button>
+    </div>
+  </div>
+  
+  <!-- Модальное окно для создания рума -->
+  <div id="createRoomModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 400px; width: 90%;">
+      <h2>Создать рум</h2>
+      <label for="betSlider">Ставка (млн): </label>
+      <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
+      <span id="betValue">1</span> млн
+      <br><br>
+      <button id="confirmCreateRoomBtn">Создать рум</button>
+      <button onclick="closeCreateRoom()">Отмена</button>
+    </div>
   </div>
 
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Исправленный код с добавлением:
-   • Кнопок «Посмотреть румы» и «Создать рум» в стартовом экране
-   • Раздела (модального окна) комнат, открывающегося на весь экран,
-     где для каждой комнаты отображается маленьким шрифтом имя создателя,
-     сумма ставки (только цифра) и кнопка «Играть»
-   • Окна "waiting for opponent" для создателя рума (с onDisconnect)
-   • Баланса игрока вверху по центру с фоном, похожим на кнопку (при клике – переход на buy.html)
+  Special Snake PvP – Исправленный код с новыми функциями:
+  - Сокращаемое описание с кнопкой "Показать больше/Скрыть"
+  - Отображение баланса игрока с иконкой монеты (нажмите для перехода на buy.html)
+  - Ползунок для выбора ставки (в млн)
+  - Модальное окно для списка румов с информацией и кнопкой "Играть"
+  - Модальное окно для создания рума с выбором ставки
+  - Обработка создания и присоединения к румам через Firebase
 ============================================================
 */
 
@@ -546,84 +535,87 @@ function resetSpecialGame1() {
 }
 
 /* ======================================
-   2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
-   (Новые функции для показа модального окна с комнатами)
+   2. ФУНКЦИИ ДЛЯ РУМОВ
 ====================================== */
-function showRoomsModal() {
-  firebase.database().ref('snakeQueue').orderByChild('status').equalTo('waiting').once('value').then(snapshot => {
-    const roomsListDiv = document.getElementById('roomsList');
-    roomsListDiv.innerHTML = "";
-    const roomsData = snapshot.val();
-    if (roomsData) {
-      for (const key in roomsData) {
-        const room = roomsData[key];
-        const roomItem = document.createElement('div');
-        roomItem.style.border = "1px solid #FF00FF";
-        roomItem.style.padding = "10px";
-        roomItem.style.margin = "10px";
-        roomItem.style.display = "flex";
-        roomItem.style.justifyContent = "space-between";
-        roomItem.style.alignItems = "center";
-        // Информация: имя создателя (маленьким шрифтом) и ставка (только цифра)
-        const infoDiv = document.createElement('div');
-        infoDiv.style.fontSize = "12px";
-        infoDiv.style.color = "#FF00FF";
-        infoDiv.innerHTML = `<div>${room.creator}</div><div>${room.bet}</div>`;
-        // Кнопка "Играть"
-        const playBtn = document.createElement('button');
-        playBtn.textContent = "Играть";
-        playBtn.style.fontFamily = '"Press Start 2P", sans-serif';
-        playBtn.style.fontSize = "12px";
-        playBtn.style.padding = "5px 10px";
-        playBtn.style.background = "#06B6D1";
-        playBtn.style.color = "#262626";
-        playBtn.style.border = "none";
-        playBtn.style.borderRadius = "4px";
-        playBtn.style.cursor = "pointer";
-        playBtn.addEventListener('click', function() {
-          joinRoom(key);
-          document.getElementById('roomsModal').style.display = "none";
-        });
-        roomItem.appendChild(infoDiv);
-        roomItem.appendChild(playBtn);
-        roomsListDiv.appendChild(roomItem);
-      }
-    } else {
-      roomsListDiv.textContent = "Нет доступных комнат.";
-    }
-    document.getElementById('roomsModal').style.display = "flex";
-  });
-}
-
-function joinRoom(roomKey) {
-  roomId = roomKey;
-  playerId = 'player2';
-  opponentId = 'player1';
-  firebase.database().ref('snakeQueue/' + roomId).update({
-    status: 'ready'
-  }).catch((err) => console.error('Error updating room status:', err));
-  setupGameReferences();
-  inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-  document.getElementById('copyButton').style.display = 'block';
-  waitForOpponent();
-}
-
-function createRoom() {
-  let betAmount = document.getElementById('betSlider').value;
-  roomId = firebase.database().ref('snakeQueue').push().key;
+// Функция создания рума с выбранной ставкой
+function createRoom(bet) {
+  const queueRef = firebase.database().ref('snakeQueue');
+  roomId = queueRef.push().key;
   playerId = 'player1';
   opponentId = 'player2';
-  firebase.database().ref('snakeQueue/' + roomId).set({
+  queueRef.child(roomId).set({
     status: 'waiting',
     createdAt: firebase.database.ServerValue.TIMESTAMP,
     creator: window.currentUser.username,
-    bet: betAmount
+    bet: bet
   }).catch((err) => console.error('Error creating room:', err));
-  firebase.database().ref('snakeQueue/' + roomId).onDisconnect().remove();
-  setupGameReferences();
+  // Удаление рума при отключении
+  queueRef.child(roomId).onDisconnect().remove();
   inviteLink = "https://mygame.example.com/invite?room=" + roomId;
   document.getElementById('copyButton').style.display = 'block';
+  setupGameReferences();
   waitForOpponent();
+  closeCreateRoom();
+  // Скрываем landingScreen после создания рума
+  document.getElementById('landingScreen').style.display = 'none';
+}
+
+// Функция присоединения к выбранному руму
+function joinRoom(selectedRoomId) {
+  roomId = selectedRoomId;
+  playerId = 'player2';
+  opponentId = 'player1';
+  // Обновляем статус рума на "ready"
+  firebase.database().ref('snakeQueue/' + roomId)
+    .update({ status: 'ready' })
+    .catch((err) => console.error('Error updating room status:', err));
+  setupGameReferences();
+  waitForOpponent();
+  closeRoomList();
+  // Скрываем landingScreen после присоединения к руму
+  document.getElementById('landingScreen').style.display = 'none';
+}
+
+// Функция открытия модального окна с списком румов
+function openRoomList() {
+  firebase.database().ref('snakeQueue').orderByChild('status').equalTo('waiting').once('value')
+    .then(snapshot => {
+      const rooms = snapshot.val() || {};
+      const container = document.getElementById('roomListContainer');
+      container.innerHTML = '';
+      for (let key in rooms) {
+        const room = rooms[key];
+        // Не показываем румы, созданные самим игроком
+        if (room.creator === window.currentUser.username) continue;
+        const roomDiv = document.createElement('div');
+        roomDiv.style.borderBottom = '1px solid #06B6D1';
+        roomDiv.style.padding = '5px 0';
+        roomDiv.innerHTML = `<strong>${room.creator}</strong> - Ставка: ${room.bet} млн 
+                              <button onclick="joinRoom('${key}')">Играть</button>`;
+        container.appendChild(roomDiv);
+      }
+      // Если нет доступных румов
+      if (container.innerHTML === '') {
+        container.innerHTML = '<p>Нет доступных румов</p>';
+      }
+      document.getElementById('roomListModal').classList.add('active');
+    })
+    .catch(err => console.error('Error fetching rooms:', err));
+}
+
+// Закрытие модального окна списка румов
+function closeRoomList() {
+  document.getElementById('roomListModal').classList.remove('active');
+}
+
+// Открытие модального окна создания рума
+function openCreateRoom() {
+  document.getElementById('createRoomModal').classList.add('active');
+}
+
+// Закрытие модального окна создания рума
+function closeCreateRoom() {
+  document.getElementById('createRoomModal').classList.remove('active');
 }
 
 /* ======================================
@@ -1261,15 +1253,32 @@ function returnToMain() {
 }
 
 /* ======================================
-   19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   19. ФУНКЦИИ ДЛЯ TOGGLE ОПИСАНИЯ И ОБРАБОТЧИКИ КНОПОК РУМОВ
 ====================================== */
-// Для кнопки "Посмотреть румы" – открываем модальное окно с комнатами
-document.getElementById('viewRoomsBtn').addEventListener('click', function(){
-  showRoomsModal();
+// Toggle описание
+function toggleDescription() {
+  const container = document.getElementById('landingTextContainer');
+  const btn = document.getElementById('toggleDescriptionBtn');
+  if (container.style.maxHeight === 'none') {
+    container.style.maxHeight = '80px';
+    btn.textContent = 'Показать больше';
+  } else {
+    container.style.maxHeight = 'none';
+    btn.textContent = 'Скрыть';
+  }
+}
+
+document.getElementById('toggleDescriptionBtn').addEventListener('click', toggleDescription);
+
+// Обработчики кнопок для румов
+document.getElementById('viewRoomsBtn').addEventListener('click', openRoomList);
+document.getElementById('createRoomBtn').addEventListener('click', openCreateRoom);
+document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
+  const bet = document.getElementById('betSlider').value;
+  createRoom(bet);
 });
-// Для кнопки "Создать рум" в стартовом экране
-document.getElementById('createRoomBtnLanding').addEventListener('click', function(){
-  createRoom();
+document.getElementById('betSlider').addEventListener('input', function() {
+  document.getElementById('betValue').textContent = this.value;
 });
 
 /* ======================================
@@ -1296,25 +1305,22 @@ window.addEventListener('load', () => {
       window.currentUser = {
         username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
         photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png",
-        balance: "10M"  // Пример баланса
+        balance: 100 // Пример баланса (100 млн)
       };
     } else {
       window.currentUser = {
         username: "TestUser",
         photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png",
-        balance: "10M"
+        balance: 100
       };
     }
   }
-  updateBalanceDisplay();
+  // Обновляем баланс
+  document.getElementById('balanceAmount').textContent = window.currentUser.balance + "M";
+
   initSpecialGame1();
   updateLanguageTexts();
 });
-
-// Функция для обновления баланса
-function updateBalanceDisplay() {
-  document.getElementById('balanceAmount').textContent = window.currentUser.balance || "10M";
-}
 
 // Функция смены направления
 function changeDirection(newDir) {
@@ -1330,22 +1336,20 @@ function changeDirection(newDir) {
 }
 
 /* ======================================
-   21. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА И ОПИСАНИЯ
+   21. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА
 ====================================== */
 let currentLanguage = "en";
 const languageStrings = {
   en: {
     landingTitle: "Special Snake PvP",
-    landingFullText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes decide every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
-    landingShortText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles!",
+    landingText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
     startSearch: "Start Search",
     homeBack: "Back",
     languageToggle: "RU"
   },
   ru: {
     landingTitle: "Спешл Снейк PvP",
-    landingFullText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
-    landingShortText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений!",
+    landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
     startSearch: "Начать поиск",
     homeBack: "Назад",
     languageToggle: "EN"
@@ -1354,9 +1358,7 @@ const languageStrings = {
 
 function updateLanguageTexts() {
   document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
-  // По умолчанию отображаем сокращённое описание
-  document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingShortText;
-  document.getElementById('startSearchBtn') && (document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch);
+  document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
   document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
   document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
 }
@@ -1370,24 +1372,9 @@ document.getElementById('homeBackBtn').addEventListener('click', function() {
   window.location.href = 'index.html';
 });
 
-// Обработчик для кнопки разворачивания/сжатия описания
-document.getElementById('toggleDescriptionBtn').addEventListener('click', function() {
-  const landingTextEl = document.getElementById('landingText');
-  if (landingTextEl.textContent === languageStrings[currentLanguage].landingShortText) {
-    landingTextEl.textContent = languageStrings[currentLanguage].landingFullText;
-    this.textContent = "Свернуть";
-  } else {
-    landingTextEl.textContent = languageStrings[currentLanguage].landingShortText;
-    this.textContent = "Показать больше";
-  }
-});
-
-// Обработчик для слайдера ставки
-document.getElementById('betSlider').addEventListener('input', function() {
-  document.getElementById('betDisplay').textContent = this.value;
-});
-
-// Обновление отображения ников под игровым полем
+/* ======================================
+   22. ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ НИКОВ ПОД ИГРОВЫМ ПОЛЕМ
+====================================== */
 function updateUsernamesDisplay() {
   const opponentDisplay = document.getElementById('opponentUsername');
   const playerDisplay = document.getElementById('playerUsername');
@@ -1401,4 +1388,3 @@ function updateUsernamesDisplay() {
   </script>
 </body>
 </html>
-
