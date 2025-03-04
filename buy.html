@@ -2,102 +2,174 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Пополнение баланса TON</title>
-
+  
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <!-- TonConnect UI -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <!-- Подключаем шрифты -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+New&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      font-family: sans-serif;
+    /* =========================
+       Сброс и базовые стили
+       ========================= */
+    * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
     }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      font-family: 'Courier New', monospace;
+    }
+    
+    body {
+      background-color: #00103c;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', cursive;
+      text-transform: uppercase;
+      color: #FF00FF;
+    }
+    
+    /* ---------- Базовый стиль для кнопок ---------- */
+    button {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: #06C1DE;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 4px 6px;
+      box-shadow: 0 3px #6b6b6b;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: scale(1.05);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px #6b6b6b;
+    }
+    
+    /* ---------- Элементы страницы пополнения ---------- */
     /* Кнопка "Назад" */
     #backButton {
       position: absolute;
       top: 10px;
       left: 10px;
       padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
+      font-size: 10px;
+      z-index: 1100;
     }
-    /* Кнопка подключения кошелька */
+    
+    /* Контейнер для кнопки подключения кошелька */
     #connect {
       position: absolute;
       top: 10px;
       right: 10px;
+      z-index: 1100;
     }
+    
     /* Основной контейнер */
     .container {
+      margin-top: 80px;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 80px;
+      padding: 20px;
     }
+    
+    /* Отображение имени пользователя */
+    #username {
+      font-weight: bold;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
     /* Блок баланса */
     .balance-block {
       text-align: center;
       margin-bottom: 30px;
+      font-size: 14px;
     }
     .balance-block img {
       vertical-align: middle;
       margin-left: 5px;
     }
-    /* Блок ползунка */
+    
+    /* Блок выбора суммы пополнения */
     .slider-block {
       width: 80%;
       max-width: 400px;
       margin: 20px auto;
       text-align: center;
+      font-size: 12px;
     }
     .slider-block input[type="range"] {
       width: 100%;
     }
+    .slider-block p {
+      margin-top: 10px;
+    }
+    
     /* Кнопка пополнения */
     .deposit-button {
       margin-top: 20px;
       padding: 12px 20px;
-      font-size: 16px;
+      font-size: 10px;
       cursor: pointer;
     }
-    /* Модальное окно уведомления */
-    .modal {
-      display: none; 
-      position: fixed; 
-      z-index: 1000; 
+    
+    /* ---------- Модальное окно уведомлений ---------- */
+    #notificationModal {
+      position: fixed;
+      z-index: 9999;
       left: 0;
       top: 0;
-      width: 100%; 
-      height: 100%; 
-      overflow: auto; 
-      background-color: rgba(0,0,0,0.4); 
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 15% auto; 
+    #notificationModal .modal-content {
+      background-color: #6d4fba;
+      border: 2px solid #3b3b3b;
       padding: 20px;
-      border: 1px solid #888;
       width: 80%;
-      max-width: 300px;
+      max-width: 360px;
       text-align: center;
-      border-radius: 5px;
+      border-radius: 4px;
     }
-    .modal-close {
-      margin-top: 10px;
+    #notificationModal .modal-content p {
+      margin-bottom: 16px;
+      font-size: 10px;
+    }
+    #notificationModal .modal-close {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
       padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
     }
   </style>
 </head>
@@ -105,188 +177,161 @@
   <!-- Кнопка "Назад" -->
   <button id="backButton" onclick="goBack()">Назад</button>
 
-  <!-- Кнопка TonConnect для подключения кошелька -->
+  <!-- Контейнер для кнопки TonConnect -->
   <div id="connect"></div>
 
   <div class="container">
-    <!-- Отображение имени пользователя из Telegram -->
-    <p id="username" style="font-weight:bold;"></p>
-
+    <!-- Имя пользователя Telegram -->
+    <p id="username"></p>
     <!-- Блок баланса -->
     <div class="balance-block">
-      <p style="font-size: 18px;">
-        Ваш баланс:
-        <span id="balance" style="font-weight:bold; color:green; font-size:20px;">0</span>
-        <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coin" width="20" />
-      </p>
+      <p>Ваш баланс: <span id="balance">0</span> <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coin" width="20" /></p>
     </div>
-
-    <!-- Блок выбора суммы пополнения (в TON) -->
+    <!-- Блок выбора суммы пополнения -->
     <div class="slider-block">
       <p>Выберите количество TON для пополнения:</p>
-      <input
-        type="range"
-        id="tonRange"
-        min="1"
-        max="10"
-        step="1"
-        value="1"
-        oninput="updateRangeValue()"
-      />
+      <input type="range" id="tonRange" min="1" max="10" step="1" value="1" oninput="updateRangeValue()" />
       <p id="rangeValue">1 TON</p>
-
       <!-- Кнопка пополнения -->
-      <button class="deposit-button" onclick="makeDeposit()">
-        Пополнить
-      </button>
+      <button class="deposit-button" onclick="makeDeposit()">Пополнить</button>
     </div>
   </div>
 
-  <!-- Модальное окно для уведомлений -->
-  <div id="notificationModal" class="modal">
+  <!-- Модальное окно уведомлений -->
+  <div id="notificationModal">
     <div class="modal-content">
       <p id="modalMessage"></p>
       <button class="modal-close" onclick="closeModal()">Закрыть</button>
     </div>
   </div>
 
-<script>
-/* ---------------------------
-   Функция перехода "Назад"
----------------------------- */
-function goBack() {
-  window.location.href = 'index.html';
-}
-
-/* ---------------------------
-   Инициализация Telegram WebApp
----------------------------- */
-const tg = window.Telegram.WebApp;
-tg.expand(); // Развернуть приложение на весь экран
-
-let currentUsername = null; // Telegram username
-let userRef = null;         // Ссылка на пользователя в Firebase
-let localCoins = 0;         // Текущий баланс монет
-
-/* ---------------------------
-   Инициализация Firebase
----------------------------- */
-const firebaseConfig = {
-  apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-  authDomain: "test-with-likes.firebaseapp.com",
-  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-  projectId: "test-with-likes",
-  storageBucket: "test-with-likes.appspot.com",
-  messagingSenderId: "764738820142",
-  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-  measurementId: "G-WJNF0HSN9P"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-/* ---------------------------
-   Работа с данными пользователя Telegram
----------------------------- */
-if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-  currentUsername = tg.initDataUnsafe.user.username || '';
-  document.getElementById('username').textContent = '@' + currentUsername;
-
-  if (currentUsername) {
-    userRef = db.ref('users/' + currentUsername);
-    userRef.once('value', snapshot => {
-      if (!snapshot.exists()) {
-        userRef.set({
-          coins: 0,
-          tickets: 0,
-          points: 0,
-          lastSpinTime: 0
+  <script>
+    /* ---------------------------
+       Функция перехода "Назад"
+    ---------------------------- */
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+    
+    /* ---------------------------
+       Инициализация Telegram WebApp
+    ---------------------------- */
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    let currentUsername = null;
+    let userRef = null;
+    let localCoins = 0;
+    
+    /* ---------------------------
+       Инициализация Firebase
+    ---------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    
+    /* ---------------------------
+       Работа с данными пользователя Telegram
+    ---------------------------- */
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUsername = tg.initDataUnsafe.user.username || '';
+      document.getElementById('username').textContent = '@' + currentUsername;
+      if (currentUsername) {
+        userRef = db.ref('users/' + currentUsername);
+        userRef.once('value', snapshot => {
+          if (!snapshot.exists()) {
+            userRef.set({
+              coins: 0,
+              tickets: 0,
+              points: 0,
+              lastSpinTime: 0
+            });
+          }
+        });
+        userRef.on('value', snapshot => {
+          const data = snapshot.val() || {};
+          localCoins = data.coins || 0;
+          updateBalanceDisplay(localCoins);
         });
       }
+    } else {
+      document.getElementById('username').textContent = 'Не авторизован в Telegram';
+    }
+    
+    function updateBalanceDisplay(coins) {
+      document.getElementById('balance').textContent = coins;
+    }
+    
+    /* ---------------------------
+       Инициализация TonConnect UI
+    ---------------------------- */
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
+      buttonRootId: 'connect'
     });
-    userRef.on('value', snapshot => {
-      const data = snapshot.val() || {};
-      localCoins = data.coins || 0;
-      updateBalanceDisplay(localCoins);
-    });
-  }
-} else {
-  document.getElementById('username').textContent = 'Не авторизован в Telegram';
-}
-
-/* ---------------------------
-   Обновление отображения баланса
----------------------------- */
-function updateBalanceDisplay(coins) {
-  document.getElementById('balance').textContent = coins;
-}
-
-/* ---------------------------
-   Инициализация TonConnect UI
----------------------------- */
-const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-  manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
-  buttonRootId: 'connect'
-});
-
-/* ---------------------------
-   Обработка ползунка: вывод выбранного значения TON
----------------------------- */
-function updateRangeValue() {
-  const val = document.getElementById('tonRange').value;
-  document.getElementById('rangeValue').textContent = val + ' TON';
-}
-
-/* ---------------------------
-   Функция отображения модального окна
----------------------------- */
-function showModal(message) {
-  document.getElementById('modalMessage').textContent = message;
-  document.getElementById('notificationModal').style.display = 'block';
-}
-function closeModal() {
-  document.getElementById('notificationModal').style.display = 'none';
-}
-
-/* ---------------------------
-   Функция пополнения: отправляем сумму, выбранную на ползунке
----------------------------- */
-async function makeDeposit() {
-  const val = document.getElementById('tonRange').value;
-  const tonAmount = parseInt(val) || 0;
-  // Переводим TON в нанотоны: 1 TON = 1e9 нанотонов
-  const nanoAmount = (tonAmount * 1e9).toString();
-
-  if (!currentUsername || !userRef) {
-    showModal('Ошибка: пользователь Telegram не определён!');
-    return;
-  }
-
-  // Формируем транзакцию с суммой, выбранной на ползунке
-  const transaction = {
-    validUntil: Math.round(Date.now() / 1000) + 60,
-    messages: [
-      {
-        address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // Замените на нужный адрес
-        amount: nanoAmount
+    
+    /* ---------------------------
+       Обработка ползунка для выбора суммы TON
+    ---------------------------- */
+    function updateRangeValue() {
+      const val = document.getElementById('tonRange').value;
+      document.getElementById('rangeValue').textContent = val + ' TON';
+    }
+    
+    /* ---------------------------
+       Функции работы с модальным окном
+    ---------------------------- */
+    function showModal(message) {
+      document.getElementById('modalMessage').textContent = message;
+      document.getElementById('notificationModal').style.display = 'flex';
+    }
+    function closeModal() {
+      document.getElementById('notificationModal').style.display = 'none';
+    }
+    
+    /* ---------------------------
+       Функция пополнения баланса
+       Отправляет транзакцию с суммой, равной выбранному значению (TON → нанотоны)
+    ---------------------------- */
+    async function makeDeposit() {
+      const val = document.getElementById('tonRange').value;
+      const tonAmount = parseInt(val) || 0;
+      const nanoAmount = (tonAmount * 1e9).toString();
+    
+      if (!currentUsername || !userRef) {
+        showModal('Ошибка: пользователь Telegram не определён!');
+        return;
       }
-    ]
-  };
-
-  try {
-    // Отправляем транзакцию через TonConnect
-    await tonConnectUI.sendTransaction(transaction);
-    console.log('Транзакция отправлена!');
-    // "Виртуально" зачисляем TON пользователю – для реальной проверки транзакции необходим серверный контроль.
-    localCoins += tonAmount;
-    updateBalanceDisplay(localCoins);
-    userRef.update({ coins: localCoins });
-    showModal(`Пополнение на ${tonAmount} TON успешно!`);
-  } catch (err) {
-    console.error('Ошибка транзакции:', err);
-    showModal('Транзакция отклонена пользователем или произошла ошибка.');
-  }
-}
-</script>
+    
+      const transaction = {
+        validUntil: Math.round(Date.now() / 1000) + 60,
+        messages: [
+          {
+            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // Замените на нужный адрес
+            amount: nanoAmount
+          }
+        ]
+      };
+    
+      try {
+        await tonConnectUI.sendTransaction(transaction);
+        localCoins += tonAmount;
+        updateBalanceDisplay(localCoins);
+        userRef.update({ coins: localCoins });
+        showModal(`Пополнение на ${tonAmount} TON успешно!`);
+      } catch (err) {
+        showModal('Транзакция отклонена пользователем или произошла ошибка.');
+      }
+    }
+  </script>
 </body>
 </html>
-
