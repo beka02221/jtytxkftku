@@ -10,31 +10,40 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <!-- Your CSS (например, st1.css) -->
-  <!-- Можно оставить свои стили, ниже добавлены необходимые правки -->
+  <link id="themeStylesheet" rel="stylesheet" href="st1.css">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
-    /* Общие стили страницы */
+    /* Основные стили страницы */
     body {
       margin: 0;
       padding: 0;
       background: #00103c;
       color: #FF00FF;
       font-family: 'Press Start 2P', sans-serif;
-      position: relative;
       overflow: hidden;
     }
 
-    /* Шапка обучающего экрана */
-    #landingHeader {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
+    /* Верхняя панель: кнопки Back, переключения языка и кнопка баланса */
+    #topBar {
+      width: 100%;
+      position: relative;
+      height: 50px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      padding: 0 10px;
+      margin-top: 5px;
       z-index: 2100;
     }
-    #landingHeader button {
+    #homeBackBtn,
+    #langToggleBtn,
+    #coinButton {
       font-family: 'Press Start 2P', sans-serif;
       font-size: 12px;
       padding: 5px 10px;
@@ -44,26 +53,17 @@
       border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
-    }
-    /* Блок баланса – расположен в шапке рядом с кнопками */
-    #coinBlock {
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
-      color: #FF00FF;
-      background: #06B6D1;
-      padding: 5px 10px;
-      border-radius: 4px;
-      box-shadow: 0 3px #6b6b6b;
+      margin-right: 10px;
     }
 
     /* Canvas для игры */
     #specialGameCanvas {
       display: block;
-      margin: 80px auto 0 auto;  /* отступ сверху чтобы не перекрывалась шапка */
+      margin: 0 auto;
       background-image: url('1.jpg');
     }
 
-    /* Элемент с никами под игровым полем */
+    /* Элемент для отображения ников под игровым полем */
     #usernamesDisplay {
       display: none;
       text-align: center;
@@ -71,7 +71,7 @@
       margin-top: 10px;
     }
 
-    /* Кнопка копирования ссылки */
+    /* Кнопка для копирования ссылки (оставляем фиксированной, если требуется) */
     #copyButton {
       position: absolute;
       bottom: 20px;
@@ -125,7 +125,7 @@
       animation: blink 1.2s infinite;
     }
 
-    /* Стили панели управления (при необходимости) */
+    /* Стили панели управления */
     #controlPanel {
       width: 150px;
       height: 150px;
@@ -272,26 +272,27 @@
       justify-content: space-between;
     }
   </style>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-  <!-- Telegram Web App API -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
-
 <body>
-  <!-- Обучающая страница с шапкой (Back, переключение языка и блок с балансом) -->
+  <!-- Верхняя панель -->
+  <div id="topBar">
+    <button id="homeBackBtn">Back</button>
+    <button id="langToggleBtn">RU</button>
+    <!-- Кнопка с балансом (при нажатии переходит на buy.html) -->
+    <button id="coinButton" onclick="window.location.href='buy.html'">0 Coins</button>
+  </div>
+
+  <!-- Canvas для игры -->
+  <canvas id="specialGameCanvas" width="400" height="700"></canvas>
+  <!-- Отображение ников под игровым полем -->
+  <div id="usernamesDisplay">
+    <span id="opponentUsername"></span>
+    <span style="margin: 0 20px;">VS</span>
+    <span id="playerUsername"></span>
+  </div>
+
+  <!-- Обучающая страница -->
   <div id="landingScreen">
-    <div id="landingHeader">
-      <button id="homeBackBtn">Back</button>
-      <button id="langToggleBtn">RU</button>
-      <!-- Блок с балансом – расположенный рядом с кнопками -->
-      <div id="coinBlock">
-        <span id="balance">0 Coins</span>
-      </div>
-    </div>
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Game Preview">
       <h1 id="landingTitle">Special Snake PvP</h1>
@@ -301,18 +302,9 @@
       <!-- Новые кнопки -->
       <button id="createRoomBtn">Создать рум</button>
       <button id="searchRoomBtn">Поиск рум</button>
-      <!-- Новая кнопка "Играть бесплатно" -->
+      <!-- Кнопка "Играть бесплатно" -->
       <button id="playFreeBtn">Играть бесплатно</button>
     </div>
-  </div>
-
-  <!-- Canvas для игры -->
-  <canvas id="specialGameCanvas" width="400" height="700"></canvas>
-  <!-- Элемент для отображения ников под игровым полем -->
-  <div id="usernamesDisplay">
-    <span id="opponentUsername"></span>
-    <span style="margin: 0 20px;">VS</span>
-    <span id="playerUsername"></span>
   </div>
 
   <!-- Модальное окно для создания комнаты -->
@@ -371,8 +363,8 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Код с добавлением кнопки "Играть бесплатно" 
-  и блока с балансом (получение монет через Firebase, как в примере)
+  Special Snake PvP – Исправленный код с размещённой в потоке кнопкой баланса,
+  которая получает данные о монетах из Firebase
 ============================================================
 */
 
@@ -520,6 +512,7 @@ function resetSpecialGame1() {
 /* ======================================
    2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
 ====================================== */
+// Функция создания комнаты с выбранной ставкой
 function createRoom(bet) {
   const queueRef = firebase.database().ref('snakeQueue');
   roomId = queueRef.push().key;
@@ -540,6 +533,7 @@ function createRoom(bet) {
   waitForOpponent();
 }
 
+// Функция для поиска комнат и заполнения списка карточками
 function searchRooms() {
   const queueRef = firebase.database().ref('snakeQueue');
   queueRef.orderByChild('status').equalTo('waiting').once('value')
@@ -550,12 +544,14 @@ function searchRooms() {
       if (rooms) {
         Object.keys(rooms).forEach(roomKey => {
           const room = rooms[roomKey];
-          if (room.creator === window.currentUser.username) return;
+          if (room.creator === window.currentUser.username) return; // не показываем свои комнаты
           const card = document.createElement('div');
           card.className = 'room-card';
+          // Контейнер для иконки и информации
           const detailsDiv = document.createElement('div');
           detailsDiv.style.display = 'flex';
           detailsDiv.style.alignItems = 'center';
+          // Иконка создателя
           const icon = document.createElement('img');
           icon.src = "https://img.icons8.com/ios-filled/50/00FF00/user.png";
           icon.style.width = '40px';
@@ -563,6 +559,7 @@ function searchRooms() {
           icon.style.borderRadius = '50%';
           icon.style.marginRight = '10px';
           detailsDiv.appendChild(icon);
+          // Информация: юзернейм и ставка
           const infoDiv = document.createElement('div');
           const usernameP = document.createElement('p');
           usernameP.textContent = "@" + room.creator;
@@ -576,6 +573,7 @@ function searchRooms() {
           infoDiv.appendChild(betP);
           detailsDiv.appendChild(infoDiv);
           card.appendChild(detailsDiv);
+          // Кнопка присоединения
           const joinBtn = document.createElement('button');
           joinBtn.textContent = 'Присоединиться';
           joinBtn.style.fontFamily = 'Press Start 2P, sans-serif';
@@ -600,6 +598,7 @@ function searchRooms() {
     .catch(err => console.error('Error searching rooms:', err));
 }
 
+// Функция для присоединения к выбранной комнате
 function joinRoom(roomKey) {
   roomId = roomKey;
   playerId = 'player2';
@@ -639,6 +638,7 @@ function waitForOpponent() {
       }
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
+      // Скрываем кнопку Back в шапке, когда оппонент найден
       document.getElementById('homeBackBtn').style.display = 'none';
       showOpponentNameTimeout = setTimeout(() => {
         startCountdown();
@@ -756,6 +756,7 @@ function launchGame() {
     startTimer();
     requestAnimationFrame(renderLoop);
     
+    // Обновляем отображение ников под игровым полем
     updateUsernamesDisplay();
   });
 }
@@ -1301,17 +1302,25 @@ window.addEventListener('load', () => {
     firebase.initializeApp(firebaseConfig);
   }
 
-  // Инициализация Telegram Web App и получение данных пользователя
-  const tg = window.Telegram.WebApp;
-  tg.expand();
-  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-    window.currentUser = {
-      username: tg.initDataUnsafe.user.username ? tg.initDataUnsafe.user.username : (tg.initDataUnsafe.user.first_name ? tg.initDataUnsafe.user.first_name : "Anonymous"),
-      photo_url: tg.initDataUnsafe.user.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-    };
-    // Настраиваем отображение имени и получаем баланс через Firebase
+  if (!window.currentUser) {
+    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+      const tgUser = Telegram.WebApp.initDataUnsafe.user;
+      window.currentUser = {
+        username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
+        photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+      };
+    } else {
+      window.currentUser = {
+        username: "TestUser",
+        photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+      };
+    }
+  }
+  
+  // Получение данных о балансе из Firebase для текущего пользователя
+  if (window.currentUser && window.currentUser.username) {
     const userRef = firebase.database().ref('users/' + window.currentUser.username);
-    userRef.once('value', snapshot => {
+    userRef.once('value').then(snapshot => {
       if (!snapshot.exists()) {
         userRef.set({
           coins: 0,
@@ -1323,23 +1332,16 @@ window.addEventListener('load', () => {
     });
     userRef.on('value', snapshot => {
       const data = snapshot.val() || {};
-      updateCoinDisplay(data.coins || 0);
+      const coins = data.coins || 0;
+      updateCoinDisplay(coins);
     });
-  } else {
-    window.currentUser = {
-      username: "TestUser",
-      photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-    };
-    updateCoinDisplay(0);
   }
-
+  
   initSpecialGame1();
   updateLanguageTexts();
 });
 
-/* ======================================
-   Функция смены направления
-====================================== */
+/* Функция смены направления */
 function changeDirection(newDir) {
   if (
     (newDir === 'up'    && localDirection === 'down') ||
@@ -1376,6 +1378,7 @@ const languageStrings = {
 function updateLanguageTexts() {
   document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
   document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
+  document.getElementById('startSearchBtn') && (document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch);
   document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
   document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
 }
@@ -1404,10 +1407,10 @@ function updateUsernamesDisplay() {
 }
 
 /* ======================================
-   23. ФУНКЦИЯ ОБНОВЛЕНИЯ ОТОБРАЖЕНИЯ БАЛАНСА
+   23. ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ БАЛАНСА
 ====================================== */
 function updateCoinDisplay(coins) {
-  document.getElementById('balance').textContent = coins + " Coins";
+  document.getElementById('coinButton').textContent = coins + " Coins";
 }
   </script>
 </body>
