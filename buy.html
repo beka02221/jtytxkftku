@@ -3,77 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Пополнение баланса TON</title>
+  <title>TON Deposit</title>
 
-  <!-- Telegram WebApp API -->
+  <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect UI -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <!-- Подключаем шрифты: Press Start 2P для пикселизации и Courier New для кодоподобного текста -->
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+New&display=swap" rel="stylesheet">
+
+  <!-- Шрифты (Press Start 2P + стандарт) -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
-    /* =========================
-       Базовые стили и сброс
-       ========================= */
+    /* ======= Базовые сбросы и фон ======= */
     * {
-      margin: 0;
-      padding: 0;
+      margin: 0; 
+      padding: 0; 
       box-sizing: border-box;
     }
     html, body {
-      width: 100%;
-      height: 100%;
-      overflow-x: hidden;
-      font-family: 'Courier New', monospace;
+      width: 100%; 
+      height: 100%; 
+      overflow-x: hidden; 
+      background-color: #00103c; /* Тёмно-синий фон */
     }
     body {
-      background-color: #2d004d; /* Темно-фиолетовый фон */
-      color: #fff;
-      display: flex;
+      display: flex; 
       flex-direction: column;
     }
-    /* Основной пикселизированный шрифт для заголовков и кнопок */
-    .pixel {
-      font-family: 'Press Start 2P', cursive;
+
+    /* ======= Шрифты и цвета ======= */
+    /* Заголовки (h1, h2, h3...) – Press Start 2P, цвет #FF00FF */
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      color: #FF00FF;
     }
-    /* Мелкий шрифт для обычного текста, напоминающий код */
-    .code-text {
-      font-size: 10px;
+    /* Обычный текст – белый, стандартный шрифт */
+    p, span, label, input, div {
+      font-family: sans-serif; 
+      color: #ffffff;
     }
 
-    /* =========================
-       Верхняя панель (кнопки)
-       ========================= */
-    .top-bar {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 1100;
-    }
-    .top-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    /* Кнопки – пикселизированный шрифт */
+    /* ======= Кнопки ======= */
     button {
-      font-family: 'Press Start 2P', monospace;
+      font-family: 'Press Start 2P', monospace; /* Шрифт Press Start 2P */
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
       background: #06C1DE;
-      color: #262626;
+      color: #000000; /* Текст кнопок – чёрный */
       border: 1px solid #4b4b4b;
       border-radius: 4px;
-      padding: 4px 6px;
+      padding: 6px 10px;
       box-shadow: 0 3px #6b6b6b;
       cursor: pointer;
       transition: transform 0.2s;
@@ -86,84 +69,122 @@
       box-shadow: 0 1px #6b6b6b;
     }
 
-    /* =========================
-       Основной контейнер
-       ========================= */
-    .container {
-      margin-top: 80px;
+    /* ======= Верхняя панель (Back + Lang Switch + Connect) ======= */
+    #topBar {
       width: 100%;
+      position: relative;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      margin-top: 5px;
+    }
+    #backButton {
+      margin-right: 10px;
+    }
+    #langSwitchBtn {
+      margin-right: auto;
+    }
+    #connect {
+      position: static; 
+      margin-left: auto; 
+      /* Кнопка TonConnect окажется справа */
+    }
+
+    /* ======= Контейнер всей страницы ======= */
+    .container {
+      margin-top: 20px;
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      padding: 0 20px 20px;
     }
 
-    /* Раздел баланса: показываем имя пользователя и баланс */
+    /* ======= Блок "Баланс" ======= */
     .balance-block {
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 12px;
-    }
-    .balance-block img {
-      vertical-align: middle;
-      margin-left: 5px;
-    }
-
-    /* =========================
-       Блок выбора суммы пополнения
-       ========================= */
-    .slider-block {
-      width: 80%;
-      max-width: 400px;
-      margin: 20px auto;
-      text-align: center;
-      font-size: 12px;
-    }
-    /* Используем flex для размещения слайдера и поля ввода рядом */
-    .slider-container {
       display: flex;
       align-items: center;
+      margin-bottom: 30px;
+      font-size: 12px;
       gap: 10px;
-      margin-top: 10px;
     }
-    .slider-container input[type="range"] {
-      flex: 1;
+    .balance-block img {
+      width: 18px; 
+      height: 18px;
+    }
+    .username {
+      font-family: 'Press Start 2P', monospace; 
+      color: #FF00FF; /* Выделим имя розовым */
+      font-size: 12px;
+    }
+    .coins-count {
+      font-family: sans-serif;
+      color: #ffffff;
+      font-size: 12px;
+    }
+
+    /* ======= Слайдер и инпут ======= */
+    .slider-block {
+      width: 100%;
+      max-width: 400px;
+      margin: 10px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 12px;
+      gap: 10px;
+    }
+    /* Подпись над слайдером */
+    .slider-title {
+      font-family: 'Press Start 2P', monospace;
+      color: #FF00FF;
+      font-size: 11px;
+      text-align: center;
+    }
+    /* Строка ползунок + инпут */
+    .slider-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    /* Сам ползунок */
+    input[type="range"] {
       -webkit-appearance: none;
-      height: 4px;
-      background: #06C1DE;
-      border-radius: 2px;
+      width: 60%;
+      height: 6px;
+      background: #ddd;
+      border-radius: 3px;
       outline: none;
+      transition: background 0.3s;
     }
-    /* Стилизация бегунка */
-    .slider-container input[type="range"]::-webkit-slider-thumb {
+    input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 16px;
       height: 16px;
       background: #FF00FF;
-      border: 1px solid #4b4b4b;
       border-radius: 50%;
       cursor: pointer;
+      border: 2px solid #06C1DE;
     }
-    .slider-container input[type="number"] {
-      width: 60px;
-      padding: 2px;
-      font-size: 10px;
+    /* Инпут, куда вводим целое число (1–10) */
+    #millionInput {
+      width: 70px;
       text-align: center;
-      border: 1px solid #4b4b4b;
+      font-size: 12px;
+      border: 1px solid #06C1DE;
       border-radius: 4px;
-      background: #00103c;
-      color: #fff;
+      padding: 4px;
+      color: #ffffff;
+      background-color: #00103c; /* Тёмно-синий фон */
     }
-    .deposit-button {
-      margin-top: 20px;
-      padding: 12px 20px;
-      font-size: 10px;
-      cursor: pointer;
+    #millionInput:focus {
+      outline: 1px solid #FF00FF;
     }
 
-    /* =========================
-       Модальное окно уведомлений
-       ========================= */
+    /* ======= Модальное окно ======= */
     #notificationModal {
       position: fixed;
       z-index: 9999;
@@ -176,7 +197,7 @@
       align-items: center;
       justify-content: center;
     }
-    #notificationModal .modal-content {
+    .modal-content {
       background-color: #6d4fba;
       border: 2px solid #3b3b3b;
       padding: 20px;
@@ -185,42 +206,56 @@
       text-align: center;
       border-radius: 4px;
     }
-    #notificationModal .modal-content p {
+    .modal-content p {
       margin-bottom: 16px;
-      font-size: 10px;
-    }
-    #notificationModal .modal-close {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 10px;
-      padding: 8px 12px;
+      font-family: sans-serif;
+      font-size: 12px;
+      color: #ffffff;
     }
   </style>
 </head>
 <body>
-  <!-- Верхняя панель с кнопками -->
-  <div class="top-bar">
-    <div class="top-left">
-      <button id="backButton" onclick="goBack()">Назад</button>
-      <button id="langSwitchButton" onclick="switchLanguage()">RU</button>
-    </div>
-    <!-- Здесь можно разместить дополнительные элементы, если потребуется -->
+  <!-- Верхняя панель: "Назад", "Язык" и TonConnect -->
+  <div id="topBar">
+    <button id="backButton" onclick="goBack()">Назад</button>
+    <button id="langSwitchBtn" onclick="toggleLanguage()">EN</button>
+    <div id="connect"></div>
   </div>
 
+  <!-- Основной контейнер -->
   <div class="container">
-    <!-- Раздел баланса: имя пользователя и баланс (без фразы "Ваш баланс") -->
+    <!-- Раздел с именем и балансом -->
     <div class="balance-block">
-      <p id="balanceDisplay" class="pixel"></p>
+      <span class="username" id="username">@User</span>
+      <span class="coins-count" id="balance">0</span>
+      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coins" />
     </div>
 
-    <!-- Блок выбора суммы пополнения -->
+    <!-- Блок со слайдером и вводом -->
     <div class="slider-block">
-      <p class="pixel">Выберите количество TON для пополнения:</p>
-      <div class="slider-container">
-        <input type="range" id="tonRange" min="1" max="10" step="1" value="1" oninput="syncInputs()" />
-        <input type="number" id="customAmount" min="1" step="1" value="1" oninput="syncInputs(true)" />
+      <div class="slider-title" id="sliderLabel">Сколько миллионов?</div>
+      <div class="slider-row">
+        <input
+          type="range"
+          id="tonRange"
+          min="1"
+          max="10"
+          step="1"
+          value="1"
+          oninput="onRangeInput()"
+        />
+        <input
+          type="number"
+          id="millionInput"
+          min="1"
+          max="10"
+          step="1"
+          value="1"
+          oninput="onMillionInputChange()"
+        />
       </div>
-      <p id="rangeValue" class="pixel">1 TON</p>
-      <button class="deposit-button pixel" onclick="makeDeposit()">Пополнить</button>
+      <!-- Кнопка "Пополнить" -->
+      <button id="depositBtn" onclick="makeDeposit()">Пополнить</button>
     </div>
   </div>
 
@@ -228,173 +263,196 @@
   <div id="notificationModal">
     <div class="modal-content">
       <p id="modalMessage"></p>
-      <button class="modal-close pixel" onclick="closeModal()">Закрыть</button>
+      <button onclick="closeModal()">OK</button>
     </div>
   </div>
 
-  <script>
-    /* ---------------------------
-       Переключение страницы "Назад"
-    ---------------------------- */
-    function goBack() {
-      window.location.href = 'index.html';
-    }
-    
-    /* ---------------------------
-       Переключение языка
-       (Простой пример: переключение между RU и EN, обновление текста кнопки)
-    ---------------------------- */
-    let currentLanguage = 'ru';
-    function switchLanguage() {
-      currentLanguage = (currentLanguage === 'ru') ? 'en' : 'ru';
-      document.getElementById('langSwitchButton').textContent = (currentLanguage === 'ru') ? 'RU' : 'EN';
-      // При необходимости обновите другие тексты на странице в зависимости от языка
-    }
-    
-    /* ---------------------------
-       Инициализация Telegram WebApp
-    ---------------------------- */
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    
-    let currentUsername = null;
-    let userRef = null;
-    let localCoins = 0;
-    
-    /* ---------------------------
-       Инициализация Firebase
-    ---------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-      authDomain: "test-with-likes.firebaseapp.com",
-      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-      projectId: "test-with-likes",
-      storageBucket: "test-with-likes.appspot.com",
-      messagingSenderId: "764738820142",
-      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-      measurementId: "G-WJNF0HSN9P"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    
-    /* ---------------------------
-       Работа с данными пользователя Telegram
-    ---------------------------- */
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      currentUsername = tg.initDataUnsafe.user.username || '';
-      updateBalanceDisplay();
-      if (currentUsername) {
-        userRef = db.ref('users/' + currentUsername);
-        userRef.once('value', snapshot => {
-          if (!snapshot.exists()) {
-            userRef.set({
-              coins: 0,
-              tickets: 0,
-              points: 0,
-              lastSpinTime: 0
-            });
-          }
-        });
-        userRef.on('value', snapshot => {
-          const data = snapshot.val() || {};
-          localCoins = data.coins || 0;
-          updateBalanceDisplay();
+<script>
+/* --------------------------------------------------
+   1. Переключение языков (RU <-> EN)
+-------------------------------------------------- */
+let currentLanguage = 'ru';
+const translations = {
+  ru: {
+    back: "Назад",
+    langBtn: "EN",
+    sliderTitle: "Сколько миллионов?",
+    depositBtn: "Пополнить",
+    depositSuccess: (val) => `Пополнение на ${val} млн успешно!`,
+    depositError: "Транзакция отклонена или произошла ошибка.",
+    userError: "Ошибка: пользователь Telegram не определён!",
+    userNotAuthorized: "Не авторизован в Telegram"
+  },
+  en: {
+    back: "Back",
+    langBtn: "RU",
+    sliderTitle: "How many millions?",
+    depositBtn: "Deposit",
+    depositSuccess: (val) => `Successfully deposited ${val} million!`,
+    depositError: "Transaction was declined or an error occurred.",
+    userError: "Error: Telegram user is not defined!",
+    userNotAuthorized: "Not authorized in Telegram"
+  }
+};
+
+function updateTexts() {
+  document.getElementById('backButton').textContent = translations[currentLanguage].back;
+  document.getElementById('langSwitchBtn').textContent = translations[currentLanguage].langBtn;
+  document.getElementById('sliderLabel').textContent = translations[currentLanguage].sliderTitle;
+  document.getElementById('depositBtn').textContent = translations[currentLanguage].depositBtn;
+}
+
+function toggleLanguage() {
+  currentLanguage = (currentLanguage === 'ru') ? 'en' : 'ru';
+  updateTexts();
+}
+updateTexts(); // инициализация
+
+/* --------------------------------------------------
+   2. Telegram WebApp
+-------------------------------------------------- */
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+let currentUsername = null;
+let userRef = null;
+let localCoins = 0;
+
+/* --------------------------------------------------
+   3. Firebase инициализация
+-------------------------------------------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+  authDomain: "test-with-likes.firebaseapp.com",
+  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+  projectId: "test-with-likes",
+  storageBucket: "test-with-likes.appspot.com",
+  messagingSenderId: "764738820142",
+  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+  measurementId: "G-WJNF0HSN9P"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* --------------------------------------------------
+   4. Проверяем пользователя Telegram
+-------------------------------------------------- */
+if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  currentUsername = tg.initDataUnsafe.user.username || '';
+  document.getElementById('username').textContent = '@' + currentUsername;
+  if (currentUsername) {
+    userRef = db.ref('users/' + currentUsername);
+    userRef.once('value', snapshot => {
+      if (!snapshot.exists()) {
+        userRef.set({
+          coins: 0,
+          tickets: 0,
+          points: 0,
+          lastSpinTime: 0
         });
       }
-    } else {
-      updateBalanceDisplay('Не авторизован в Telegram');
-    }
-    
-    /* ---------------------------
-       Обновление отображения баланса с именем пользователя
-    ---------------------------- */
-    function updateBalanceDisplay() {
-      const display = document.getElementById('balanceDisplay');
-      if (currentUsername) {
-        display.textContent = '@' + currentUsername + ' - ' + localCoins + ' TON';
-      } else {
-        display.textContent = 'Не авторизован';
-      }
-    }
-    
-    /* ---------------------------
-       Инициализация TonConnect UI
-    ---------------------------- */
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
-      buttonRootId: 'connect'
     });
-    
-    /* ---------------------------
-       Синхронизация ползунка и поля ввода
-       Если triggeredInput==true, поле ввода изменило значение – обновляем слайдер
-       Иначе – обновляем поле ввода и значение подписи
-    ---------------------------- */
-    function syncInputs(triggeredInput) {
-      const slider = document.getElementById('tonRange');
-      const input = document.getElementById('customAmount');
-      if (triggeredInput) {
-        let val = parseInt(input.value) || 1;
-        if(val < parseInt(slider.min)) val = parseInt(slider.min);
-        if(val > parseInt(slider.max)) val = parseInt(slider.max);
-        slider.value = val;
-      } else {
-        input.value = slider.value;
+    userRef.on('value', snapshot => {
+      const data = snapshot.val() || {};
+      localCoins = data.coins || 0;
+      updateCoinsDisplay(localCoins);
+    });
+  }
+} else {
+  document.getElementById('username').textContent =
+    translations[currentLanguage].userNotAuthorized;
+}
+
+/* --------------------------------------------------
+   5. Обновление отображения коинов
+-------------------------------------------------- */
+function updateCoinsDisplay(coins) {
+  document.getElementById('balance').textContent = coins;
+}
+
+/* --------------------------------------------------
+   6. Кнопка "Назад"
+-------------------------------------------------- */
+function goBack() {
+  // Переход на index.html или другую страницу
+  window.location.href = 'index.html';
+}
+
+/* --------------------------------------------------
+   7. TonConnect UI
+-------------------------------------------------- */
+const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+  manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
+  buttonRootId: 'connect'
+});
+
+/* --------------------------------------------------
+   8. Синхронизация ползунка и инпута (1..10)
+-------------------------------------------------- */
+function onRangeInput() {
+  const val = document.getElementById('tonRange').value;
+  document.getElementById('millionInput').value = val;
+}
+function onMillionInputChange() {
+  let val = parseInt(document.getElementById('millionInput').value, 10);
+  if (isNaN(val)) val = 1;
+  if (val < 1) val = 1;
+  if (val > 10) val = 10;
+  document.getElementById('millionInput').value = val;
+  document.getElementById('tonRange').value = val;
+}
+
+/* --------------------------------------------------
+   9. Модальное окно для уведомлений
+-------------------------------------------------- */
+function showModal(message) {
+  document.getElementById('modalMessage').textContent = message;
+  document.getElementById('notificationModal').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('notificationModal').style.display = 'none';
+}
+
+/* --------------------------------------------------
+   10. makeDeposit: отправка транзакции
+       Здесь воспринимаем 1..10 как "N млн", 
+       и условно зачисляем N монет в Firebase 
+       (в реальности 1 "млн" может = 1 TON, как пример)
+-------------------------------------------------- */
+async function makeDeposit() {
+  if (!currentUsername || !userRef) {
+    showModal(translations[currentLanguage].userError);
+    return;
+  }
+  // Считаем выбранное число миллионов
+  const val = parseInt(document.getElementById('millionInput').value, 10);
+  const millionAmount = isNaN(val) ? 1 : val;
+  // Предположим, 1 "миллион" = 1 TON => Нанотоны:
+  const nanoAmount = (millionAmount * 1e9).toString();
+
+  // Формируем транзакцию
+  const transaction = {
+    validUntil: Math.round(Date.now() / 1000) + 60,
+    messages: [
+      {
+        // Замените на ваш адрес
+        address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78',
+        amount: nanoAmount
       }
-      updateRangeText();
-    }
-    
-    function updateRangeText() {
-      const val = document.getElementById('tonRange').value;
-      document.getElementById('rangeValue').textContent = val + ' TON';
-    }
-    
-    /* ---------------------------
-       Модальное окно уведомлений
-    ---------------------------- */
-    function showModal(message) {
-      document.getElementById('modalMessage').textContent = message;
-      document.getElementById('notificationModal').style.display = 'flex';
-    }
-    function closeModal() {
-      document.getElementById('notificationModal').style.display = 'none';
-    }
-    
-    /* ---------------------------
-       Функция пополнения баланса
-       Отправляет транзакцию с суммой, равной выбранному значению (TON → нанотоны)
-    ---------------------------- */
-    async function makeDeposit() {
-      const val = document.getElementById('tonRange').value;
-      const tonAmount = parseInt(val) || 0;
-      const nanoAmount = (tonAmount * 1e9).toString();
-    
-      if (!currentUsername || !userRef) {
-        showModal('Ошибка: пользователь Telegram не определён!');
-        return;
-      }
-    
-      const transaction = {
-        validUntil: Math.round(Date.now() / 1000) + 60,
-        messages: [
-          {
-            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // Замените на нужный адрес
-            amount: nanoAmount
-          }
-        ]
-      };
-    
-      try {
-        await tonConnectUI.sendTransaction(transaction);
-        localCoins += tonAmount;
-        updateBalanceDisplay();
-        userRef.update({ coins: localCoins });
-        showModal(`Пополнение на ${tonAmount} TON успешно!`);
-      } catch (err) {
-        showModal('Транзакция отклонена пользователем или произошла ошибка.');
-      }
-    }
-  </script>
+    ]
+  };
+
+  try {
+    await tonConnectUI.sendTransaction(transaction);
+    // "Виртуально" увеличиваем баланс на millionAmount
+    localCoins += millionAmount;
+    updateCoinsDisplay(localCoins);
+    userRef.update({ coins: localCoins });
+    showModal(translations[currentLanguage].depositSuccess(millionAmount));
+  } catch (err) {
+    showModal(translations[currentLanguage].depositError);
+  }
+}
+</script>
 </body>
 </html>
-
