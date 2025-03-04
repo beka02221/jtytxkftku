@@ -256,17 +256,22 @@
       box-shadow: 0 3px #6b6b6b;
     }
 
-    /* Стили для баланса игрока */
+    /* Стили для баланса игрока (отображается вверху по центру) */
     #balanceDisplay {
       position: fixed;
       top: 10px;
-      right: 10px;
+      left: 50%;
+      transform: translateX(-50%);
       font-size: 14px;
       color: #FF00FF;
       z-index: 2100;
+      background: #06B6D1;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
-    /* Стили модального окна комнат */
+    /* Стили модального окна комнат – на весь экран */
     #roomsModal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -275,6 +280,34 @@
       justify-content: center;
       align-items: center;
       z-index: 2200;
+    }
+    #roomsModal .modal {
+      width: 100%;
+      height: 100%;
+      background: #00103c;
+      overflow-y: auto;
+      position: relative;
+      border: none;
+      border-radius: 0;
+    }
+    #roomsModal h2 {
+      color: #FF00FF;
+      margin-top: 20px;
+    }
+    #roomsModal button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #roomsModal #closeRoomsModalBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
     }
   </style>
 </head>
@@ -301,22 +334,24 @@
       <!-- Описание – изначально сокращённое -->
       <p id="landingText"></p>
       <button id="toggleDescriptionBtn">Показать больше</button>
-      <!-- Слайдер для выбора ставки -->
-      <div style="margin: 20px 0;">
-        <label for="betSlider" style="font-size:14px;">Ставка (млн): </label>
-        <input type="range" id="betSlider" min="1" max="10" step="1" value="1">
-        <span id="betDisplay">1 млн</span>
+      <!-- Блок для управления румами -->
+      <div style="margin:20px 0;">
+        <button id="viewRoomsBtn" style="margin: 0 10px;">Посмотреть румы</button>
+        <div style="display:inline-block; vertical-align:middle;">
+          <label for="betSlider" style="font-size:14px;">Ставка (млн): </label>
+          <input type="range" id="betSlider" min="1" max="10" step="1" value="1">
+          <span id="betDisplay">1</span>
+        </div>
+        <button id="createRoomBtnLanding" style="margin: 0 10px;">Создать рум</button>
       </div>
-      <button id="startSearchBtn">Start Search</button>
     </div>
   </div>
 
-  <!-- Модальное окно для отображения комнат -->
+  <!-- Модальное окно для отображения комнат (на весь экран) -->
   <div id="roomsModal" class="modal-backdrop">
-    <div class="modal" style="max-width:500px;">
-      <h2>Доступные комнаты</h2>
-      <div id="roomsList" style="max-height:300px; overflow-y:auto; margin-bottom:10px;"></div>
-      <button id="createRoomBtn">Создать комнату</button>
+    <div class="modal">
+      <h2>Комнаты</h2>
+      <div id="roomsList" style="margin:20px;"></div>
       <button id="closeRoomsModalBtn">Закрыть</button>
     </div>
   </div>
@@ -350,8 +385,8 @@
     </div>
   </div>
 
-  <!-- Блок отображения баланса игрока -->
-  <div id="balanceDisplay">
+  <!-- Блок отображения баланса игрока (отображается вверху по центру) -->
+  <div id="balanceDisplay" onclick="window.location.href='buy.html'">
     <img src="coin_icon.png" alt="Coin" style="width:20px; vertical-align:middle;">
     <span id="balanceAmount"></span>
   </div>
@@ -360,10 +395,12 @@
 /* 
 ============================================================
   Special Snake PvP – Исправленный код с добавлением:
-   • Сокращённого/разворачиваемого описания
-   • Баланса игрока (иконка монеты)
-   • Слайдера для выбора ставки
-   • Модального окна с доступными комнатами
+   • Кнопок «Посмотреть румы» и «Создать рум» в стартовом экране
+   • Раздела (модального окна) комнат, открывающегося на весь экран,
+     где для каждой комнаты отображается маленьким шрифтом имя создателя,
+     сумма ставки (только цифра) и кнопка «Играть»
+   • Окна "waiting for opponent" для создателя рума (с onDisconnect)
+   • Баланса игрока вверху по центру с фоном, похожим на кнопку (при клике – переход на buy.html)
 ============================================================
 */
 
@@ -522,14 +559,33 @@ function showRoomsModal() {
         const room = roomsData[key];
         const roomItem = document.createElement('div');
         roomItem.style.border = "1px solid #FF00FF";
-        roomItem.style.padding = "5px";
-        roomItem.style.margin = "5px";
-        roomItem.style.cursor = "pointer";
-        roomItem.textContent = "@" + room.creator + " - Ставка: " + room.bet + " млн";
-        roomItem.addEventListener('click', function() {
+        roomItem.style.padding = "10px";
+        roomItem.style.margin = "10px";
+        roomItem.style.display = "flex";
+        roomItem.style.justifyContent = "space-between";
+        roomItem.style.alignItems = "center";
+        // Информация: имя создателя (маленьким шрифтом) и ставка (только цифра)
+        const infoDiv = document.createElement('div');
+        infoDiv.style.fontSize = "12px";
+        infoDiv.style.color = "#FF00FF";
+        infoDiv.innerHTML = `<div>${room.creator}</div><div>${room.bet}</div>`;
+        // Кнопка "Играть"
+        const playBtn = document.createElement('button');
+        playBtn.textContent = "Играть";
+        playBtn.style.fontFamily = '"Press Start 2P", sans-serif';
+        playBtn.style.fontSize = "12px";
+        playBtn.style.padding = "5px 10px";
+        playBtn.style.background = "#06B6D1";
+        playBtn.style.color = "#262626";
+        playBtn.style.border = "none";
+        playBtn.style.borderRadius = "4px";
+        playBtn.style.cursor = "pointer";
+        playBtn.addEventListener('click', function() {
           joinRoom(key);
           document.getElementById('roomsModal').style.display = "none";
         });
+        roomItem.appendChild(infoDiv);
+        roomItem.appendChild(playBtn);
         roomsListDiv.appendChild(roomItem);
       }
     } else {
@@ -1207,22 +1263,13 @@ function returnToMain() {
 /* ======================================
    19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
 ====================================== */
-document.getElementById('startSearchBtn').addEventListener('click', function(){
-  // При нажатии показываем окно с доступными комнатами
+// Для кнопки "Посмотреть румы" – открываем модальное окно с комнатами
+document.getElementById('viewRoomsBtn').addEventListener('click', function(){
   showRoomsModal();
 });
-
-document.getElementById('searchBackBtn').addEventListener('click', function(){
-  window.location.reload();
-});
-
-// Слушатели для модального окна комнат
-document.getElementById('createRoomBtn').addEventListener('click', function(){
+// Для кнопки "Создать рум" в стартовом экране
+document.getElementById('createRoomBtnLanding').addEventListener('click', function(){
   createRoom();
-  document.getElementById('roomsModal').style.display = 'none';
-});
-document.getElementById('closeRoomsModalBtn').addEventListener('click', function(){
-  document.getElementById('roomsModal').style.display = 'none';
 });
 
 /* ======================================
@@ -1309,7 +1356,7 @@ function updateLanguageTexts() {
   document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
   // По умолчанию отображаем сокращённое описание
   document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingShortText;
-  document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch;
+  document.getElementById('startSearchBtn') && (document.getElementById('startSearchBtn').textContent = languageStrings[currentLanguage].startSearch);
   document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
   document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
 }
@@ -1337,12 +1384,10 @@ document.getElementById('toggleDescriptionBtn').addEventListener('click', functi
 
 // Обработчик для слайдера ставки
 document.getElementById('betSlider').addEventListener('input', function() {
-  document.getElementById('betDisplay').textContent = this.value + " млн";
+  document.getElementById('betDisplay').textContent = this.value;
 });
 
-/* ======================================
-   22. ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ НИКОВ ПОД ИГРОВЫМ ПОЛЕМ
-====================================== */
+// Обновление отображения ников под игровым полем
 function updateUsernamesDisplay() {
   const opponentDisplay = document.getElementById('opponentUsername');
   const playerDisplay = document.getElementById('playerUsername');
