@@ -2,242 +2,256 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Пополнение счёта</title>
-
-  <!-- Подключаем TonConnect UI -->
-  <script src="https://unpkg.com/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js"></script>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Пополнение баланса TON</title>
 
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  
+
+  <!-- TonConnect UI -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <style>
     body {
+      font-family: sans-serif;
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background: #f5f5f5;
-      position: relative;
     }
-    header {
-      position: relative;
-      height: 60px;
-      background: #222;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-    }
-    .back-button {
-      font-size: 16px;
+    /* Кнопка "Назад" */
+    #backButton {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 8px 12px;
       cursor: pointer;
-      background: none;
-      border: none;
-      color: #fff;
+      font-size: 14px;
     }
+    /* Блок TonConnect-кнопки (справа сверху) */
     #connect {
-      margin-right: 10px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
     }
-
-    main {
-      flex: 1;
+    /* Контейнер с основным контентом */
+    .container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      margin-top: 80px; /* чтобы отступить от верхнего края */
     }
-    .balance-info {
+    /* Отображение баланса */
+    .balance-block {
       text-align: center;
       margin-bottom: 30px;
     }
-    .balance-info img {
+    .balance-block img {
       vertical-align: middle;
       margin-left: 5px;
     }
-    .slider-container {
+    /* Слайдер */
+    .slider-block {
       width: 80%;
       max-width: 400px;
-      margin-bottom: 30px;
+      margin: 20px auto;
+      text-align: center;
     }
-    .slider-container input[type="range"] {
+    .slider-block input[type="range"] {
       width: 100%;
     }
-    .slider-value {
-      text-align: center;
-      margin-top: 5px;
-      font-weight: bold;
-    }
+    /* Кнопка пополнения */
     .deposit-button {
-      font-size: 18px;
-      padding: 10px 20px;
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 16px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <!-- Кнопка "Назад" -->
+  <button id="backButton" onclick="goBack()">Назад</button>
 
-  <!-- Шапка с кнопкой "Назад" и кнопкой TonConnect -->
-  <header>
-    <button class="back-button" onclick="window.location.href='index.html'">
-      ← Назад
-    </button>
-    <div id="connect"></div>
-  </header>
+  <!-- Кнопка TonConnect (подключение кошелька) -->
+  <div id="connect"></div>
 
-  <!-- Основная часть страницы -->
-  <main>
-    <!-- Отображение баланса игрока -->
-    <div class="balance-info">
-      <h2>Ваш баланс:</h2>
-      <h1 id="balanceDisplay">0</h1>
-      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coins" width="30"/>
+  <div class="container">
+    <!-- Имя пользователя (Telegram) -->
+    <p id="username" style="font-weight:bold;"></p>
+
+    <!-- Блок с балансом -->
+    <div class="balance-block">
+      <p style="font-size: 18px;">
+        Ваш баланс:
+        <span id="balance" style="font-weight:bold; color:green; font-size:20px;">0</span>
+        <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coin" width="20" />
+      </p>
     </div>
 
-    <!-- Ползунок для выбора, сколько миллионов монет хотим купить -->
-    <div class="slider-container">
-      <label for="coinRange">Выберите кол-во миллионов монет</label>
-      <input 
-        id="coinRange" 
-        type="range" 
-        min="1" 
-        max="10" 
-        step="1" 
-        value="1" 
-        oninput="updateSliderValue(this.value)"
+    <!-- Ползунок для выбора суммы пополнения (по млн) -->
+    <div class="slider-block">
+      <p>Сколько миллионов монет вы хотите пополнить?</p>
+      <input
+        type="range"
+        id="millionRange"
+        min="1"
+        max="10"
+        step="1"
+        value="1"
+        oninput="updateRangeValue()"
       />
-      <div class="slider-value">
-        <span id="sliderValue">1</span> млн монет
-      </div>
+      <p id="rangeValue">1 млн</p>
+
+      <!-- Кнопка пополнения -->
+      <button class="deposit-button" onclick="makeDeposit()">
+        Пополнить
+      </button>
     </div>
+  </div>
 
-    <!-- Кнопка для пополнения -->
-    <button class="deposit-button" onclick="transaction()">
-      Пополнить
-    </button>
-  </main>
+<script>
+/* ------------------------------------------------------------------
+   1. Кнопка "Назад" на index.html
+------------------------------------------------------------------ */
+function goBack() {
+  window.location.href = 'index.html';
+}
 
+/* ------------------------------------------------------------------
+   2. Инициализация Telegram Web App
+------------------------------------------------------------------ */
+const tg = window.Telegram.WebApp;
+tg.expand(); // Разворачиваем WebApp на весь экран
 
-  <script>
-    /* -----------------------------------------------------
-       1. Telegram Web App
-    ----------------------------------------------------- */
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+let currentUsername = null; // Telegram username
+let userRef = null;         // Ссылка на пользователя в Firebase
+let localCoins = 0;         // Текущий баланс монет из Firebase
 
-    let currentUser = null;
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      currentUser = tg.initDataUnsafe.user; 
-    }
+/* ------------------------------------------------------------------
+   3. Firebase Инициализация
+   (Замените конфиг на ваш при необходимости)
+------------------------------------------------------------------ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+  authDomain: "test-with-likes.firebaseapp.com",
+  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+  projectId: "test-with-likes",
+  storageBucket: "test-with-likes.appspot.com",
+  messagingSenderId: "764738820142",
+  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+  measurementId: "G-WJNF0HSN9P"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    /* -----------------------------------------------------
-       2. Firebase Инициализация
-    ----------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-      authDomain: "test-with-likes.firebaseapp.com",
-      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-      projectId: "test-with-likes",
-      storageBucket: "test-with-likes.appspot.com",
-      messagingSenderId: "764738820142",
-      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-      measurementId: "G-WJNF0HSN9P"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+/* ------------------------------------------------------------------
+   4. Проверяем вход через Telegram WebApp: берем username,
+      читаем/записываем данные пользователя из/в Firebase
+------------------------------------------------------------------ */
+if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  currentUsername = tg.initDataUnsafe.user.username || '';
+  document.getElementById('username').textContent = '@' + currentUsername;
 
-    let userRef = null;
-    let userCoins = 0;
-
-    if (currentUser && currentUser.username) {
-      userRef = db.ref('users/' + currentUser.username);
-      userRef.on('value', snapshot => {
-        const data = snapshot.val() || {};
-        userCoins = data.coins || 0;
-        updateBalanceDisplay();
-      });
-    }
-
-    function updateBalanceDisplay() {
-      document.getElementById('balanceDisplay').textContent = userCoins;
-    }
-
-    /* -----------------------------------------------------
-       3. Инициализация TonConnectUI
-    ----------------------------------------------------- */
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
-      buttonRootId: 'connect'
+  if (currentUsername) {
+    userRef = db.ref('users/' + currentUsername);
+    // Сначала проверим, есть ли уже данные
+    userRef.once('value', snapshot => {
+      if (!snapshot.exists()) {
+        // Если пользователя нет в БД, создаём с нулевыми монетами (или другими начальными значениями)
+        userRef.set({
+          coins: 0,
+          tickets: 0,
+          points: 0,
+          lastSpinTime: 0
+        });
+      }
     });
 
-    /* -----------------------------------------------------
-       4. Работа с ползунком (миллионы монет)
-    ----------------------------------------------------- */
-    let selectedMillions = 1;
-    function updateSliderValue(val) {
-      selectedMillions = parseInt(val);
-      document.getElementById('sliderValue').textContent = val;
-    }
+    // Подписываемся на изменения
+    userRef.on('value', snapshot => {
+      const data = snapshot.val() || {};
+      localCoins = data.coins || 0;
+      updateBalanceDisplay(localCoins);
+    });
+  }
+} else {
+  // Если пользователь не пришёл через Telegram WebApp
+  document.getElementById('username').textContent = 'Не авторизован в Telegram';
+}
 
-    /* -----------------------------------------------------
-       5. Функция отправки транзакции
-         При реальной интеграции:
-         - пересчитайте selectedMillions в нужное кол-во nanoTON
-         - в success-блоке увеличьте баланс игрока на selectedMillions * 1_000_000 (пример)
-    ----------------------------------------------------- */
-    async function transaction() {
-      if (!currentUser || !currentUser.username) {
-        alert('Пользователь Telegram не определён!');
-        return;
+/* ------------------------------------------------------------------
+   5. Обновление HTML-баланса
+------------------------------------------------------------------ */
+function updateBalanceDisplay(coins) {
+  document.getElementById('balance').textContent = coins;
+}
+
+/* ------------------------------------------------------------------
+   6. Инициализируем TonConnectUI
+   (Замените manifestUrl на свой, если нужно)
+------------------------------------------------------------------ */
+const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+  manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
+  buttonRootId: 'connect'
+});
+
+/* ------------------------------------------------------------------
+   7. Обработка ползунка (число миллионов)
+------------------------------------------------------------------ */
+function updateRangeValue() {
+  const val = document.getElementById('millionRange').value;
+  document.getElementById('rangeValue').textContent = val + ' млн';
+}
+
+/* ------------------------------------------------------------------
+   8. Функция "Пополнить": отправляем транзакцию на указанный адрес,
+      при успехе увеличиваем баланс пользователя на выбранное число млн.
+      В реальном проекте нужна проверка транзакции!
+------------------------------------------------------------------ */
+async function makeDeposit() {
+  // Сколько миллионов пользователь хочет купить
+  const val = document.getElementById('millionRange').value;
+  const millions = parseInt(val) || 0;
+
+  if (!currentUsername || !userRef) {
+    alert('Ошибка: пользователь Telegram не определён!');
+    return;
+  }
+
+  // Пример транзакции на TON (в нанотонах)
+  // address: указывайте адрес своего кошелька/контракта, куда пойдут средства
+  const transaction = {
+    validUntil: Math.round(Date.now() / 1000) + 60,
+    messages: [
+      {
+        address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // адрес для приёма
+        amount: '1000000000' // "1 TON" в нанотонах (1 * 10^9). Это пример.
       }
+    ]
+  };
 
-      // Пример: 1 TON = 10^9 nanoTON
-      // Допустим, за 1 млн ваших внутр. монет вы берёте 0.1 TON (пример!)
-      // Тогда amount = 0.1 * 10^9 = 100000000 nanoTON
-      // Ниже - чисто примерная формула, скорректируйте под свою экономику
-      const nanoTONPerMillion = 100000000;  // 0.1 TON в nanoTON
-      const totalNanoTON = selectedMillions * nanoTONPerMillion;
+  try {
+    // Шлём транзакцию через TonConnect
+    await tonConnectUI.sendTransaction(transaction);
+    console.log('Транзакция отправлена!');
 
-      // Составляем объект транзакции
-      const transactionData = {
-        validUntil: Math.round(Date.now() / 1000) + 60, 
-        messages: [
-          {
-            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // ваш адрес для приёма TON
-            amount: totalNanoTON.toString() 
-          }
-        ]
-      };
+    // Здесь «виртуально» зачисляем выбранное число миллионов в Firebase.
+    // В реальном приложении вы должны убедиться, что транзакция действительно прошла.
+    localCoins += (millions * 1_000_000);
+    updateBalanceDisplay(localCoins);
+    userRef.update({ coins: localCoins });
 
-      try {
-        // Отправляем транзакцию через TonConnect
-        await tonConnectUI.sendTransaction(transactionData);
-        console.log('Транзакция успешно отправлена.');
-
-        // Здесь проверяйте на бэке (или слушайте смарт-контракт) факт прихода TON,
-        // а в случае подтверждения – зачисляйте монеты игроку.
-        // Для простоты – сразу плюсуем выбранные миллионы к локальному балансу.
-        userCoins += (selectedMillions * 1_000_000);
-        updateBalanceDisplay();
-        // Сохраняем обновлённый баланс в Firebase
-        if (userRef) {
-          userRef.update({ coins: userCoins });
-        }
-
-        alert(`Пополнение на ${selectedMillions} млн монет успешно!`);
-      } catch (e) {
-        console.error('Ошибка при отправке транзакции:', e);
-        alert('Произошла ошибка при отправке транзакции. Попробуйте ещё раз.');
-      }
-    }
-  </script>
+    alert(`Пополнение на ${millions} млн монет успешно!`);
+  } catch (err) {
+    console.error('Ошибка транзакции:', err);
+    alert('Транзакция отклонена пользователем или произошла ошибка.');
+  }
+}
+</script>
 </body>
 </html>
