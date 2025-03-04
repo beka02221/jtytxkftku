@@ -178,7 +178,7 @@
       padding: 20px;
       box-sizing: border-box;
     }
-    /* Новый блок для шапки обучающего экрана */
+    /* Шапка обучающего экрана */
     #landingHeader {
       position: absolute;
       top: 10px;
@@ -189,6 +189,22 @@
       z-index: 2100;
     }
     #landingHeader button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Кнопка для отображения монет – по середине */
+    #coinButton {
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
       font-family: 'Press Start 2P', sans-serif;
       font-size: 12px;
       padding: 5px 10px;
@@ -282,9 +298,14 @@
 
   <!-- Обучающая страница -->
   <div id="landingScreen">
+    <!-- Шапка обучающего экрана -->
     <div id="landingHeader">
       <button id="homeBackBtn">Back</button>
       <button id="langToggleBtn">RU</button>
+      <!-- Кнопка монет по центру -->
+      <button id="coinButton" onclick="window.location.href='buy.html'">
+        Coins: <span id="coinCount"></span>
+      </button>
     </div>
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Game Preview">
@@ -292,9 +313,10 @@
       <p id="landingText">
         Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
       </p>
-      <!-- Новые кнопки -->
+      <!-- Кнопки: создать рум, поиск рум и играть бесплатно -->
       <button id="createRoomBtn">Создать рум</button>
       <button id="searchRoomBtn">Поиск рум</button>
+      <button id="freePlayBtn">Играть бесплатно</button>
     </div>
   </div>
 
@@ -354,7 +376,9 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Исправленный код с добавлением кнопок создания и поиска комнаты
+  Special Snake PvP – Исправленный код с добавлением кнопок:
+  - "Играть бесплатно" (перейти сразу в поиск комнат)
+  - Отображение количества монет (с определением по Telegram-данным)
 ============================================================
 */
 
@@ -501,7 +525,6 @@ function resetSpecialGame1() {
 
 /* ======================================
    2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
-   Для создания комнаты используется функция createRoom(bet), а для поиска – joinRoom(roomKey)
 ====================================== */
 // Функция создания комнаты с выбранной ставкой
 function createRoom(bet) {
@@ -1241,13 +1264,21 @@ function returnToMain() {
 /* ======================================
    19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
 ====================================== */
-// Убираем стандартный startSearchBtn – теперь используем createRoomBtn и searchRoomBtn
+// Кнопка для создания комнаты
 document.getElementById('createRoomBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('createRoomModal').style.display = 'flex';
 });
 
+// Кнопка для поиска комнат
 document.getElementById('searchRoomBtn').addEventListener('click', function(){
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('searchRoomModal').style.display = 'flex';
+  searchRooms();
+});
+
+// Кнопка "Играть бесплатно" – сразу переходит к поиску комнат
+document.getElementById('freePlayBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('searchRoomModal').style.display = 'flex';
   searchRooms();
@@ -1305,6 +1336,12 @@ window.addEventListener('load', () => {
       };
     }
   }
+
+  // Устанавливаем значение монет, если оно не задано – например, по умолчанию 100
+  if (!window.currentUser.coins) {
+    window.currentUser.coins = 100;
+  }
+  document.getElementById('coinCount').textContent = window.currentUser.coins;
 
   initSpecialGame1();
   updateLanguageTexts();
@@ -1377,4 +1414,5 @@ function updateUsernamesDisplay() {
   </script>
 </body>
 </html>
+
 
