@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Пополнение счёта</title>
+
+  <!-- Подключаем TonConnect UI -->
+  <script src="https://unpkg.com/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js"></script>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #f5f5f5;
+      position: relative;
+    }
+    header {
+      position: relative;
+      height: 60px;
+      background: #222;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+    }
+    .back-button {
+      font-size: 16px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: #fff;
+    }
+    #connect {
+      margin-right: 10px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .balance-info {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .balance-info img {
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+    .slider-container {
+      width: 80%;
+      max-width: 400px;
+      margin-bottom: 30px;
+    }
+    .slider-container input[type="range"] {
+      width: 100%;
+    }
+    .slider-value {
+      text-align: center;
+      margin-top: 5px;
+      font-weight: bold;
+    }
+    .deposit-button {
+      font-size: 18px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Шапка с кнопкой "Назад" и кнопкой TonConnect -->
+  <header>
+    <button class="back-button" onclick="window.location.href='index.html'">
+      ← Назад
+    </button>
+    <div id="connect"></div>
+  </header>
+
+  <!-- Основная часть страницы -->
+  <main>
+    <!-- Отображение баланса игрока -->
+    <div class="balance-info">
+      <h2>Ваш баланс:</h2>
+      <h1 id="balanceDisplay">0</h1>
+      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coins" width="30"/>
+    </div>
+
+    <!-- Ползунок для выбора, сколько миллионов монет хотим купить -->
+    <div class="slider-container">
+      <label for="coinRange">Выберите кол-во миллионов монет</label>
+      <input 
+        id="coinRange" 
+        type="range" 
+        min="1" 
+        max="10" 
+        step="1" 
+        value="1" 
+        oninput="updateSliderValue(this.value)"
+      />
+      <div class="slider-value">
+        <span id="sliderValue">1</span> млн монет
+      </div>
+    </div>
+
+    <!-- Кнопка для пополнения -->
+    <button class="deposit-button" onclick="transaction()">
+      Пополнить
+    </button>
+  </main>
+
+
+  <script>
+    /* -----------------------------------------------------
+       1. Telegram Web App
+    ----------------------------------------------------- */
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let currentUser = null;
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user; 
+    }
+
+    /* -----------------------------------------------------
+       2. Firebase Инициализация
+    ----------------------------------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let userRef = null;
+    let userCoins = 0;
+
+    if (currentUser && currentUser.username) {
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        userCoins = data.coins || 0;
+        updateBalanceDisplay();
+      });
+    }
+
+    function updateBalanceDisplay() {
+      document.getElementById('balanceDisplay').textContent = userCoins;
+    }
+
+    /* -----------------------------------------------------
+       3. Инициализация TonConnectUI
+    ----------------------------------------------------- */
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
+      buttonRootId: 'connect'
+    });
+
+    /* -----------------------------------------------------
+       4. Работа с ползунком (миллионы монет)
+    ----------------------------------------------------- */
+    let selectedMillions = 1;
+    function updateSliderValue(val) {
+      selectedMillions = parseInt(val);
+      document.getElementById('sliderValue').textContent = val;
+    }
+
+    /* -----------------------------------------------------
+       5. Функция отправки транзакции
+         При реальной интеграции:
+         - пересчитайте selectedMillions в нужное кол-во nanoTON
+         - в success-блоке увеличьте баланс игрока на selectedMillions * 1_000_000 (пример)
+    ----------------------------------------------------- */
+    async function transaction() {
+      if (!currentUser || !currentUser.username) {
+        alert('Пользователь Telegram не определён!');
+        return;
+      }
+
+      // Пример: 1 TON = 10^9 nanoTON
+      // Допустим, за 1 млн ваших внутр. монет вы берёте 0.1 TON (пример!)
+      // Тогда amount = 0.1 * 10^9 = 100000000 nanoTON
+      // Ниже - чисто примерная формула, скорректируйте под свою экономику
+      const nanoTONPerMillion = 100000000;  // 0.1 TON в nanoTON
+      const totalNanoTON = selectedMillions * nanoTONPerMillion;
+
+      // Составляем объект транзакции
+      const transactionData = {
+        validUntil: Math.round(Date.now() / 1000) + 60, 
+        messages: [
+          {
+            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // ваш адрес для приёма TON
+            amount: totalNanoTON.toString() 
+          }
+        ]
+      };
+
+      try {
+        // Отправляем транзакцию через TonConnect
+        await tonConnectUI.sendTransaction(transactionData);
+        console.log('Транзакция успешно отправлена.');
+
+        // Здесь проверяйте на бэке (или слушайте смарт-контракт) факт прихода TON,
+        // а в случае подтверждения – зачисляйте монеты игроку.
+        // Для простоты – сразу плюсуем выбранные миллионы к локальному балансу.
+        userCoins += (selectedMillions * 1_000_000);
+        updateBalanceDisplay();
+        // Сохраняем обновлённый баланс в Firebase
+        if (userRef) {
+          userRef.update({ coins: userCoins });
+        }
+
+        alert(`Пополнение на ${selectedMillions} млн монет успешно!`);
+      } catch (e) {
+        console.error('Ошибка при отправке транзакции:', e);
+        alert('Произошла ошибка при отправке транзакции. Попробуйте ещё раз.');
+      }
+    }
+  </script>
+</body>
+</html>
