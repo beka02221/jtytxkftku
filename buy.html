@@ -4,15 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Пополнение баланса TON</title>
-  
-  <!-- Telegram Web App API -->
+
+  <!-- Telegram WebApp API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect UI -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <!-- Подключаем шрифты: пиксельный для больших текстов и monospace для мелких -->
+  <!-- Подключаем шрифты: Press Start 2P для пикселизации и Courier New для кодоподобного текста -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Courier+New&display=swap" rel="stylesheet">
 
   <style>
@@ -31,20 +31,41 @@
       font-family: 'Courier New', monospace;
     }
     body {
-      background-color: #6d4fba;
+      background-color: #2d004d; /* Темно-фиолетовый фон */
       color: #fff;
       display: flex;
       flex-direction: column;
-      position: relative;
-      padding-top: 60px;
     }
-    /* Заголовки и все кнопки – пиксельный шрифт */
-    h1, h2, h3, h4, button, .pixel {
+    /* Основной пикселизированный шрифт для заголовков и кнопок */
+    .pixel {
       font-family: 'Press Start 2P', cursive;
     }
-    
-    /* ---------- Кнопки ---------- */
+    /* Мелкий шрифт для обычного текста, напоминающий код */
+    .code-text {
+      font-size: 10px;
+    }
+
+    /* =========================
+       Верхняя панель (кнопки)
+       ========================= */
+    .top-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1100;
+    }
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    /* Кнопки – пикселизированный шрифт */
     button {
+      font-family: 'Press Start 2P', monospace;
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -64,126 +85,85 @@
       transform: translateY(1px);
       box-shadow: 0 1px #6b6b6b;
     }
-    
-    /* ---------- Верхняя панель: кнопка "Назад" и кнопка смены языка ---------- */
-    #backButton {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1100;
-    }
-    #langButton {
-      position: absolute;
-      top: 10px;
-      left: 100px;
-      z-index: 1100;
-    }
-    /* Контейнер для подключения кошелька */
-    #connect {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1100;
-    }
-    
-    /* ---------- Основной контейнер ---------- */
+
+    /* =========================
+       Основной контейнер
+       ========================= */
     .container {
+      margin-top: 80px;
       width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 20px;
     }
-    /* Юзернейм – увеличенный */
-    #username {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-    /* Баланс – только число и иконка, увеличено */
+
+    /* Раздел баланса: показываем имя пользователя и баланс */
     .balance-block {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      text-align: center;
       margin-bottom: 30px;
-    }
-    .balance-block #balance {
-      font-size: 32px;
-      font-weight: bold;
-    }
-    .balance-block img {
-      width: 30px;
-      height: 30px;
-    }
-    
-    /* ---------- Секция пополнения ----------
-       Слайдер и инпут для точного ввода суммы (только миллионы)
-    */
-    .slider-block {
-      width: 80%;
-      max-width: 500px;
-      margin: 20px auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-    .slider-label {
       font-size: 12px;
     }
-    .slider-controls {
+    .balance-block img {
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+
+    /* =========================
+       Блок выбора суммы пополнения
+       ========================= */
+    .slider-block {
+      width: 80%;
+      max-width: 400px;
+      margin: 20px auto;
+      text-align: center;
+      font-size: 12px;
+    }
+    /* Используем flex для размещения слайдера и поля ввода рядом */
+    .slider-container {
       display: flex;
       align-items: center;
       gap: 10px;
-      width: 100%;
+      margin-top: 10px;
     }
-    /* Стили для слайдера */
-    input[type="range"] {
+    .slider-container input[type="range"] {
+      flex: 1;
       -webkit-appearance: none;
-      width: 100%;
-      height: 8px;
-      background: #ddd;
-      border-radius: 5px;
+      height: 4px;
+      background: #06C1DE;
+      border-radius: 2px;
       outline: none;
     }
-    input[type="range"]::-webkit-slider-thumb {
+    /* Стилизация бегунка */
+    .slider-container input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
+      width: 16px;
+      height: 16px;
       background: #FF00FF;
-      cursor: pointer;
-      border: 2px solid #fff;
-    }
-    input[type="range"]::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
+      border: 1px solid #4b4b4b;
       border-radius: 50%;
-      background: #FF00FF;
       cursor: pointer;
-      border: 2px solid #fff;
     }
-    /* Стили для числового инпута */
-    input[type="number"] {
-      width: 80px;
-      padding: 4px;
-      font-size: 14px;
+    .slider-container input[type="number"] {
+      width: 60px;
+      padding: 2px;
+      font-size: 10px;
       text-align: center;
-      border: 1px solid #fff;
+      border: 1px solid #4b4b4b;
       border-radius: 4px;
-      background-color: #fff;
-      color: #000;
+      background: #00103c;
+      color: #fff;
     }
-    
-    /* Кнопка пополнения */
     .deposit-button {
       margin-top: 20px;
       padding: 12px 20px;
       font-size: 10px;
+      cursor: pointer;
     }
-    
-    /* ---------- Модальное окно уведомлений ---------- */
+
+    /* =========================
+       Модальное окно уведомлений
+       ========================= */
     #notificationModal {
       position: fixed;
       z-index: 9999;
@@ -210,73 +190,65 @@
       font-size: 10px;
     }
     #notificationModal .modal-close {
-      font-family: 'Press Start 2P', cursive;
+      font-family: 'Press Start 2P', monospace;
       font-size: 10px;
       padding: 8px 12px;
     }
   </style>
 </head>
 <body>
-  <!-- Кнопка "Назад" -->
-  <button id="backButton" onclick="goBack()">Назад</button>
-  <!-- Кнопка смены языка -->
-  <button id="langButton" onclick="toggleLanguage()">RU</button>
-  <!-- Контейнер для подключения кошелька TonConnect -->
-  <div id="connect"></div>
-  
-  <div class="container">
-    <!-- Юзернейм Telegram -->
-    <p id="username"></p>
-    
-    <!-- Баланс (только число и иконка) -->
-    <div class="balance-block">
-      <span id="balance">0</span>
-      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Coin" />
+  <!-- Верхняя панель с кнопками -->
+  <div class="top-bar">
+    <div class="top-left">
+      <button id="backButton" onclick="goBack()">Назад</button>
+      <button id="langSwitchButton" onclick="switchLanguage()">RU</button>
     </div>
-    
-    <!-- Секция выбора суммы пополнения -->
-    <div class="slider-block">
-      <span class="slider-label pixel">TON пополнение:</span>
-      <div class="slider-controls">
-        <input type="range" id="tonRange" min="1" max="10" step="1" value="1" oninput="syncSliderAndInput()" />
-        <input type="number" id="exactAmount" min="1" step="1" value="1" oninput="syncSliderAndInput()" />
-        <span class="pixel">млн</span>
-      </div>
-    </div>
-    
-    <!-- Кнопка пополнения -->
-    <button class="deposit-button" onclick="makeDeposit()">ПОПОЛНИТЬ</button>
+    <!-- Здесь можно разместить дополнительные элементы, если потребуется -->
   </div>
-  
+
+  <div class="container">
+    <!-- Раздел баланса: имя пользователя и баланс (без фразы "Ваш баланс") -->
+    <div class="balance-block">
+      <p id="balanceDisplay" class="pixel"></p>
+    </div>
+
+    <!-- Блок выбора суммы пополнения -->
+    <div class="slider-block">
+      <p class="pixel">Выберите количество TON для пополнения:</p>
+      <div class="slider-container">
+        <input type="range" id="tonRange" min="1" max="10" step="1" value="1" oninput="syncInputs()" />
+        <input type="number" id="customAmount" min="1" step="1" value="1" oninput="syncInputs(true)" />
+      </div>
+      <p id="rangeValue" class="pixel">1 TON</p>
+      <button class="deposit-button pixel" onclick="makeDeposit()">Пополнить</button>
+    </div>
+  </div>
+
   <!-- Модальное окно уведомлений -->
   <div id="notificationModal">
     <div class="modal-content">
       <p id="modalMessage"></p>
-      <button class="modal-close" onclick="closeModal()">Закрыть</button>
+      <button class="modal-close pixel" onclick="closeModal()">Закрыть</button>
     </div>
   </div>
-  
+
   <script>
-    /* Функция перехода "Назад" */
+    /* ---------------------------
+       Переключение страницы "Назад"
+    ---------------------------- */
     function goBack() {
       window.location.href = 'index.html';
     }
     
     /* ---------------------------
-       Смена языка (RU / ANG)
-       Для простоты меняем только текст на кнопке и кнопку пополнения.
+       Переключение языка
+       (Простой пример: переключение между RU и EN, обновление текста кнопки)
     ---------------------------- */
     let currentLanguage = 'ru';
-    function toggleLanguage() {
-      if (currentLanguage === 'ru') {
-        currentLanguage = 'ang';
-        document.getElementById('langButton').textContent = 'ANG';
-        document.querySelector('.deposit-button').textContent = 'DEPOSIT';
-      } else {
-        currentLanguage = 'ru';
-        document.getElementById('langButton').textContent = 'RU';
-        document.querySelector('.deposit-button').textContent = 'ПОПОЛНИТЬ';
-      }
+    function switchLanguage() {
+      currentLanguage = (currentLanguage === 'ru') ? 'en' : 'ru';
+      document.getElementById('langSwitchButton').textContent = (currentLanguage === 'ru') ? 'RU' : 'EN';
+      // При необходимости обновите другие тексты на странице в зависимости от языка
     }
     
     /* ---------------------------
@@ -306,11 +278,11 @@
     const db = firebase.database();
     
     /* ---------------------------
-       Обработка данных пользователя Telegram
+       Работа с данными пользователя Telegram
     ---------------------------- */
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUsername = tg.initDataUnsafe.user.username || '';
-      document.getElementById('username').textContent = '@' + currentUsername;
+      updateBalanceDisplay();
       if (currentUsername) {
         userRef = db.ref('users/' + currentUsername);
         userRef.once('value', snapshot => {
@@ -326,15 +298,23 @@
         userRef.on('value', snapshot => {
           const data = snapshot.val() || {};
           localCoins = data.coins || 0;
-          updateBalanceDisplay(localCoins);
+          updateBalanceDisplay();
         });
       }
     } else {
-      document.getElementById('username').textContent = 'Не авторизован в Telegram';
+      updateBalanceDisplay('Не авторизован в Telegram');
     }
     
-    function updateBalanceDisplay(coins) {
-      document.getElementById('balance').textContent = coins;
+    /* ---------------------------
+       Обновление отображения баланса с именем пользователя
+    ---------------------------- */
+    function updateBalanceDisplay() {
+      const display = document.getElementById('balanceDisplay');
+      if (currentUsername) {
+        display.textContent = '@' + currentUsername + ' - ' + localCoins + ' TON';
+      } else {
+        display.textContent = 'Не авторизован';
+      }
     }
     
     /* ---------------------------
@@ -346,19 +326,43 @@
     });
     
     /* ---------------------------
-       Синхронизация значений слайдера и числового инпута
+       Синхронизация ползунка и поля ввода
+       Если triggeredInput==true, поле ввода изменило значение – обновляем слайдер
+       Иначе – обновляем поле ввода и значение подписи
     ---------------------------- */
-    function syncSliderAndInput() {
+    function syncInputs(triggeredInput) {
       const slider = document.getElementById('tonRange');
-      const input = document.getElementById('exactAmount');
-      // При изменении одного обновляем другое
-      slider.value = input.value = Math.max(1, Math.min(10, parseInt(slider.value || input.value)));
-      document.querySelector('.slider-controls span.pixel').textContent = 'млн';
+      const input = document.getElementById('customAmount');
+      if (triggeredInput) {
+        let val = parseInt(input.value) || 1;
+        if(val < parseInt(slider.min)) val = parseInt(slider.min);
+        if(val > parseInt(slider.max)) val = parseInt(slider.max);
+        slider.value = val;
+      } else {
+        input.value = slider.value;
+      }
+      updateRangeText();
+    }
+    
+    function updateRangeText() {
+      const val = document.getElementById('tonRange').value;
+      document.getElementById('rangeValue').textContent = val + ' TON';
+    }
+    
+    /* ---------------------------
+       Модальное окно уведомлений
+    ---------------------------- */
+    function showModal(message) {
+      document.getElementById('modalMessage').textContent = message;
+      document.getElementById('notificationModal').style.display = 'flex';
+    }
+    function closeModal() {
+      document.getElementById('notificationModal').style.display = 'none';
     }
     
     /* ---------------------------
        Функция пополнения баланса
-       Отправляет транзакцию с суммой (TON → нанотоны)
+       Отправляет транзакцию с суммой, равной выбранному значению (TON → нанотоны)
     ---------------------------- */
     async function makeDeposit() {
       const val = document.getElementById('tonRange').value;
@@ -374,7 +378,7 @@
         validUntil: Math.round(Date.now() / 1000) + 60,
         messages: [
           {
-            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // замените на нужный адрес
+            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78', // Замените на нужный адрес
             amount: nanoAmount
           }
         ]
@@ -383,28 +387,14 @@
       try {
         await tonConnectUI.sendTransaction(transaction);
         localCoins += tonAmount;
-        updateBalanceDisplay(localCoins);
+        updateBalanceDisplay();
         userRef.update({ coins: localCoins });
-        showModal(currentLanguage === 'ru'
-          ? `Пополнение на ${tonAmount} TON успешно!`
-          : `Deposit of ${tonAmount} TON successful!`);
+        showModal(`Пополнение на ${tonAmount} TON успешно!`);
       } catch (err) {
-        showModal(currentLanguage === 'ru'
-          ? 'Транзакция отклонена пользователем или произошла ошибка.'
-          : 'Transaction rejected or an error occurred.');
+        showModal('Транзакция отклонена пользователем или произошла ошибка.');
       }
-    }
-    
-    /* ---------------------------
-       Модальное окно уведомлений
-    ---------------------------- */
-    function showModal(message) {
-      document.getElementById('modalMessage').textContent = message;
-      document.getElementById('notificationModal').style.display = 'flex';
-    }
-    function closeModal() {
-      document.getElementById('notificationModal').style.display = 'none';
     }
   </script>
 </body>
 </html>
+
