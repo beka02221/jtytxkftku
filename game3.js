@@ -309,6 +309,12 @@
     }
   }
 
+  // Функция для симуляции события отпускания клавиши
+  function simulateKeyUp(key) {
+    const event = new KeyboardEvent("keyup", { key: key });
+    handleKeyUp(event);
+  }
+
   // Создаём мобильные кнопки управления (лево, поворот, вниз, право)
   function createMobileControls() {
     controlDiv = document.createElement("div");
@@ -368,8 +374,23 @@
       e.preventDefault();
       simulateKey("ArrowDown");
     });
+    // Добавляем обработчик отпускания для мобильных устройств
+    btnDown.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowDown");
+    });
+    btnDown.addEventListener("touchcancel", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowDown");
+    });
+    // Для десктопа — mouseup
+    btnDown.addEventListener("mouseup", () => {
+      simulateKeyUp("ArrowDown");
+    });
+    // Можно также добавить обработчик click, если требуется быстродействие
     btnDown.addEventListener("click", () => {
       simulateKey("ArrowDown");
+      simulateKeyUp("ArrowDown");
     });
 
     const btnRight = document.createElement("button");
