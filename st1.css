@@ -76,6 +76,28 @@ button:active {
   /* Дополнительные отступы можно задать при необходимости */
 }
 
+
+.button12 {
+  display: inline-block;
+  background-color: #007bff; /* Основной цвет кнопки */
+  color: #fff; /* Цвет текста, если он есть */
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.button12:hover {
+  background-color: #0056b3; /* Цвет при наведении */
+}
+
+.button12 img {
+  vertical-align: middle; /* Чтобы иконка выровнялась по центру */
+}
+
+
 /* ---------- Кнопка дизайна (гамбургер) ---------- */
 #design-settings {
   position: fixed;
