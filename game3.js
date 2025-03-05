@@ -1,4 +1,4 @@
-(function () {
+(function () { 
   // Размеры игрового поля и базовые константы
   const COLS = 10;
   const ROWS = 20;
@@ -9,6 +9,7 @@
   const FAST_DROP_INTERVAL = 100; // интервал падения при быстром режиме (мс)
   const GAME_DURATION = 120000; // длительность игры: 2 минуты (120000 мс)
   const PIECE_COLOR = "#00FF00"; // неоново-зелёный (стиль Матрицы)
+  const TOP_MARGIN = 100; // отступ сверху, чтобы игровое поле начиналось ниже кнопок
 
   // Глобальные переменные для игры
   let canvas, ctx;
@@ -23,6 +24,10 @@
   let controlDiv; // контейнер мобильных кнопок
   let fastDrop = false; // флаг быстрого падения
   let arrowDownTimeout = null; // для отслеживания длительности нажатия стрелки вниз
+
+  // Таймеры для непрерывного перемещения влево/вправо
+  let arrowLeftInterval = null;
+  let arrowRightInterval = null;
 
   // Определения тетрамино (все фигуры будут зелёного цвета)
   const tetrominoes = {
@@ -88,19 +93,22 @@
     }
   }
 
-  // Рисуем игровое поле с заблокированными блоками
+  // Рисуем игровое поле с заблокированными блоками и более заметной сеткой
   function drawBoard() {
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
+    ctx.lineWidth = 2;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
+        let x = offsetX + c * BLOCK_SIZE;
+        let y = r * BLOCK_SIZE;
         if (board[r][c] !== 0) {
           ctx.fillStyle = PIECE_COLOR;
-          ctx.fillRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-          ctx.strokeStyle = "#005500";
-          ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#00FF00";
+          ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
         } else {
-          ctx.strokeStyle = "#002200";
-          ctx.strokeRect(offsetX + c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#003300";
+          ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
         }
       }
     }
@@ -115,9 +123,11 @@
     piece.shape.forEach((row, r) => {
       row.forEach((value, c) => {
         if (value) {
-          ctx.fillRect(offsetX + (piece.x + c) * BLOCK_SIZE, (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-          ctx.strokeStyle = "#005500";
-          ctx.strokeRect(offsetX + (piece.x + c) * BLOCK_SIZE, (piece.y + r) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          let x = offsetX + (piece.x + c) * BLOCK_SIZE;
+          let y = (piece.y + r) * BLOCK_SIZE;
+          ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = "#00FF00";
+          ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
         }
       });
     });
@@ -217,6 +227,22 @@
     dropCounter = 0;
   }
 
+  // Функции для перемещения влево и вправо
+  function moveLeft() {
+    currentPiece.x--;
+    if (collide(currentPiece)) {
+      currentPiece.x++;
+    }
+    drawGame3();
+  }
+  function moveRight() {
+    currentPiece.x++;
+    if (collide(currentPiece)) {
+      currentPiece.x--;
+    }
+    drawGame3();
+  }
+
   // Основной игровой цикл
   function updateGame3(time = 0) {
     const deltaTime = time - lastTime;
@@ -238,21 +264,25 @@
 
   // Отрисовка игрового состояния
   function drawGame3() {
+    // заливаем фон черным
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // индикатор времени
     const timeLeft = Math.max(GAME_DURATION - (Date.now() - gameStartTime), 0);
     const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
     ctx.fillStyle = "#00FF00";
     ctx.fillRect(0, 0, sliderWidth, 5);
 
+    // вывод счета
     ctx.fillStyle = "#00FF00";
     ctx.font = "20px 'Press Start 2P'";
     ctx.textAlign = "center";
     ctx.fillText("Score: " + score, canvas.width / 2, 30);
 
+    // смещаем игровое поле вниз, чтобы оно начиналось после кнопок
     ctx.save();
-    ctx.translate(0, 50);
+    ctx.translate(0, TOP_MARGIN);
     drawBoard();
     drawPiece(currentPiece);
     ctx.restore();
@@ -262,17 +292,16 @@
   function handleKeyDown(event) {
     if (!game3Running) return;
     if (event.key === "ArrowLeft") {
-      currentPiece.x--;
-      if (collide(currentPiece)) {
-        currentPiece.x++;
+      if (!arrowLeftInterval) {
+        moveLeft();
+        arrowLeftInterval = setInterval(moveLeft, 150);
       }
     } else if (event.key === "ArrowRight") {
-      currentPiece.x++;
-      if (collide(currentPiece)) {
-        currentPiece.x--;
+      if (!arrowRightInterval) {
+        moveRight();
+        arrowRightInterval = setInterval(moveRight, 150);
       }
     } else if (event.key === "ArrowDown") {
-      // Если пользователь быстро нажал, запускаем таймер для определения длительности
       if (!arrowDownTimeout) {
         arrowDownTimeout = setTimeout(() => {
           fastDrop = true; // удержание — включаем быстрый режим
@@ -296,14 +325,23 @@
     drawGame3();
   }
 
-  // Обработчик отпускания клавиши (для ArrowDown)
+  // Обработчик отпускания клавиши
   function handleKeyUp(event) {
-    if (event.key === "ArrowDown") {
+    if (event.key === "ArrowLeft") {
+      if (arrowLeftInterval) {
+        clearInterval(arrowLeftInterval);
+        arrowLeftInterval = null;
+      }
+    } else if (event.key === "ArrowRight") {
+      if (arrowRightInterval) {
+        clearInterval(arrowRightInterval);
+        arrowRightInterval = null;
+      }
+    } else if (event.key === "ArrowDown") {
       if (arrowDownTimeout) {
         clearTimeout(arrowDownTimeout);
         arrowDownTimeout = null;
-        // Быстрое нажатие — сброс на 1 клетку вниз
-        dropPiece();
+        dropPiece(); // быстрое нажатие — сброс на 1 клетку вниз
       }
       fastDrop = false;
     }
@@ -315,12 +353,19 @@
     handleKeyUp(event);
   }
 
-  // Создаём мобильные кнопки управления (лево, поворот, вниз, право)
+  // Имитируем событие нажатия клавиши
+  function simulateKey(key) {
+    const event = new KeyboardEvent("keydown", { key: key });
+    handleKeyDown(event);
+  }
+
+  // Создаём мобильные кнопки управления (←, поворот, ↓, →)
   function createMobileControls() {
     controlDiv = document.createElement("div");
     controlDiv.id = "tetrisControls";
+    // Располагаем кнопки в верхней части экрана
     controlDiv.style.position = "fixed";
-    controlDiv.style.bottom = "20px";
+    controlDiv.style.top = "20px";
     controlDiv.style.left = "50%";
     controlDiv.style.transform = "translateX(-50%)";
     controlDiv.style.display = "flex";
@@ -345,6 +390,7 @@
       btn.style.imageRendering = "pixelated";
     }
 
+    // Кнопка влево
     const btnLeft = document.createElement("button");
     btnLeft.textContent = "←";
     styleControlButton(btnLeft);
@@ -352,10 +398,23 @@
       e.preventDefault();
       simulateKey("ArrowLeft");
     });
-    btnLeft.addEventListener("click", () => {
+    btnLeft.addEventListener("mousedown", () => {
       simulateKey("ArrowLeft");
     });
+    // Отпускание кнопки "←"
+    btnLeft.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowLeft");
+    });
+    btnLeft.addEventListener("touchcancel", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowLeft");
+    });
+    btnLeft.addEventListener("mouseup", () => {
+      simulateKeyUp("ArrowLeft");
+    });
 
+    // Кнопка поворота
     const btnRotate = document.createElement("button");
     btnRotate.textContent = "⟳";
     styleControlButton(btnRotate);
@@ -367,6 +426,7 @@
       simulateKey("ArrowUp");
     });
 
+    // Кнопка вниз
     const btnDown = document.createElement("button");
     btnDown.textContent = "↓";
     styleControlButton(btnDown);
@@ -374,7 +434,6 @@
       e.preventDefault();
       simulateKey("ArrowDown");
     });
-    // Добавляем обработчик отпускания для мобильных устройств
     btnDown.addEventListener("touchend", (e) => {
       e.preventDefault();
       simulateKeyUp("ArrowDown");
@@ -383,16 +442,15 @@
       e.preventDefault();
       simulateKeyUp("ArrowDown");
     });
-    // Для десктопа — mouseup
     btnDown.addEventListener("mouseup", () => {
       simulateKeyUp("ArrowDown");
     });
-    // Можно также добавить обработчик click, если требуется быстродействие
     btnDown.addEventListener("click", () => {
       simulateKey("ArrowDown");
       simulateKeyUp("ArrowDown");
     });
 
+    // Кнопка вправо
     const btnRight = document.createElement("button");
     btnRight.textContent = "→";
     styleControlButton(btnRight);
@@ -400,8 +458,20 @@
       e.preventDefault();
       simulateKey("ArrowRight");
     });
-    btnRight.addEventListener("click", () => {
+    btnRight.addEventListener("mousedown", () => {
       simulateKey("ArrowRight");
+    });
+    // Отпускание кнопки "→"
+    btnRight.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowRight");
+    });
+    btnRight.addEventListener("touchcancel", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowRight");
+    });
+    btnRight.addEventListener("mouseup", () => {
+      simulateKeyUp("ArrowRight");
     });
 
     controlDiv.appendChild(btnLeft);
@@ -423,12 +493,6 @@
       controlDiv.parentNode.removeChild(controlDiv);
       controlDiv = null;
     }
-  }
-
-  // Имитируем событие нажатия клавиши
-  function simulateKey(key) {
-    const event = new KeyboardEvent("keydown", { key: key });
-    handleKeyDown(event);
   }
 
   // Инициализация игры
