@@ -78,20 +78,27 @@ button:active {
 
 
 /* Стили для кнопки с иконкой кошелька */
+/* Стили для кнопки с иконкой кошелька */
 #walletLink {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #06C1DE;
   border: 1px solid #4b4b4b;
   border-radius: 4px;
-  padding: 4px 6px;
+  padding: 0;       /* Убираем отступы */
+  width: 60px;      /* Фиксированная ширина */
+  height: 60px;     /* Фиксированная высота */
   box-shadow: 0 3px #6b6b6b;
   cursor: pointer;
   transition: transform 0.2s;
-  text-decoration: none; /* Убираем подчёркивание ссылки */
+  text-decoration: none;
 }
 
 #walletLink img {
-  display: block; /* Убираем лишние отступы под изображением */
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 #walletLink:hover {
