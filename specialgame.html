@@ -280,6 +280,11 @@
       align-items: center;
       justify-content: space-between;
     }
+    /* Центрирование кнопки-сворачивания описания */
+    #toggleDescBtn {
+      display: block;
+      margin: 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -302,12 +307,12 @@
       <p id="landingText" class="collapsed">
         Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
       </p>
-      <!-- Кнопка для переключения состояния описания -->
+      <!-- Кнопка для переключения состояния описания (по центру) -->
       <button id="toggleDescBtn" style="background: transparent; border: none; color: #FF00FF; font-size: 24px; cursor: pointer;">▼</button>
       <!-- Кнопки создания/поиска комнаты и бесплатной игры -->
-      <button id="createRoomBtn">Создать рум</button>
-      <button id="searchRoomBtn">Поиск рум</button>
-      <button id="playFreeBtn">Играть бесплатно</button>
+      <button id="createRoomBtn">Create Room</button>
+      <button id="searchRoomBtn">Search Room</button>
+      <button id="playFreeBtn">Play for Free</button>
     </div>
   </div>
 
@@ -368,7 +373,7 @@
 /* 
 ============================================================
   Special Snake PvP – Исправленный код с автоматическим соединением бесплатных игроков
-  и сворачиваемым описанием.
+  и сворачиваемым описанием, переключением языка и локализацией итогового результата.
 ============================================================
 */
 
@@ -938,16 +943,16 @@ function setGameOver() {
 function endGame() {
   stopLogicLoop();
   clearInterval(countdownInterval);
-  let resultTitle = 'Game Over';
+  let resultTitle = '';
   if (opponentDisconnected) {
-    resultTitle = 'Opponent Disconnected. You Win!';
+    resultTitle = (currentLanguage === 'ru') ? 'Противник отключился. ты выиграл' : 'Opponent Disconnected. You Win!';
   } else {
     if (score > opponentScore) {
-      resultTitle = 'You Win!';
+      resultTitle = (currentLanguage === 'ru') ? 'ты выиграл' : 'You Win!';
     } else if (score < opponentScore) {
-      resultTitle = 'You Lose...';
+      resultTitle = (currentLanguage === 'ru') ? 'ты проиграл' : 'You Lose...';
     } else {
-      resultTitle = 'Draw';
+      resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
     }
   }
   const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
@@ -1422,16 +1427,28 @@ const languageStrings = {
   en: {
     landingTitle: "Special Snake PvP",
     landingText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
-    startSearch: "Start Search",
     homeBack: "Back",
-    languageToggle: "RU"
+    languageToggle: "RU",
+    createRoomBtn: "Create Room",
+    searchRoomBtn: "Search Room",
+    playFreeBtn: "Play for Free",
+    win: "You Win!",
+    lose: "You Lose...",
+    draw: "Draw",
+    opponentDisconnected: "Opponent Disconnected. You Win!"
   },
   ru: {
     landingTitle: "Спешл Снейк PvP",
     landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
-    startSearch: "Начать поиск",
     homeBack: "Назад",
-    languageToggle: "EN"
+    languageToggle: "EN",
+    createRoomBtn: "Создать рум",
+    searchRoomBtn: "Поиск рум",
+    playFreeBtn: "Играть бесплатно",
+    win: "ты выиграл",
+    lose: "ты проиграл",
+    draw: "Ничья",
+    opponentDisconnected: "Противник отключился. ты выиграл"
   }
 };
 
@@ -1440,6 +1457,9 @@ function updateLanguageTexts() {
   document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
   document.getElementById('homeBackBtn').textContent = languageStrings[currentLanguage].homeBack;
   document.getElementById('langToggleBtn').textContent = languageStrings[currentLanguage].languageToggle;
+  document.getElementById('createRoomBtn').textContent = languageStrings[currentLanguage].createRoomBtn;
+  document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
+  document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
 }
 
 document.getElementById('langToggleBtn').addEventListener('click', function() {
