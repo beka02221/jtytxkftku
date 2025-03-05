@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TON Deposit</title>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- TonConnect UI -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Шрифты (Press Start 2P + стандарт) -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    /* ======= Базовые сбросы и фон ======= */
+    * {
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%; 
+      height: 100%; 
+      overflow-x: hidden; 
+      background-color: #00103c;
+    }
+    body {
+      display: flex; 
+      flex-direction: column;
+    }
+
+    /* ======= Шрифты и цвета ======= */
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      color: #FF00FF;
+    }
+    p, span, label, input, div {
+      font-family: sans-serif; 
+      color: #ffffff;
+    }
+
+    /* ======= Кнопки ======= */
+    button {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: #06C1DE;
+      color: #000000;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      padding: 10px 20px;
+      box-shadow: 0 3px #6b6b6b;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin-top: 10px;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px #6b6b6b;
+    }
+
+    /* ======= Верхняя панель (Back + Lang Switch + Connect) ======= */
+    #topBar {
+      width: 100%;
+      position: relative;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      margin-top: 5px;
+    }
+    #backButton {
+      margin-right: 10px;
+    }
+    #langSwitchBtn {
+      margin-right: auto;
+    }
+    #connect {
+      position: static; 
+      margin-left: auto;
+    }
+
+    /* ======= Контейнер всей страницы ======= */
+    .container {
+      margin-top: 50px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 20px;
+    }
+
+    /* ======= Блок "Баланс" ======= */
+    .balance-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 50px;
+    }
+    .balance-block img {
+      width: 18px; 
+      height: 18px;
+      margin-top: 5px;
+    }
+    .username {
+      font-family: 'Press Start 2P', monospace; 
+      color: #FF00FF;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    .tickets-count {
+      font-family: sans-serif;
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    /* ======= Слайдер и инпут ======= */
+    .slider-block {
+      width: 100%;
+      max-width: 400px;
+      margin: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 14px;
+      gap: 15px;
+    }
+    .slider-title {
+      font-family: 'Press Start 2P', monospace;
+      color: #FF00FF;
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .slider-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 70%;
+      height: 10px;
+      background: #ddd;
+      border-radius: 3px;
+      outline: none;
+      transition: background 0.3s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #FF00FF;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #06C1DE;
+    }
+    #ticketInput {
+      width: 100px;
+      text-align: center;
+      font-size: 16px;
+      border: 1px solid #06C1DE;
+      border-radius: 4px;
+      padding: 6px;
+      color: #ffffff;
+      background-color: #00103c;
+    }
+    #ticketInput:focus {
+      outline: 1px solid #FF00FF;
+    }
+    #priceDisplay {
+      font-size: 14px;
+      color: #ffffff;
+    }
+
+    /* ======= Модальное окно ======= */
+    #notificationModal {
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: #6d4fba;
+      border: 2px solid #3b3b3b;
+      padding: 20px;
+      width: 80%;
+      max-width: 360px;
+      text-align: center;
+      border-radius: 4px;
+    }
+    .modal-content p {
+      margin-bottom: 16px;
+      font-family: sans-serif;
+      font-size: 12px;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Верхняя панель: "Назад", "Язык" и TonConnect -->
+  <div id="topBar">
+    <button id="backButton" onclick="goBack()">Назад</button>
+    <button id="langSwitchBtn" onclick="toggleLanguage()">EN</button>
+    <div id="connect"></div>
+  </div>
+
+  <!-- Основной контейнер -->
+  <div class="container">
+    <!-- Раздел с именем и балансом -->
+    <div class="balance-block">
+      <span class="username" id="username">@User</span>
+      <span class="tickets-count" id="balance">0</span>
+      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Tickets" />
+    </div>
+
+    <!-- Блок со слайдером, вводом и отображением цены -->
+    <div class="slider-block">
+      <div class="slider-title" id="sliderLabel">Сколько билетов?</div>
+      <div class="slider-row">
+        <input
+          type="range"
+          id="ticketRange"
+          min="5"
+          max="30"
+          step="5"
+          value="5"
+          oninput="onTicketRangeInput()"
+        />
+        <input
+          type="number"
+          id="ticketInput"
+          min="5"
+          max="30"
+          step="5"
+          value="5"
+          oninput="onTicketInputChange()"
+        />
+      </div>
+      <div id="priceDisplay">Цена: 0.5 TON</div>
+      <!-- Кнопка "Купить билеты" -->
+      <button id="depositBtn" onclick="makeDeposit()">Купить билеты</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно уведомлений -->
+  <div id="notificationModal">
+    <div class="modal-content">
+      <p id="modalMessage"></p>
+      <button onclick="closeModal()">OK</button>
+    </div>
+  </div>
+
+<script>
+/* --------------------------------------------------
+   1. Переключение языков (RU <-> EN)
+-------------------------------------------------- */
+let currentLanguage = 'ru';
+const translations = {
+  ru: {
+    back: "Назад",
+    langBtn: "EN",
+    sliderTitle: "Сколько билетов?",
+    depositBtn: "Купить билеты",
+    depositSuccess: (tickets, price) => `Успешная покупка: ${tickets} билетов за ${price} TON!`,
+    depositError: "Транзакция отклонена или произошла ошибка.",
+    userError: "Ошибка: пользователь Telegram не определён!",
+    userNotAuthorized: "Не авторизован в Telegram"
+  },
+  en: {
+    back: "Back",
+    langBtn: "RU",
+    sliderTitle: "How many tickets?",
+    depositBtn: "Buy Tickets",
+    depositSuccess: (tickets, price) => `Successfully purchased ${tickets} tickets for ${price} TON!`,
+    depositError: "Transaction was declined or an error occurred.",
+    userError: "Error: Telegram user is not defined!",
+    userNotAuthorized: "Not authorized in Telegram"
+  }
+};
+
+function updateTexts() {
+  document.getElementById('backButton').textContent = translations[currentLanguage].back;
+  document.getElementById('langSwitchBtn').textContent = translations[currentLanguage].langBtn;
+  document.getElementById('sliderLabel').textContent = translations[currentLanguage].sliderTitle;
+  document.getElementById('depositBtn').textContent = translations[currentLanguage].depositBtn;
+}
+
+function toggleLanguage() {
+  currentLanguage = (currentLanguage === 'ru') ? 'en' : 'ru';
+  updateTexts();
+}
+updateTexts(); // инициализация
+
+/* --------------------------------------------------
+   2. Telegram WebApp
+-------------------------------------------------- */
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+let currentUsername = null;
+let userRef = null;
+let localTickets = 0;
+
+/* --------------------------------------------------
+   3. Firebase инициализация
+-------------------------------------------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+  authDomain: "test-with-likes.firebaseapp.com",
+  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+  projectId: "test-with-likes",
+  storageBucket: "test-with-likes",
+  messagingSenderId: "764738820142",
+  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+  measurementId: "G-WJNF0HSN9P"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* --------------------------------------------------
+   4. Проверяем пользователя Telegram
+-------------------------------------------------- */
+if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  currentUsername = tg.initDataUnsafe.user.username || '';
+  document.getElementById('username').textContent = '@' + currentUsername;
+  if (currentUsername) {
+    userRef = db.ref('users/' + currentUsername);
+    userRef.once('value', snapshot => {
+      if (!snapshot.exists()) {
+        userRef.set({
+          tickets: 0,
+          points: 0,
+          lastSpinTime: 0
+        });
+      }
+    });
+    userRef.on('value', snapshot => {
+      const data = snapshot.val() || {};
+      localTickets = data.tickets || 0;
+      updateTicketsDisplay(localTickets);
+    });
+  }
+} else {
+  document.getElementById('username').textContent =
+    translations[currentLanguage].userNotAuthorized;
+}
+
+/* --------------------------------------------------
+   5. Обновление отображения билетов
+-------------------------------------------------- */
+function updateTicketsDisplay(tickets) {
+  document.getElementById('balance').innerHTML = `<b>${tickets}</b>`;
+}
+
+/* --------------------------------------------------
+   6. Кнопка "Назад"
+-------------------------------------------------- */
+function goBack() {
+  window.location.href = 'index.html';
+}
+
+/* --------------------------------------------------
+   7. TonConnect UI
+-------------------------------------------------- */
+const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+  manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
+  buttonRootId: 'connect'
+});
+
+/* --------------------------------------------------
+   8. Синхронизация слайдера и инпута (от 5 до 30, шаг 5)
+-------------------------------------------------- */
+function updatePriceDisplay(ticketCount) {
+  // Цена: каждые 5 билетов стоят 0.5 TON → цена = ticketCount * 0.1
+  const price = (ticketCount * 0.1).toFixed(1);
+  document.getElementById('priceDisplay').textContent = `Цена: ${price} TON`;
+}
+
+function onTicketRangeInput() {
+  const val = document.getElementById('ticketRange').value;
+  document.getElementById('ticketInput').value = val;
+  updatePriceDisplay(val);
+}
+function onTicketInputChange() {
+  let val = parseInt(document.getElementById('ticketInput').value, 10);
+  if (isNaN(val)) val = 5;
+  if (val < 5) val = 5;
+  if (val > 30) val = 30;
+  // округляем до ближайшего кратного 5
+  val = Math.round(val / 5) * 5;
+  document.getElementById('ticketInput').value = val;
+  document.getElementById('ticketRange').value = val;
+  updatePriceDisplay(val);
+}
+
+/* --------------------------------------------------
+   9. Модальное окно для уведомлений
+-------------------------------------------------- */
+function showModal(message) {
+  document.getElementById('modalMessage').textContent = message;
+  document.getElementById('notificationModal').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('notificationModal').style.display = 'none';
+}
+
+/* --------------------------------------------------
+   10. makeDeposit: отправка транзакции
+-------------------------------------------------- */
+async function makeDeposit() {
+  if (!currentUsername || !userRef) {
+    showModal(translations[currentLanguage].userError);
+    return;
+  }
+  const val = parseInt(document.getElementById('ticketInput').value, 10);
+  const ticketCount = isNaN(val) ? 5 : val;
+  // Цена в TON: ticketCount * 0.1, переводим в нано (1 TON = 1e9 nano)
+  const nanoAmount = (ticketCount * 0.1 * 1e9).toString();
+
+  const transaction = {
+    validUntil: Math.round(Date.now() / 1000) + 60,
+    messages: [
+      {
+        address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78',
+        amount: nanoAmount
+      }
+    ]
+  };
+
+  try {
+    await tonConnectUI.sendTransaction(transaction);
+    localTickets += ticketCount;
+    updateTicketsDisplay(localTickets);
+    userRef.update({ tickets: localTickets });
+    // Вычисляем цену для сообщения
+    const price = (ticketCount * 0.1).toFixed(1);
+    showModal(translations[currentLanguage].depositSuccess(ticketCount, price));
+  } catch (err) {
+    showModal(translations[currentLanguage].depositError);
+  }
+}
+</script>
+</body>
+</html>
