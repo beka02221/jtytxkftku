@@ -479,4 +479,3 @@
   window.initGame3 = initGame3;
   window.resetGame3 = resetGame3;
 })();
-
