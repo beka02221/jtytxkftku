@@ -24,6 +24,10 @@
 <body>
   <!-- Header -->
   <header>
+    <!-- Иконка кошелька в левом верхнем углу -->
+    <a href="buy.html" id="walletLink" style="position: absolute; top: 10px; left: 10px;">
+      <img src="https://img.icons8.com/pixel-art/64/000000/wallet.png" alt="Wallet" width="20"/>
+    </a>
     <div class="user-info">
       <img id="userPhoto" src="" alt="Avatar"/>
       <span id="username">@User</span>
@@ -826,9 +830,10 @@
 
     /* ----------------------------------------------
        14. Buy Tickets
+       Изменено: при нажатии происходит переход на buyticket.html
     ---------------------------------------------- */
     function buyTickets() {
-      window.location.href = 'buy.html';
+      window.location.href = 'buyticket.html';
     }
 
     /* ----------------------------------------------
@@ -844,33 +849,29 @@
     // Инициализация языка при загрузке страницы
     updateLanguage();
 
-function openMainOnlineInfoModal() {
-  document.getElementById('mainOnlineInfoModal').classList.add('active');
-}
+    function openMainOnlineInfoModal() {
+      document.getElementById('mainOnlineInfoModal').classList.add('active');
+    }
 
-function closeMainOnlineInfoModal() {
-  document.getElementById('mainOnlineInfoModal').classList.remove('active');
-}
+    function closeMainOnlineInfoModal() {
+      document.getElementById('mainOnlineInfoModal').classList.remove('active');
+    }
 
-function openMiniGamesInfoModal() {
-  document.getElementById('miniGamesInfoModal').classList.add('active');
-}
+    function openMiniGamesInfoModal() {
+      document.getElementById('miniGamesInfoModal').classList.add('active');
+    }
 
-function closeMiniGamesInfoModal() {
-  document.getElementById('miniGamesInfoModal').classList.remove('active');
-}
+    function closeMiniGamesInfoModal() {
+      document.getElementById('miniGamesInfoModal').classList.remove('active');
+    }
 
-function openPartnerInfoModal() {
-  document.getElementById('partnerInfoModal').classList.add('active');
-}
+    function openPartnerInfoModal() {
+      document.getElementById('partnerInfoModal').classList.add('active');
+    }
 
-function closePartnerInfoModal() {
-  document.getElementById('partnerInfoModal').classList.remove('active');
-}
-
-
-    
+    function closePartnerInfoModal() {
+      document.getElementById('partnerInfoModal').classList.remove('active');
+    }
   </script>
 </body>
 </html>
-
