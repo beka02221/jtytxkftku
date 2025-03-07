@@ -1,5 +1,5 @@
-<!DOCTYPE html> 
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
@@ -24,12 +24,9 @@
 <body>
   <!-- Header -->
   <header>
-    <!-- Иконка кошелька в левом верхнем углу -->
-   <a href="buy.html" id="walletLink" class="walletLink" style="position: absolute; top: 5px; left: 10px;">
-  <img src="wallet.png" alt="Wallet" width="45" height="45"/>
-</a>
-
-
+    <a href="buy.html" id="walletLink" class="walletLink" style="position: absolute; top: 5px; left: 10px;">
+      <img src="wallet.png" alt="Wallet" width="45" height="45"/>
+    </a>
     <div class="user-info">
       <img id="userPhoto" src="" alt="Avatar"/>
       <span id="username">@User</span>
@@ -51,22 +48,19 @@
         <span id="pointCount">0</span>
       </span>
     </div>
-    <!-- Кнопка переключения языка -->
     <button id="languageSwitchBtn" style="position: absolute; top: 10px; right: 10px;" onclick="toggleLanguage()">Русский</button>
   </header>
 
   <!-- Main Content -->
   <main>
-    <!-- PLAY SECTION (Галерея игр) -->
+    <!-- PLAY SECTION -->
     <section id="playSection" class="section active">
-      <!-- Main Online Games Section -->
       <div class="games-section">
         <h3>
           <span id="mainOnlineHeaderText">Main Online Games</span>
           <button id="mainOnlineInfoBtn" class="info-button" onclick="openMainOnlineInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
-          <!-- Game Card 1: Dino Runner -->
           <div class="game-card">
             <img src="1.jpg" alt="Special Game">
             <p id="gameCard1Title">Online snake</p>
@@ -75,14 +69,12 @@
         </div>
       </div>
       
-      <!-- Mini Games Section -->
       <div class="games-section">
         <h3>
           <span id="miniGamesHeaderText">Mini Games</span>
           <button id="miniGamesInfoBtn" class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
-          <!-- Game Card: Match-3 -->
           <div class="game-card">
             <img src="https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png" alt="Match-3">
             <p id="gameCard2Title">Match-3</p>
@@ -94,8 +86,6 @@
               cost: 1
             })">More Details</button>
           </div>
-          
-          <!-- Game Card: Game 3 -->
           <div class="game-card">
             <img src="https://img.icons8.com/ios-filled/50/00FF00/controller.png" alt="Game 3">
             <p id="gameCard3Title">Game 3</p>
@@ -107,8 +97,6 @@
               cost: 1
             })">More Details</button>
           </div>
-          
-          <!-- Game Card: Space Explorer -->
           <div class="game-card">
             <img src="https://img.icons8.com/ios-filled/64/00FF00/rocket.png" alt="Space Explorer">
             <p id="gameCard4Title">Space Explorer</p>
@@ -123,14 +111,12 @@
         </div>
       </div>
       
-      <!-- Partner Games Section -->
       <div class="games-section">
         <h3>
           <span id="partnerGamesHeaderText">Partner Games</span>
           <button id="partnerInfoBtn" class="info-button" onclick="openPartnerInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
-          <!-- Game Card: Partner Game -->
           <div class="game-card">
             <img src="https://img.icons8.com/ios-filled/50/00FF00/handshake.png" alt="Partner Game">
             <p id="gameCard5Title">Partner Game</p>
@@ -146,7 +132,7 @@
       </div>
     </section>
 
-    <!-- TICKETS SECTION (Колесо) -->
+    <!-- TICKETS SECTION -->
     <section id="ticketsSection" class="section">
       <h2 id="ticketsHeader">Tickets</h2>
       <div class="wheel-container">
@@ -185,7 +171,7 @@
       </div>
     </section>
 
-    <!-- Leaderboard Section -->
+    <!-- LEADERBOARD SECTION -->
     <section id="leaderboardSection" class="section">
       <h2 id="leaderboardHeader">Leaderboard</h2>
       <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
@@ -205,15 +191,31 @@
       </div>
     </section>
 
-    <!-- Referral Section -->
+    <!-- LOOT BOX SECTION (ранее Referral Lootbox) -->
     <section id="referralSection" class="section">
-      <h2 id="referralHeader">Referral</h2>
-      <div class="referral-container">
-        <p id="referralText">Invite your friends using the link and earn bonuses!</p>
-        <div class="referral-link" id="referralLink">
-          Link will appear after login...
+      <h2 id="referralHeader">Loot Box</h2>
+      <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
+      <div class="lootbox-container">
+        <!-- Индикатор, показывающий центр экрана -->
+        <div class="lootbox-indicator"></div>
+        <!-- Контейнер с призами. Призы продублированы для эффекта бесконечности -->
+        <div class="lootbox-roulette" id="lootboxRoulette">
+          <div class="lootbox-prize"><img src="10tickets.png" alt="10 билетов"><span>10 билетов</span></div>
+          <div class="lootbox-prize"><img src="1m.png" alt="1 млн токенов"><span>1 млн токенов</span></div>
+          <div class="lootbox-prize"><img src="spinagain.png" alt="+1 спин"><span>+1 спин</span></div>
+          <div class="lootbox-prize"><img src="5tickets.png" alt="5 билетов"><span>5 билетов</span></div>
+          <div class="lootbox-prize"><img src="500stars.png" alt="500 звёзд"><span>500 звёзд</span></div>
+          <div class="lootbox-prize"><img src="1000stars.png" alt="1000 звёзд"><span>1000 звёзд</span></div>
+          <div class="lootbox-prize"><img src="10m.png" alt="10 млн токенов"><span>10 млн токенов</span></div>
         </div>
-        <button id="copyInviteBtn" class="copy-button" onclick="copyReferralLink()">Copy Link</button>
+      </div>
+      <div class="lootbox-buttons">
+        <button id="spinByCoinsBtn" onclick="spinLootBoxForCoins()">
+          <img src="token.png" alt="Token" width="24" height="24"> Вращение (5 млн монет)
+        </button>
+        <button id="spinByDataChipBtn" onclick="spinLootBoxForDataChip()">
+          <img src="case.png" alt="Data Chip" width="24" height="24"> Вращение (Data Chip)
+        </button>
       </div>
     </section>
   </main>
@@ -247,8 +249,17 @@
   <div class="modal-backdrop" id="seasonModalBackdrop">
     <div class="modal modal-season">
       <h2 id="seasonModalTitle">Season Information</h2>
-      <p id="seasonModalDesc">Details about the season, prizes, deadlines, etc.</p>
+      <p id="seasonModalDesc">1 сизон. Сезон длится 1 неделю. По окончании сезона, каждому из топ-10 игроков выдается кейс.</p>
       <button class="close-modal" onclick="closeSeasonModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Loot Box Info -->
+  <div class="modal-backdrop" id="lootBoxInfoModal">
+    <div class="modal">
+      <h2 id="lootBoxInfoTitle">Loot Box Info</h2>
+      <p id="lootBoxInfoDesc">Здесь вы можете вращать лутбокс, используя монеты или data chip.</p>
+      <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
   </div>
 
@@ -335,7 +346,6 @@
   <script src="game1.js"></script>
   <script src="game2.js"></script>
   <script src="partnergame1.js"></script>
-  <!-- Файл specialgame1.js удалён – Special Game теперь на отдельной странице -->
   <script src="game3.js"></script>
   <script src="game4.js"></script>
   <script src="game5.js"></script>
@@ -374,7 +384,7 @@
         result: "Result",
         close: "Close",
         seasonInfoTitle: "Season Information",
-        seasonInfoDesc: "Details about the season, prizes, deadlines, etc.",
+        seasonInfoDesc: "Season 1. The season lasts 1 week. At the end of the season, each of the top 10 players automatically receives one case.",
         depositModalTitle: "Not enough coins",
         depositModalDesc: "You do not have enough coins to play. Please top up your balance.",
         copied: "Copied",
@@ -421,7 +431,7 @@
         result: "Результат",
         close: "Закрыть",
         seasonInfoTitle: "Информация о сезоне",
-        seasonInfoDesc: "Детали о сезоне, призы, сроки и т.д.",
+        seasonInfoDesc: "1 сизон. Сезон длится 1 неделю. По окончании сезона, каждому из топ-10 игроков выдается кейс.",
         depositModalTitle: "Недостаточно монет",
         depositModalDesc: "У вас недостаточно монет для игры. Пожалуйста, пополните баланс.",
         copied: "Скопировано",
@@ -457,15 +467,12 @@
         document.getElementById('spinButton').textContent = translations[currentLanguage].spinButton;
       }
       document.getElementById('buyTicketsBtn').textContent = translations[currentLanguage].buyTickets;
-      document.getElementById('copyInviteBtn').textContent = translations[currentLanguage].copyLink;
       
-      // Обновление навигационных кнопок (alt-атрибуты)
       document.getElementById('navPlayAlt').alt = translations[currentLanguage].play;
       document.getElementById('navTicketsAlt').alt = translations[currentLanguage].tickets;
       document.getElementById('navLeaderboardAlt').alt = translations[currentLanguage].leaderboard;
       document.getElementById('navReferralAlt').alt = translations[currentLanguage].referral;
       
-      // Обновление текстов игровых карточек
       document.getElementById('gameCard1Title').textContent = translations[currentLanguage].gameCard1Title;
       document.getElementById('gameCard1Button').textContent = translations[currentLanguage].gameCard1Button;
       document.getElementById('gameCard2Title').textContent = translations[currentLanguage].gameCard2Title;
@@ -477,7 +484,6 @@
       document.getElementById('gameCard5Title').textContent = translations[currentLanguage].gameCard5Title;
       document.getElementById('gameCard5Button').textContent = translations[currentLanguage].gameCard5Button;
       
-      // Обновление модальных окон
       document.getElementById('seasonModalTitle').textContent = translations[currentLanguage].seasonInfoTitle;
       document.getElementById('seasonModalDesc').textContent = translations[currentLanguage].seasonInfoDesc;
       document.getElementById('depositModalTitle').textContent = translations[currentLanguage].depositModalTitle;
@@ -490,7 +496,6 @@
       document.getElementById('partnerInfoDesc').textContent = translations[currentLanguage].partnerGamesInfo;
       document.getElementById('endgameTitle').textContent = translations[currentLanguage].result;
       
-      // Обновление всех кнопок закрытия
       document.querySelectorAll('.close-modal').forEach(btn => {
         btn.textContent = translations[currentLanguage].close;
       });
@@ -533,7 +538,8 @@
       tickets: 0,
       coins: 0,
       points: 0,
-      lastSpinTime: 0
+      lastSpinTime: 0,
+      dataChip: false  // Флаг наличия data chip; обновите в зависимости от логики получения
     };
     let gameInProgress = false;
 
@@ -551,7 +557,8 @@
             tickets: 0,
             coins: 0,
             points: 0,
-            lastSpinTime: 0
+            lastSpinTime: 0,
+            dataChip: false
           });
         }
       });
@@ -562,7 +569,8 @@
           tickets: data.tickets || 0,
           coins: data.coins || 0,
           points: data.points || 0,
-          lastSpinTime: data.lastSpinTime || 0
+          lastSpinTime: data.lastSpinTime || 0,
+          dataChip: data.dataChip || false
         };
         updateTopBar();
         updateSpinButton();
@@ -580,17 +588,12 @@
 
     /* ----------------------------------------------
        6. Section Switching
-       Обновлённая функция: при переключении разделов закрываются все модальные окна и игровые оверлеи,
-       чтобы основной контент не был перекрыт.
     ---------------------------------------------- */
     function showSection(sectionId) {
-      // Скрываем все секции
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-      // Закрываем все модальные окна и оверлеи
       document.querySelectorAll('.modal-backdrop').forEach(modal => modal.classList.remove('active'));
       document.getElementById('gameModalBackdrop').classList.remove('active');
       document.getElementById('endgameBackdrop').classList.remove('active');
-      // Отображаем выбранную секцию
       document.getElementById(sectionId).classList.add('active');
     }
 
@@ -614,7 +617,7 @@
       document.getElementById('gameInfoTitle').textContent = gameData.title;
       document.getElementById('gameInfoDesc').textContent = gameData.desc;
       const playBtn = document.getElementById('gameInfoPlayBtn');
-      playBtn.textContent = translations[currentLanguage].play + ` (${gameData.cost} ticket)`;
+      playBtn.textContent = `${translations[currentLanguage].play} (${gameData.cost} ticket)`;
       playBtn.onclick = function() {
         closeGameInfoModal();
         handleStartGame(gameData.gameId, gameData.cost);
@@ -729,7 +732,6 @@
         showGlobalModal(translations[currentLanguage].wheelModalTitle, translations[currentLanguage].wheelModalMsg);
         return;
       }
-      // Обновляем время последнего спина
       localUserData.lastSpinTime = now;
       userRef.update({ lastSpinTime: now });
       updateSpinButton();
@@ -760,13 +762,15 @@
     }
     function showSpinModal(amount) {
       document.getElementById("wheelTicketCount").textContent = amount;
-      document.getElementById("spinModalTitle").innerHTML = translations[currentLanguage].youWon + " <span id='wheelTicketCount'>" + amount + "</span> " + translations[currentLanguage].ticketsPlural + "!";
+      document.getElementById("spinModalTitle").innerHTML = 
+        translations[currentLanguage].youWon + 
+        " <span id='wheelTicketCount'>" + amount + "</span> " + 
+        translations[currentLanguage].ticketsPlural + "!";
       document.getElementById("spinModalBackdrop").classList.add("active");
     }
     function closeSpinModal() {
       document.getElementById("spinModalBackdrop").classList.remove("active");
     }
-    // Обновление кнопки спина с обратным отсчетом
     function updateSpinButton() {
       const btn = document.getElementById('spinButton');
       const now = Date.now();
@@ -787,7 +791,7 @@
     setInterval(updateSpinButton, 1000);
 
     /* ----------------------------------------------
-       12. Leaderboard (Показываем всех пользователей)
+       12. Leaderboard
     ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
@@ -804,11 +808,15 @@
         if (currentUser && user.username === currentUser.username) {
           tr.classList.add('current-user');
         }
-        tr.innerHTML = `
-          <td>${i + 1}</td>
-          <td>@${user.username}</td>
-          <td>${user.points}</td>
-        `;
+        if (i < 10) {
+          tr.innerHTML = `<td>${i + 1} <img src="case.png" alt="Prize Icon" width="16" height="16"></td>
+                          <td>@${user.username}</td>
+                          <td>${user.points}</td>`;
+        } else {
+          tr.innerHTML = `<td>${i + 1}</td>
+                          <td>@${user.username}</td>
+                          <td>${user.points}</td>`;
+        }
         tbody.appendChild(tr);
       });
     });
@@ -821,58 +829,159 @@
     }
 
     /* ----------------------------------------------
-       13. Referral
-    ---------------------------------------------- */
-    function copyReferralLink() {
-      const link = document.getElementById('referralLink').textContent;
-      navigator.clipboard.writeText(link).then(() => {
-        showGlobalModal(translations[currentLanguage].copied, translations[currentLanguage].copiedMsg);
-      });
-    }
-
-    /* ----------------------------------------------
-       14. Buy Tickets
-       Изменено: при нажатии происходит переход на buyticket.html
+       13. Buy Tickets
     ---------------------------------------------- */
     function buyTickets() {
       window.location.href = 'buyticket.html';
     }
 
     /* ----------------------------------------------
-       15. Копирование ссылки приглашения
+       14. Рулетка (Lootbox) в секции Loot Box
     ---------------------------------------------- */
-    function copyInviteLink() {
-      const link = window.location.href;
-      navigator.clipboard.writeText(link).then(() => {
-        showGlobalModal(translations[currentLanguage].copied, translations[currentLanguage].copiedMsg);
-      });
+    const referralPrizes = [
+      { name: '10 билетов',        image: '10tickets.png',   chance: 20 },
+      { name: '1 млн токенов',      image: '1m.png',          chance: 10 },
+      { name: 'Еще одна прокрутка', image: 'spinagain.png',   chance: 5  },
+      { name: '5 билетов',          image: '5tickets.png',    chance: 25 },
+      { name: '500 звёзд',          image: '500stars.png',    chance: 15 },
+      { name: '1000 звёзд',         image: '1000stars.png',   chance: 15 },
+      { name: '10 млн токенов',     image: '10m.png',         chance: 10 }
+    ];
+
+    let referralInitialized = false;
+    function initReferralLootbox() {
+      if (referralInitialized) return;
+      referralInitialized = true;
+      const rouletteContainer = document.getElementById('lootboxRoulette');
+      // Заполняем рулетку шестью циклами для эффекта бесконечности
+      for (let cycle = 0; cycle < 6; cycle++) {
+        referralPrizes.forEach(item => {
+          const prizeEl = document.createElement('div');
+          prizeEl.className = 'lootbox-prize';
+          prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
+                               <span>${item.name}</span>`;
+          rouletteContainer.appendChild(prizeEl);
+        });
+      }
     }
 
-    // Инициализация языка при загрузке страницы
+    function getRandomPrize() {
+      const totalChance = referralPrizes.reduce((sum, p) => sum + p.chance, 0);
+      let rand = Math.floor(Math.random() * totalChance);
+      for (let i = 0; i < referralPrizes.length; i++) {
+        if (rand < referralPrizes[i].chance) {
+          return referralPrizes[i];
+        }
+        rand -= referralPrizes[i].chance;
+      }
+      return referralPrizes[referralPrizes.length - 1];
+    }
+
+    let isSpinning = false;
+    function spinLootBoxForCoins() {
+      if (!currentUser) return;
+      if (localUserData.coins < 5000000) {
+        showGlobalModal(translations[currentLanguage].depositModalTitle, translations[currentLanguage].depositModalDesc);
+        return;
+      }
+      // Списываем 5 млн монет
+      localUserData.coins -= 5000000;
+      updateTopBar();
+      userRef.update({ coins: localUserData.coins });
+      
+      if (isSpinning) return;
+      initReferralLootbox();
+      isSpinning = true;
+      const roulette = document.getElementById('lootboxRoulette');
+      const prizeWidth = 136;
+      const count = referralPrizes.length;
+      const visibleCenter = roulette.parentElement.offsetWidth / 2;
+      const fullCycles = 5;
+      const randomIndex = Math.floor(Math.random() * count);
+      const finalIndex = randomIndex + fullCycles * count;
+      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
+      
+      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      roulette.style.transform = `translateX(${finalOffset}px)`;
+      
+      setTimeout(() => {
+        const remainder = finalIndex % count;
+        const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
+        roulette.style.transition = 'none';
+        roulette.style.transform = `translateX(${newOffset}px)`;
+        isSpinning = false;
+        const prize = referralPrizes[randomIndex];
+        showGlobalModal('Поздравляем!', `Ваш выигрыш: ${prize.name}`);
+      }, 10200);
+    }
+
+    function spinLootBoxForDataChip() {
+      if (!currentUser) return;
+      if (!localUserData.dataChip) {
+        showGlobalModal('Ошибка', 'Для вращения необходимо получить data chip!');
+        return;
+      }
+      if (isSpinning) return;
+      initReferralLootbox();
+      isSpinning = true;
+      const roulette = document.getElementById('lootboxRoulette');
+      const prizeWidth = 136;
+      const count = referralPrizes.length;
+      const visibleCenter = roulette.parentElement.offsetWidth / 2;
+      const fullCycles = 5;
+      const randomIndex = Math.floor(Math.random() * count);
+      const finalIndex = randomIndex + fullCycles * count;
+      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
+      
+      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      roulette.style.transform = `translateX(${finalOffset}px)`;
+      
+      setTimeout(() => {
+        const remainder = finalIndex % count;
+        const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
+        roulette.style.transition = 'none';
+        roulette.style.transform = `translateX(${newOffset}px)`;
+        isSpinning = false;
+        const prize = referralPrizes[randomIndex];
+        showGlobalModal('Поздравляем!', `Ваш выигрыш: ${prize.name}`);
+      }, 10200);
+    }
+
+    /* ----------------------------------------------
+       Модальные окна для Loot Box
+    ---------------------------------------------- */
+    function openLootBoxInfoModal() {
+      document.getElementById('lootBoxInfoModal').classList.add('active');
+    }
+    function closeLootBoxInfoModal() {
+      document.getElementById('lootBoxInfoModal').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       Инициализация языка при загрузке страницы
+    ---------------------------------------------- */
     updateLanguage();
 
     function openMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.add('active');
     }
-
     function closeMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.remove('active');
     }
-
     function openMiniGamesInfoModal() {
       document.getElementById('miniGamesInfoModal').classList.add('active');
     }
-
     function closeMiniGamesInfoModal() {
       document.getElementById('miniGamesInfoModal').classList.remove('active');
     }
-
     function openPartnerInfoModal() {
       document.getElementById('partnerInfoModal').classList.add('active');
     }
-
     function closePartnerInfoModal() {
       document.getElementById('partnerInfoModal').classList.remove('active');
+    }
+    function closeDepositModal() {
+      document.getElementById('depositModal').classList.remove('active');
     }
   </script>
 </body>
