@@ -5,14 +5,14 @@
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Mobile Games Site</title>
-
+  
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
   <!-- Подключение темы (по умолчанию st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
-
+  
   <!-- Дополнительный CSS для нового блока Loot Box -->
   <style>
     /* Новый блок для большой картинки кейса */
@@ -21,9 +21,10 @@
       margin-bottom: 20px;
     }
     .case-container img {
-      width: 200px; /* можно подогнать под дизайн */
+      width: 300px; /* увеличенный размер */
       height: auto;
       transition: transform 0.5s ease, opacity 0.5s ease;
+      display: inline-block;
     }
     /* Класс для анимации взрыва */
     .explode {
@@ -40,11 +41,11 @@
       }
     }
   </style>
-
+  
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
-
+  
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -78,7 +79,7 @@
     </div>
     <button id="languageSwitchBtn" style="position: absolute; top: 10px; right: 10px;" onclick="toggleLanguage()">Русский</button>
   </header>
-
+  
   <!-- Main Content -->
   <main>
     <!-- PLAY SECTION -->
@@ -159,7 +160,7 @@
         </div>
       </div>
     </section>
-
+  
     <!-- TICKETS SECTION -->
     <section id="ticketsSection" class="section">
       <h2 id="ticketsHeader">Tickets</h2>
@@ -198,7 +199,7 @@
         <div class="spin-result" id="spinResult"></div>
       </div>
     </section>
-
+  
     <!-- LEADERBOARD SECTION -->
     <section id="leaderboardSection" class="section">
       <h2 id="leaderboardHeader">Leaderboard</h2>
@@ -222,7 +223,7 @@
         </table>
       </div>
     </section>
-
+  
     <!-- LOOT BOX SECTION -->
     <section id="referralSection" class="section">
       <h2 id="referralHeader">Cyber Case</h2>
@@ -238,34 +239,7 @@
       <div class="lootbox-container" id="lootboxContainer" style="display: none;">
         <div class="lootbox-indicator"></div>
         <div class="lootbox-roulette" id="lootboxRoulette">
-          <div class="lootbox-prize">
-            <img src="10tickets.png" alt="10 билетов">
-            <span>10 билетов</span>
-          </div>
-          <div class="lootbox-prize">
-            <img src="1m.png" alt="1 млн токенов">
-            <span>1 млн токенов</span>
-          </div>
-          <div class="lootbox-prize">
-            <img src="spinagain.png" alt="+1 спин">
-            <span>+1 спин</span>
-          </div>
-          <div class="lootbox-prize">
-            <img src="5tickets.png" alt="5 билетов">
-            <span>5 билетов</span>
-          </div>
-          <div class="lootbox-prize">
-            <img src="500stars.png" alt="500 звёзд">
-            <span>500 звёзд</span>
-          </div>
-          <div class="lootbox-prize">
-            <img src="1000stars.png" alt="1000 звёзд">
-            <span>1000 звёзд</span>
-          </div>
-          <div class="lootbox-prize">
-            <img src="10m.png" alt="10 млн токенов">
-            <span>10 млн токенов</span>
-          </div>
+          <!-- Призы будут инициализированы динамически -->
         </div>
       </div>
       
@@ -280,7 +254,7 @@
       </div>
     </section>
   </main>
-
+  
   <!-- Bottom Navigation -->
   <nav id="mainNav">
     <button onclick="showSection('playSection')">
@@ -296,7 +270,7 @@
       <img src="https://img.icons8.com/ios-filled/50/ffffff/share.png" alt="Cyber Case" id="navReferralAlt"/>
     </button>
   </nav>
-
+  
   <!-- Global Modal -->
   <div class="modal-backdrop" id="globalModalBackdrop">
     <div class="modal">
@@ -305,7 +279,7 @@
       <button class="close-modal" onclick="closeGlobalModal()">OK</button>
     </div>
   </div>
-
+  
   <!-- Season Info Modal -->
   <div class="modal-backdrop" id="seasonModalBackdrop">
     <div class="modal modal-season">
@@ -314,7 +288,7 @@
       <button class="close-modal" onclick="closeSeasonModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Modal for Loot Box Info -->
   <div class="modal-backdrop" id="lootBoxInfoModal">
     <div class="modal">
@@ -323,7 +297,7 @@
       <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Game Info Modal -->
   <div class="modal-backdrop" id="gameInfoModal">
     <div class="modal">
@@ -334,7 +308,7 @@
       <button class="close-modal" onclick="closeGameInfoModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Spin Result Modal -->
   <div class="modal-backdrop" id="spinModalBackdrop">
     <div class="modal">
@@ -342,7 +316,7 @@
       <button class="close-modal" onclick="closeSpinModal()">OK</button>
     </div>
   </div>
-
+  
   <!-- Fullscreen Game Modal -->
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
@@ -357,7 +331,7 @@
       </div>
     </div>
   </div>
-
+  
   <!-- Endgame Modal -->
   <div class="endgame-backdrop" id="endgameBackdrop">
     <div class="endgame-modal">
@@ -366,7 +340,7 @@
       <button class="close-modal" onclick="finishGame()">Close</button>
     </div>
   </div>
-
+  
   <!-- Modal for Main Online Games Info -->
   <div class="modal-backdrop" id="mainOnlineInfoModal">
     <div class="modal">
@@ -375,7 +349,7 @@
       <button class="close-modal" onclick="closeMainOnlineInfoModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Modal for Mini Games Info -->
   <div class="modal-backdrop" id="miniGamesInfoModal">
     <div class="modal">
@@ -384,7 +358,7 @@
       <button class="close-modal" onclick="closeMiniGamesInfoModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Modal for Partner Games Info -->
   <div class="modal-backdrop" id="partnerInfoModal">
     <div class="modal">
@@ -393,7 +367,7 @@
       <button class="close-modal" onclick="closePartnerInfoModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Modal for Deposit -->
   <div class="modal-backdrop" id="depositModal">
     <div class="modal">
@@ -402,7 +376,7 @@
       <button class="close-modal" onclick="closeDepositModal()">Close</button>
     </div>
   </div>
-
+  
   <!-- Подключаем скрипты игр и основной скрипт -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
@@ -412,7 +386,7 @@
   <script src="game5.js"></script>
   <script src="game6.js"></script>
   <script src="case.js"></script>
-
+  
   <script>
     /* ----------------------------------------------
        1. Translation Settings
@@ -514,7 +488,7 @@
         gameCard5Button: "Подробнее"
       }
     };
-
+  
     function updateLanguage() {
       document.title = translations[currentLanguage].pageTitle;
       document.getElementById('languageSwitchBtn').textContent = translations[currentLanguage].languageButton;
@@ -569,12 +543,12 @@
         document.body.classList.remove('en');
       }
     }
-
+  
     function toggleLanguage() {
       currentLanguage = (currentLanguage === 'en') ? 'ru' : 'en';
       updateLanguage();
     }
-
+  
     /* ----------------------------------------------
        2. Firebase Initialization
     ---------------------------------------------- */
@@ -590,13 +564,13 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
+  
     /* ----------------------------------------------
        3. Telegram Web App
     ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
     tg.expand();
-
+  
     /* ----------------------------------------------
        4. Global Variables & User Data
     ---------------------------------------------- */
@@ -612,7 +586,7 @@
       cyberCase: 0
     };
     let gameInProgress = false;
-
+  
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
@@ -649,7 +623,7 @@
         updateCaseCount();
       });
     }
-
+  
     /* ----------------------------------------------
        5. Update Top Bar
     ---------------------------------------------- */
@@ -658,12 +632,12 @@
       document.getElementById('coinCount').textContent   = localUserData.coins || 0;
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
-
+  
     function updateCaseCount() {
       document.getElementById('caseCountText').textContent =
         `У тебя ${localUserData.cyberCase} Cyber Case`;
     }
-
+  
     /* ----------------------------------------------
        6. Section Switching
     ---------------------------------------------- */
@@ -674,7 +648,7 @@
       document.getElementById('endgameBackdrop').classList.remove('active');
       document.getElementById(sectionId).classList.add('active');
     }
-
+  
     /* ----------------------------------------------
        7. Global Modal
     ---------------------------------------------- */
@@ -686,7 +660,7 @@
     function closeGlobalModal() {
       document.getElementById('globalModalBackdrop').classList.remove('active');
     }
-
+  
     /* ----------------------------------------------
        8. Game Info Modal (Подробнее)
     ---------------------------------------------- */
@@ -705,7 +679,7 @@
     function closeGameInfoModal() {
       document.getElementById('gameInfoModal').classList.remove('active');
     }
-
+  
     /* ----------------------------------------------
        9. Start Game
     ---------------------------------------------- */
@@ -726,7 +700,7 @@
       currentGame = gameName;
       gameInProgress = true;
       document.getElementById('mainNav').classList.add('hidden');
-
+  
       document.getElementById('gameCanvas').style.display = 'none';
       document.getElementById('match3Canvas').style.display = 'none';
       document.getElementById('partnerGameCanvas').style.display = 'none';
@@ -734,9 +708,9 @@
       document.getElementById('game4Canvas').style.display = 'none';
       document.getElementById('game5Canvas').style.display = 'none';
       document.getElementById('game6Canvas').style.display = 'none';
-
+  
       document.getElementById('gameModalBackdrop').classList.add('active');
-
+  
       if (gameName === 'game1') {
         document.getElementById('gameCanvas').style.display = 'block';
         initGame1();
@@ -760,7 +734,7 @@
         initGame6();
       }
     }
-
+  
     /* ----------------------------------------------
        10. End Game Modal
     ---------------------------------------------- */
@@ -798,7 +772,7 @@
       currentGame = null;
       gameInProgress = false;
     }
-
+  
     /* ----------------------------------------------
        11. Wheel of Fortune / Tickets
     ---------------------------------------------- */
@@ -867,7 +841,7 @@
       }
     }
     setInterval(updateSpinButton, 1000);
-
+  
     /* ----------------------------------------------
        12. Leaderboard
     ---------------------------------------------- */
@@ -903,21 +877,21 @@
         }
       });
     });
-
+  
     function openSeasonInfoModal() {
       document.getElementById('seasonModalBackdrop').classList.add('active');
     }
     function closeSeasonModal() {
       document.getElementById('seasonModalBackdrop').classList.remove('active');
     }
-
+  
     /* ----------------------------------------------
        13. Buy Tickets
     ---------------------------------------------- */
     function buyTickets() {
       window.location.href = 'buyticket.html';
     }
-
+  
     /* ----------------------------------------------
        14. Рулетка (Lootbox) в секции Loot Box
     ---------------------------------------------- */
@@ -930,14 +904,11 @@
       { name: '1000 звёзд',         image: '1000stars.png',   chance: 15 },
       { name: '10 млн токенов',     image: '10m.png',         chance: 10 }
     ];
-
-    let referralInitialized = false;
+  
     function initReferralLootbox() {
-      if (referralInitialized) return;
-      referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Заполняем рулетку один раз
+      // Заполняем рулетку каждый раз при вызове
       referralPrizes.forEach(item => {
         const prizeEl = document.createElement('div');
         prizeEl.className = 'lootbox-prize';
@@ -946,7 +917,7 @@
         rouletteContainer.appendChild(prizeEl);
       });
     }
-
+  
     let isSpinning = false;
     function spinLootBoxForTokens() {
       if (!currentUser) return;
@@ -968,7 +939,7 @@
         spinRoulette();
       }, { once: true });
     }
-
+  
     function spinRoulette() {
       if (isSpinning) return;
       initReferralLootbox();
@@ -1003,7 +974,7 @@
         caseImage.style.opacity = 1;
       }, 10200);
     }
-
+  
     function openLootBox() {
       if (!currentUser) return;
       if (localUserData.cyberCase <= 0) {
@@ -1023,7 +994,7 @@
         spinRoulette();
       }, { once: true });
     }
-
+  
     /* ----------------------------------------------
        Модальные окна для Loot Box
     ---------------------------------------------- */
@@ -1033,12 +1004,12 @@
     function closeLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.remove('active');
     }
-
+  
     /* ----------------------------------------------
        Инициализация языка при загрузке страницы
     ---------------------------------------------- */
     updateLanguage();
-
+  
     function openMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.add('active');
     }
