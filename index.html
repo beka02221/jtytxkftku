@@ -179,13 +179,17 @@
         <table id="leaderboardTable">
           <thead>
             <tr>
-              <th></th>
-              <th></th>
-              <th></th>
+              <th>№</th>
+              <th>Username</th>
+              <th>Points</th>
+              <th>Prize</th>
             </tr>
           </thead>
-          <tbody id="leaderboardBody">
-            <!-- Данные лидерборда обновляются динамически -->
+          <tbody id="leaderboardTop10">
+            <!-- Топ-10 игроков с призами -->
+          </tbody>
+          <tbody id="leaderboardRest">
+            <!-- Остальные игроки -->
           </tbody>
         </table>
       </div>
@@ -193,7 +197,6 @@
 
     <!-- LOOT BOX SECTION -->
     <section id="referralSection" class="section">
-      <!-- Изменён заголовок -->
       <h2 id="referralHeader">Cyber Case</h2>
       <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
       <div class="lootbox-container">
@@ -208,7 +211,6 @@
           <div class="lootbox-prize"><img src="10m.png" alt="10 млн токенов"><span>10 млн токенов</span></div>
         </div>
       </div>
-      <!-- Изменены кнопки: текст, иконки (с увеличенным case.png), выравнивание и отступы -->
       <div class="lootbox-buttons">
         <button id="spinByCoinsBtn" onclick="spinLootBoxForCoins()">
           <img src="token.png" alt="Token" width="24" height="24"> spin for 5m
@@ -286,7 +288,7 @@
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
       <div class="game-canvas">
-       <canvas id="gameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="gameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
         <canvas id="match3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
         <canvas id="partnerGameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
         <canvas id="game3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
@@ -499,6 +501,14 @@
       document.querySelectorAll('.close-modal').forEach(btn => {
         btn.textContent = translations[currentLanguage].close;
       });
+      
+      // Обновляем атрибут lang и класс для корректировки шрифта английского текста
+      document.documentElement.lang = currentLanguage;
+      if (currentLanguage === 'en') {
+        document.body.classList.add('en');
+      } else {
+        document.body.classList.remove('en');
+      }
     }
 
     function toggleLanguage() {
@@ -801,23 +811,28 @@
         points: obj.points || 0
       }));
       usersArray.sort((a, b) => b.points - a.points);
-      const tbody = document.getElementById('leaderboardBody');
-      tbody.innerHTML = '';
+      const top10Body = document.getElementById('leaderboardTop10');
+      const restBody = document.getElementById('leaderboardRest');
+      top10Body.innerHTML = '';
+      restBody.innerHTML = '';
       usersArray.forEach((user, i) => {
         const tr = document.createElement('tr');
         if (currentUser && user.username === currentUser.username) {
           tr.classList.add('current-user');
         }
         if (i < 10) {
-          tr.innerHTML = `<td>${i + 1} <img src="case.png" alt="Prize Icon" width="40" height="40"></td>
+          tr.innerHTML = `<td>${i + 1}</td>
                           <td>@${user.username}</td>
-                          <td>${user.points}</td>`;
+                          <td>${user.points}</td>
+                          <td><img src="case.png" alt="Prize Icon" width="40" height="40"></td>`;
+          top10Body.appendChild(tr);
         } else {
           tr.innerHTML = `<td>${i + 1}</td>
                           <td>@${user.username}</td>
-                          <td>${user.points}</td>`;
+                          <td>${user.points}</td>
+                          <td></td>`;
+          restBody.appendChild(tr);
         }
-        tbody.appendChild(tr);
       });
     });
 
