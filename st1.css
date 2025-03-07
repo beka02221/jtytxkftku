@@ -1,7 +1,3 @@
-/* =========================
-   st1.css (обновлённый)
-   ========================= */
-
 /* СБРОС */
 * {
   margin: 0;
@@ -24,6 +20,11 @@ body {
   background-color: #00103c;
   color: #fff;
   font-family: 'Courier New', monospace;
+}
+
+/* ---------- Коррекция шрифта для английского текста ---------- */
+body.en {
+  font-weight: bold;
 }
 
 /* Шрифты заголовков */
@@ -76,7 +77,6 @@ button:active {
   /* Дополнительные отступы можно задать при необходимости */
 }
 
-
 /* Стили для кнопки с иконкой кошелька */
 #walletLink {
   display: inline-flex;
@@ -86,14 +86,14 @@ button:active {
   border: 1px solid #4b4b4b;
   border-radius: 4px;
   padding: 0;
-  width: 40px;      /* Меньшая ширина */
-  height: 40px;     /* Меньшая высота */
+  width: 40px;
+  height: 40px;
   box-shadow: 0 3px #6b6b6b;
   cursor: pointer;
   transition: transform 0.2s;
   text-decoration: none;
-  margin-top: 2px;    
-  margin-right: 10px; 
+  margin-top: 2px;
+  margin-right: 10px;
 }
 
 #walletLink img {
@@ -111,7 +111,6 @@ button:active {
   transform: translateY(1px) scale(1);
   box-shadow: 0 1px #6b6b6b;
 }
-
 
 /* ---------- Кнопка дизайна (гамбургер) ---------- */
 #design-settings {
@@ -230,7 +229,7 @@ main {
   flex: 1;
   overflow-y: auto;
   padding: 30px 0;
-  padding-bottom: 70px; /* отступ для нижней навигации */
+  padding-bottom: 70px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -241,7 +240,7 @@ main {
   transform: translateY(20px);
   transition: opacity 0.3s ease, transform 0.3s ease;
   width: 100%;
-  margin-top: 60px; /* отступ под шапку */
+  margin-top: 60px;
   margin-bottom: 20px;
   background-color: rgba(68, 0, 82, 0);
   padding: 20px;
@@ -423,13 +422,12 @@ nav button img {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh; /* Полная высота экрана */
+  height: 100vh;
   background: #150069;
   display: none;
   flex-direction: column;
   z-index: 10000;
 }
-
 
 .game-modal-backdrop.active {
   display: flex;
@@ -492,8 +490,6 @@ nav button img {
   font-size: 10px;
 }
 
-/* Модальные кнопки наследуют базовый стиль */
-
 /* ---------- Таблицы (Лидерборд) ---------- */
 .leaderboard-container {
   margin-top: 20px;
@@ -517,7 +513,7 @@ table th,
 table td {
   padding: 8px;
   text-align: left;
-  border: 1px solid #3b3b3b;
+  border: 1px solid #3b3b3b00;
 }
 
 table th {
@@ -545,32 +541,16 @@ table tr.current-user {
   color: #000;
 }
 
-/* ---------- Реферальная секция (старые элементы можно удалить/скорректировать) ---------- */
-.referral-container {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-  align-items: center;
-  text-align: center;
-  padding: 0 10px;
+/* ---------- Стили для блока топ-10 в лидерборде ---------- */
+#leaderboardTop10 {
+  border: 2px solid #FF00FF;
+  border-collapse: separate;
 }
 
-#referralSection h2 {
-  margin-top: 40px;
-  font-size: 16px;
-  text-align: center;
+#leaderboardTop10 td {
+  border: none;
 }
 
-.referral-link {
-  word-wrap: break-word;
-  background-color: #06C1DE;
-  border-radius: 4px;
-  padding: 10px;
-  width: 100%;
-  max-width: 400px;
-  font-size: 10px;
-}
 
 /* ---------- Новый блок: Колесо фортуны (Tickets) ---------- */
 .wheel {
@@ -673,8 +653,6 @@ table tr.current-user {
 /* =====================================
    Обновлённая рулетка призов (Lootbox)
    ===================================== */
-
-/* Главный контейнер рулетки */
 .lootbox-container {
   position: relative;
   width: 95%;
@@ -688,7 +666,6 @@ table tr.current-user {
   box-shadow: 0 0 12px #06C1DE;
 }
 
-/* Внутренний контейнер, который анимируется */
 .lootbox-roulette {
   display: flex;
   height: 100%;
@@ -696,7 +673,6 @@ table tr.current-user {
   animation: none;
 }
 
-/* Стили отдельного приза внутри рулетки */
 .lootbox-prize {
   flex: none;
   width: 120px;
@@ -724,7 +700,6 @@ table tr.current-user {
   text-align: center;
 }
 
-/* Индикатор выигрыша (прозрачная линия по центру) */
 .lootbox-indicator {
   position: absolute;
   top: 0;
@@ -737,7 +712,6 @@ table tr.current-user {
   box-shadow: 0 0 8px #fff;
 }
 
-/* Кнопка Spin под рулеткой */
 #lootboxSpinBtn {
   display: block;
   width: 150px;
@@ -746,3 +720,4 @@ table tr.current-user {
   font-size: 12px;
   cursor: pointer;
 }
+
