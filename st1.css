@@ -76,7 +76,6 @@ button:active {
   /* Дополнительные отступы можно задать при необходимости */
 }
 
-
 /* Стили для кнопки с иконкой кошелька */
 #walletLink {
   display: inline-flex;
@@ -86,14 +85,14 @@ button:active {
   border: 1px solid #4b4b4b;
   border-radius: 4px;
   padding: 0;
-  width: 40px;      /* Меньшая ширина */
-  height: 40px;     /* Меньшая высота */
+  width: 40px;
+  height: 40px;
   box-shadow: 0 3px #6b6b6b;
   cursor: pointer;
   transition: transform 0.2s;
   text-decoration: none;
-  margin-top: 2px;    
-  margin-right: 10px; 
+  margin-top: 2px;
+  margin-right: 10px;
 }
 
 #walletLink img {
@@ -111,7 +110,6 @@ button:active {
   transform: translateY(1px) scale(1);
   box-shadow: 0 1px #6b6b6b;
 }
-
 
 /* ---------- Кнопка дизайна (гамбургер) ---------- */
 #design-settings {
@@ -419,11 +417,10 @@ nav button img {
 
 /* ---------- Модал игры на весь экран ---------- */
 .game-modal-backdrop {
-  position: fixed;
-  top: 50px;
+  top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% - 60px);
+  height: 100%;
   background: #150069;
   display: none;
   flex-direction: column;
@@ -435,10 +432,11 @@ nav button img {
 }
 
 .game-modal-content {
-  flex: 1;
-  display: flex; 
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  display: flex;
   flex-direction: column;
-  margin-top: 60px;
 }
 
 .hidden {
@@ -446,10 +444,17 @@ nav button img {
 }
 
 .game-canvas {
-  flex: 1;
-  display: flex; 
-  align-items: center; 
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
+}
+
+.game-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* ---------- Модал результата игры ---------- */
@@ -490,8 +495,6 @@ nav button img {
   margin-bottom: 16px;
   font-size: 10px;
 }
-
-/* Модальные кнопки наследуют базовый стиль */
 
 /* ---------- Таблицы (Лидерборд) ---------- */
 .leaderboard-container {
@@ -544,7 +547,22 @@ table tr.current-user {
   color: #000;
 }
 
-/* ---------- Реферальная секция (старые элементы можно удалить/скорректировать) ---------- */
+/* ---------- Оформление топ-10 (более яркий фон) ---------- */
+/* Предполагается, что строки топ-10 помечены классом .top10 */
+table tr.top10 {
+  outline: 2px solid #FF00FF;
+}
+
+/* Для топ-10 строк делаем ярче фон — используем яркие версии исходных цветов */
+table tr.top10:nth-child(odd) {
+  background-color: #443387;  /* светлее, чем #150069 */
+}
+
+table tr.top10:nth-child(even) {
+  background-color: #4c4956;  /* светлее, чем #1f1c2c */
+}
+
+/* ---------- Реферальная секция ---------- */
 .referral-container {
   margin-top: 20px;
   display: flex;
@@ -669,11 +687,7 @@ table tr.current-user {
   margin-top: 20px;
 }
 
-/* =====================================
-   Обновлённая рулетка призов (Lootbox)
-   ===================================== */
-
-/* Главный контейнер рулетки */
+/* ---------- Обновлённая рулетка призов (Lootbox) ---------- */
 .lootbox-container {
   position: relative;
   width: 95%;
@@ -687,7 +701,6 @@ table tr.current-user {
   box-shadow: 0 0 12px #06C1DE;
 }
 
-/* Внутренний контейнер, который анимируется */
 .lootbox-roulette {
   display: flex;
   height: 100%;
@@ -695,7 +708,6 @@ table tr.current-user {
   animation: none;
 }
 
-/* Стили отдельного приза внутри рулетки */
 .lootbox-prize {
   flex: none;
   width: 120px;
@@ -723,7 +735,6 @@ table tr.current-user {
   text-align: center;
 }
 
-/* Индикатор выигрыша (прозрачная линия по центру) */
 .lootbox-indicator {
   position: absolute;
   top: 0;
@@ -736,6 +747,14 @@ table tr.current-user {
   box-shadow: 0 0 8px #fff;
 }
 
+/* Новый стиль для кнопок в Loot Box */
+.lootbox-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
 /* Кнопка Spin под рулеткой */
 #lootboxSpinBtn {
   display: block;
@@ -746,3 +765,40 @@ table tr.current-user {
   cursor: pointer;
 }
 
+/* ---------- Блок для призов ---------- */
+/* Отдельный блок, отделённый сверху и снизу линиями (границами) */
+.prize-block {
+  border-top: 2px solid #FF00FF;
+  border-bottom: 2px solid #FF00FF;
+  padding: 10px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Расположение элементов в блоке: номер, имя, очки и иконка приза */
+.prize-block .rank {
+  width: 30px;
+  text-align: center;
+}
+
+.prize-block .username {
+  flex: 1;
+}
+
+.prize-block .points {
+  width: 60px;
+  text-align: right;
+}
+
+.prize-block .prize-icon {
+  width: 32px;
+  height: 32px;
+}
+
+/* ---------- Коррекция шрифта для английского текста ---------- */
+/* Если на странице установлен язык английский, текст делается более жирным */
+html:lang(en) body {
+  font-weight: bold;
+}
