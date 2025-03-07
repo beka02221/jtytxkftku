@@ -67,7 +67,7 @@ button:active {
   box-shadow: 0 1px #6b6b6b;
 }
 
-/* Специфичные стили для кнопок, если требуются дополнительные отступы или позиционирование */
+/* Специфичные стили для кнопок */
 .info-button {
   margin: 20px;
   float: right;
@@ -722,34 +722,6 @@ table tr.current-user {
 
 /* ============================
    Новый блок: Большой кейс
-   ============================ */
-
-/* Контейнер для большой картинки кейса */
-.case-container {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.case-container img {
-  width: 300px; /* увеличенный размер */
-  height: auto;
-  transition: transform 0.5s ease, opacity 0.5s ease;
-  display: inline-block;
-}
-
-/* Класс для анимации "взрыва" */
-.explode {
-  animation: explode 0.5s forwards;
-}
-
-@keyframes explode {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
-}
-
+   ============================
+   (Оформление блока .case-container и анимации описано во встроенном CSS в index.html)
+*/
