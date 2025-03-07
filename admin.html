@@ -62,7 +62,7 @@
 
   <div class="container hidden" id="adminContainer">
     <h1>Панель Администратора</h1>
-    <button id="giveCasesBtn">Выдать кейсы топ-10 игрокам</button>
+    <button id="giveCasesBtn">Выдать case топ-10 игрокам</button>
     <button id="resetScoresBtn">Сбросить points и билеты всех игроков</button>
     <div id="status"></div>
   </div>
@@ -99,7 +99,7 @@
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
 
-      // Функция выдачи кейсов топ-10 игрокам
+      // Функция выдачи кейсов топ-10 игрокам (обновляем поле "case")
       document.getElementById('giveCasesBtn').addEventListener('click', function() {
         var statusDiv = document.getElementById('status');
         statusDiv.textContent = "В процессе...";
@@ -113,14 +113,15 @@
           // Сортировка по убыванию points
           usersArray.sort(function(a, b) { return b.points - a.points; });
           var top10 = usersArray.slice(0, 10);
-          // Выдаем каждому из топ-10 +1 Cyber Case
+          // Выдаем каждому из топ-10 +1 case
           top10.forEach(function(user) {
             db.ref('users/' + user.username).once('value').then(function(snap) {
-              var currentCases = snap.val().cyberCase || 0;
-              db.ref('users/' + user.username).update({ cyberCase: currentCases + 1 });
+              // Используем ключ "case". Обратите внимание, что "case" – зарезервированное слово, поэтому обращаемся через квадратные скобки.
+              var currentCase = (snap.val()["case"] || 0);
+              db.ref('users/' + user.username).update({ "case": currentCase + 1 });
             });
           });
-          statusDiv.textContent = "Кейсы успешно выданы топ-10 игрокам!";
+          statusDiv.textContent = "Case успешно выданы топ-10 игрокам!";
         }).catch(function(error) {
           statusDiv.textContent = "Ошибка: " + error;
         });
