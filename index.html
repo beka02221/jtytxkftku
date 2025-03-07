@@ -13,6 +13,34 @@
   <!-- Подключение темы (по умолчанию st1.css) -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
 
+  <!-- Дополнительный CSS для нового блока Loot Box -->
+  <style>
+    /* Новый блок для большой картинки кейса */
+    .case-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .case-container img {
+      width: 200px; /* можно подогнать под дизайн */
+      height: auto;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+    /* Класс для анимации взрыва */
+    .explode {
+      animation: explode 0.5s forwards;
+    }
+    @keyframes explode {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2.5);
+        opacity: 0;
+      }
+    }
+  </style>
+
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
@@ -199,24 +227,55 @@
     <section id="referralSection" class="section">
       <h2 id="referralHeader">Cyber Case</h2>
       <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
-      <div class="lootbox-container">
+      
+      <!-- Новый блок: большая картинка кейса и текст количества -->
+      <div class="case-container">
+        <img id="caseImage" src="case.png" alt="Cyber Case">
+        <p id="caseCountText">У тебя 0 Cyber Case</p>
+      </div>
+      
+      <!-- Контейнер рулетки, изначально скрыт -->
+      <div class="lootbox-container" id="lootboxContainer" style="display: none;">
         <div class="lootbox-indicator"></div>
         <div class="lootbox-roulette" id="lootboxRoulette">
-          <div class="lootbox-prize"><img src="10tickets.png" alt="10 билетов"><span>10 билетов</span></div>
-          <div class="lootbox-prize"><img src="1m.png" alt="1 млн токенов"><span>1 млн токенов</span></div>
-          <div class="lootbox-prize"><img src="spinagain.png" alt="+1 спин"><span>+1 спин</span></div>
-          <div class="lootbox-prize"><img src="5tickets.png" alt="5 билетов"><span>5 билетов</span></div>
-          <div class="lootbox-prize"><img src="500stars.png" alt="500 звёзд"><span>500 звёзд</span></div>
-          <div class="lootbox-prize"><img src="1000stars.png" alt="1000 звёзд"><span>1000 звёзд</span></div>
-          <div class="lootbox-prize"><img src="10m.png" alt="10 млн токенов"><span>10 млн токенов</span></div>
+          <div class="lootbox-prize">
+            <img src="10tickets.png" alt="10 билетов">
+            <span>10 билетов</span>
+          </div>
+          <div class="lootbox-prize">
+            <img src="1m.png" alt="1 млн токенов">
+            <span>1 млн токенов</span>
+          </div>
+          <div class="lootbox-prize">
+            <img src="spinagain.png" alt="+1 спин">
+            <span>+1 спин</span>
+          </div>
+          <div class="lootbox-prize">
+            <img src="5tickets.png" alt="5 билетов">
+            <span>5 билетов</span>
+          </div>
+          <div class="lootbox-prize">
+            <img src="500stars.png" alt="500 звёзд">
+            <span>500 звёзд</span>
+          </div>
+          <div class="lootbox-prize">
+            <img src="1000stars.png" alt="1000 звёзд">
+            <span>1000 звёзд</span>
+          </div>
+          <div class="lootbox-prize">
+            <img src="10m.png" alt="10 млн токенов">
+            <span>10 млн токенов</span>
+          </div>
         </div>
       </div>
+      
+      <!-- Новые кнопки -->
       <div class="lootbox-buttons">
-        <button id="spinByCoinsBtn" onclick="spinLootBoxForCoins()">
-          <img src="token.png" alt="Token" width="24" height="24"> spin for 5m
+        <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
+          open for 5m <img src="token.png" alt="Token" width="24" height="24">
         </button>
-        <button id="spinByDataChipBtn" onclick="spinLootBoxForDataChip()">
-          <img src="case.png" alt="Case" width="40" height="40"> open for
+        <button id="openBtn" onclick="openLootBox()">
+          Open
         </button>
       </div>
     </section>
@@ -370,7 +429,7 @@
         spinButton: "Spin",
         buyTickets: "Buy Tickets",
         leaderboard: "Leaderboard",
-        referral: "Referral",
+        referral: "Cyber Case",
         copyLink: "Copy Link",
         info: "Info",
         play: "Play",
@@ -417,7 +476,7 @@
         spinButton: "Крутить",
         buyTickets: "Купить билеты",
         leaderboard: "Таблица лидеров",
-        referral: "Реферальная программа",
+        referral: "Cyber Case",
         copyLink: "Скопировать ссылку",
         info: "Инфо",
         play: "Играть",
@@ -549,7 +608,8 @@
       coins: 0,
       points: 0,
       lastSpinTime: 0,
-      dataChip: false
+      dataChip: false,
+      cyberCase: 0
     };
     let gameInProgress = false;
 
@@ -568,7 +628,8 @@
             coins: 0,
             points: 0,
             lastSpinTime: 0,
-            dataChip: false
+            dataChip: false,
+            cyberCase: 0
           });
         }
       });
@@ -580,10 +641,12 @@
           coins: data.coins || 0,
           points: data.points || 0,
           lastSpinTime: data.lastSpinTime || 0,
-          dataChip: data.dataChip || false
+          dataChip: data.dataChip || false,
+          cyberCase: data.cyberCase || 0
         };
         updateTopBar();
         updateSpinButton();
+        updateCaseCount();
       });
     }
 
@@ -594,6 +657,11 @@
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
       document.getElementById('coinCount').textContent   = localUserData.coins || 0;
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
+    }
+
+    function updateCaseCount() {
+      document.getElementById('caseCountText').textContent =
+        `У тебя ${localUserData.cyberCase} Cyber Case`;
     }
 
     /* ----------------------------------------------
@@ -868,31 +936,19 @@
       if (referralInitialized) return;
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
-      for (let cycle = 0; cycle < 6; cycle++) {
-        referralPrizes.forEach(item => {
-          const prizeEl = document.createElement('div');
-          prizeEl.className = 'lootbox-prize';
-          prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
-                               <span>${item.name}</span>`;
-          rouletteContainer.appendChild(prizeEl);
-        });
-      }
-    }
-
-    function getRandomPrize() {
-      const totalChance = referralPrizes.reduce((sum, p) => sum + p.chance, 0);
-      let rand = Math.floor(Math.random() * totalChance);
-      for (let i = 0; i < referralPrizes.length; i++) {
-        if (rand < referralPrizes[i].chance) {
-          return referralPrizes[i];
-        }
-        rand -= referralPrizes[i].chance;
-      }
-      return referralPrizes[referralPrizes.length - 1];
+      rouletteContainer.innerHTML = '';
+      // Заполняем рулетку один раз
+      referralPrizes.forEach(item => {
+        const prizeEl = document.createElement('div');
+        prizeEl.className = 'lootbox-prize';
+        prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
+                             <span>${item.name}</span>`;
+        rouletteContainer.appendChild(prizeEl);
+      });
     }
 
     let isSpinning = false;
-    function spinLootBoxForCoins() {
+    function spinLootBoxForTokens() {
       if (!currentUser) return;
       if (localUserData.coins < 5000000) {
         showGlobalModal(translations[currentLanguage].depositModalTitle, translations[currentLanguage].depositModalDesc);
@@ -902,6 +958,18 @@
       updateTopBar();
       userRef.update({ coins: localUserData.coins });
       
+      const caseImage = document.getElementById('caseImage');
+      caseImage.classList.add('explode');
+      
+      caseImage.addEventListener('animationend', () => {
+        // Скрываем блок кейса и показываем рулетку
+        document.querySelector('.case-container').style.display = 'none';
+        document.getElementById('lootboxContainer').style.display = 'block';
+        spinRoulette();
+      }, { once: true });
+    }
+
+    function spinRoulette() {
       if (isSpinning) return;
       initReferralLootbox();
       isSpinning = true;
@@ -925,39 +993,35 @@
         isSpinning = false;
         const prize = referralPrizes[randomIndex];
         showGlobalModal('Поздравляем!', `Ваш выигрыш: ${prize.name}`);
+        
+        // Сброс интерфейса: прячем рулетку и возвращаем блок кейса
+        document.getElementById('lootboxContainer').style.display = 'none';
+        const caseContainer = document.querySelector('.case-container');
+        caseContainer.style.display = 'block';
+        const caseImage = document.getElementById('caseImage');
+        caseImage.classList.remove('explode');
+        caseImage.style.opacity = 1;
       }, 10200);
     }
 
-    function spinLootBoxForDataChip() {
+    function openLootBox() {
       if (!currentUser) return;
-      if (!localUserData.dataChip) {
-        showGlobalModal('Ошибка', 'Для вращения необходимо получить data chip!');
+      if (localUserData.cyberCase <= 0) {
+        showGlobalModal('Ошибка', 'У вас нет Cyber Case для открытия!');
         return;
       }
-      if (isSpinning) return;
-      initReferralLootbox();
-      isSpinning = true;
-      const roulette = document.getElementById('lootboxRoulette');
-      const prizeWidth = 136;
-      const count = referralPrizes.length;
-      const visibleCenter = roulette.parentElement.offsetWidth / 2;
-      const fullCycles = 5;
-      const randomIndex = Math.floor(Math.random() * count);
-      const finalIndex = randomIndex + fullCycles * count;
-      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
+      localUserData.cyberCase -= 1;
+      updateCaseCount();
+      userRef.update({ cyberCase: localUserData.cyberCase });
       
-      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
-      roulette.style.transform = `translateX(${finalOffset}px)`;
+      const caseImage = document.getElementById('caseImage');
+      caseImage.classList.add('explode');
       
-      setTimeout(() => {
-        const remainder = finalIndex % count;
-        const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
-        roulette.style.transition = 'none';
-        roulette.style.transform = `translateX(${newOffset}px)`;
-        isSpinning = false;
-        const prize = referralPrizes[randomIndex];
-        showGlobalModal('Поздравляем!', `Ваш выигрыш: ${prize.name}`);
-      }, 10200);
+      caseImage.addEventListener('animationend', () => {
+        document.querySelector('.case-container').style.display = 'none';
+        document.getElementById('lootboxContainer').style.display = 'block';
+        spinRoulette();
+      }, { once: true });
     }
 
     /* ----------------------------------------------
