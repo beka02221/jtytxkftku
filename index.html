@@ -16,18 +16,21 @@
   <!-- Дополнительный CSS для нового блока Loot Box -->
   <style>
     /* Новый блок для большой картинки кейса */
-    .case-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
+  .case-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;      /* центрирует содержимое по горизонтали */
+  justify-content: center;  /* центрирует содержимое по вертикали, если нужно */
+  margin: 20px auto;        /* автоотступы для центрирования блока */
+  text-align: center;
+}
+
     .case-container img {
-      width: 300px; /* увеличенное изображение */
-      height: auto;
-      transition: transform 0.5s ease, opacity 0.5s ease;
-    }
+  width: 300px;
+  height: auto;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
     /* Класс для анимации взрыва */
     .explode {
       animation: explode 0.5s forwards;
