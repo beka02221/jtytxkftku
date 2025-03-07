@@ -420,7 +420,7 @@ nav button img {
 /* ---------- Модал игры на весь экран ---------- */
 .game-modal-backdrop {
   position: fixed;
-  top: 50px;
+  top: 0px;
   left: 0;
   width: 100%;
   height: calc(100% - 60px);
@@ -438,7 +438,7 @@ nav button img {
   flex: 1;
   display: flex; 
   flex-direction: column;
-  margin-top: 60px;
+  margin-top: 0px;
 }
 
 .hidden {
