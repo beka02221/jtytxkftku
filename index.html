@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
@@ -10,18 +10,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
-  <!-- Подключение темы (по умолчанию st1.css) -->
+  <!-- Default theme -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
 
-  <!-- Дополнительный CSS для нового блока Loot Box -->
+  <!-- Additional CSS for Loot Box block -->
   <style>
-    /* Новый блок для большой картинки кейса */
+    /* Block for large case image */
     .case-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin: 20px auto;  /* Центрирование по горизонтали за счёт auto */
+      margin: 20px auto;
       text-align: center;
     }
 
@@ -31,7 +31,7 @@
       transition: transform 0.5s ease, opacity 0.5s ease;
     }
 
-    /* Класс для анимации взрыва */
+    /* Explode animation */
     .explode {
       animation: explode 0.5s forwards;
     }
@@ -82,7 +82,6 @@
         <span id="pointCount">0</span>
       </span>
     </div>
-    <button id="languageSwitchBtn" style="position: absolute; top: 10px; right: 10px;" onclick="toggleLanguage()">Русский</button>
   </header>
 
   <!-- Main Content -->
@@ -220,10 +219,10 @@
             </tr>
           </thead>
           <tbody id="leaderboardTop10">
-            <!-- Топ-10 игроков с призами -->
+            <!-- Top-10 players with prizes -->
           </tbody>
           <tbody id="leaderboardRest">
-            <!-- Остальные игроки -->
+            <!-- Other players -->
           </tbody>
         </table>
       </div>
@@ -234,21 +233,21 @@
       <h2 id="referralHeader">Cyber Case</h2>
       <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
       
-      <!-- Блок с большим кейсом и текстом количества -->
+      <!-- Case block with large image and case count text -->
       <div class="case-container">
         <img id="caseImage" src="case.png" alt="Cyber Case">
-        <p id="caseCountText">У тебя 0 Cyber Case</p>
+        <p id="caseCountText">You have 0 Cyber Case</p>
       </div>
       
-      <!-- Контейнер рулетки, изначально скрыт -->
+      <!-- Roulette container, initially hidden -->
       <div class="lootbox-container" id="lootboxContainer" style="display: none;">
         <div class="lootbox-indicator"></div>
         <div class="lootbox-roulette" id="lootboxRoulette">
-          <!-- Призы будут заполнены динамически -->
+          <!-- Prizes will be added dynamically -->
         </div>
       </div>
       
-      <!-- Кнопки -->
+      <!-- Buttons -->
       <div class="lootbox-buttons">
         <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
           open for 5m <img src="token.png" alt="Token" width="24" height="24">
@@ -289,7 +288,7 @@
   <div class="modal-backdrop" id="seasonModalBackdrop">
     <div class="modal modal-season">
       <h2 id="seasonModalTitle">Season Information</h2>
-      <p id="seasonModalDesc">1 сизон. Сезон длится 1 неделю. По окончании сезона, каждому из топ-10 игроков выдается кейс.</p>
+      <p id="seasonModalDesc">Season 1. The season lasts 1 week. At the end of the season, each of the top 10 players automatically receives one case.</p>
       <button class="close-modal" onclick="closeSeasonModal()">Close</button>
     </div>
   </div>
@@ -298,7 +297,7 @@
   <div class="modal-backdrop" id="lootBoxInfoModal">
     <div class="modal">
       <h2 id="lootBoxInfoTitle">Loot Box Info</h2>
-      <p id="lootBoxInfoDesc">Здесь вы можете вращать лутбокс, используя монеты или data chip.</p>
+      <p id="lootBoxInfoDesc">You can spin the loot box using coins or data chip.</p>
       <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
   </div>
@@ -382,7 +381,7 @@
     </div>
   </div>
 
-  <!-- Подключаем скрипты игр и основной скрипт -->
+  <!-- Include game scripts and main script -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
   <script src="partnergame1.js"></script>
@@ -394,13 +393,11 @@
 
   <script>
     /* ----------------------------------------------
-       1. Translation Settings
+       1. English Text Settings
     ---------------------------------------------- */
-    let currentLanguage = 'en';
     const translations = {
       en: {
         pageTitle: "Mobile Games Site",
-        languageButton: "rus",
         mainOnlineGames: "Main Online Games",
         miniGames: "Mini Games",
         partnerGames: "Partner Games",
@@ -433,7 +430,6 @@
         mainOnlineGamesInfo: "This section includes 2 main games: Dino Runner and Special Game.",
         miniGamesInfo: "Players participate in mini games, earning points for their activity. Every 3 days, top 10 players receive reward cases.",
         partnerGamesInfo: "Partner game from our partner.",
-        // Game Cards
         gameCard1Title: "Online snake",
         gameCard1Button: "More Details",
         gameCard2Title: "Match-3",
@@ -444,114 +440,57 @@
         gameCard4Button: "More Details",
         gameCard5Title: "Partner Game",
         gameCard5Button: "More Details"
-      },
-      ru: {
-        pageTitle: "Мобильные игры",
-        languageButton: "Eng",
-        mainOnlineGames: "Основные онлайн игры",
-        miniGames: "Мини игры",
-        partnerGames: "Партнерские игры",
-        tickets: "Билеты",
-        spinButton: "Крутить",
-        buyTickets: "Купить билеты",
-        leaderboard: "Таблица лидеров",
-        referral: "Cyber Case",
-        copyLink: "Скопировать ссылку",
-        info: "Инфо",
-        play: "Играть",
-        moreDetails: "Подробнее",
-        error: "Ошибка",
-        noUserData: "Данные пользователя недоступны!",
-        notEnoughTickets: "Недостаточно билетов",
-        notEnoughTicketsMsg: "У вас недостаточно билетов для игры!",
-        wheelModalTitle: "Колесо фортуны",
-        wheelModalMsg: "Бесплатный спин доступен раз в 24 часа!",
-        youWon: "Вы выиграли",
-        ticketsPlural: "билетов",
-        result: "Результат",
-        close: "Закрыть",
-        seasonInfoTitle: "Информация о сезоне",
-        seasonInfoDesc: "1 сизон. Сезон длится 1 неделю. По окончании сезона, каждому из топ-10 игроков выдается кейс.",
-        depositModalTitle: "Недостаточно монет",
-        depositModalDesc: "У вас недостаточно монет для игры. Пожалуйста, пополните баланс.",
-        copied: "Скопировано",
-        copiedMsg: "Ссылка скопирована в буфер обмена!",
-        inviteLink: "Пригласите друзей по ссылке и зарабатывайте бонусы!",
-        mainOnlineGamesInfo: "В этом разделе представлены 2 основные игры: Dino Runner и Special Game.",
-        miniGamesInfo: "Игроки участвуют в мини играх, зарабатывая очки за активность. Каждые 3 дня топ-10 игроков получают кейсы с наградами.",
-        partnerGamesInfo: "Партнерская игра от нашего партнёра.",
-        // Game Cards
-        gameCard1Title: "Онлайн змейка",
-        gameCard1Button: "Подробнее",
-        gameCard2Title: "Match-3",
-        gameCard2Button: "Подробнее",
-        gameCard3Title: "Игра 3",
-        gameCard3Button: "Подробнее",
-        gameCard4Title: "Космический исследователь",
-        gameCard4Button: "Подробнее",
-        gameCard5Title: "Партнерская игра",
-        gameCard5Button: "Подробнее"
       }
     };
+    let currentLanguage = 'en';
 
     function updateLanguage() {
-      document.title = translations[currentLanguage].pageTitle;
-      document.getElementById('languageSwitchBtn').textContent = translations[currentLanguage].languageButton;
-      document.getElementById('ticketsHeader').textContent = translations[currentLanguage].tickets;
-      document.getElementById('leaderboardHeader').textContent = translations[currentLanguage].leaderboard;
-      document.getElementById('referralHeader').textContent = translations[currentLanguage].referral;
-      document.getElementById('mainOnlineHeaderText').textContent = translations[currentLanguage].mainOnlineGames;
-      document.getElementById('miniGamesHeaderText').textContent = translations[currentLanguage].miniGames;
-      document.getElementById('partnerGamesHeaderText').textContent = translations[currentLanguage].partnerGames;
+      document.title = translations.en.pageTitle;
+      document.getElementById('ticketsHeader').textContent = translations.en.tickets;
+      document.getElementById('leaderboardHeader').textContent = translations.en.leaderboard;
+      document.getElementById('referralHeader').textContent = translations.en.referral;
+      document.getElementById('mainOnlineHeaderText').textContent = translations.en.mainOnlineGames;
+      document.getElementById('miniGamesHeaderText').textContent = translations.en.miniGames;
+      document.getElementById('partnerGamesHeaderText').textContent = translations.en.partnerGames;
       if (!document.getElementById('spinButton').disabled) {
-        document.getElementById('spinButton').textContent = translations[currentLanguage].spinButton;
+        document.getElementById('spinButton').textContent = translations.en.spinButton;
       }
-      document.getElementById('buyTicketsBtn').textContent = translations[currentLanguage].buyTickets;
+      document.getElementById('buyTicketsBtn').textContent = translations.en.buyTickets;
       
-      document.getElementById('navPlayAlt').alt = translations[currentLanguage].play;
-      document.getElementById('navTicketsAlt').alt = translations[currentLanguage].tickets;
-      document.getElementById('navLeaderboardAlt').alt = translations[currentLanguage].leaderboard;
-      document.getElementById('navReferralAlt').alt = translations[currentLanguage].referral;
+      document.getElementById('navPlayAlt').alt = translations.en.play;
+      document.getElementById('navTicketsAlt').alt = translations.en.tickets;
+      document.getElementById('navLeaderboardAlt').alt = translations.en.leaderboard;
+      document.getElementById('navReferralAlt').alt = translations.en.referral;
       
-      document.getElementById('gameCard1Title').textContent = translations[currentLanguage].gameCard1Title;
-      document.getElementById('gameCard1Button').textContent = translations[currentLanguage].gameCard1Button;
-      document.getElementById('gameCard2Title').textContent = translations[currentLanguage].gameCard2Title;
-      document.getElementById('gameCard2Button').textContent = translations[currentLanguage].gameCard2Button;
-      document.getElementById('gameCard3Title').textContent = translations[currentLanguage].gameCard3Title;
-      document.getElementById('gameCard3Button').textContent = translations[currentLanguage].gameCard3Button;
-      document.getElementById('gameCard4Title').textContent = translations[currentLanguage].gameCard4Title;
-      document.getElementById('gameCard4Button').textContent = translations[currentLanguage].gameCard4Button;
-      document.getElementById('gameCard5Title').textContent = translations[currentLanguage].gameCard5Title;
-      document.getElementById('gameCard5Button').textContent = translations[currentLanguage].gameCard5Button;
+      document.getElementById('gameCard1Title').textContent = translations.en.gameCard1Title;
+      document.getElementById('gameCard1Button').textContent = translations.en.gameCard1Button;
+      document.getElementById('gameCard2Title').textContent = translations.en.gameCard2Title;
+      document.getElementById('gameCard2Button').textContent = translations.en.gameCard2Button;
+      document.getElementById('gameCard3Title').textContent = translations.en.gameCard3Title;
+      document.getElementById('gameCard3Button').textContent = translations.en.gameCard3Button;
+      document.getElementById('gameCard4Title').textContent = translations.en.gameCard4Title;
+      document.getElementById('gameCard4Button').textContent = translations.en.gameCard4Button;
+      document.getElementById('gameCard5Title').textContent = translations.en.gameCard5Title;
+      document.getElementById('gameCard5Button').textContent = translations.en.gameCard5Button;
       
-      document.getElementById('seasonModalTitle').textContent = translations[currentLanguage].seasonInfoTitle;
-      document.getElementById('seasonModalDesc').textContent = translations[currentLanguage].seasonInfoDesc;
-      document.getElementById('depositModalTitle').textContent = translations[currentLanguage].depositModalTitle;
-      document.getElementById('depositModalDesc').textContent = translations[currentLanguage].depositModalDesc;
-      document.getElementById('mainOnlineInfoTitle').textContent = translations[currentLanguage].mainOnlineGamesInfo;
-      document.getElementById('mainOnlineInfoDesc').textContent = translations[currentLanguage].mainOnlineGamesInfo;
-      document.getElementById('miniGamesInfoTitle').textContent = translations[currentLanguage].miniGamesInfo;
-      document.getElementById('miniGamesInfoDesc').textContent = translations[currentLanguage].miniGamesInfo;
-      document.getElementById('partnerInfoTitle').textContent = translations[currentLanguage].partnerGamesInfo;
-      document.getElementById('partnerInfoDesc').textContent = translations[currentLanguage].partnerGamesInfo;
-      document.getElementById('endgameTitle').textContent = translations[currentLanguage].result;
+      document.getElementById('seasonModalTitle').textContent = translations.en.seasonInfoTitle;
+      document.getElementById('seasonModalDesc').textContent = translations.en.seasonInfoDesc;
+      document.getElementById('depositModalTitle').textContent = translations.en.depositModalTitle;
+      document.getElementById('depositModalDesc').textContent = translations.en.depositModalDesc;
+      document.getElementById('mainOnlineInfoTitle').textContent = translations.en.mainOnlineGamesInfo;
+      document.getElementById('mainOnlineInfoDesc').textContent = translations.en.mainOnlineGamesInfo;
+      document.getElementById('miniGamesInfoTitle').textContent = translations.en.miniGamesInfo;
+      document.getElementById('miniGamesInfoDesc').textContent = translations.en.miniGamesInfo;
+      document.getElementById('partnerInfoTitle').textContent = translations.en.partnerGamesInfo;
+      document.getElementById('partnerInfoDesc').textContent = translations.en.partnerGamesInfo;
+      document.getElementById('endgameTitle').textContent = translations.en.result;
       
       document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.textContent = translations[currentLanguage].close;
+        btn.textContent = translations.en.close;
       });
       
-      // Обновляем атрибут lang и класс для корректировки шрифта английского текста
       document.documentElement.lang = currentLanguage;
-      if (currentLanguage === 'en') {
-        document.body.classList.add('en');
-      } else {
-        document.body.classList.remove('en');
-      }
-    }
-
-    function toggleLanguage() {
-      currentLanguage = (currentLanguage === 'en') ? 'ru' : 'en';
-      updateLanguage();
+      document.body.classList.remove('en'); // No extra class needed for English
     }
 
     /* ----------------------------------------------
@@ -640,7 +579,7 @@
 
     function updateCaseCount() {
       document.getElementById('caseCountText').textContent =
-        `У тебя ${localUserData.cyberCase} Cyber Case`;
+        `You have ${localUserData.cyberCase} Cyber Case`;
     }
 
     /* ----------------------------------------------
@@ -667,14 +606,14 @@
     }
 
     /* ----------------------------------------------
-       8. Game Info Modal (Подробнее)
+       8. Game Info Modal
     ---------------------------------------------- */
     function openGameInfoModal(gameData) {
       document.getElementById('gameInfoImg').src = gameData.img;
       document.getElementById('gameInfoTitle').textContent = gameData.title;
       document.getElementById('gameInfoDesc').textContent = gameData.desc;
       const playBtn = document.getElementById('gameInfoPlayBtn');
-      playBtn.textContent = `${translations[currentLanguage].play} (${gameData.cost} ticket)`;
+      playBtn.textContent = `${translations.en.play} (${gameData.cost} ticket)`;
       playBtn.onclick = function() {
         closeGameInfoModal();
         handleStartGame(gameData.gameId, gameData.cost);
@@ -692,11 +631,11 @@
     function handleStartGame(gameName, ticketCost) {
       document.querySelector('.user-info').style.display = 'none';
       if (!currentUser || !userRef) {
-        showGlobalModal(translations[currentLanguage].error, translations[currentLanguage].noUserData);
+        showGlobalModal(translations.en.error, translations.en.noUserData);
         return;
       }
       if ((localUserData.tickets || 0) < ticketCost) {
-        showGlobalModal(translations[currentLanguage].notEnoughTickets, translations[currentLanguage].notEnoughTicketsMsg);
+        showGlobalModal(translations.en.notEnoughTickets, translations.en.notEnoughTicketsMsg);
         return;
       }
       localUserData.tickets -= ticketCost;
@@ -786,7 +725,7 @@
       if (!currentUser) return;
       const now = Date.now();
       if (now - (localUserData.lastSpinTime || 0) < 24 * 60 * 60 * 1000) {
-        showGlobalModal(translations[currentLanguage].wheelModalTitle, translations[currentLanguage].wheelModalMsg);
+        showGlobalModal(translations.en.wheelModalTitle, translations.en.wheelModalMsg);
         return;
       }
       localUserData.lastSpinTime = now;
@@ -820,9 +759,9 @@
     function showSpinModal(amount) {
       document.getElementById("wheelTicketCount").textContent = amount;
       document.getElementById("spinModalTitle").innerHTML = 
-        translations[currentLanguage].youWon + 
+        translations.en.youWon + 
         " <span id='wheelTicketCount'>" + amount + "</span> " + 
-        translations[currentLanguage].ticketsPlural + "!";
+        translations.en.ticketsPlural + "!";
       document.getElementById("spinModalBackdrop").classList.add("active");
     }
     function closeSpinModal() {
@@ -835,13 +774,13 @@
       const diff = now - last;
       const wait = 24 * 60 * 60 * 1000 - diff;
       if(wait <= 0) {
-         btn.textContent = translations[currentLanguage].spinButton;
+         btn.textContent = translations.en.spinButton;
          btn.disabled = false;
       } else {
          const seconds = Math.floor(wait / 1000) % 60;
          const minutes = Math.floor(wait / (1000 * 60)) % 60;
          const hours = Math.floor(wait / (1000 * 60 * 60));
-         btn.textContent = `${translations[currentLanguage].spinButton} (${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')})`;
+         btn.textContent = `${translations.en.spinButton} (${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')})`;
          btn.disabled = true;
       }
     }
@@ -898,17 +837,17 @@
     }
 
     /* ----------------------------------------------
-       14. Рулетка (Lootbox) в секции Loot Box
+       14. Lootbox in Cyber Case Section
     ---------------------------------------------- */
-    // Новый массив призов с весовыми коэффициентами (проценты выподения)
+    // Array of prizes with weighted chances
     const lootboxPrizes = [
-      { name: '3 билета', image: '3tickets.png', chance: 60 },
-      { name: '5 билетов', image: '5tickets.png', chance: 25 },
-      { name: 'Еще один кейс', image: 'case.png', chance: 5 },
-      { name: '1000 прогресса', image: '1000progress.png', chance: 5 },
-      { name: '10000 прогресса', image: '10000progress.png', chance: 4.989 },
-      { name: '1 млн токенов', image: '1mtokens.png', chance: 0.01 },
-      { name: '5 млн токенов', image: '5mtokens.png', chance: 0.001 }
+      { name: '3 tickets', image: '3tickets.png', chance: 60 },
+      { name: '5 tickets', image: '5tickets.png', chance: 25 },
+      { name: 'One case', image: 'case.png', chance: 5 },
+      { name: '1000 progress', image: '1000progress.png', chance: 5 },
+      { name: '10000 progress', image: '10000progress.png', chance: 4.989 },
+      { name: '1M tokens', image: '1mtokens.png', chance: 0.01 },
+      { name: '5M tokens', image: '5mtokens.png', chance: 0.001 }
     ];
 
     let referralInitialized = false;
@@ -917,7 +856,7 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Заполняем рулетку несколько раз для эффекта бесконечного цикла
+      // Fill the roulette several times for a looping effect
       for (let cycle = 0; cycle < 6; cycle++) {
         lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
@@ -929,7 +868,7 @@
       }
     }
 
-    // Функция для взвешенного выбора индекса приза
+    // Function for weighted prize selection
     function getWeightedRandomIndex(prizes) {
       let total = 0;
       prizes.forEach(prize => total += prize.chance);
@@ -943,9 +882,9 @@
       return prizes.length - 1;
     }
 
-    // Функция для парсинга количества из названия приза (учитывая "млн")
+    // Function to parse prize amount from prize name (handles "M" multiplier)
     function parsePrizeAmount(prizeName) {
-      if (prizeName.includes("млн")) {
+      if (prizeName.includes("M")) {
         let num = parseFloat(prizeName);
         return num * 1000000;
       } else {
@@ -953,14 +892,14 @@
       }
     }
 
-    // Функция для добавления приза пользователю
+    // Function to add prize to the user account
     function addPrizeToUser(prize) {
-      if (prize.name.toLowerCase().includes("токен")) {
+      if (prize.name.toLowerCase().includes("token")) {
          let amount = parsePrizeAmount(prize.name);
          localUserData.coins += amount;
          userRef.update({ coins: localUserData.coins });
          updateTopBar();
-      } else if (prize.name.toLowerCase().includes("кейс")) {
+      } else if (prize.name.toLowerCase().includes("case")) {
          localUserData.cyberCase += 1;
          userRef.update({ cyberCase: localUserData.cyberCase });
          updateCaseCount();
@@ -976,7 +915,7 @@
     function spinLootBoxForTokens() {
       if (!currentUser) return;
       if (localUserData.coins < 5000000) {
-        showGlobalModal(translations[currentLanguage].depositModalTitle, translations[currentLanguage].depositModalDesc);
+        showGlobalModal(translations.en.depositModalTitle, translations.en.depositModalDesc);
         return;
       }
       localUserData.coins -= 5000000;
@@ -987,7 +926,7 @@
       caseImage.classList.add('explode');
       
       caseImage.addEventListener('animationend', () => {
-        // Скрываем блок кейса и показываем рулетку
+        // Hide case block and show roulette
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
         spinRoulette();
@@ -1018,9 +957,9 @@
         isSpinning = false;
         const prize = lootboxPrizes[randomIndex];
         addPrizeToUser(prize);
-        showGlobalModal('Поздравляем!', `Ваш выигрыш: ${prize.name}`);
+        showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
         
-        // Сброс интерфейса: прячем рулетку и возвращаем блок кейса
+        // Reset interface: hide roulette and show case block
         document.getElementById('lootboxContainer').style.display = 'none';
         const caseContainer = document.querySelector('.case-container');
         caseContainer.style.display = 'block';
@@ -1033,7 +972,7 @@
     function openLootBox() {
       if (!currentUser) return;
       if (localUserData.cyberCase <= 0) {
-        showGlobalModal('Ошибка', 'У вас нет Cyber Case для открытия!');
+        showGlobalModal('Error', 'You have no Cyber Case to open!');
         return;
       }
       localUserData.cyberCase -= 1;
@@ -1051,7 +990,7 @@
     }
 
     /* ----------------------------------------------
-       Модальные окна для Loot Box
+       Modal windows for Loot Box
     ---------------------------------------------- */
     function openLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.add('active');
@@ -1061,7 +1000,7 @@
     }
 
     /* ----------------------------------------------
-       Инициализация языка при загрузке страницы
+       Initialize language on page load
     ---------------------------------------------- */
     updateLanguage();
 
@@ -1088,7 +1027,7 @@
     }
   </script>
   <script>
-  // Скрытая комбинация клавиш для входа в админ-панель: Ctrl+Shift+A
+  // Hidden key combination for admin panel access: Ctrl+Shift+A
   document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.shiftKey && e.key === 'A') {
       window.location.href = 'admin.html';
@@ -1098,4 +1037,5 @@
 
 </body>
 </html>
+
 
