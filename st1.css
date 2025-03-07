@@ -551,7 +551,6 @@ table tr.current-user {
   border: none;
 }
 
-
 /* ---------- Новый блок: Колесо фортуны (Tickets) ---------- */
 .wheel {
   width: 250px;
@@ -720,3 +719,36 @@ table tr.current-user {
   font-size: 12px;
   cursor: pointer;
 }
+
+/* ============================
+   Новый блок: Большой кейс
+   ============================ */
+
+/* Контейнер для большой картинки кейса */
+.case-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.case-container img {
+  width: 200px; /* подгоните по необходимости */
+  height: auto;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+/* Класс для анимации "взрыва" */
+.explode {
+  animation: explode 0.5s forwards;
+}
+
+@keyframes explode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
