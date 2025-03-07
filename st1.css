@@ -78,7 +78,6 @@ button:active {
 
 
 /* Стили для кнопки с иконкой кошелька */
-/* Стили для кнопки с иконкой кошелька (уменьшенный вариант) */
 #walletLink {
   display: inline-flex;
   align-items: center;
@@ -87,13 +86,13 @@ button:active {
   border: 1px solid #4b4b4b;
   border-radius: 4px;
   padding: 0;
-  width: 40px;      /* Новая, меньшая ширина */
-  height: 40px;     /* Новая, меньшая высота */
+  width: 40px;      /* Меньшая ширина */
+  height: 40px;     /* Меньшая высота */
   box-shadow: 0 3px #6b6b6b;
   cursor: pointer;
   transition: transform 0.2s;
   text-decoration: none;
-   margin-top: 2px;    /* Отступ сверху */
+  margin-top: 2px;    
   margin-right: 10px; 
 }
 
@@ -545,7 +544,7 @@ table tr.current-user {
   color: #000;
 }
 
-/* ---------- Реферальная секция ---------- */
+/* ---------- Реферальная секция (старые элементы можно удалить/скорректировать) ---------- */
 .referral-container {
   margin-top: 20px;
   display: flex;
@@ -670,5 +669,80 @@ table tr.current-user {
   margin-top: 20px;
 }
 
-/* Кнопки в блоке Tickets наследуют базовый стиль */
+/* =====================================
+   Обновлённая рулетка призов (Lootbox)
+   ===================================== */
+
+/* Главный контейнер рулетки */
+.lootbox-container {
+  position: relative;
+  width: 95%;
+  max-width: 100%;
+  height: 160px;
+  overflow: hidden;
+  margin: 30px auto;
+  border: 3px solid #06C1DE;
+  border-radius: 8px;
+  background-color: rgba(0,0,0,0.2);
+  box-shadow: 0 0 12px #06C1DE;
+}
+
+/* Внутренний контейнер, который анимируется */
+.lootbox-roulette {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  animation: none;
+}
+
+/* Стили отдельного приза внутри рулетки */
+.lootbox-prize {
+  flex: none;
+  width: 120px;
+  height: 120px;
+  margin: 0 8px;
+  background: #06C1DE;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px #009bad;
+}
+
+.lootbox-prize img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.lootbox-prize span {
+  color: #000;
+  font-size: 11px;
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* Индикатор выигрыша (прозрачная линия по центру) */
+.lootbox-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  background: rgba(255,255,255,0.7);
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 0 8px #fff;
+}
+
+/* Кнопка Spin под рулеткой */
+#lootboxSpinBtn {
+  display: block;
+  width: 150px;
+  margin: 15px auto;
+  padding: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
 
