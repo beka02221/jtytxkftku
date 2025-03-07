@@ -1043,5 +1043,14 @@
       document.getElementById('depositModal').classList.remove('active');
     }
   </script>
+  <script>
+  // Скрытая комбинация клавиш для входа в админ-панель: Ctrl+Shift+A
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      window.location.href = 'admin.html';
+    }
+  });
+</script>
+
 </body>
 </html>
