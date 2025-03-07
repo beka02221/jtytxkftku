@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель Администратора</title>
+  <!-- Подключение Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="adminContainer">
+    <h1>Панель Администратора</h1>
+    <button id="giveCasesBtn">Выдать кейсы топ-10 игрокам</button>
+    <button id="resetScoresBtn">Сбросить points и билеты всех игроков</button>
+    <div id="status"></div>
+  </div>
+  
+  <script>
+    // Запрос пароля администратора
+    var adminPassword = prompt("Введите пароль администратора:");
+    if (adminPassword !== "admin123") { // измените пароль по необходимости
+      alert("Неверный пароль!");
+      window.location.href = "index.html"; // переадресация на главную, если пароль неверный
+    }
+
+    // Инициализация Firebase (те же настройки, что и в index.html)
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Функция выдачи кейсов топ-10 игрокам
+    document.getElementById('giveCasesBtn').addEventListener('click', function() {
+      var statusDiv = document.getElementById('status');
+      statusDiv.textContent = "В процессе...";
+      db.ref('users').once('value').then(function(snapshot) {
+        var usersData = snapshot.val() || {};
+        var usersArray = [];
+        for (var username in usersData) {
+          var user = usersData[username];
+          usersArray.push({ username: username, points: user.points || 0 });
+        }
+        // Сортировка по убыванию points
+        usersArray.sort(function(a, b) { return b.points - a.points; });
+        var top10 = usersArray.slice(0, 10);
+        // Выдаем каждому из топ-10 +1 Cyber Case
+        top10.forEach(function(user) {
+          db.ref('users/' + user.username).once('value').then(function(snap) {
+            var currentCases = snap.val().cyberCase || 0;
+            db.ref('users/' + user.username).update({ cyberCase: currentCases + 1 });
+          });
+        });
+        statusDiv.textContent = "Кейсы успешно выданы топ-10 игрокам!";
+      }).catch(function(error) {
+        statusDiv.textContent = "Ошибка: " + error;
+      });
+    });
+
+    // Функция сброса данных points и билетов у всех игроков (остальные данные остаются)
+    document.getElementById('resetScoresBtn').addEventListener('click', function() {
+      if (!confirm("Вы уверены, что хотите сбросить данные points и билетов у всех игроков?")) {
+        return;
+      }
+      var statusDiv = document.getElementById('status');
+      statusDiv.textContent = "В процессе сброса...";
+      db.ref('users').once('value').then(function(snapshot) {
+        var updates = {};
+        snapshot.forEach(function(childSnap) {
+          var username = childSnap.key;
+          updates['users/' + username + '/points'] = 0;
+          updates['users/' + username + '/tickets'] = 0;
+        });
+        db.ref().update(updates).then(function() {
+          statusDiv.textContent = "Данные points и билетов успешно сброшены!";
+        }).catch(function(error) {
+          statusDiv.textContent = "Ошибка: " + error;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
