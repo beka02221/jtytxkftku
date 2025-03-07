@@ -731,9 +731,10 @@ table tr.current-user {
 }
 
 .case-container img {
-  width: 200px; /* подгоните по необходимости */
+  width: 300px; /* увеличенный размер */
   height: auto;
   transition: transform 0.5s ease, opacity 0.5s ease;
+  display: inline-block;
 }
 
 /* Класс для анимации "взрыва" */
