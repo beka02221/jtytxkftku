@@ -16,21 +16,20 @@
   <!-- Дополнительный CSS для нового блока Loot Box -->
   <style>
     /* Новый блок для большой картинки кейса */
- .case-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 20px auto;  /* Центрирование по горизонтали за счёт auto */
-  text-align: center;
-}
-
+    .case-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 20px auto;  /* Центрирование по горизонтали за счёт auto */
+      text-align: center;
+    }
 
     .case-container img {
-  width: 300px;
-  height: auto;
-  transition: transform 0.5s ease, opacity 0.5s ease;
-}
+      width: 300px;
+      height: auto;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
 
     /* Класс для анимации взрыва */
     .explode {
@@ -631,7 +630,7 @@
     }
 
     /* ----------------------------------------------
-       5. Update Top Bar
+       5. Update Top Bar & Case Count
     ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
@@ -901,14 +900,15 @@
     /* ----------------------------------------------
        14. Рулетка (Lootbox) в секции Loot Box
     ---------------------------------------------- */
-    const referralPrizes = [
-      { name: '10 билетов',        image: '10tickets.png',   chance: 20 },
-      { name: '1 млн токенов',      image: '1m.png',          chance: 10 },
-      { name: 'Еще одна прокрутка', image: 'spinagain.png',   chance: 5  },
-      { name: '5 билетов',          image: '5tickets.png',    chance: 25 },
-      { name: '500 звёзд',          image: '500stars.png',    chance: 15 },
-      { name: '1000 звёзд',         image: '1000stars.png',   chance: 15 },
-      { name: '10 млн токенов',     image: '10m.png',         chance: 10 }
+    // Новый массив призов с весовыми коэффициентами (проценты выподения)
+    const lootboxPrizes = [
+      { name: '3 билета', image: '3tickets.png', chance: 60 },
+      { name: '5 билетов', image: '5tickets.png', chance: 25 },
+      { name: 'Еще один кейс', image: 'case.png', chance: 5 },
+      { name: '1000 прогресса', image: '1000progress.png', chance: 5 },
+      { name: '10000 прогресса', image: '10000progress.png', chance: 4.989 },
+      { name: '1 млн токенов', image: '1mtokens.png', chance: 0.01 },
+      { name: '5 млн токенов', image: '5mtokens.png', chance: 0.001 }
     ];
 
     let referralInitialized = false;
@@ -917,15 +917,58 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Заполняем рулетку 6 раз для создания эффекта бесконечного цикла
+      // Заполняем рулетку несколько раз для эффекта бесконечного цикла
       for (let cycle = 0; cycle < 6; cycle++) {
-        referralPrizes.forEach(item => {
+        lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
           prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
                                <span>${item.name}</span>`;
           rouletteContainer.appendChild(prizeEl);
         });
+      }
+    }
+
+    // Функция для взвешенного выбора индекса приза
+    function getWeightedRandomIndex(prizes) {
+      let total = 0;
+      prizes.forEach(prize => total += prize.chance);
+      let randomNum = Math.random() * total;
+      for (let i = 0; i < prizes.length; i++) {
+        if (randomNum < prizes[i].chance) {
+          return i;
+        }
+        randomNum -= prizes[i].chance;
+      }
+      return prizes.length - 1;
+    }
+
+    // Функция для парсинга количества из названия приза (учитывая "млн")
+    function parsePrizeAmount(prizeName) {
+      if (prizeName.includes("млн")) {
+        let num = parseFloat(prizeName);
+        return num * 1000000;
+      } else {
+        return parseInt(prizeName);
+      }
+    }
+
+    // Функция для добавления приза пользователю
+    function addPrizeToUser(prize) {
+      if (prize.name.toLowerCase().includes("токен")) {
+         let amount = parsePrizeAmount(prize.name);
+         localUserData.coins += amount;
+         userRef.update({ coins: localUserData.coins });
+         updateTopBar();
+      } else if (prize.name.toLowerCase().includes("кейс")) {
+         localUserData.cyberCase += 1;
+         userRef.update({ cyberCase: localUserData.cyberCase });
+         updateCaseCount();
+      } else {
+         let amount = parsePrizeAmount(prize.name);
+         localUserData.tickets += amount;
+         userRef.update({ tickets: localUserData.tickets });
+         updateTopBar();
       }
     }
 
@@ -957,10 +1000,10 @@
       isSpinning = true;
       const roulette = document.getElementById('lootboxRoulette');
       const prizeWidth = 136;
-      const count = referralPrizes.length;
+      const count = lootboxPrizes.length;
       const visibleCenter = roulette.parentElement.offsetWidth / 2;
       const fullCycles = 5;
-      const randomIndex = Math.floor(Math.random() * count);
+      const randomIndex = getWeightedRandomIndex(lootboxPrizes);
       const finalIndex = randomIndex + fullCycles * count;
       const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
       
@@ -973,7 +1016,8 @@
         roulette.style.transition = 'none';
         roulette.style.transform = `translateX(${newOffset}px)`;
         isSpinning = false;
-        const prize = referralPrizes[randomIndex];
+        const prize = lootboxPrizes[randomIndex];
+        addPrizeToUser(prize);
         showGlobalModal('Поздравляем!', `Ваш выигрыш: ${prize.name}`);
         
         // Сброс интерфейса: прячем рулетку и возвращаем блок кейса
@@ -1050,7 +1094,8 @@
       window.location.href = 'admin.html';
     }
   });
-</script>
+  </script>
 
 </body>
 </html>
+
