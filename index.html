@@ -17,7 +17,7 @@
   <style>
     /* Block for large case image */
     .case-container {
-      display: flex;
+   
       flex-direction: column;
       align-items: center;
       justify-content: center;
@@ -25,7 +25,9 @@
       text-align: center;
       position: relative;
       top: 50px; /* сдвигает элемент вниз на 20px */
-    }
+  display: inline-block;
+  text-align: center;
+}
 
     .case-container img {
   display: block;
@@ -63,16 +65,25 @@
     filter: brightness(0.5);
   }
 }
-  .case-container p {
+ 
+
+.case-container p {
   position: absolute;
-  bottom: -30px;
+  bottom: -30px; /* опускаем текст ниже картинки */
   left: 50%;
   transform: translateX(-50%);
   font-weight: bold;
   margin: 0;
-  padding: 0;
-  pointer-events: none; /* отключает обработку кликов на этом элементе */
+  pointer-events: none; /* клики проходят сквозь текст */
+  z-index: 1; /* текст ниже кнопок */
 }
+
+/* Если кнопки находятся в отдельном контейнере, можно задать ему более высокий z-index */
+.lootbox-buttons {
+  position: relative;
+  z-index: 10;
+}
+
 
 
   </style>
