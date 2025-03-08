@@ -16,75 +16,65 @@
   <!-- Additional CSS for Loot Box block -->
   <style>
     /* Block for large case image */
-    .case-container {
-   
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin: 20px auto;
-      text-align: center;
-      position: relative;
-      top: 50px; /* сдвигает элемент вниз на 20px */
+   .case-container {
   display: inline-block;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px auto;
   text-align: center;
+  position: relative;
+  top: 20px; /* уменьшил отступ сверху, иконка поднимается */
 }
 
-    .case-container img {
+.case-container img {
   display: block;
   margin: 0 auto;
-         width: 350px;
-      height: 350px;
-      
+  width: 350px;
+  height: 350px;
 }
 
-
-    /* Explode animation */
-    .explode {
-  animation: explode 0.8s ease-out forwards;
+/* Новая анимация открытия с эффектом подпрыгивания */
+.open-case {
+  animation: openCase 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
 }
 
-@keyframes explode {
+@keyframes openCase {
   0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-    filter: brightness(1);
+    transform: scale(0.8) rotate(-10deg);
+    opacity: 0;
   }
   50% {
-    transform: scale(1.3) rotate(20deg);
-    opacity: 0.8;
-    filter: brightness(1.2);
+    transform: scale(1.05) rotate(5deg);
+    opacity: 1;
   }
   70% {
-    transform: scale(1.1) rotate(10deg);
-    opacity: 0.9;
-    filter: brightness(1.1);
+    transform: scale(0.95) rotate(0deg);
+    opacity: 1;
   }
   100% {
-    transform: scale(2.5) rotate(45deg);
-    opacity: 0;
-    filter: brightness(0.5);
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
   }
 }
- 
 
 .case-container p {
   position: absolute;
-  bottom: -30px; /* опускаем текст ниже картинки */
+  bottom: -30px; /* текст под иконкой */
   left: 50%;
   transform: translateX(-50%);
   font-weight: bold;
   margin: 0;
-  pointer-events: none; /* клики проходят сквозь текст */
-  z-index: 1; /* текст ниже кнопок */
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Если кнопки находятся в отдельном контейнере, можно задать ему более высокий z-index */
+/* Поднимаем кнопки чуть выше */
 .lootbox-buttons {
   position: relative;
   z-index: 10;
+  margin-top: -10px; /* смещаем кнопки вверх */
 }
-
-
 
   </style>
 
