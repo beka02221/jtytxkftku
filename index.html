@@ -17,18 +17,15 @@
   <style>
     /* Block for large case image */
     .case-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  
-  margin: 20px auto;
-  text-align: center;
-  
-  position: relative;
-  top: 20px; /* сдвигает элемент вниз на 20px */
-}
-
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 20px auto;
+      text-align: center;
+      position: relative;
+      top: 20px; /* сдвигает элемент вниз на 20px */
+    }
 
     .case-container img {
       width: 300px;
@@ -535,6 +532,8 @@
       cyberCase: 0
     };
     let gameInProgress = false;
+    // Флаг для предотвращения повторного нажатия в секции Loot Box
+    let isSpinning = false;
 
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -916,13 +915,15 @@
       }
     }
 
-    let isSpinning = false;
+    // Функция для покупки кейса за монеты
     function spinLootBoxForTokens() {
       if (!currentUser) return;
+      if (isSpinning) return; // если уже идёт процесс, повторный запуск не допускается
       if (localUserData.coins < 5000000) {
         showGlobalModal(translations.en.depositModalTitle, translations.en.depositModalDesc);
         return;
       }
+      isSpinning = true;
       localUserData.coins -= 5000000;
       updateTopBar();
       userRef.update({ coins: localUserData.coins });
@@ -938,10 +939,32 @@
       }, { once: true });
     }
 
-    function spinRoulette() {
-      if (isSpinning) return;
-      initReferralLootbox();
+    // Функция для открытия кейса за Cyber Case
+    function openLootBox() {
+      if (!currentUser) return;
+      if (isSpinning) return; // предотвращаем повторное нажатие
+      if (localUserData.cyberCase <= 0) {
+        showGlobalModal('Error', 'You have no Cyber Case to open!');
+        return;
+      }
       isSpinning = true;
+      localUserData.cyberCase -= 1;
+      updateCaseCount();
+      userRef.update({ cyberCase: localUserData.cyberCase });
+      
+      const caseImage = document.getElementById('caseImage');
+      caseImage.classList.add('explode');
+      
+      caseImage.addEventListener('animationend', () => {
+        document.querySelector('.case-container').style.display = 'none';
+        document.getElementById('lootboxContainer').style.display = 'block';
+        spinRoulette();
+      }, { once: true });
+    }
+
+    // Функция вращения рулетки (убрана проверка isSpinning, так как она делается в вызывающих функциях)
+    function spinRoulette() {
+      initReferralLootbox();
       const roulette = document.getElementById('lootboxRoulette');
       const prizeWidth = 136;
       const count = lootboxPrizes.length;
@@ -972,26 +995,6 @@
         caseImage.classList.remove('explode');
         caseImage.style.opacity = 1;
       }, 10200);
-    }
-
-    function openLootBox() {
-      if (!currentUser) return;
-      if (localUserData.cyberCase <= 0) {
-        showGlobalModal('Error', 'You have no Cyber Case to open!');
-        return;
-      }
-      localUserData.cyberCase -= 1;
-      updateCaseCount();
-      userRef.update({ cyberCase: localUserData.cyberCase });
-      
-      const caseImage = document.getElementById('caseImage');
-      caseImage.classList.add('explode');
-      
-      caseImage.addEventListener('animationend', () => {
-        document.querySelector('.case-container').style.display = 'none';
-        document.getElementById('lootboxContainer').style.display = 'block';
-        spinRoulette();
-      }, { once: true });
     }
 
     /* ----------------------------------------------
