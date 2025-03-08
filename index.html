@@ -962,6 +962,11 @@
          localUserData.cyberCase += 1;
          userRef.update({ cyberCase: localUserData.cyberCase });
          updateCaseCount();
+      } else if (prize.name.toLowerCase().includes("progress")) {
+         let amount = parsePrizeAmount(prize.name);
+         localUserData.points += amount;
+         userRef.update({ points: localUserData.points });
+         updateTopBar();
       } else {
          let amount = parsePrizeAmount(prize.name);
          localUserData.tickets += amount;
@@ -1100,5 +1105,4 @@
 
 </body>
 </html>
-
 
