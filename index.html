@@ -15,7 +15,6 @@
 
   <!-- Additional CSS for Loot Box block -->
   <style>
-    /* Block for large case image */
    .case-container {
   display: inline-block;
   flex-direction: column;
@@ -24,7 +23,8 @@
   margin: 20px auto;
   text-align: center;
   position: relative;
-  top: 20px; /* уменьшил отступ сверху, иконка поднимается */
+  top: 20px; /* поднял контейнер выше */
+  perspective: 1000px; /* для 3D эффекта */
 }
 
 .case-container img {
@@ -34,46 +34,46 @@
   height: 350px;
 }
 
-/* Новая анимация открытия с эффектом подпрыгивания */
-.open-case {
-  animation: openCase 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+/* Новый эффект открытия – плавный 3D-переворот */
+.flip-open {
+  animation: flipOpen 0.8s ease-out forwards;
 }
 
-@keyframes openCase {
+@keyframes flipOpen {
   0% {
-    transform: scale(0.8) rotate(-10deg);
+    transform: perspective(1000px) rotateY(90deg) scale(0.5);
     opacity: 0;
   }
   50% {
-    transform: scale(1.05) rotate(5deg);
+    transform: perspective(1000px) rotateY(-10deg) scale(1.1);
     opacity: 1;
   }
   70% {
-    transform: scale(0.95) rotate(0deg);
+    transform: perspective(1000px) rotateY(10deg) scale(0.95);
     opacity: 1;
   }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: perspective(1000px) rotateY(0deg) scale(1);
     opacity: 1;
   }
 }
 
 .case-container p {
   position: absolute;
-  bottom: -30px; /* текст под иконкой */
+  bottom: -30px; /* текст ниже картинки */
   left: 50%;
   transform: translateX(-50%);
   font-weight: bold;
   margin: 0;
-  pointer-events: none;
-  z-index: 1;
+  pointer-events: none; /* клики проходят сквозь текст */
+  z-index: 1; /* текст ниже кнопок */
 }
 
 /* Поднимаем кнопки чуть выше */
 .lootbox-buttons {
   position: relative;
   z-index: 10;
-  margin-top: -10px; /* смещаем кнопки вверх */
+  margin-top: -20px;
 }
 
   </style>
