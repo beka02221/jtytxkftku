@@ -63,15 +63,17 @@
     filter: brightness(0.5);
   }
 }
-   .case-container p {
-  position: absolute; /* текст теперь независим от потока */
-  bottom: -50px;    /* опускаем текст ниже картинки, настройте значение по необходимости */
+  .case-container p {
+  position: absolute;
+  bottom: -30px;
   left: 50%;
   transform: translateX(-50%);
   font-weight: bold;
-  margin: 10px;
+  margin: 0;
   padding: 0;
+  pointer-events: none; /* отключает обработку кликов на этом элементе */
 }
+
 
   </style>
 
