@@ -16,92 +16,91 @@
   <!-- Additional CSS for Loot Box block -->
   <style>
    .case-container {
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 20px auto;
-  text-align: center;
-  position: relative;
-  top: 50px;
-  display: inline-block;
-  transition: top 0.5s ease;
-}
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     margin: 20px auto;
+     text-align: center;
+     position: relative;
+     top: 50px;
+     display: inline-block;
+     transition: top 0.5s ease;
+   }
 
-/* Состояние открытого кейса */
-.case-container.open {
-  top: 20px; /* сдвигаем контейнер (при необходимости можно изменить значение) */
-}
+   /* Состояние открытого кейса */
+   .case-container.open {
+     top: 20px; /* сдвигаем контейнер (при необходимости можно изменить значение) */
+   }
 
-.case-container img {
-  display: block;
-  margin: 0 auto;
-  width: 350px;
-  height: 350px;
-  transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease;
-}
+   .case-container img {
+     display: block;
+     margin: 0 auto;
+     width: 350px;
+     height: 350px;
+     transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease;
+   }
 
-/* Изменяем размер и положение картинки при открытии кейса */
-.case-container.open img {
-  width: 500px;       /* увеличенный размер иконки */
-  height: 500px;
-  transform: translateY(-30px); /* сдвигаем иконку вверх */
-  /* Если нужно применить анимацию взрыва, можно раскомментировать строку ниже */
-  /* animation: explode 0.8s ease-out forwards; */
-}
+   /* Изменяем размер и положение картинки при открытии кейса */
+   .case-container.open img {
+     width: 500px;       /* увеличенный размер иконки */
+     height: 500px;
+     transform: translateY(-30px); /* сдвигаем иконку вверх */
+     /* Если нужно применить анимацию взрыва, можно раскомментировать строку ниже */
+     /* animation: explode 0.8s ease-out forwards; */
+   }
 
-/* Анимация взрыва */
-.explode {
-  animation: explode 0.8s ease-out forwards;
-}
+   /* Анимация взрыва */
+   .explode {
+     animation: explode 0.8s ease-out forwards;
+   }
 
-@keyframes explode {
-  0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-    filter: brightness(1);
-  }
-  50% {
-    transform: scale(1.3) rotate(20deg);
-    opacity: 0.8;
-    filter: brightness(1.2);
-  }
-  70% {
-    transform: scale(1.1) rotate(10deg);
-    opacity: 0.9;
-    filter: brightness(1.1);
-  }
-  100% {
-    transform: scale(2.5) rotate(45deg);
-    opacity: 0;
-    filter: brightness(0.5);
-  }
-}
+   @keyframes explode {
+     0% {
+       transform: scale(1) rotate(0deg);
+       opacity: 1;
+       filter: brightness(1);
+     }
+     50% {
+       transform: scale(1.3) rotate(20deg);
+       opacity: 0.8;
+       filter: brightness(1.2);
+     }
+     70% {
+       transform: scale(1.1) rotate(10deg);
+       opacity: 0.9;
+       filter: brightness(1.1);
+     }
+     100% {
+       transform: scale(2.5) rotate(45deg);
+       opacity: 0;
+       filter: brightness(0.5);
+     }
+   }
 
-.case-container p {
-  position: absolute;
-  bottom: 420px; /* опускаем текст ниже картинки */
-  left: 50%;
-  transform: translateX(-50%);
-  font-weight: bold;
-  margin: 0;
-  pointer-events: none;
-  z-index: 1;
-}
+   .case-container p {
+     position: absolute;
+     bottom: 420px; /* опускаем текст ниже картинки */
+     left: 50%;
+     transform: translateX(-50%);
+     font-weight: bold;
+     margin: 0;
+     pointer-events: none;
+     z-index: 1;
+   }
 
-/* Кнопки кейса */
-.lootbox-buttons {
-  position: relative;
-  z-index: 10;
-  transition: opacity 0.5s ease;
-}
+   /* Кнопки кейса */
+   .lootbox-buttons {
+     position: relative;
+     z-index: 10;
+     transition: opacity 0.5s ease;
+   }
 
-/* При открытии кейса кнопки скрываются */
-.case-container.open .lootbox-buttons {
-  opacity: 0;
-  pointer-events: none;
-  /* можно также использовать display: none; если не нужна анимация */
-}
-
+   /* При открытии кейса кнопки скрываются */
+   .case-container.open .lootbox-buttons {
+     opacity: 0;
+     pointer-events: none;
+     /* можно также использовать display: none; если не нужна анимация */
+   }
   </style>
 
   <!-- Telegram Web App API -->
@@ -383,12 +382,12 @@
     <div class="game-modal-content">
       <div class="game-canvas">
          <canvas id="gameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <canvas id="match3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <canvas id="partnerGameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <canvas id="game3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <canvas id="game4Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <canvas id="game5Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
-        <canvas id="game6Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="match3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="partnerGameCanvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="game3Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="game4Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="game5Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
+         <canvas id="game6Canvas" width="400" height="650" style="display: block; position: relative; top: -50px;"></canvas>
       </div>
     </div>
   </div>
@@ -547,7 +546,7 @@
       });
       
       document.documentElement.lang = currentLanguage;
-      document.body.classList.remove('en'); // No extra class needed for English
+      document.body.classList.remove('en');
     }
 
     /* ----------------------------------------------
@@ -962,7 +961,7 @@
          localUserData.cyberCase += 1;
          userRef.update({ cyberCase: localUserData.cyberCase });
          updateCaseCount();
-      } else if (prize.name.toLowerCase().includes("progress")) {
+      } else if (prize.name.toLowerCase().includes("progress") || prize.name.toLowerCase().includes("star")) {
          let amount = parsePrizeAmount(prize.name);
          localUserData.points += amount;
          userRef.update({ points: localUserData.points });
@@ -1105,4 +1104,3 @@
 
 </body>
 </html>
-
