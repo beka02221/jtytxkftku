@@ -15,30 +15,42 @@
 
   <!-- Additional CSS for Loot Box block -->
   <style>
-    .case-container {
-   
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin: 20px auto;
-      text-align: center;
-      position: relative;
-      top: 50px; /* сдвигает элемент вниз на 20px */
-  display: inline-block;
+   .case-container {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px auto;
   text-align: center;
+  position: relative;
+  top: 50px;
+  display: inline-block;
+  transition: top 0.5s ease;
 }
 
-    .case-container img {
+/* Состояние открытого кейса */
+.case-container.open {
+  top: 20px; /* сдвигаем контейнер (при необходимости можно изменить значение) */
+}
+
+.case-container img {
   display: block;
   margin: 0 auto;
-         width: 350px;
-      height: 350px;
-      
+  width: 350px;
+  height: 350px;
+  transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease;
 }
 
+/* Изменяем размер и положение картинки при открытии кейса */
+.case-container.open img {
+  width: 500px;       /* увеличенный размер иконки */
+  height: 500px;
+  transform: translateY(-30px); /* сдвигаем иконку вверх */
+  /* Если нужно применить анимацию взрыва, можно раскомментировать строку ниже */
+  /* animation: explode 0.8s ease-out forwards; */
+}
 
-    /* Explode animation */
-    .explode {
+/* Анимация взрыва */
+.explode {
   animation: explode 0.8s ease-out forwards;
 }
 
@@ -64,7 +76,6 @@
     filter: brightness(0.5);
   }
 }
- 
 
 .case-container p {
   position: absolute;
@@ -73,15 +84,24 @@
   transform: translateX(-50%);
   font-weight: bold;
   margin: 0;
-  pointer-events: none; /* клики проходят сквозь текст */
-  z-index: 1; /* текст ниже кнопок */
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Если кнопки находятся в отдельном контейнере, можно задать ему более высокий z-index */
+/* Кнопки кейса */
 .lootbox-buttons {
   position: relative;
   z-index: 10;
+  transition: opacity 0.5s ease;
 }
+
+/* При открытии кейса кнопки скрываются */
+.case-container.open .lootbox-buttons {
+  opacity: 0;
+  pointer-events: none;
+  /* можно также использовать display: none; если не нужна анимация */
+}
+
   </style>
 
   <!-- Telegram Web App API -->
