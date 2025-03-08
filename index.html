@@ -63,10 +63,14 @@
     filter: brightness(0.5);
   }
 }
-    .case-container p {
-  margin-top: 80px; /* опускает текст ниже */
-  font-weight: bold; /* делает текст жирным */
-  text-align: center; /* центрирует текст, если нужно */
+   .case-container p {
+  position: absolute; /* текст теперь независим от потока */
+  bottom: -30px;    /* опускаем текст ниже картинки, настройте значение по необходимости */
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+  margin: 0;
+  padding: 0;
 }
 
   </style>
