@@ -1,354 +1,409 @@
-"use strict";
+/* game2.js — Stack
+   Адаптирован под структуру, аналогичную game3.js, game4.js и т.д.
+*/
 
-// Класс Stage – отвечает за создание рендерера, сцены, камеры и света.
-class Stage {
-  constructor() {
-    // Используем элемент canvas с id "match3Canvas" вместо контейнера <div>
-    this.canvas = document.getElementById('match3Canvas');
-    if (!this.canvas) {
-      console.error("Элемент canvas с id 'match3Canvas' не найден.");
-      return;
-    }
-    // Создаем рендерер с использованием указанного canvas
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true,
-      alpha: false
-    });
-    this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-    this.renderer.setClearColor('#D0CBC7', 1);
+///////////////////////////////
+// Глобальные переменные игры
+///////////////////////////////
+let camera2, scene2, renderer2;    // Three.js
+let world2;                        // Cannon.js физический мир
+let stack2 = [];                   // Основные блоки (лежат ровно)
+let overhangs2 = [];               // Срезанные части (сваливаются вниз)
 
-    // Создаем сцену
-    this.scene = new THREE.Scene();
+let lastTimestamp2 = 0;            // Предыдущий таймстамп (для расчёта dt)
+let boxHeight2 = 1;                // Высота одного блока
+let originalBoxSize2 = 3;          // Начальный размер блока (ширина = глубина)
+let autopilot2 = false;            // Если true, блок движется «сам»
+let game2Ended = false;            // Флаг окончания
+let game2Running = false;          // Флаг запущенного игрового цикла
+let game2Started = false;          // Флаг «начато движение»
+let robotPrecision2 = 0;           // Регулирует точность «автопилота»
+let animationFrameId2;             // Для отмены requestAnimationFrame
+let score2 = 0;                    // Локальный счёт в этой игре (Stack)
 
-    // Настраиваем камеру (ортографическая)
-    let aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-    let d = 20;
-    this.camera = new THREE.OrthographicCamera(
-      -d * aspect, d * aspect, d, -d, -100, 1000
-    );
-    this.camera.position.set(2, 2, 2);
-    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-    // Добавляем источники света
-    this.light = new THREE.DirectionalLight(0xffffff, 0.5);
-    this.light.position.set(0, 499, 0);
-    this.scene.add(this.light);
-    this.softLight = new THREE.AmbientLight(0xffffff, 0.4);
-    this.scene.add(this.softLight);
-
-    window.addEventListener('resize', () => this.onResize());
-    this.onResize();
-  }
-  render() {
-    this.renderer.render(this.scene, this.camera);
-  }
-  add(elem) {
-    this.scene.add(elem);
-  }
-  remove(elem) {
-    this.scene.remove(elem);
-  }
-  setCamera(y, speed = 0.3) {
-    TweenLite.to(this.camera.position, speed, { y: y + 4, ease: Power1.easeInOut });
-    TweenLite.to(this.camera.lookAt, speed, { y: y, ease: Power1.easeInOut });
-  }
-  onResize() {
-    const width = this.canvas.clientWidth;
-    const height = this.canvas.clientHeight;
-    this.renderer.setSize(width, height);
-    let viewSize = 30;
-    this.camera.left = width / -viewSize;
-    this.camera.right = width / viewSize;
-    this.camera.top = height / viewSize;
-    this.camera.bottom = height / -viewSize;
-    this.camera.updateProjectionMatrix();
-  }
-}
-
-// Класс Block – отдельный движущийся блок в игре
-class Block {
-  constructor(targetBlock) {
-    this.STATES = { ACTIVE: 'active', STOPPED: 'stopped', MISSED: 'missed' };
-    this.MOVE_AMOUNT = 12;
-    this.dimension = { width: 0, height: 0, depth: 0 };
-    this.position = { x: 0, y: 0, z: 0 };
-    this.targetBlock = targetBlock;
-    this.index = (this.targetBlock ? this.targetBlock.index : 0) + 1;
-    this.workingPlane = this.index % 2 ? 'x' : 'z';
-    this.workingDimension = this.index % 2 ? 'width' : 'depth';
-
-    // Если есть предыдущий блок – наследуем его размеры и позицию, иначе значения по умолчанию.
-    this.dimension.width = this.targetBlock ? this.targetBlock.dimension.width : 10;
-    this.dimension.height = this.targetBlock ? this.targetBlock.dimension.height : 2;
-    this.dimension.depth = this.targetBlock ? this.targetBlock.dimension.depth : 10;
-    this.position.x = this.targetBlock ? this.targetBlock.position.x : 0;
-    this.position.y = this.dimension.height * this.index;
-    this.position.z = this.targetBlock ? this.targetBlock.position.z : 0;
-    this.colorOffset = this.targetBlock ? this.targetBlock.colorOffset : Math.round(Math.random() * 100);
-
-    // Устанавливаем цвет: для первого блока – фиксированный, для остальных – вычисляем по формуле.
-    if (!this.targetBlock) {
-      this.color = 0x333344;
-    } else {
-      let offset = this.index + this.colorOffset;
-      let r = Math.sin(0.3 * offset) * 55 + 200;
-      let g = Math.sin(0.3 * offset + 2) * 55 + 200;
-      let b = Math.sin(0.3 * offset + 4) * 55 + 200;
-      this.color = new THREE.Color(r / 255, g / 255, b / 255);
-    }
-    this.state = this.index > 1 ? this.STATES.ACTIVE : this.STATES.STOPPED;
-
-    // Задаем скорость и направление движения блока.
-    this.speed = -0.1 - (this.index * 0.005);
-    if (this.speed < -4) this.speed = -4;
-    this.direction = this.speed;
-
-    // Создаем геометрию блока и смещаем ее так, чтобы центр совпадал с базовой точкой.
-    let geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
-    geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(this.dimension.width / 2, this.dimension.height / 2, this.dimension.depth / 2));
-    this.material = new THREE.MeshToonMaterial({ color: this.color, flatShading: true });
-    this.mesh = new THREE.Mesh(geometry, this.material);
-    this.mesh.position.set(this.position.x, this.position.y, this.position.z);
-
-    if (this.state === this.STATES.ACTIVE) {
-      // Начальное положение блока по оси движения
-      this.position[this.workingPlane] = Math.random() > 0.5 ? -this.MOVE_AMOUNT : this.MOVE_AMOUNT;
-    }
-  }
-  reverseDirection() {
-    this.direction = this.direction > 0 ? this.speed : Math.abs(this.speed);
-  }
-  place() {
-    this.state = this.STATES.STOPPED;
-    let overlap = this.targetBlock.dimension[this.workingDimension] - 
-                  Math.abs(this.position[this.workingPlane] - this.targetBlock.position[this.workingPlane]);
-    let blocksToReturn = {
-      plane: this.workingPlane,
-      direction: this.direction
-    };
-    if (this.dimension[this.workingDimension] - overlap < 0.3) {
-      overlap = this.dimension[this.workingDimension];
-      blocksToReturn.bonus = true;
-      this.position.x = this.targetBlock.position.x;
-      this.position.z = this.targetBlock.position.z;
-      this.dimension.width = this.targetBlock.dimension.width;
-      this.dimension.depth = this.targetBlock.dimension.depth;
-    }
-    if (overlap > 0) {
-      let choppedDimensions = { 
-        width: this.dimension.width, 
-        height: this.dimension.height, 
-        depth: this.dimension.depth 
-      };
-      choppedDimensions[this.workingDimension] -= overlap;
-      this.dimension[this.workingDimension] = overlap;
-      let placedGeometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
-      placedGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(this.dimension.width / 2, this.dimension.height / 2, this.dimension.depth / 2));
-      let placedMesh = new THREE.Mesh(placedGeometry, this.material);
-      let choppedGeometry = new THREE.BoxGeometry(choppedDimensions.width, choppedDimensions.height, choppedDimensions.depth);
-      choppedGeometry.applyMatrix4(new THREE.Matrix4().makeTranslation(choppedDimensions.width / 2, choppedDimensions.height / 2, choppedDimensions.depth / 2));
-      let choppedMesh = new THREE.Mesh(choppedGeometry, this.material);
-      let choppedPosition = {
-        x: this.position.x,
-        y: this.position.y,
-        z: this.position.z
-      };
-      if (this.position[this.workingPlane] < this.targetBlock.position[this.workingPlane]) {
-        this.position[this.workingPlane] = this.targetBlock.position[this.workingPlane];
-      } else {
-        choppedPosition[this.workingPlane] += overlap;
-      }
-      placedMesh.position.set(this.position.x, this.position.y, this.position.z);
-      choppedMesh.position.set(choppedPosition.x, choppedPosition.y, choppedPosition.z);
-      blocksToReturn.placed = placedMesh;
-      if (!blocksToReturn.bonus) blocksToReturn.chopped = choppedMesh;
-    } else {
-      this.state = this.STATES.MISSED;
-    }
-    this.dimension[this.workingDimension] = overlap;
-    return blocksToReturn;
-  }
-  tick() {
-    if (this.state === this.STATES.ACTIVE) {
-      let value = this.position[this.workingPlane];
-      if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT) this.reverseDirection();
-      this.position[this.workingPlane] += this.direction;
-      this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
-    }
-  }
-}
-
-// Класс Game – управляет логикой игры, добавлением блоков, подсчетом очков и игровым циклом.
-class Game {
-  constructor() {
-    this.STATES = {
-      LOADING: 'loading',
-      PLAYING: 'playing',
-      READY: 'ready',
-      ENDED: 'ended',
-      RESETTING: 'resetting'
-    };
-    this.blocks = [];
-    this.state = this.STATES.LOADING;
-    this.stage = new Stage();
-
-    // Если на странице отсутствуют отдельные элементы score, start-button или instructions,
-    // используются значения по умолчанию.
-    this.mainContainer = document.getElementById('container') || document.body;
-    this.scoreContainer = document.getElementById('score') || { innerHTML: '0' };
-    this.startButton = document.getElementById('start-button');
-    this.instructions = document.getElementById('instructions') || { classList: { add: function() {} } };
-
-    if (this.scoreContainer.innerHTML !== undefined) {
-      this.scoreContainer.innerHTML = '0';
-    }
-    this.newBlocks = new THREE.Group();
-    this.placedBlocks = new THREE.Group();
-    this.choppedBlocks = new THREE.Group();
-    this.stage.add(this.newBlocks);
-    this.stage.add(this.placedBlocks);
-    this.stage.add(this.choppedBlocks);
-
-    this.addBlock();
-    this.tick();
-    this.updateState(this.STATES.READY);
-
-    document.addEventListener('keydown', e => {
-      if (e.keyCode === 32) this.onAction();
-    });
-    document.addEventListener('click', e => {
-      this.onAction();
-    });
-    document.addEventListener('touchstart', e => {
-      e.preventDefault();
-    });
-  }
-  updateState(newState) {
-    if (this.mainContainer.classList) {
-      for (let key in this.STATES)
-        this.mainContainer.classList.remove(this.STATES[key]);
-      this.mainContainer.classList.add(newState);
-    }
-    this.state = newState;
-  }
-  onAction() {
-    switch (this.state) {
-      case this.STATES.READY:
-        this.startGame();
-        break;
-      case this.STATES.PLAYING:
-        this.placeBlock();
-        break;
-      case this.STATES.ENDED:
-        this.restartGame();
-        break;
-    }
-  }
-  startGame() {
-    if (this.state !== this.STATES.PLAYING) {
-      if (this.scoreContainer.innerHTML !== undefined) {
-        this.scoreContainer.innerHTML = '0';
-      }
-      this.updateState(this.STATES.PLAYING);
-      this.addBlock();
-    }
-  }
-  restartGame() {
-    this.updateState(this.STATES.RESETTING);
-    let oldBlocks = this.placedBlocks.children.slice();
-    let removeSpeed = 0.2;
-    let delayAmount = 0.02;
-    for (let i = 0; i < oldBlocks.length; i++) {
-      TweenLite.to(oldBlocks[i].scale, removeSpeed, {
-        x: 0, y: 0, z: 0,
-        delay: (oldBlocks.length - i) * delayAmount,
-        ease: Power1.easeIn,
-        onComplete: () => this.placedBlocks.remove(oldBlocks[i])
-      });
-      TweenLite.to(oldBlocks[i].rotation, removeSpeed, {
-        y: 0.5,
-        delay: (oldBlocks.length - i) * delayAmount,
-        ease: Power1.easeIn
-      });
-    }
-    let cameraMoveSpeed = removeSpeed * 2 + (oldBlocks.length * delayAmount);
-    this.stage.setCamera(2, cameraMoveSpeed);
-    let countdown = { value: this.blocks.length - 1 };
-    TweenLite.to(countdown, cameraMoveSpeed, {
-      value: 0,
-      onUpdate: () => {
-        if (this.scoreContainer.innerHTML !== undefined)
-          this.scoreContainer.innerHTML = String(Math.round(countdown.value));
-      }
-    });
-    this.blocks = this.blocks.slice(0, 1);
-    setTimeout(() => {
-      this.startGame();
-    }, cameraMoveSpeed * 1000);
-  }
-  placeBlock() {
-    let currentBlock = this.blocks[this.blocks.length - 1];
-    let newBlocks = currentBlock.place();
-    this.newBlocks.remove(currentBlock.mesh);
-    if (newBlocks.placed) this.placedBlocks.add(newBlocks.placed);
-    if (newBlocks.chopped) {
-      this.choppedBlocks.add(newBlocks.chopped);
-      let positionParams = { y: '-=30', ease: Power1.easeIn, onComplete: () => this.choppedBlocks.remove(newBlocks.chopped) };
-      let rotateRandomness = 10;
-      let rotationParams = {
-        delay: 0.05,
-        x: newBlocks.plane === 'z' ? ((Math.random() * rotateRandomness) - (rotateRandomness / 2)) : 0.1,
-        z: newBlocks.plane === 'x' ? ((Math.random() * rotateRandomness) - (rotateRandomness / 2)) : 0.1,
-        y: Math.random() * 0.1,
-      };
-      if (newBlocks.chopped.position[newBlocks.plane] > newBlocks.placed.position[newBlocks.plane]) {
-        positionParams[newBlocks.plane] = '+=' + (40 * Math.abs(newBlocks.direction));
-      } else {
-        positionParams[newBlocks.plane] = '-=' + (40 * Math.abs(newBlocks.direction));
-      }
-      TweenLite.to(newBlocks.chopped.position, 1, positionParams);
-      TweenLite.to(newBlocks.chopped.rotation, 1, rotationParams);
-    }
-    this.addBlock();
-  }
-  addBlock() {
-    let lastBlock = this.blocks[this.blocks.length - 1];
-    if (lastBlock && lastBlock.state === lastBlock.STATES.MISSED) {
-      return this.endGame();
-    }
-    if (this.scoreContainer.innerHTML !== undefined) {
-      this.scoreContainer.innerHTML = String(this.blocks.length - 1);
-    }
-    let newBlock = new Block(lastBlock);
-    this.newBlocks.add(newBlock.mesh);
-    this.blocks.push(newBlock);
-    this.stage.setCamera(this.blocks.length * 2);
-    if (this.blocks.length >= 5 && this.instructions && this.instructions.classList) {
-      this.instructions.classList.add('hide');
-    }
-  }
-  endGame() {
-    this.updateState(this.STATES.ENDED);
-  }
-  tick() {
-    if (this.blocks.length) {
-      this.blocks[this.blocks.length - 1].tick();
-    }
-    this.stage.render();
-    requestAnimationFrame(() => { this.tick(); });
-  }
-}
-
-// Экземпляр игры
-let game2Instance = null;
-
-// Функция инициализации игры (вызывается из основного скрипта index.html)
+////////////////////////////////
+// Инициализация игры (вызов из index)
+////////////////////////////////
 function initGame2() {
-  game2Instance = new Game();
+  // Получаем canvas для рендера
+  const game2Canvas = document.getElementById('match3Canvas');
+  if (!game2Canvas) {
+    console.error("Canvas с id='match3Canvas' не найден!");
+    return;
+  }
+
+  // Сбрасываем глобальные переменные на случай повторного запуска
+  resetGame2(false); // передаём false, чтобы полностью пересоздать сцену
+
+  // Создаём физический мир Cannon.js
+  world2 = new CANNON.World();
+  world2.gravity.set(0, -10, 0); // Гравитация
+  world2.broadphase = new CANNON.NaiveBroadphase();
+  world2.solver.iterations = 40;
+
+  // Создаём сцену
+  scene2 = new THREE.Scene();
+
+  // Настраиваем камеру (ортографическая для упрощения)
+  // Обратите внимание: размеры зависят от реальных px canvas,
+  // потому что в Three.js ортокамера рассчитывается исходя из «ширины/высоты».
+  const aspect = game2Canvas.width / game2Canvas.height;
+  const viewSize = 10; // «ширина» проекции
+  const w = viewSize * aspect;
+  const h = viewSize;
+
+  camera2 = new THREE.OrthographicCamera(
+    w / -2, // left
+    w / 2,  // right
+    h / 2,  // top
+    h / -2, // bottom
+    0,      // near
+    100     // far
+  );
+  camera2.position.set(4, 4, 4);
+  camera2.lookAt(0, 0, 0);
+
+  // Добавляем освещение
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene2.add(ambientLight);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(10, 20, 0);
+  scene2.add(dirLight);
+
+  // Создаём renderer, указывая canvas
+  renderer2 = new THREE.WebGLRenderer({
+    canvas: game2Canvas,
+    antialias: true
+  });
+  // Настраиваем размер (под габариты canvas)
+  renderer2.setSize(game2Canvas.width, game2Canvas.height);
+
+  // Начальные параметры игры
+  autopilot2 = true;     // при старте игра «ждёт» клика, автопилот включён
+  game2Ended = false;
+  game2Running = false;
+  game2Started = false;
+  lastTimestamp2 = 0;
+  stack2 = [];
+  overhangs2 = [];
+  score2 = 0;
+
+  setRobotPrecision2();
+
+  // Добавляем «фундамент» (первый блок в координатах 0,0)
+  addLayer2(0, 0, originalBoxSize2, originalBoxSize2);
+  // Добавляем ещё один блок, смещённый вдоль x
+  addLayer2(-10, 0, originalBoxSize2, originalBoxSize2, "x");
+
+  // Вешаем обработчики клика/тача на сам canvas
+  game2Canvas.addEventListener("mousedown", onStackCanvasClick, false);
+  game2Canvas.addEventListener("touchstart", onStackCanvasClick, { passive: false });
+
+  // Также, если хотите, можно позволить клавишу «пробел» для desktop:
+  // document.addEventListener("keydown", (e) => {
+  //   if (e.code === "Space") {
+  //     e.preventDefault();
+  //     onStackCanvasClick();
+  //   }
+  // });
+
+  // Сразу рисуем один кадр, чтобы было видно старт
+  drawGame2();
 }
 
-// Функция сброса/очистки игры (можно расширить по необходимости)
-function resetGame2() {
-  game2Instance = null;
+///////////////////////////////////////////////
+// Функция запуска игрового цикла (после клика)
+///////////////////////////////////////////////
+function startGame2() {
+  if (game2Running) return; // уже идёт
+
+  // Если надо заново начать:
+  resetGame2(true);
+
+  game2Ended = false;
+  game2Running = true;
+  game2Started = true;
+  lastTimestamp2 = performance.now(); // для dt
+  requestAnimationFrame(game2Loop);
 }
+
+///////////////////////////////////////////////
+// Игровой цикл
+///////////////////////////////////////////////
+function game2Loop(timestamp) {
+  if (!game2Running) return; // если остановка
+
+  const dt = timestamp - lastTimestamp2;
+  lastTimestamp2 = timestamp;
+
+  updateGame2(dt);
+  drawGame2();
+
+  animationFrameId2 = requestAnimationFrame(game2Loop);
+}
+
+///////////////////////////////////////////////
+// Логика обновления (каждый кадр)
+///////////////////////////////////////////////
+function updateGame2(dt) {
+  if (game2Ended) return;
+
+  // Скорость движения верхнего блока
+  const speed = 0.008; // чем больше, тем быстрее
+
+  // Берём «верхний» блок и «предыдущий» блок
+  const topLayer = stack2[stack2.length - 1];
+  const previousLayer = stack2[stack2.length - 2];
+  if (!topLayer || !previousLayer) return;
+
+  // Нужно ли двигать блок? 
+  // game2Started = true только после того, как игрок нажал «начать»
+  if (game2Started && !game2Ended) {
+    const direction = topLayer.direction;
+    // Если не автопилот, мы двигаем блок пока пользователь не кликнет
+    // Если автопилот, двигаем пока он не дойдёт до «робот-позиции»
+    const blockShouldMove =
+      (!autopilot2) ||
+      (autopilot2 && topLayer.threejs.position[direction] <
+        previousLayer.threejs.position[direction] + robotPrecision2);
+
+    if (blockShouldMove) {
+      topLayer.threejs.position[direction] += speed * dt;
+      topLayer.cannonjs.position[direction] += speed * dt;
+
+      // Если улетел за грань (прошёл x>10 или z>10)
+      if (topLayer.threejs.position[direction] > 10) {
+        missedTheSpot2();
+      }
+    } else {
+      // Автопилот достиг «нужной» точки — автоматически «режем»
+      if (autopilot2) {
+        splitBlockAndAddNextOneIfOverlaps2();
+        setRobotPrecision2();
+      }
+    }
+  }
+
+  // Сдвигаем камеру потихоньку вверх, чтобы видно было растущую башню
+  const maxY = boxHeight2 * (stack2.length - 2) + 4; // "идеальная" позиция камеры
+  if (camera2.position.y < maxY) {
+    camera2.position.y += 0.005 * dt; // плавно поднимаем
+  }
+
+  // Шаг физики Cannon.js
+  world2.step(dt / 1000);
+
+  // Обновляем позиции overhang-блоков в Three.js
+  overhangs2.forEach(obj => {
+    obj.threejs.position.copy(obj.cannonjs.position);
+    obj.threejs.quaternion.copy(obj.cannonjs.quaternion);
+  });
+}
+
+///////////////////////////////////////////////
+// Отрисовка (каждый кадр)
+///////////////////////////////////////////////
+function drawGame2() {
+  if (!renderer2 || !scene2 || !camera2) return;
+  renderer2.render(scene2, camera2);
+}
+
+///////////////////////////////////////////////
+// Завершение / сброс игры
+///////////////////////////////////////////////
+function resetGame2(justClean = false) {
+  // Останавливаем цикл
+  if (animationFrameId2) cancelAnimationFrame(animationFrameId2);
+  game2Running = false;
+  game2Ended = false;
+  game2Started = false;
+  score2 = 0;
+
+  // Очищаем Cannon.js, если мир существует
+  if (world2 && world2.bodies) {
+    while (world2.bodies.length > 0) {
+      world2.remove(world2.bodies[0]);
+    }
+  }
+  // Очищаем Three.js сцену
+  if (scene2) {
+    // Удаляем все меши
+    const meshes = scene2.children.filter(c => c.isMesh);
+    meshes.forEach(m => scene2.remove(m));
+  }
+  stack2 = [];
+  overhangs2 = [];
+
+  // Если justClean=false, то всё (сцена/камера/мир) пересоздадим в initGame2()
+  // Иначе — мы просто стерли все блоки, но сохраняем scene2/renderer2/...
+}
+
+///////////////////////////////////////////////
+// Обработчик клика/тача на canvas
+///////////////////////////////////////////////
+function onStackCanvasClick(e) {
+  // Если игра ещё не началась — запускаем
+  if (!game2Started) {
+    startGame2();
+    return;
+  }
+  // Иначе «режем» блок
+  if (!game2Ended) {
+    splitBlockAndAddNextOneIfOverlaps2();
+  }
+}
+
+///////////////////////////////////////////////
+// Вырезаем наложившуюся часть и создаём следующий блок
+///////////////////////////////////////////////
+function splitBlockAndAddNextOneIfOverlaps2() {
+  const topLayer = stack2[stack2.length - 1];
+  const previousLayer = stack2[stack2.length - 2];
+  if (!topLayer || !previousLayer) return;
+
+  const direction = topLayer.direction;
+  const size = (direction === "x") ? topLayer.width : topLayer.depth;
+  const delta = topLayer.threejs.position[direction] - previousLayer.threejs.position[direction];
+  const overhangSize = Math.abs(delta);
+  const overlap = size - overhangSize;
+
+  if (overlap > 0) {
+    // Есть пересечение
+    cutBox2(topLayer, overlap, size, delta);
+
+    // Срезанный кусок делаем отдельным «overhang»
+    const overhangShift = (overlap / 2 + overhangSize / 2) * Math.sign(delta);
+    const overhangX = (direction === "x")
+      ? topLayer.threejs.position.x + overhangShift
+      : topLayer.threejs.position.x;
+    const overhangZ = (direction === "z")
+      ? topLayer.threejs.position.z + overhangShift
+      : topLayer.threejs.position.z;
+    const overhangW = (direction === "x") ? overhangSize : topLayer.width;
+    const overhangD = (direction === "z") ? overhangSize : topLayer.depth;
+    addOverhang2(overhangX, overhangZ, overhangW, overhangD);
+
+    // Добавляем следующий блок поверх
+    const nextX = (direction === "x") ? topLayer.threejs.position.x : -10;
+    const nextZ = (direction === "z") ? topLayer.threejs.position.z : -10;
+    const newWidth = topLayer.width;
+    const newDepth = topLayer.depth;
+    const nextDirection = (direction === "x") ? "z" : "x";
+    stack2.push(generateBox2(nextX, boxHeight2 * stack2.length, nextZ, newWidth, newDepth, false, nextDirection));
+
+    // Обновляем локальный счёт (каждый удачный блок)
+    score2 = stack2.length - 1;
+  } else {
+    // Промахнулись
+    missedTheSpot2();
+  }
+}
+
+///////////////////////////////////////////////
+// Если блок полностью промахнулся
+///////////////////////////////////////////////
+function missedTheSpot2() {
+  // Верхний блок падает вниз
+  const topLayer = stack2[stack2.length - 1];
+  addOverhang2(topLayer.threejs.position.x, topLayer.threejs.position.z, topLayer.width, topLayer.depth);
+  world2.remove(topLayer.cannonjs);
+  scene2.remove(topLayer.threejs);
+  stack2.pop();
+
+  game2Ended = true;
+  game2Running = false;
+
+  // Начисляем очки пользователю (по желанию)
+  // Например: +score2 к localUserData.points
+  if (typeof localUserData !== 'undefined') {
+    localUserData.points += score2;
+  }
+  // Сохраняем на сервер
+  if (typeof userRef !== 'undefined' && typeof localUserData !== 'undefined') {
+    userRef.update({ points: localUserData.points });
+  }
+
+  // Показываем итог
+  showEndGameModal("Game Over", "Your score: " + score2);
+}
+
+///////////////////////////////////////////////
+// Вырезаем overlap
+///////////////////////////////////////////////
+function cutBox2(topLayer, overlap, size, delta) {
+  const direction = topLayer.direction;
+  const newWidth = (direction === "x") ? overlap : topLayer.width;
+  const newDepth = (direction === "z") ? overlap : topLayer.depth;
+
+  // Изменяем размеры в Three.js
+  topLayer.threejs.scale[direction] = overlap / size;
+  topLayer.threejs.position[direction] -= delta / 2;
+
+  // Изменяем в Cannon.js
+  topLayer.cannonjs.position[direction] -= delta / 2;
+  const shape = new CANNON.Box(
+    new CANNON.Vec3(newWidth / 2, boxHeight2 / 2, newDepth / 2)
+  );
+  topLayer.cannonjs.shapes = [];
+  topLayer.cannonjs.addShape(shape);
+
+  // Обновляем «метаданные» 
+  topLayer.width = newWidth;
+  topLayer.depth = newDepth;
+}
+
+///////////////////////////////////////////////
+// Генерация коробки (блока) и добавление в сцену/физику
+///////////////////////////////////////////////
+function generateBox2(x, y, z, width, depth, falls, direction) {
+  const geometry = new THREE.BoxGeometry(width, boxHeight2, depth);
+  const color = new THREE.Color(`hsl(${30 + stack2.length * 4}, 100%, 50%)`);
+  const material = new THREE.MeshLambertMaterial({ color: color });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  scene2.add(mesh);
+
+  const shape = new CANNON.Box(
+    new CANNON.Vec3(width / 2, boxHeight2 / 2, depth / 2)
+  );
+  let mass = falls ? 5 : 0; // падающий кусок или стационарный
+  // Массу делаем пропорционально размеру
+  mass *= width / originalBoxSize2;
+  mass *= depth / originalBoxSize2;
+  const body = new CANNON.Body({ mass: mass, shape: shape });
+  body.position.set(x, y, z);
+  world2.addBody(body);
+
+  return {
+    threejs: mesh,
+    cannonjs: body,
+    width: width,
+    depth: depth,
+    direction: direction
+  };
+}
+
+function addLayer2(x, z, width, depth, direction) {
+  const y = boxHeight2 * stack2.length;
+  const layer = generateBox2(x, y, z, width, depth, false, direction);
+  stack2.push(layer);
+}
+
+function addOverhang2(x, z, width, depth) {
+  const y = boxHeight2 * (stack2.length - 1);
+  const overhang = generateBox2(x, y, z, width, depth, true, null);
+  overhangs2.push(overhang);
+}
+
+///////////////////////////////////////////////
+// «Точность» автопилота
+///////////////////////////////////////////////
+function setRobotPrecision2() {
+  robotPrecision2 = Math.random() * 1 - 0.5;
+}
+
+///////////////////////////////////////////////
+// Экспортируем нужные функции в глобальную область
+///////////////////////////////////////////////
+window.initGame2 = initGame2;
+window.resetGame2 = resetGame2;
