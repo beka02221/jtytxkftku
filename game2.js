@@ -1,4 +1,4 @@
-/* game2.js – 3D Игра «Stack» с приятными для глаз цветами и тенями
+/* game2.js – 3D Игра «Stack» с чёрным фоном и отодвинутой камерой
    Основные механики:
    • Базовый блок создаётся в центре сцены.
    • Каждый новый блок появляется над предыдущим и движется по горизонтали (чередуя оси X и Z).
@@ -7,14 +7,14 @@
        – Если пересечения нет – игра заканчивается (вызывается модальное окно).
    • Скорость движения нового блока выбирается случайным образом.
    • Каждый блок получает случайный пастельный цвет из заданной палитры.
-   • В сцене включены тени, а фон имеет мягкий светлый оттенок.
+   • В сцене включены тени.
+   • Фон сцены – чёрный, а камера отодвинута так, чтобы башенка целиком была видна.
 */
 
-// Параметры блоков
 const BLOCK_HEIGHT = 20;
 const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
 
-// Палитра пастельных цветов
+// Палитра пастельных цветов (для мягкости восприятия)
 const pastelColors = [0xA8DADC, 0xF4A261, 0x457B9D, 0xE63946, 0xB7E4C7];
 
 let scene, camera, renderer;
@@ -31,20 +31,20 @@ let currentBlock = null;
 // Инициализация Three.js и базовых параметров сцены
 function initThree() {
   scene = new THREE.Scene();
-  // Мягкий светлый фон
-  scene.background = new THREE.Color(0xF0F0F0);
+  // Фон сцены – чёрный
+  scene.background = new THREE.Color(0x000000);
 
   camera = new THREE.PerspectiveCamera(45, game2Canvas.width / game2Canvas.height, 1, 1000);
-  // Начальное положение камеры: чуть выше башенки
-  camera.position.set(0, 300, 500);
-  camera.lookAt(new THREE.Vector3(0, 100, 0));
+  // Отодвигаем камеру дальше, чтобы полностью видеть башенку блоков
+  camera.position.set(0, 300, 800);
+  camera.lookAt(new THREE.Vector3(0, 150, 0));
 
   renderer = new THREE.WebGLRenderer({ canvas: game2Canvas, antialias: true });
   renderer.setSize(game2Canvas.width, game2Canvas.height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // Освещение: AmbientLight для мягкого общего света
+  // Освещение: AmbientLight для общего мягкого света
   let ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
   // DirectionalLight для создания теней
@@ -154,7 +154,7 @@ function updateGame() {
   }
 }
 
-// Функция фиксации блока (вызывается по нажатию клавиши или клику)
+// Фиксация блока (вызывается по нажатию клавиши или клику)
 function onDropBlock() {
   if (!gameRunning || !currentBlock) return;
   let topBlock = stack[stack.length - 1];
@@ -197,7 +197,7 @@ function onDropBlock() {
     currentBlock.mesh.position.z = newCenterZ;
     currentBlock.size.depth = overlap;
   }
-  // Успешно зафиксированный блок добавляем в башню
+  // Блок успешно зафиксирован – добавляем его в башню
   stack.push(currentBlock);
   score++;
   // Поднимаем камеру, чтобы новый блок был в поле зрения
@@ -217,13 +217,13 @@ function gameLoop() {
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Функция завершения игры: отключает анимацию, удаляет обработчики и показывает модальное окно
+// Завершение игры: отключение анимации, удаление обработчиков и вызов модального окна
 function gameOver() {
   gameRunning = false;
   cancelAnimationFrame(animationFrameId);
   window.removeEventListener("keydown", onDropBlock);
   game2Canvas.removeEventListener("click", onDropBlock);
-  // Вызываем функцию показа модального окна (реализована в основном скрипте)
+  // Вызываем функцию показа модального окна (реализуйте showEndGameModal в основном скрипте)
   showEndGameModal("Game Over", "Score: " + score);
 }
 
@@ -253,4 +253,3 @@ function resetGame2() {
     renderer.clear();
   }
 }
-
