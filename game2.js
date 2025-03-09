@@ -1,8 +1,8 @@
 /* 
   game2.js – Игра Air Hockey (с ботом)
+  Улучшенная версия с неоновым оформлением, звуковыми эффектами и улучшенной механикой.
   Игра идёт до 5 очков. Если игрок побеждает, то получает 200 points.
-  Адаптация аналогична game3.js – обновляются очки пользователя через userRef,
-  вызывается showEndGameModal и производится сброс игрового состояния.
+  При забитом голе сменяется подача: если забил игрок, то следующий розыгрыш начинается с подачи бота, и наоборот.
 */
 
 // Глобальные переменные для game2
@@ -16,8 +16,15 @@ let animationFrameId2;
 const PUCK_RADIUS = 10;       // Радиус шайбы
 const MALLET_RADIUS = 20;     // Радиус ракеток
 const INITIAL_PUCK_SPEED = 4; // Начальная скорость шайбы
-const BOT_SPEED = 3;          // Максимальная скорость перемещения ракетки бота
+const BOT_SPEED = 3;          // Максимальная скорость движения ракетки бота
 const SCORE_TO_WIN = 5;       // Количество очков для победы
+
+// Флаг подачи: если true, то игрок подаёт; если false – бот
+let serveByPlayer = true;
+
+// Звуковые эффекты (файлы должны быть доступны по указанным путям)
+let hitSound = new Audio('sounds/hit.mp3');    // Звук столкновения
+let scoreSound = new Audio('sounds/score.mp3');  // Звук гола
 
 // Инициализация игры
 function initGame2() {
@@ -28,52 +35,57 @@ function initGame2() {
   }
   game2Ctx = game2Canvas.getContext('2d');
 
-  // Инициализируем позиции мяча и ракеток
-  resetPositions();
+  // Фиксированные позиции ракеток
+  const centerX = game2Canvas.width / 2;
+  playerMallet = {
+    x: centerX,
+    y: game2Canvas.height - MALLET_RADIUS - 10,
+    radius: MALLET_RADIUS
+  };
+  botMallet = {
+    x: centerX,
+    y: MALLET_RADIUS + 10,
+    radius: MALLET_RADIUS
+  };
 
-  // Сброс счёта
+  // Сброс позиций шайбы и счёта
+  resetPuckPosition();
   playerScore = 0;
   botScore = 0;
 
   game2Started = false;
   game2Running = false;
 
-  // Добавляем обработчики для управления игроком
+  // Добавляем обработчики событий
   game2Canvas.addEventListener("mousemove", mouseMoveHandler2, false);
   game2Canvas.addEventListener("touchmove", touchMoveHandler2, { passive: false });
 
-  // Отрисовываем начальное состояние игры
+  // Отрисовываем начальное состояние
   drawGame2();
 }
 
-// Функция сброса позиций объектов (шайбы и ракеток)
-function resetPositions() {
+// Сброс позиции шайбы с учётом подачи
+function resetPuckPosition() {
   const centerX = game2Canvas.width / 2;
-  const centerY = game2Canvas.height / 2;
-
-  // Инициализация шайбы
-  puck = {
-    x: centerX,
-    y: centerY,
-    radius: PUCK_RADIUS,
-    // Начальное направление выбирается случайно
-    dx: (Math.random() > 0.5 ? 1 : -1) * INITIAL_PUCK_SPEED,
-    dy: (Math.random() > 0.5 ? 1 : -1) * INITIAL_PUCK_SPEED
-  };
-
-  // Ракетка игрока (находится в нижней части экрана)
-  playerMallet = {
-    x: centerX,
-    y: game2Canvas.height - MALLET_RADIUS - 10,
-    radius: MALLET_RADIUS
-  };
-
-  // Ракетка бота (верхняя часть экрана)
-  botMallet = {
-    x: centerX,
-    y: MALLET_RADIUS + 10,
-    radius: MALLET_RADIUS
-  };
+  if (serveByPlayer) {
+    // Игрок подаёт: шайба появляется рядом с ракеткой игрока, направлена вверх
+    puck = {
+      x: playerMallet.x,
+      y: playerMallet.y - (MALLET_RADIUS + PUCK_RADIUS + 5),
+      radius: PUCK_RADIUS,
+      dx: (Math.random() > 0.5 ? 1 : -1) * INITIAL_PUCK_SPEED,
+      dy: -INITIAL_PUCK_SPEED
+    };
+  } else {
+    // Бот подаёт: шайба появляется рядом с ракеткой бота, направлена вниз
+    puck = {
+      x: botMallet.x,
+      y: botMallet.y + (MALLET_RADIUS + PUCK_RADIUS + 5),
+      radius: PUCK_RADIUS,
+      dx: (Math.random() > 0.5 ? 1 : -1) * INITIAL_PUCK_SPEED,
+      dy: INITIAL_PUCK_SPEED
+    };
+  }
 }
 
 // Основной игровой цикл
@@ -85,45 +97,36 @@ function gameLoop2() {
   }
 }
 
-// Обновление состояния игры
+// Обновление игрового состояния
 function updateGame2() {
-  // Если игра не началась, не двигаем шайбу
-  if (!game2Started) {
-    return;
-  }
+  if (!game2Started) return;
 
   // Обновляем позицию шайбы
   puck.x += puck.dx;
   puck.y += puck.dy;
 
-  // Отскок от боковых стен
-  if (puck.x + puck.radius > game2Canvas.width || puck.x - puck.radius < 0) {
+  // Ограничиваем движение по горизонтали
+  if (puck.x < puck.radius) {
+    puck.x = puck.radius;
+    puck.dx = -puck.dx;
+  }
+  if (puck.x > game2Canvas.width - puck.radius) {
+    puck.x = game2Canvas.width - puck.radius;
     puck.dx = -puck.dx;
   }
 
-  // Обработка ворот:
-  // Определяем "ворота" как центральную область края (ширина ворот – 100 пикселей)
+  // Воротная зона (ширина ворот – 100 пикселей)
   const goalWidth = 100;
-  // Верхние ворота (если шайба уходит за верх, это гол игрока)
+
+  // Если шайба уходит за верхнюю границу (это гол для игрока)
   if (puck.y - puck.radius < 0) {
     if (puck.x > (game2Canvas.width - goalWidth) / 2 && puck.x < (game2Canvas.width + goalWidth) / 2) {
-      // Гол игрока
       playerScore++;
+      scoreSound.play();
+      // Если игрок забил, следующий розыгрыш начинается с подачи бота
+      serveByPlayer = false;
       checkWinCondition();
-      resetPositions();
-      game2Started = false;
-      return;
-    } else {
-      puck.dy = -puck.dy;
-    }
-  }
-  // Нижние ворота (если шайба уходит за низ, это гол бота)
-  if (puck.y + puck.radius > game2Canvas.height) {
-    if (puck.x > (game2Canvas.width - goalWidth) / 2 && puck.x < (game2Canvas.width + goalWidth) / 2) {
-      // Гол бота
-      botScore++;
-      checkWinCondition();
-      resetPositions();
+      resetPuckPosition();
       game2Started = false;
       return;
     } else {
@@ -131,17 +134,31 @@ function updateGame2() {
     }
   }
 
-  // Проверка столкновений шайбы с ракеткой игрока
+  // Если шайба уходит за нижнюю границу (гол для бота)
+  if (puck.y + puck.radius > game2Canvas.height) {
+    if (puck.x > (game2Canvas.width - goalWidth) / 2 && puck.x < (game2Canvas.width + goalWidth) / 2) {
+      botScore++;
+      scoreSound.play();
+      // Если бот забил, следующий розыгрыш начинается с подачи игрока
+      serveByPlayer = true;
+      checkWinCondition();
+      resetPuckPosition();
+      game2Started = false;
+      return;
+    } else {
+      puck.dy = -puck.dy;
+    }
+  }
+
+  // Проверка столкновений шайбы с ракетками
   if (isColliding(puck, playerMallet)) {
     handleMalletCollision(playerMallet);
   }
-
-  // Проверка столкновений шайбы с ракеткой бота
   if (isColliding(puck, botMallet)) {
     handleMalletCollision(botMallet);
   }
 
-  // Обновляем позицию ракетки бота (простой ИИ)
+  // Обновление позиции ракетки бота (простой ИИ: следование за шайбой по оси X)
   updateBotMallet();
 }
 
@@ -155,45 +172,52 @@ function isColliding(circle1, circle2) {
 
 // Обработка столкновения шайбы с ракеткой
 function handleMalletCollision(mallet) {
-  // Рассчитываем вектор от центра ракетки к центру шайбы
+  // Проигрываем звук столкновения
+  hitSound.play();
+  // Рассчитываем вектор столкновения
   const dx = puck.x - mallet.x;
   const dy = puck.y - mallet.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  if (distance === 0) return; // на всякий случай
-  // Нормализуем вектор
+  if (distance === 0) return;
   const nx = dx / distance;
   const ny = dy / distance;
-  // Немного ускоряем шайбу при столкновении (если скорость меньше порога)
-  const speed = Math.sqrt(puck.dx * puck.dx + puck.dy * puck.dy);
-  const newSpeed = speed < 6 ? speed + 0.5 : speed;
-  puck.dx = nx * newSpeed;
-  puck.dy = ny * newSpeed;
-  // Смещаем шайбу так, чтобы она не "залипла" в ракетке
+  // Фиксируем скорость шайбы равной INITIAL_PUCK_SPEED (не допускаем разгона)
+  puck.dx = nx * INITIAL_PUCK_SPEED;
+  puck.dy = ny * INITIAL_PUCK_SPEED;
+  // Смещаем шайбу, чтобы она не "залипла" в ракетке
   puck.x = mallet.x + nx * (mallet.radius + puck.radius);
   puck.y = mallet.y + ny * (mallet.radius + puck.radius);
 }
 
-// Простое управление ракеткой бота – движение по оси X в сторону шайбы
+// Обновление позиции ракетки бота
 function updateBotMallet() {
   if (puck.x < botMallet.x) {
     botMallet.x -= BOT_SPEED;
   } else if (puck.x > botMallet.x) {
     botMallet.x += BOT_SPEED;
   }
-  // Ограничиваем движение бота в пределах канваса
+  // Ограничиваем движение ракетки бота по горизонтали
   botMallet.x = Math.max(botMallet.radius, Math.min(game2Canvas.width - botMallet.radius, botMallet.x));
 }
 
-// Отрисовка игрового поля
+// Отрисовка игрового поля с неоновым оформлением
 function drawGame2() {
   // Очистка холста
   game2Ctx.clearRect(0, 0, game2Canvas.width, game2Canvas.height);
-  // Фон
-  game2Ctx.fillStyle = "#00103c";
+
+  // Фон – градиент в тёмных тонах
+  let gradient = game2Ctx.createLinearGradient(0, 0, game2Canvas.width, game2Canvas.height);
+  gradient.addColorStop(0, "#000428");
+  gradient.addColorStop(1, "#004e92");
+  game2Ctx.fillStyle = gradient;
   game2Ctx.fillRect(0, 0, game2Canvas.width, game2Canvas.height);
 
-  // Рисуем разделительную линию (с пунктиром)
-  game2Ctx.strokeStyle = "#fff";
+  // Настраиваем неоновое свечение для разделительной линии
+  game2Ctx.shadowBlur = 20;
+  game2Ctx.shadowColor = "#39ff14"; // ярко-зелёный неон
+
+  // Разделительная линия (пунктирная)
+  game2Ctx.strokeStyle = "#39ff14";
   game2Ctx.setLineDash([5, 5]);
   game2Ctx.beginPath();
   game2Ctx.moveTo(0, game2Canvas.height / 2);
@@ -201,38 +225,44 @@ function drawGame2() {
   game2Ctx.stroke();
   game2Ctx.setLineDash([]);
 
-  // Рисуем воротные зоны (белыми прямоугольниками)
+  // Рисуем воротные зоны – неоновая рамка
   const goalWidth = 100;
+  game2Ctx.strokeStyle = "#ffff00"; // неоновый жёлтый
+  game2Ctx.lineWidth = 4;
   // Верхние ворота
-  game2Ctx.fillStyle = "#fff";
-  game2Ctx.fillRect((game2Canvas.width - goalWidth) / 2, 0, goalWidth, 10);
+  game2Ctx.strokeRect((game2Canvas.width - goalWidth) / 2, 0, goalWidth, 10);
   // Нижние ворота
-  game2Ctx.fillRect((game2Canvas.width - goalWidth) / 2, game2Canvas.height - 10, goalWidth, 10);
+  game2Ctx.strokeRect((game2Canvas.width - goalWidth) / 2, game2Canvas.height - 10, goalWidth, 10);
+  game2Ctx.lineWidth = 1;
+
+  // Сброс теней для объектов
+  game2Ctx.shadowBlur = 10;
+  game2Ctx.shadowColor = "#ff00ff"; // неоновый розовый
 
   // Рисуем шайбу
   game2Ctx.beginPath();
   game2Ctx.arc(puck.x, puck.y, puck.radius, 0, Math.PI * 2);
-  game2Ctx.fillStyle = "#FF4500";
+  game2Ctx.fillStyle = "#ff00ff"; // неоновый розовый
   game2Ctx.fill();
   game2Ctx.closePath();
 
   // Рисуем ракетку игрока
   game2Ctx.beginPath();
   game2Ctx.arc(playerMallet.x, playerMallet.y, playerMallet.radius, 0, Math.PI * 2);
-  game2Ctx.fillStyle = "#0095DD";
+  game2Ctx.fillStyle = "#00ffff"; // неоновый голубой
   game2Ctx.fill();
   game2Ctx.closePath();
 
   // Рисуем ракетку бота
   game2Ctx.beginPath();
   game2Ctx.arc(botMallet.x, botMallet.y, botMallet.radius, 0, Math.PI * 2);
-  game2Ctx.fillStyle = "#0095DD";
+  game2Ctx.fillStyle = "#00ffff";
   game2Ctx.fill();
   game2Ctx.closePath();
 
   // Отображаем счёт
   game2Ctx.font = "16px Arial";
-  game2Ctx.fillStyle = "#FFF";
+  game2Ctx.fillStyle = "#ffffff";
   game2Ctx.fillText("Player: " + playerScore, 10, game2Canvas.height - 20);
   game2Ctx.fillText("Bot: " + botScore, 10, 30);
 }
@@ -241,7 +271,6 @@ function drawGame2() {
 function checkWinCondition() {
   if (playerScore >= SCORE_TO_WIN || botScore >= SCORE_TO_WIN) {
     game2Running = false;
-    // Если игрок побеждает, начисляем 200 points
     if (playerScore >= SCORE_TO_WIN) {
       if (typeof userRef !== 'undefined' && typeof localUserData !== 'undefined') {
         localUserData.points += 200;
@@ -254,12 +283,12 @@ function checkWinCondition() {
   }
 }
 
-// Обработчик движения мыши – управление ракеткой игрока
+// Обработчик движения мыши для управления ракеткой игрока
 function mouseMoveHandler2(e) {
   let rect = game2Canvas.getBoundingClientRect();
   let relativeX = e.clientX - rect.left;
   let relativeY = e.clientY - rect.top;
-  // Ограничиваем движение игрока только нижней половиной экрана
+  // Ограничиваем движение игрока нижней половиной экрана
   if (relativeY < game2Canvas.height / 2 + MALLET_RADIUS) {
     relativeY = game2Canvas.height / 2 + MALLET_RADIUS;
   }
@@ -267,7 +296,6 @@ function mouseMoveHandler2(e) {
     playerMallet.x = relativeX;
     playerMallet.y = relativeY;
   }
-  // При первом движении запускаем игру
   if (!game2Started) {
     game2Started = true;
     game2Running = true;
@@ -296,7 +324,7 @@ function touchMoveHandler2(e) {
   }
 }
 
-// Функция сброса игры (вызывается при завершении)
+// Сброс игры (вызывается при завершении)
 function resetGame2() {
   cancelAnimationFrame(animationFrameId2);
   game2Running = false;
@@ -306,4 +334,3 @@ function resetGame2() {
     game2Ctx.clearRect(0, 0, game2Canvas.width, game2Canvas.height);
   }
 }
-
