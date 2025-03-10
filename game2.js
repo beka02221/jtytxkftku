@@ -1,276 +1,161 @@
-// game2.js – базовая 3D-игра «Stack» в Three.js
-// ----------------------------------------------
-//  • Камера: (0,10,-10), Rotation X=35°, Y=45°, Z=0°, FOV=40°
-//  • Размер блоков: 2 x 0.5 x 2
-//  • Нижний блок: центр по y=0.25 (нижняя грань на y=0)
-//  • При неточном попадании игра завершается (без текстовых сообщений)
+/* game2.js – 3D Stack с «топ-даун с перспективой» камерой
+   Особенности:
+   - Блоки 2×2×0.5, укладываются по оси Y.
+   - Камера:
+       • position = (0, 15, -15)
+       • rotationX = 35°, rotationY = 45°, rotationZ = 0°
+       • FOV ~ 35°
+   - Нет вывода текста: при "gameOver" игра тихо останавливается (добавьте свой UI по необходимости).
+*/
 
 //////////////////////////////////////////////////
-// ПАРАМЕТРЫ
+// ПАРАМЕТРЫ БЛОКОВ И КАМЕРЫ
 //////////////////////////////////////////////////
-const BLOCK_WIDTH   = 2;    // Ширина  (X)
-const BLOCK_HEIGHT  = 0.5;  // Высота  (Y)
-const BLOCK_DEPTH   = 2;    // Глубина (Z)
+const BLOCK_WIDTH  = 2;
+const BLOCK_DEPTH  = 2;
+const BLOCK_HEIGHT = 0.5;
 
-// Начальные размеры первого (нижнего) блока
-// (можно менять, но здесь они совпадают со стандартными)
-const INITIAL_BLOCK_SIZE = {
-  width:  BLOCK_WIDTH,
-  height: BLOCK_HEIGHT,
-  depth:  BLOCK_DEPTH
-};
+const CAMERA_FOV   = 35;
+const CAMERA_NEAR  = 0.1;
+const CAMERA_FAR   = 1000;
 
-// Скорость движения нового блока выбирается случайно в этом диапазоне
-const MIN_SPEED = 1.5;
-const MAX_SPEED = 3.0;
-
-// Палитра (примерные пастельные оттенки)
-const blockColors = [0x25354B, 0x4A728E, 0x6CB6C6, 0x9CDDDD, 0xC2F5F3];
+// Начальная позиция камеры
+const CAMERA_POS = { x: 0, y: 15, z: -15 };
+// Углы поворота камеры (в градусах)
+const CAMERA_ROT = { xDeg: 35, yDeg: 45, zDeg: 0 };
 
 //////////////////////////////////////////////////
 // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 //////////////////////////////////////////////////
 let scene, camera, renderer;
-let game2Canvas;          // Canvas-элемент
-let animationFrameId;     // ID анимационного кадра
-let gameRunning = false;  // Флаг, идёт ли игра
+let game2Canvas;
+let animationFrameId;
+let gameRunning = false;
 
-// Список уложенных блоков
-// Каждый элемент: { mesh, size: { width, depth }, axis: 'x'|'z' }
-let stack = [];
+let stack = [];          // Массив уложенных блоков: { mesh, size: { w, d } }
+let currentBlock = null; // Текущий движущийся блок
+let blockCount = 0;      // Счётчик уложенных блоков (если нужен для цвета или логики)
 
-// Текущий движущийся блок
-// { mesh, size: { width, depth }, movingAxis, speed, direction }
-let currentBlock = null;
-
-// Счётчик для выбора цвета (по модулю массива blockColors)
-let blockCount = 0;
-
-//////////////////////////////////////////////////
-// ИНИЦИАЛИЗАЦИЯ СЦЕНЫ И КАМЕРЫ
-//////////////////////////////////////////////////
+// Инициализация Three.js и базовых параметров сцены
 function initThree() {
   scene = new THREE.Scene();
-  // Можно задать цвет фона, например, светлый:
-  // scene.background = new THREE.Color(0xf0f0f0);
-  // Или оставить чёрный фон:
-  scene.background = new THREE.Color(0x000000);
+  // Нейтральный светлый фон (можно заменить на любой)
+  scene.background = new THREE.Color(0xF0F0F0);
 
-  // Камера (Perspectivе) с FOV=40°
+  // Камера с небольшим FOV для «топ-даун» перспективы
   camera = new THREE.PerspectiveCamera(
-    40,                               // FOV
-    game2Canvas.width / game2Canvas.height, // соотношение сторон
-    0.1,                              // near
-    1000                              // far
+    CAMERA_FOV,
+    game2Canvas.width / game2Canvas.height,
+    CAMERA_NEAR,
+    CAMERA_FAR
   );
 
-  // Позиция (0,10,-10)
-  camera.position.set(0, 10, -10);
+  // Устанавливаем позицию камеры
+  camera.position.set(CAMERA_POS.x, CAMERA_POS.y, CAMERA_POS.z);
 
-  // Устанавливаем поворот в градусах: X=35°, Y=45°, Z=0°
-  camera.rotation.order = 'XYZ';
-  camera.rotation.x = THREE.MathUtils.degToRad(35);
-  camera.rotation.y = THREE.MathUtils.degToRad(45);
-  camera.rotation.z = 0;
+  // Переводим градусы в радианы и задаём поворот камеры
+  // Порядок вращения делаем "YXZ", чтобы повороты X применялись после Y
+  camera.rotation.order = "YXZ";
+  camera.rotation.y = THREE.MathUtils.degToRad(CAMERA_ROT.yDeg);
+  camera.rotation.x = THREE.MathUtils.degToRad(CAMERA_ROT.xDeg);
+  // (при необходимости можно добавить поворот z)
 
-  // Создаём WebGLRenderer
+  // Создаём рендерер
   renderer = new THREE.WebGLRenderer({ canvas: game2Canvas, antialias: true });
   renderer.setSize(game2Canvas.width, game2Canvas.height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // Добавляем освещение
+  // Освещение: мягкий рассеянный + направленный
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
 
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(10, 20, 10);
   dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(1024, 1024);
   scene.add(dirLight);
 }
 
-//////////////////////////////////////////////////
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-//////////////////////////////////////////////////
-
-// Получаем цвет из палитры, циклически
-function getBlockColor() {
-  const color = blockColors[blockCount % blockColors.length];
-  blockCount++;
-  return color;
-}
-
-// Создаём и добавляем в сцену новый блок (THREE.Mesh) с заданными размерами
-function createBlock(width, height, depth, color) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const material = new THREE.MeshPhongMaterial({ color });
+// Создание базового (нижнего) блока
+function createBaseBlock() {
+  const geometry = new THREE.BoxGeometry(BLOCK_WIDTH, BLOCK_HEIGHT, BLOCK_DEPTH);
+  const material = new THREE.MeshPhongMaterial({ color: 0x5B9EA5 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  return mesh;
-}
 
-//////////////////////////////////////////////////
-// МЕХАНИКА ИГРЫ: СОЗДАНИЕ ПЕРВОГО БЛОКА, СПАВН НОВЫХ
-//////////////////////////////////////////////////
-
-// Создаём нижний (базовый) блок
-function createBaseBlock() {
-  const color = getBlockColor();
-  const mesh = createBlock(INITIAL_BLOCK_SIZE.width, INITIAL_BLOCK_SIZE.height, INITIAL_BLOCK_SIZE.depth, color);
-
-  // Размещаем так, чтобы нижняя грань лежала на y=0
-  // Значит центр блока = height/2 => y=0.25
+  // Блок располагаем так, чтобы нижняя грань была на Y=0
+  // => центр блока по высоте на Y = BLOCK_HEIGHT/2
   mesh.position.set(0, BLOCK_HEIGHT / 2, 0);
 
-  // Сохраняем в stack
+  scene.add(mesh);
   stack.push({
     mesh: mesh,
-    size: {
-      width:  INITIAL_BLOCK_SIZE.width,
-      depth:  INITIAL_BLOCK_SIZE.depth
-    },
-    axis: 'x' // (можно не использовать для базового)
+    size: { w: BLOCK_WIDTH, d: BLOCK_DEPTH }
   });
 
-  scene.add(mesh);
+  blockCount++;
 }
 
-// Спавним новый движущийся блок поверх верхнего
+// Создание нового движущегося блока
 function spawnNewBlock() {
-  // Верхний блок
-  const topBlock = stack[stack.length - 1];
+  let topBlock = stack[stack.length - 1];
+  let newW = topBlock.size.w;
+  let newD = topBlock.size.d;
 
-  // Новому блоку передаём текущие размеры
-  let newWidth = topBlock.size.width;
-  let newDepth = topBlock.size.depth;
+  // Определяем ось движения: чередуем X / Z
+  let movingAxis = (stack.length % 2 === 0) ? "x" : "z";
+  let speed = 1.5 + Math.random() * 2; // случайная скорость
+  let direction = 1;
 
-  // Чередуем ось движения: если в стеке чётное число блоков — 'x', иначе 'z'
-  // (Можно использовать другую логику, на ваше усмотрение)
-  const movingAxis = (stack.length % 2 === 0) ? 'x' : 'z';
-
-  // Случайная скорость
-  const speed = THREE.MathUtils.randFloat(MIN_SPEED, MAX_SPEED);
-
-  // Блок
-  const color = getBlockColor();
-  const mesh = createBlock(newWidth, BLOCK_HEIGHT, newDepth, color);
-
-  // Позиция нового блока:
-  // По высоте: чуть выше предыдущего (т.е. center.y = topBlockCenterY + 0.5)
-  const newY = topBlock.mesh.position.y + BLOCK_HEIGHT;
-
-  // Начальное смещение вдоль оси X или Z
+  // Начальные координаты
   let startX = topBlock.mesh.position.x;
   let startZ = topBlock.mesh.position.z;
-  if (movingAxis === 'x') {
-    // Слева направо: начнём левее на (newWidth)
-    startX -= newWidth;
+  if (movingAxis === "x") {
+    startX -= newW; // блок «едет» слева направо
   } else {
-    // Спереди назад: начнём "ближе" на (newDepth)
-    startZ -= newDepth;
+    startZ -= newD; // блок «едет» «спереди» назад
   }
 
+  // Новый блок располагается поверх предыдущего
+  let newY = topBlock.mesh.position.y + BLOCK_HEIGHT;
+
+  // Создаём меш
+  const geometry = new THREE.BoxGeometry(newW, BLOCK_HEIGHT, newD);
+  const material = new THREE.MeshPhongMaterial({ color: 0x9BD3D8 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
   mesh.position.set(
-    (movingAxis === 'x') ? startX : topBlock.mesh.position.x,
+    (movingAxis === "x") ? startX : topBlock.mesh.position.x,
     newY,
-    (movingAxis === 'z') ? startZ : topBlock.mesh.position.z
+    (movingAxis === "z") ? startZ : topBlock.mesh.position.z
   );
 
   currentBlock = {
-    mesh,
-    size: {
-      width: newWidth,
-      depth: newDepth
-    },
-    movingAxis,
-    speed,
-    direction: 1
+    mesh: mesh,
+    size: { w: newW, d: newD },
+    movingAxis: movingAxis,
+    speed: speed,
+    direction: direction
   };
-
   scene.add(mesh);
+
+  blockCount++;
 }
 
-//////////////////////////////////////////////////
-// УПРАВЛЕНИЕ: ФИКСАЦИЯ БЛОКА (DROP)
-//////////////////////////////////////////////////
-function onDropBlock() {
-  if (!gameRunning || !currentBlock) return;
-
-  const topBlock = stack[stack.length - 1];
-  let overlap = 0;
-
-  if (currentBlock.movingAxis === 'x') {
-    // Рассчитываем пересечение по X
-    const currentLeft  = currentBlock.mesh.position.x - currentBlock.size.width / 2;
-    const currentRight = currentBlock.mesh.position.x + currentBlock.size.width / 2;
-    const topLeft      = topBlock.mesh.position.x - topBlock.size.width / 2;
-    const topRight     = topBlock.mesh.position.x + topBlock.size.width / 2;
-
-    const overlapLeft  = Math.max(currentLeft,  topLeft);
-    const overlapRight = Math.min(currentRight, topRight);
-
-    overlap = overlapRight - overlapLeft;
-    if (overlap <= 0) {
-      gameOver();
-      return;
-    }
-    // Корректируем геометрию
-    const newCenterX = (overlapLeft + overlapRight) / 2;
-    currentBlock.mesh.position.x = newCenterX;
-    // Меняем ширину
-    currentBlock.size.width = overlap;
-
-    // Пересоздаём геометрию
-    const newGeo = new THREE.BoxGeometry(overlap, BLOCK_HEIGHT, currentBlock.size.depth);
-    currentBlock.mesh.geometry.dispose();
-    currentBlock.mesh.geometry = newGeo;
-
-  } else {
-    // Рассчитываем пересечение по Z
-    const currentFront = currentBlock.mesh.position.z - currentBlock.size.depth / 2;
-    const currentBack  = currentBlock.mesh.position.z + currentBlock.size.depth / 2;
-    const topFront     = topBlock.mesh.position.z - topBlock.size.depth / 2;
-    const topBack      = topBlock.mesh.position.z + topBlock.size.depth / 2;
-
-    const overlapFront = Math.max(currentFront, topFront);
-    const overlapBack  = Math.min(currentBack,  topBack);
-
-    overlap = overlapBack - overlapFront;
-    if (overlap <= 0) {
-      gameOver();
-      return;
-    }
-    // Корректируем геометрию
-    const newCenterZ = (overlapFront + overlapBack) / 2;
-    currentBlock.mesh.position.z = newCenterZ;
-    // Меняем глубину
-    currentBlock.size.depth = overlap;
-
-    const newGeo = new THREE.BoxGeometry(currentBlock.size.width, BLOCK_HEIGHT, overlap);
-    currentBlock.mesh.geometry.dispose();
-    currentBlock.mesh.geometry = newGeo;
-  }
-
-  // Блок зафиксирован — добавляем в stack
-  stack.push(currentBlock);
-
-  // Создаём следующий
-  spawnNewBlock();
-}
-
-//////////////////////////////////////////////////
-// ОБНОВЛЕНИЕ: ДВИЖЕНИЕ ТЕКУЩЕГО БЛОКА
-//////////////////////////////////////////////////
+// Обновление положения движущегося блока
 function updateGame() {
   if (!currentBlock) return;
-  const topBlock = stack[stack.length - 1];
+  let topBlock = stack[stack.length - 1];
 
-  if (currentBlock.movingAxis === 'x') {
+  if (currentBlock.movingAxis === "x") {
     currentBlock.mesh.position.x += currentBlock.speed * currentBlock.direction;
-    // Границы — относительно верхнего блока (допустимый «коридор»)
-    const leftBound  = topBlock.mesh.position.x - (topBlock.size.width / 2 + currentBlock.size.width);
-    const rightBound = topBlock.mesh.position.x + (topBlock.size.width / 2 + currentBlock.size.width);
+
+    let leftBound = topBlock.mesh.position.x - (topBlock.size.w + currentBlock.size.w);
+    let rightBound = topBlock.mesh.position.x + (topBlock.size.w + currentBlock.size.w);
     if (currentBlock.mesh.position.x < leftBound) {
       currentBlock.mesh.position.x = leftBound;
       currentBlock.direction = 1;
@@ -280,9 +165,9 @@ function updateGame() {
     }
   } else {
     currentBlock.mesh.position.z += currentBlock.speed * currentBlock.direction;
-    // Границы по Z
-    const frontBound = topBlock.mesh.position.z - (topBlock.size.depth / 2 + currentBlock.size.depth);
-    const backBound  = topBlock.mesh.position.z + (topBlock.size.depth / 2 + currentBlock.size.depth);
+
+    let frontBound = topBlock.mesh.position.z - (topBlock.size.d + currentBlock.size.d);
+    let backBound = topBlock.mesh.position.z + (topBlock.size.d + currentBlock.size.d);
     if (currentBlock.mesh.position.z < frontBound) {
       currentBlock.mesh.position.z = frontBound;
       currentBlock.direction = 1;
@@ -293,20 +178,61 @@ function updateGame() {
   }
 }
 
-//////////////////////////////////////////////////
-// ЗАВЕРШЕНИЕ ИГРЫ
-//////////////////////////////////////////////////
-function gameOver() {
-  gameRunning = false;
-  cancelAnimationFrame(animationFrameId);
-  window.removeEventListener('keydown', onDropBlock);
-  game2Canvas.removeEventListener('click', onDropBlock);
-  // Нет текстовых сообщений — просто завершаем
+// Функция фиксации блока
+function onDropBlock() {
+  if (!gameRunning || !currentBlock) return;
+
+  let topBlock = stack[stack.length - 1];
+  let overlap = 0;
+
+  if (currentBlock.movingAxis === "x") {
+    let cLeft  = currentBlock.mesh.position.x - currentBlock.size.w / 2;
+    let cRight = currentBlock.mesh.position.x + currentBlock.size.w / 2;
+    let tLeft  = topBlock.mesh.position.x - topBlock.size.w / 2;
+    let tRight = topBlock.mesh.position.x + topBlock.size.w / 2;
+
+    overlap = Math.min(cRight, tRight) - Math.max(cLeft, tLeft);
+    if (overlap <= 0) {
+      gameOver();
+      return;
+    }
+    // Новая ширина
+    let newCenterX = (Math.min(cRight, tRight) + Math.max(cLeft, tLeft)) / 2;
+    currentBlock.size.w = overlap;
+
+    const newGeom = new THREE.BoxGeometry(overlap, BLOCK_HEIGHT, currentBlock.size.d);
+    currentBlock.mesh.geometry.dispose();
+    currentBlock.mesh.geometry = newGeom;
+    currentBlock.mesh.position.x = newCenterX;
+
+  } else {
+    let cFront = currentBlock.mesh.position.z - currentBlock.size.d / 2;
+    let cBack  = currentBlock.mesh.position.z + currentBlock.size.d / 2;
+    let tFront = topBlock.mesh.position.z - topBlock.size.d / 2;
+    let tBack  = topBlock.mesh.position.z + topBlock.size.d / 2;
+
+    overlap = Math.min(cBack, tBack) - Math.max(cFront, tFront);
+    if (overlap <= 0) {
+      gameOver();
+      return;
+    }
+    // Новая глубина
+    let newCenterZ = (Math.min(cBack, tBack) + Math.max(cFront, tFront)) / 2;
+    currentBlock.size.d = overlap;
+
+    const newGeom = new THREE.BoxGeometry(currentBlock.size.w, BLOCK_HEIGHT, overlap);
+    currentBlock.mesh.geometry.dispose();
+    currentBlock.mesh.geometry = newGeom;
+    currentBlock.mesh.position.z = newCenterZ;
+  }
+
+  // Успешно уложенный блок добавляем в стек
+  stack.push(currentBlock);
+  // Создаём следующий
+  spawnNewBlock();
 }
 
-//////////////////////////////////////////////////
-// ГЛАВНЫЙ ЦИКЛ (АНИМАЦИЯ)
-//////////////////////////////////////////////////
+// Основной цикл рендеринга
 function gameLoop() {
   if (!gameRunning) return;
   updateGame();
@@ -314,38 +240,40 @@ function gameLoop() {
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-//////////////////////////////////////////////////
-// ИНИЦИАЛИЗАЦИЯ И СБРОС
-//////////////////////////////////////////////////
+// Завершение игры
+function gameOver() {
+  gameRunning = false;
+  cancelAnimationFrame(animationFrameId);
+  window.removeEventListener("keydown", onDropBlock);
+  game2Canvas.removeEventListener("click", onDropBlock);
+  // Здесь не выводим текст — при желании добавьте свою логику
+}
 
-// Запуск игры
+// Инициализация игры
 function initGame2() {
-  game2Canvas = document.getElementById('match3Canvas');
+  game2Canvas = document.getElementById("match3Canvas");
   if (!game2Canvas) {
-    console.error("Canvas with id 'match3Canvas' not found.");
+    console.error("Canvas 'match3Canvas' not found!");
     return;
   }
 
   initThree();
-  createBaseBlock();  // нижний блок
-  spawnNewBlock();    // первый движущийся
-
+  createBaseBlock();
+  spawnNewBlock();
   gameRunning = true;
 
-  // Управление — нажимаем клавишу или кликаем
-  window.addEventListener('keydown', onDropBlock);
-  game2Canvas.addEventListener('click', onDropBlock);
+  // Управление: по нажатию любой клавиши или клику
+  window.addEventListener("keydown", onDropBlock);
+  game2Canvas.addEventListener("click", onDropBlock);
 
   gameLoop();
 }
 
-// Сброс игры (например, при выходе)
+// Сброс игры (если понадобится)
 function resetGame2() {
   cancelAnimationFrame(animationFrameId);
-  window.removeEventListener('keydown', onDropBlock);
-  game2Canvas.removeEventListener('click', onDropBlock);
-
-  // Очищаем сцену, если нужно
+  window.removeEventListener("keydown", onDropBlock);
+  game2Canvas.removeEventListener("click", onDropBlock);
   if (renderer) {
     renderer.clear();
   }
