@@ -13,10 +13,7 @@
   <!-- Default theme -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon/0.6.2/cannon.min.js"></script>
-
-
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon/0.6.2/cannon.min.js"></script>
 
   <!-- Additional CSS for Loot Box block -->
   <style>
@@ -220,9 +217,7 @@
               img: 'https://img.icons8.com/ios-filled/50/00FF00/handshake.png',
               desc: 'Game from our partner.',
               cost: 1
-             
-         })">More Details</button>
-             
+            })">More Details</button>
           </div>
         </div>
       </div>
@@ -296,10 +291,9 @@
       <h2 id="referralHeader">Bug Packs</h2>
       <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
       
-      <!-- Case block with large image and case count text -->
+      <!-- Case block с изображением кейса (без текста с количеством) -->
       <div class="case-container">
         <img id="caseImage" src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Cyber Case">
-        <p id="caseCountText">You have 0 Bug Packs</p>
       </div>
       
       <!-- Roulette container, initially hidden -->
@@ -310,13 +304,13 @@
         </div>
       </div>
       
-      <!-- Buttons -->
+      <!-- Кнопки -->
       <div class="lootbox-buttons">
         <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
          Decrypt data for 5m tokens
         </button>
         <button id="openBtn" onclick="openLootBox()">
-         Decrypt data
+         Decrypt data (0)
         </button>
       </div>
     </section>
@@ -642,9 +636,10 @@
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
 
+    // Обновляем текст кнопки "Decrypt data" с указанием количества лутбоксов
     function updateCaseCount() {
-      document.getElementById('caseCountText').textContent =
-        `You have ${localUserData.cyberCase} Cyber Case`;
+      document.getElementById('openBtn').textContent =
+        `Decrypt data (${localUserData.cyberCase})`;
     }
 
     /* ----------------------------------------------
