@@ -719,3 +719,11 @@ margin-top: 100px;
   font-size: 12px;
   cursor: pointer;
 }
+.lootbox-buttons {
+  position: relative;
+  z-index: 10;
+  transition: opacity 2s ease;
+  display: flex;
+  gap: 10px; /* Отступ между кнопками */
+  margin-top: 80px;
+}
