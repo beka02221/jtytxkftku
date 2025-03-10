@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Glitch game base</title>
+  <title>Mobile Games Site</title>
 
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -32,7 +32,7 @@
 
    /* Состояние открытого кейса */
    .case-container.open {
-     top: 20px; /* сдвигаем контейнер (при необходимости можно изменить значение) */
+     top: 20px;
    }
 
    .case-container img {
@@ -45,10 +45,9 @@
 
    /* Изменяем размер и положение картинки при открытии кейса */
    .case-container.open img {
-     width: 500px;       /* увеличенный размер иконки */
+     width: 500px;
      height: 500px;
-     transform: translateY(-30px); /* сдвигаем иконку вверх */
-     /* Если нужно применить анимацию взрыва, можно раскомментировать строку ниже */
+     transform: translateY(-30px);
      /* animation: explode 0.8s ease-out forwards; */
    }
 
@@ -82,7 +81,7 @@
 
    .case-container p {
      position: absolute;
-     bottom: 420px; /* опускаем текст ниже картинки */
+     bottom: 420px;
      left: 50%;
      transform: translateX(-50%);
      font-weight: bold;
@@ -102,7 +101,6 @@
    .case-container.open .lootbox-buttons {
      opacity: 0;
      pointer-events: none;
-     /* можно также использовать display: none; если не нужна анимация */
    }
   </style>
 
@@ -180,7 +178,7 @@
           </div>
           <div class="game-card">
             <img src="https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg" alt="Game 3">
-            <p id="gameCard3Title">Tetris</p>
+            <p id="gameCard3Title">Game 3</p>
             <button id="gameCard3Button" onclick="openGameInfoModal({
               gameId: 'game3',
               title: 'Game 3',
@@ -191,7 +189,7 @@
           </div>
           <div class="game-card">
             <img src="https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg" alt="Space Explorer">
-            <p id="gameCard4Title">Breakout</p>
+            <p id="gameCard4Title">Space Explorer</p>
             <button id="gameCard4Button" onclick="openGameInfoModal({
               gameId: 'game4',
               title: 'Space Explorer',
@@ -453,108 +451,7 @@
 
   <script>
     /* ----------------------------------------------
-       1. English Text Settings
-    ---------------------------------------------- */
-    const translations = {
-      en: {
-        pageTitle: "Mobile Games Site",
-        mainOnlineGames: "Main Online Games",
-        miniGames: "Mini Games",
-        partnerGames: "Partner Games",
-        tickets: "Tickets",
-        spinButton: "Spin",
-        buyTickets: "Buy Tickets",
-        leaderboard: "Leaderboard",
-        referral: "Cyber Case",
-        copyLink: "Copy Link",
-        info: "Info",
-        play: "Play",
-        moreDetails: "More Details",
-        error: "Error",
-        noUserData: "No user data available!",
-        notEnoughTickets: "Not enough tickets",
-        notEnoughTicketsMsg: "You do not have enough tickets to play!",
-        wheelModalTitle: "Wheel of Fortune",
-        wheelModalMsg: "Free spin available once every 24 hours!",
-        youWon: "You won",
-        ticketsPlural: "tickets",
-        result: "Result",
-        close: "Close",
-        seasonInfoTitle: "Season Information",
-        seasonInfoDesc: "Season 1. The season lasts 1 week. At the end of the season, each of the top 10 players automatically receives one case.",
-        depositModalTitle: "Not enough coins",
-        depositModalDesc: "You do not have enough coins to play. Please top up your balance.",
-        copied: "Copied",
-        copiedMsg: "Copied to clipboard!",
-        inviteLink: "Invite your friends using the link and earn bonuses!",
-        mainOnlineGamesInfo: "This section includes 2 main games: Dino Runner and Special Game.",
-        miniGamesInfo: "Players participate in mini games, earning points for their activity. Every 3 days, top 10 players receive reward cases.",
-        partnerGamesInfo: "Partner game from our partner.",
-        gameCard1Title: "Online snake",
-        gameCard1Button: "More Details",
-        gameCard2Title: "Match-3",
-        gameCard2Button: "More Details",
-        gameCard3Title: "Game 3",
-        gameCard3Button: "More Details",
-        gameCard4Title: "Space Explorer",
-        gameCard4Button: "More Details",
-        gameCard5Title: "Partner Game",
-        gameCard5Button: "More Details"
-      }
-    };
-    let currentLanguage = 'en';
-
-    function updateLanguage() {
-      document.title = translations.en.pageTitle;
-      document.getElementById('ticketsHeader').textContent = translations.en.tickets;
-      document.getElementById('leaderboardHeader').textContent = translations.en.leaderboard;
-      document.getElementById('referralHeader').textContent = translations.en.referral;
-      document.getElementById('mainOnlineHeaderText').textContent = translations.en.mainOnlineGames;
-      document.getElementById('miniGamesHeaderText').textContent = translations.en.miniGames;
-      document.getElementById('partnerGamesHeaderText').textContent = translations.en.partnerGames;
-      if (!document.getElementById('spinButton').disabled) {
-        document.getElementById('spinButton').textContent = translations.en.spinButton;
-      }
-      document.getElementById('buyTicketsBtn').textContent = translations.en.buyTickets;
-      
-      document.getElementById('navPlayAlt').alt = translations.en.play;
-      document.getElementById('navTicketsAlt').alt = translations.en.tickets;
-      document.getElementById('navLeaderboardAlt').alt = translations.en.leaderboard;
-      document.getElementById('navReferralAlt').alt = translations.en.referral;
-      
-      document.getElementById('gameCard1Title').textContent = translations.en.gameCard1Title;
-      document.getElementById('gameCard1Button').textContent = translations.en.gameCard1Button;
-      document.getElementById('gameCard2Title').textContent = translations.en.gameCard2Title;
-      document.getElementById('gameCard2Button').textContent = translations.en.gameCard2Button;
-      document.getElementById('gameCard3Title').textContent = translations.en.gameCard3Title;
-      document.getElementById('gameCard3Button').textContent = translations.en.gameCard3Button;
-      document.getElementById('gameCard4Title').textContent = translations.en.gameCard4Title;
-      document.getElementById('gameCard4Button').textContent = translations.en.gameCard4Button;
-      document.getElementById('gameCard5Title').textContent = translations.en.gameCard5Title;
-      document.getElementById('gameCard5Button').textContent = translations.en.gameCard5Button;
-      
-      document.getElementById('seasonModalTitle').textContent = translations.en.seasonInfoTitle;
-      document.getElementById('seasonModalDesc').textContent = translations.en.seasonInfoDesc;
-      document.getElementById('depositModalTitle').textContent = translations.en.depositModalTitle;
-      document.getElementById('depositModalDesc').textContent = translations.en.depositModalDesc;
-      document.getElementById('mainOnlineInfoTitle').textContent = translations.en.mainOnlineGamesInfo;
-      document.getElementById('mainOnlineInfoDesc').textContent = translations.en.mainOnlineGamesInfo;
-      document.getElementById('miniGamesInfoTitle').textContent = translations.en.miniGamesInfo;
-      document.getElementById('miniGamesInfoDesc').textContent = translations.en.miniGamesInfo;
-      document.getElementById('partnerInfoTitle').textContent = translations.en.partnerGamesInfo;
-      document.getElementById('partnerInfoDesc').textContent = translations.en.partnerGamesInfo;
-      document.getElementById('endgameTitle').textContent = translations.en.result;
-      
-      document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.textContent = translations.en.close;
-      });
-      
-      document.documentElement.lang = currentLanguage;
-      document.body.classList.remove('en');
-    }
-
-    /* ----------------------------------------------
-       2. Firebase Initialization
+       1. Firebase Initialization
     ---------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
@@ -570,13 +467,13 @@
     const db = firebase.database();
 
     /* ----------------------------------------------
-       3. Telegram Web App
+       2. Telegram Web App
     ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
     tg.expand();
 
     /* ----------------------------------------------
-       4. Global Variables & User Data
+       3. Global Variables & User Data
     ---------------------------------------------- */
     let currentUser = null;
     let userRef = null;
@@ -590,7 +487,6 @@
       cyberCase: 0
     };
     let gameInProgress = false;
-    // Флаг для предотвращения повторного нажатия в секции Loot Box
     let isSpinning = false;
 
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -631,7 +527,7 @@
     }
 
     /* ----------------------------------------------
-       5. Update Top Bar & Case Count
+       4. Update Top Bar & Case Count
     ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
@@ -639,14 +535,13 @@
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
 
-    // Обновляем текст кнопки "Decrypt data" с указанием количества лутбоксов
     function updateCaseCount() {
       document.getElementById('openBtn').textContent =
         `Decrypt data (${localUserData.cyberCase})`;
     }
 
     /* ----------------------------------------------
-       6. Section Switching
+       5. Section Switching
     ---------------------------------------------- */
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
@@ -657,7 +552,7 @@
     }
 
     /* ----------------------------------------------
-       7. Global Modal
+       6. Global Modal
     ---------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
@@ -669,14 +564,14 @@
     }
 
     /* ----------------------------------------------
-       8. Game Info Modal
+       7. Game Info Modal
     ---------------------------------------------- */
     function openGameInfoModal(gameData) {
       document.getElementById('gameInfoImg').src = gameData.img;
       document.getElementById('gameInfoTitle').textContent = gameData.title;
       document.getElementById('gameInfoDesc').textContent = gameData.desc;
       const playBtn = document.getElementById('gameInfoPlayBtn');
-      playBtn.textContent = `${translations.en.play} (${gameData.cost} ticket)`;
+      playBtn.textContent = "Play (" + gameData.cost + " ticket)";
       playBtn.onclick = function() {
         closeGameInfoModal();
         handleStartGame(gameData.gameId, gameData.cost);
@@ -688,17 +583,17 @@
     }
 
     /* ----------------------------------------------
-       9. Start Game
+       8. Start Game
     ---------------------------------------------- */
     let currentGame = null;
     function handleStartGame(gameName, ticketCost) {
       document.querySelector('.user-info').style.display = 'none';
       if (!currentUser || !userRef) {
-        showGlobalModal(translations.en.error, translations.en.noUserData);
+        showGlobalModal("Error", "No user data available!");
         return;
       }
       if ((localUserData.tickets || 0) < ticketCost) {
-        showGlobalModal(translations.en.notEnoughTickets, translations.en.notEnoughTicketsMsg);
+        showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
         return;
       }
       localUserData.tickets -= ticketCost;
@@ -743,10 +638,10 @@
     }
 
     /* ----------------------------------------------
-       10. End Game Modal
+       9. End Game Modal
     ---------------------------------------------- */
     function showEndGameModal(title, message) {
-      document.getElementById('endgameTitle').textContent = title;
+      document.getElementById('endgameTitle').textContent = "Result";
       document.getElementById('endgameMessage').textContent = message;
       document.getElementById('endgameBackdrop').classList.add('active');
     }
@@ -781,14 +676,14 @@
     }
 
     /* ----------------------------------------------
-       11. Wheel of Fortune / Tickets
+       10. Wheel of Fortune / Tickets
     ---------------------------------------------- */
     let spinDuration = 4000;
     function spinWheel() {
       if (!currentUser) return;
       const now = Date.now();
       if (now - (localUserData.lastSpinTime || 0) < 24 * 60 * 60 * 1000) {
-        showGlobalModal(translations.en.wheelModalTitle, translations.en.wheelModalMsg);
+        showGlobalModal("Wheel of Fortune", "Free spin available once every 24 hours!");
         return;
       }
       localUserData.lastSpinTime = now;
@@ -821,10 +716,7 @@
     }
     function showSpinModal(amount) {
       document.getElementById("wheelTicketCount").textContent = amount;
-      document.getElementById("spinModalTitle").innerHTML = 
-        translations.en.youWon + 
-        " <span id='wheelTicketCount'>" + amount + "</span> " + 
-        translations.en.ticketsPlural + "!";
+      document.getElementById("spinModalTitle").innerHTML = "You won <span id='wheelTicketCount'>" + amount + "</span> tickets!";
       document.getElementById("spinModalBackdrop").classList.add("active");
     }
     function closeSpinModal() {
@@ -837,20 +729,20 @@
       const diff = now - last;
       const wait = 24 * 60 * 60 * 1000 - diff;
       if(wait <= 0) {
-         btn.textContent = translations.en.spinButton;
+         btn.textContent = "Spin";
          btn.disabled = false;
       } else {
          const seconds = Math.floor(wait / 1000) % 60;
          const minutes = Math.floor(wait / (1000 * 60)) % 60;
          const hours = Math.floor(wait / (1000 * 60 * 60));
-         btn.textContent = `${translations.en.spinButton} (${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')})`;
+         btn.textContent = "Spin (" + hours.toString().padStart(2,'0') + ":" + minutes.toString().padStart(2,'0') + ":" + seconds.toString().padStart(2,'0') + ")";
          btn.disabled = true;
       }
     }
     setInterval(updateSpinButton, 1000);
 
     /* ----------------------------------------------
-       12. Leaderboard
+       11. Leaderboard
     ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
@@ -893,16 +785,15 @@
     }
 
     /* ----------------------------------------------
-       13. Buy Tickets
+       12. Buy Tickets
     ---------------------------------------------- */
     function buyTickets() {
       window.location.href = 'buyticket.html';
     }
 
     /* ----------------------------------------------
-       14. Lootbox in Cyber Case Section
+       13. Lootbox in Cyber Case Section
     ---------------------------------------------- */
-    // Array of prizes with weighted chances
     const lootboxPrizes = [
       { name: '3 tickets', image: '3tickets.png', chance: 60 },
       { name: '5 tickets', image: '5tickets.png', chance: 25 },
@@ -919,7 +810,6 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Fill the roulette several times for a looping effect
       for (let cycle = 0; cycle < 6; cycle++) {
         lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
@@ -931,7 +821,6 @@
       }
     }
 
-    // Function for weighted prize selection
     function getWeightedRandomIndex(prizes) {
       let total = 0;
       prizes.forEach(prize => total += prize.chance);
@@ -945,7 +834,6 @@
       return prizes.length - 1;
     }
 
-    // Function to parse prize amount from prize name (handles "M" multiplier)
     function parsePrizeAmount(prizeName) {
       if (prizeName.includes("M")) {
         let num = parseFloat(prizeName);
@@ -955,7 +843,6 @@
       }
     }
 
-    // Function to add prize to the user account
     function addPrizeToUser(prize) {
       if (prize.name.toLowerCase().includes("token")) {
          let amount = parsePrizeAmount(prize.name);
@@ -979,12 +866,11 @@
       }
     }
 
-    // Функция для покупки кейса за монеты
     function spinLootBoxForTokens() {
       if (!currentUser) return;
-      if (isSpinning) return; // если уже идёт процесс, повторный запуск не допускается
+      if (isSpinning) return;
       if (localUserData.coins < 5000000) {
-        showGlobalModal(translations.en.depositModalTitle, translations.en.depositModalDesc);
+        showGlobalModal("Not enough coins", "You do not have enough coins to play. Please top up your balance.");
         return;
       }
       isSpinning = true;
@@ -996,17 +882,15 @@
       caseImage.classList.add('explode');
       
       caseImage.addEventListener('animationend', () => {
-        // Hide case block and show roulette
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
         spinRoulette();
       }, { once: true });
     }
 
-    // Функция для открытия кейса за Cyber Case
     function openLootBox() {
       if (!currentUser) return;
-      if (isSpinning) return; // предотвращаем повторное нажатие
+      if (isSpinning) return;
       if (localUserData.cyberCase <= 0) {
         showGlobalModal('Error', 'You have no Cyber Case to open!');
         return;
@@ -1026,7 +910,6 @@
       }, { once: true });
     }
 
-    // Функция вращения рулетки (убрана проверка isSpinning, так как она делается в вызывающих функциях)
     function spinRoulette() {
       initReferralLootbox();
       const roulette = document.getElementById('lootboxRoulette');
@@ -1051,7 +934,6 @@
         addPrizeToUser(prize);
         showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
         
-        // Reset interface: hide roulette and show case block
         document.getElementById('lootboxContainer').style.display = 'none';
         const caseContainer = document.querySelector('.case-container');
         caseContainer.style.display = 'block';
@@ -1070,11 +952,6 @@
     function closeLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.remove('active');
     }
-
-    /* ----------------------------------------------
-       Initialize language on page load
-    ---------------------------------------------- */
-    updateLanguage();
 
     function openMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.add('active');
@@ -1109,4 +986,3 @@
 
 </body>
 </html>
-
