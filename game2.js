@@ -1,4 +1,4 @@
-/* game2.js – 3D Игра «Stack» с динамичной камерой и начислением 10 points за блок
+/* game2.js – 3D Игра «Stack» с чёрным фоном и настроенной камерой
    Основные механики:
    • Базовый блок создаётся в центре сцены.
    • Каждый новый блок появляется над предыдущим и движется по горизонтали (чередуя оси X и Z).
@@ -9,14 +9,13 @@
    • Каждый блок получает случайный пастельный цвет из заданной палитры.
    • В сцене включены тени.
    • Фон сцены – чёрный.
-   • Камера расположена позади башенки, отодвинута и наклонена вперёд с динамичным (lerp) слежением за ростом башни.
-   • За каждый успешно уложенный блок начисляется 10 points, которые записываются на пользователя.
+   • Камера расположена так, чтобы смотреть сверху с наклоном около 40° к вертикали и сдвинута для полного отображения башенки.
 */
 
 const BLOCK_HEIGHT = 20;
 const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
 
-// Палитра пастельных цветов (мягкие оттенки)
+// Палитра пастельных цветов (приятные оттенки)
 const pastelColors = [0xA8DADC, 0xF4A261, 0x457B9D, 0xE63946, 0xB7E4C7];
 
 let scene, camera, renderer;
@@ -30,25 +29,21 @@ let stack = [];
 // Текущий движущийся блок (объект { mesh, size, movingAxis, speed, direction })
 let currentBlock = null;
 
-// Функция линейной интерполяции
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
 // Инициализация Three.js и базовых параметров сцены
 function initThree() {
   scene = new THREE.Scene();
   // Фон сцены – чёрный
   scene.background = new THREE.Color(0x000000);
 
-  camera = new THREE.PerspectiveCamera(45, game2Canvas.width / game2Canvas.height, 1, 1000);
-  /*  
-     Стартовая позиция камеры: расположена позади башенки, немного выше исходного уровня.
-     При этом камера наклонена вперёд (смотрит на точку, находящуюся ниже её положения),
-     чтобы игрок видел падающие блоки и перспективу строительства.
+  // Используем перспективную камеру с умеренным полем зрения (40°)
+  camera = new THREE.PerspectiveCamera(40, game2Canvas.width / game2Canvas.height, 1, 1000);
+  /* 
+     Расположение камеры:
+     - Камера отодвинута вправо и назад, а также поднята, чтобы создать наклон около 40°.
+     - Фокус на центре стека (например, (0,300,0)).
   */
-  camera.position.set(0, 400, 1000);
-  camera.lookAt(new THREE.Vector3(0, 200, 0));
+  camera.position.set(300, 600, 600);
+  camera.lookAt(new THREE.Vector3(0, 300, 0));
 
   renderer = new THREE.WebGLRenderer({ canvas: game2Canvas, antialias: true });
   renderer.setSize(game2Canvas.width, game2Canvas.height);
@@ -71,7 +66,7 @@ function initThree() {
   scene.add(directionalLight);
 }
 
-// Выбираем случайный цвет из палитры
+// Функция выбора случайного цвета из палитры
 function getRandomColor() {
   return pastelColors[Math.floor(Math.random() * pastelColors.length)];
 }
@@ -99,17 +94,17 @@ function spawnNewBlock() {
   let newSize = { width: topBlock.size.width, depth: topBlock.size.depth };
   // Чередуем ось движения: четное число блоков – движение по оси X, нечетное – по оси Z
   let movingAxis = (stack.length % 2 === 0) ? "x" : "z";
-  // Случайная скорость от 2 до 6 (затрудняет авто-клик)
+  // Случайная скорость от 2 до 6 для усложнения авто-клика
   let blockSpeed = 2 + Math.random() * 4;
   let direction = 1;
   let startX = topBlock.mesh.position.x;
   let startZ = topBlock.mesh.position.z;
   if (movingAxis === "x") {
-    // Двигаем по оси X: старт с левого края относительно верхнего блока
+    // Движение по оси X: старт с левого края относительно верхнего блока
     startX = topBlock.mesh.position.x - newSize.width;
     direction = 1;
   } else {
-    // Двигаем по оси Z: старт с заднего края
+    // Движение по оси Z: старт с заднего края
     startZ = topBlock.mesh.position.z - newSize.depth;
     direction = 1;
   }
@@ -136,11 +131,10 @@ function spawnNewBlock() {
   scene.add(mesh);
 }
 
-// Обновление положения движущегося блока и динамичное слежение камеры
+// Обновление положения движущегося блока
 function updateGame() {
   if (!currentBlock) return;
   let topBlock = stack[stack.length - 1];
-  // Обновление движения текущего блока
   if (currentBlock.movingAxis === "x") {
     currentBlock.mesh.position.x += currentBlock.speed * currentBlock.direction;
     let leftBound = topBlock.mesh.position.x - (topBlock.size.width / 2 + currentBlock.size.width);
@@ -164,14 +158,6 @@ function updateGame() {
       currentBlock.direction = -1;
     }
   }
-  
-  // Динамическое слежение камеры (плавное поднятие)
-  // Цель: камера сохраняет фиксированный угол, но её Y-позиция плавно поднимается, чтобы башня целиком была видна.
-  let targetY = topBlock.mesh.position.y + 200; // смещение над верхним блоком
-  camera.position.y = lerp(camera.position.y, targetY, 0.1);
-  // Фиксированный угол обзора: камера всегда смотрит на точку чуть выше верхнего блока
-  let lookAtTarget = new THREE.Vector3(0, topBlock.mesh.position.y + 50, 0);
-  camera.lookAt(lookAtTarget);
 }
 
 // Фиксация блока (вызывается по нажатию клавиши или клику)
@@ -217,14 +203,13 @@ function onDropBlock() {
     currentBlock.mesh.position.z = newCenterZ;
     currentBlock.size.depth = overlap;
   }
-  // Успешно зафиксированный блок добавляем в башню
+  // Блок успешно зафиксирован – добавляем его в башню
   stack.push(currentBlock);
-  // Начисляем 10 points за каждый успешно уложенный блок
-  score += 10;
-  // Если доступны данные пользователя, обновляем их (например, через userRef и localUserData)
-  if (typeof userRef !== 'undefined' && typeof localUserData !== 'undefined') {
-    localUserData.points += 10;
-    userRef.update({ points: localUserData.points });
+  score++;
+  // Поднимаем камеру, чтобы новый блок был в поле зрения
+  let newY = currentBlock.mesh.position.y;
+  if (newY > camera.position.y - 100) {
+    camera.position.y = newY + 100;
   }
   // Создаём следующий движущийся блок
   spawnNewBlock();
