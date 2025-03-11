@@ -21,7 +21,6 @@
      flex-direction: column;
      align-items: center;
      justify-content: center;
-
      margin-top: -60px;
      text-align: center;
      position: relative;
@@ -29,12 +28,9 @@
      display: inline-block;
      transition: top 0.5s ease;
    }
-
-   /* Состояние открытого кейса */
    .case-container.open {
      top: 20px;
    }
-
    .case-container img {
      display: block;
      margin: 0 auto;
@@ -42,20 +38,14 @@
      height: 330px;
      transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease;
    }
-
-   /* Изменяем размер и положение картинки при открытии кейса */
    .case-container.open img {
      width: 500px;
      height: 500px;
      transform: translateY(-30px);
-
    }
-
-   /* Анимация взрыва */
    .explode {
      animation: explode 0.8s ease-out forwards;
    }
-
    @keyframes explode {
      0% {
        transform: scale(1) rotate(0deg);
@@ -78,7 +68,6 @@
        filter: brightness(0.5);
      }
    }
-
    .case-container p {
      position: absolute;
      bottom: 420px;
@@ -89,8 +78,6 @@
      pointer-events: none;
      z-index: 1;
    }
-
-   /* Кнопки кейса */
    .lootbox-buttons {
      position: relative;
      z-index: 10;
@@ -99,8 +86,6 @@
      gap: 10px;
      margin-top: 80px;
    }
-
-   /* При открытии кейса кнопки скрываются */
    .case-container.open .lootbox-buttons {
      opacity: 0;
      pointer-events: none;
@@ -127,18 +112,15 @@
     </div>
     <div class="balances">
       <span>
-        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png"
-             alt="Tickets" width="20"/>
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Tickets" width="20"/>
         <span id="ticketCount">0</span>
       </span>
       <span>
-        <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png"
-             alt="Coins" width="20"/>
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>
         <span id="coinCount">0</span>
       </span>
       <span>
-        <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png"
-             alt="Points" width="20"/>
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png" alt="Points" width="20"/>
         <span id="pointCount">0</span>
       </span>
     </div>
@@ -198,6 +180,18 @@
               title: 'Space Explorer',
               img: 'https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg',
               desc: 'Explore space, avoid asteroids, and collect stars.',
+              cost: 1
+            })">More Details</button>
+          </div>
+          <!-- Новая карточка для Breakout -->
+          <div class="game-card">
+            <img src="https://raw.githubusercontent.com/qnexst/404token/main/breakout.png" alt="Breakout">
+            <p id="gameCard7Title">Breakout</p>
+            <button id="gameCard7Button" onclick="openGameInfoModal({
+              gameId: 'breakout',
+              title: 'Breakout',
+              img: 'https://raw.githubusercontent.com/qnexst/404token/main/breakout.png',
+              desc: 'Classic Breakout game. Destroy all the bricks to win!',
               cost: 1
             })">More Details</button>
           </div>
@@ -292,30 +286,21 @@
     <section id="referralSection" class="section">
       <h2 id="referralHeader">Bug Packs</h2>
       <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
-
-      <!-- Case block с изображением кейса (без текста с количеством) -->
       <div class="case-container">
         <img id="caseImage" src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Cyber Case">
       </div>
-
-      <!-- Roulette container, initially hidden -->
       <div class="lootbox-container" id="lootboxContainer" style="display: none;">
         <div class="lootbox-indicator"></div>
         <div class="lootbox-roulette" id="lootboxRoulette">
           <!-- Prizes will be added dynamically -->
         </div>
       </div>
-
-      <!-- Кнопки -->
       <div class="lootbox-buttons">
-        <button id="openBtn" onclick="openLootBox()">
-          Decrypt data (0)
-        </button>
+        <button id="openBtn" onclick="openLootBox()">Decrypt data (0)</button>
         <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
           <span>Decrypt data</span><br>
           <span>for 5m tokens</span>
         </button>
-
       </div>
     </section>
   </main>
@@ -393,6 +378,8 @@
          <canvas id="game4Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
          <canvas id="game5Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
          <canvas id="game6Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
+         <!-- Новый canvas для Breakout -->
+         <canvas id="breakoutCanvas" width="400" height="740" style="display: none; position: relative; top: -0px;"></canvas>
       </div>
     </div>
   </div>
@@ -451,7 +438,8 @@
   <script src="game5.js"></script>
   <script src="game6.js"></script>
   <script src="case.js"></script>
-
+  <!-- Подключение нового файла breakout.js -->
+  <script src="breakout.js"></script>
   <script>
     /* ----------------------------------------------
        1. Firebase Initialization
@@ -540,7 +528,6 @@
 
     function updateCaseCount() {
       document.getElementById('openBtn').textContent = `Decrypt data (${localUserData.cyberCase})`;
-
     }
 
     /* ----------------------------------------------
@@ -613,6 +600,7 @@
       document.getElementById('game4Canvas').style.display = 'none';
       document.getElementById('game5Canvas').style.display = 'none';
       document.getElementById('game6Canvas').style.display = 'none';
+      document.getElementById('breakoutCanvas').style.display = 'none';
 
       document.getElementById('gameModalBackdrop').classList.add('active');
 
@@ -637,6 +625,9 @@
       } else if (gameName === 'game6') {
         document.getElementById('game6Canvas').style.display = 'block';
         initGame6();
+      } else if (gameName === 'breakout') {
+        document.getElementById('breakoutCanvas').style.display = 'block';
+        initBreakout();
       }
     }
 
@@ -673,6 +664,8 @@
         resetGame5();
       } else if (currentGame === 'game6') {
         resetGame6();
+      } else if (currentGame === 'breakout') {
+        resetBreakout();
       }
       currentGame = null;
       gameInProgress = false;
@@ -986,6 +979,5 @@
     }
   });
   </script>
-
 </body>
 </html>
