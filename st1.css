@@ -1,3 +1,4 @@
+*/
 * {
   margin: 0;
   padding: 0;
@@ -71,6 +72,8 @@ button:active {
   margin: 20px;
   float: right;
 }
+
+
 
 /* Стили для кнопки с иконкой кошелька */
 #walletLink {
@@ -404,6 +407,7 @@ nav button img {
 
 /* Модальные кнопки наследуют базовый стиль */
 
+
 .modal-season {
   text-align: left;
 }
@@ -658,7 +662,7 @@ table tr.current-user {
 }
 
 #lootbox h2 {
-  margin-top: 100px;
+margin-top: 100px;
 }
 
 .lootbox-roulette {
@@ -715,12 +719,11 @@ table tr.current-user {
   font-size: 12px;
   cursor: pointer;
 }
-
 .lootbox-buttons {
   position: relative;
   z-index: 10;
   transition: opacity 2s ease;
   display: flex;
-  gap: 10px;
+  gap: 10px; /* Отступ между кнопками */
   margin-top: 80px;
-}
+}  найди ошибки и испарвь 
