@@ -9,7 +9,7 @@
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  
+
   <!-- Default theme -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -21,7 +21,7 @@
      flex-direction: column;
      align-items: center;
      justify-content: center;
-     
+
      margin-top: -60px;
      text-align: center;
      position: relative;
@@ -48,7 +48,7 @@
      width: 500px;
      height: 500px;
      transform: translateY(-30px);
-     /* animation: explode 0.8s ease-out forwards; */
+
    }
 
    /* Анимация взрыва */
@@ -95,6 +95,9 @@
      position: relative;
      z-index: 10;
      transition: opacity 0.5s ease;
+     display: flex;
+     gap: 10px;
+     margin-top: 80px;
    }
 
    /* При открытии кейса кнопки скрываются */
@@ -158,7 +161,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="games-section">
         <h3>
           <span id="miniGamesHeaderText">Mini Games</span>
@@ -200,7 +203,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="games-section">
         <h3>
           <span id="partnerGamesHeaderText">Partner Games</span>
@@ -289,12 +292,12 @@
     <section id="referralSection" class="section">
       <h2 id="referralHeader">Bug Packs</h2>
       <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
-      
+
       <!-- Case block с изображением кейса (без текста с количеством) -->
       <div class="case-container">
         <img id="caseImage" src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Cyber Case">
       </div>
-      
+
       <!-- Roulette container, initially hidden -->
       <div class="lootbox-container" id="lootboxContainer" style="display: none;">
         <div class="lootbox-indicator"></div>
@@ -302,7 +305,7 @@
           <!-- Prizes will be added dynamically -->
         </div>
       </div>
-      
+
       <!-- Кнопки -->
       <div class="lootbox-buttons">
         <button id="openBtn" onclick="openLootBox()">
@@ -312,7 +315,7 @@
           <span>Decrypt data</span><br>
           <span>for 5m tokens</span>
         </button>
-        
+
       </div>
     </section>
   </main>
@@ -536,8 +539,8 @@
     }
 
     function updateCaseCount() {
-      document.getElementById('openBtn').textContent =
-        Decrypt data (${localUserData.cyberCase});
+      document.getElementById('openBtn').textContent = `Decrypt data (${localUserData.cyberCase})`;
+
     }
 
     /* ----------------------------------------------
@@ -691,7 +694,7 @@
       updateSpinButton();
       let randomRotation = 1080 + Math.floor(Math.random() * 360);
       const wheelEl = document.getElementById('wheel');
-      wheelEl.style.transform = rotate(${randomRotation}deg);
+      wheelEl.style.transform = `rotate(${randomRotation}deg)`;
       setTimeout(() => {
         let finalDeg = randomRotation % 360;
         let wonTickets = 0;
@@ -762,16 +765,16 @@
           tr.classList.add('current-user');
         }
         if (i < 10) {
-          tr.innerHTML = <td>${i + 1}</td>
+          tr.innerHTML = `<td>${i + 1}</td>
                           <td>@${user.username}</td>
                           <td>${user.points}</td>
-                          <td><img src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Prize Icon" width="40" height="40"></td>;
+                          <td><img src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Prize Icon" width="40" height="40"></td>`;
           top10Body.appendChild(tr);
         } else {
-          tr.innerHTML = <td>${i + 1}</td>
+          tr.innerHTML = `<td>${i + 1}</td>
                           <td>@${user.username}</td>
                           <td>${user.points}</td>
-                          <td></td>;
+                          <td></td>`;
           restBody.appendChild(tr);
         }
       });
@@ -814,8 +817,8 @@
         lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
-          prizeEl.innerHTML = <img src="${item.image}" alt="${item.name}">
-                               <span>${item.name}</span>;
+          prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
+                               <span>${item.name}</span>`;
           rouletteContainer.appendChild(prizeEl);
         });
       }
@@ -877,10 +880,10 @@
       localUserData.coins -= 5000000;
       updateTopBar();
       userRef.update({ coins: localUserData.coins });
-      
+
       const caseImage = document.getElementById('caseImage');
       caseImage.classList.add('explode');
-      
+
       caseImage.addEventListener('animationend', () => {
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
@@ -899,10 +902,10 @@
       localUserData.cyberCase -= 1;
       updateCaseCount();
       userRef.update({ cyberCase: localUserData.cyberCase });
-      
+
       const caseImage = document.getElementById('caseImage');
       caseImage.classList.add('explode');
-      
+
       caseImage.addEventListener('animationend', () => {
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
@@ -920,20 +923,20 @@
       const randomIndex = getWeightedRandomIndex(lootboxPrizes);
       const finalIndex = randomIndex + fullCycles * count;
       const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
-      
+
       roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
-      roulette.style.transform = translateX(${finalOffset}px);
-      
+      roulette.style.transform = `translateX(${finalOffset}px)`;
+
       setTimeout(() => {
         const remainder = finalIndex % count;
         const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
         roulette.style.transition = 'none';
-        roulette.style.transform = translateX(${newOffset}px);
+        roulette.style.transform = `translateX(${newOffset}px)`;
         isSpinning = false;
         const prize = lootboxPrizes[randomIndex];
         addPrizeToUser(prize);
-        showGlobalModal('Congratulations!', Your prize: ${prize.name});
-        
+        showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
+
         document.getElementById('lootboxContainer').style.display = 'none';
         const caseContainer = document.querySelector('.case-container');
         caseContainer.style.display = 'block';
