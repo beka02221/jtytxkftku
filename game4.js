@@ -1,52 +1,49 @@
-/* game4.js – 3D Breakout/Arkanoid Игра
-   Современный минималистичный стиль с динамичным градиентным фоном и яркими элементами.
+/* game2.js – 3D Игра «Stack»
+   Современный минималистичный стиль с динамичным градиентным фоном и плоскими, матовыми цветами блоков.
 
    Основные особенности:
-   1. Динамический градиентный фон.
-   2. Управляемая игроком платформа.
-   3. Шарик с физикой столкновений.
-   4. Разрушаемые кирпичи с начислением очков.
-   5. Система жизней и отображение счета.
+   1. Фон – динамический градиент, плавно меняющийся от чёрного к темно-серому, синему и фиолетовому.
+   2. Блоки – объёмные, с мягкими тенями, отражениями (отражение создаётся как перевёрнутый дубликат)
+      и простыми, плоскими (матовыми) цветами без бликов.
+      Цвета выбираются случайно из нового набора темных, не отражающих оттенков:
+         • Темно-синий (0x003366)
+         • Тёмно-оранжевый (0xCC5500)
+         • Тёмно-серый (0x444444)
+         • Темно-фиолетовый (0x330033)
+         • Тёмно-бирюзовый (0x004D4D)
+   3. При несовпадении блоков лишняя часть отсекается и падает вниз с эффектом гравитации.
+   4. Минималистичный интерфейс – очки (5 points за блок) отображаются в верхней части экрана.
+   5. Камера с FOV = 60° расположена в точке (400,800,600) и направлена на (0,300,0) (наклон ≈35°),
+      чтобы видеть всю конструкцию.
 */
 
-// ------------------------- Константы и настройки -------------------------
-const PADDLE_WIDTH = 150;
-const PADDLE_HEIGHT = 20;
-const PADDLE_DEPTH = 20;
+const BLOCK_HEIGHT = 20;
+const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
 
-const BALL_RADIUS = 10;
+// Новый набор плоских цветов для блоков – темные, не отражающие оттенки
+const flatColors = [0x003366, 0xCC5500, 0x444444, 0x330033, 0x004D4D];
 
-const BRICK_ROWS = 5;
-const BRICK_COLUMNS = 10;
-const BRICK_WIDTH = 60;
-const BRICK_HEIGHT = 20;
-const BRICK_DEPTH = 20;
-const BRICK_PADDING = 10;
-const BRICK_OFFSET_TOP = 50;
-const BRICK_OFFSET_LEFT = 30;
-
-// Границы игрового поля (в мировых координатах)
-const GAME_LEFT = -400;
-const GAME_RIGHT = 400;
-const GAME_TOP = 500;
-const GAME_BOTTOM = 0;
-
-// ------------------------- Глобальные переменные -------------------------
 let scene, camera, renderer;
-let breakoutCanvas;
+let game2Canvas;
 let animationFrameId;
 let gameRunning = false;
-
 let score = 0;
-let lives = 3;
+function updateScoreDisplay() {
+  const el = document.getElementById("scoreDisplay");
+  if (el) {
+    el.innerText = "Score: " + (score * 5);
+  }
+}
 
-let paddle, ball, bricks = [];
-let ballVelocity = new THREE.Vector3(2, -2, 2); // начальная скорость шарика
+// Массив уложенных блоков (каждый: { mesh, size: {width, depth} })
+let stack = [];
+// Текущий движущийся блок (объект { mesh, size, movingAxis, speed, direction })
+let currentBlock = null;
+// Массив падающих отсекаемых частей
+let fallingPieces = [];
 
-// Переменные для динамичного фона
+// Создание динамичного градиентного фона (черный → темно-серый → глубокий синий → угольно-фиолетовый)
 let bgCanvas, bgContext, bgTexture;
-
-// ------------------------- Функции фона -------------------------
 function createBackgroundTexture() {
   bgCanvas = document.createElement("canvas");
   bgCanvas.width = 16;
@@ -55,11 +52,9 @@ function createBackgroundTexture() {
   bgTexture = new THREE.CanvasTexture(bgCanvas);
   return bgTexture;
 }
-
 function updateBackground() {
-  // Динамический градиент: плавное изменение оттенков
-  let t = Date.now() * 0.001;
-  let offset = (Math.sin(t / 10) + 1) / 2;
+  let t = clock.getElapsedTime();
+  let offset = (Math.sin(t / 10) + 1) / 2; // от 0 до 1
   let color1 = "#000000";
   let color2 = "#121212";
   let color3 = "#1E1E2F";
@@ -74,168 +69,249 @@ function updateBackground() {
   bgTexture.needsUpdate = true;
 }
 
-// ------------------------- Инициализация Three.js -------------------------
+// Функция создания материала для блока с плоским матовым цветом
+function getBlockMaterial() {
+  let color = flatColors[Math.floor(Math.random() * flatColors.length)];
+  let material = new THREE.MeshLambertMaterial({
+    color: color,
+    flatShading: true,
+    emissive: 0x000000
+  });
+  return material;
+}
+
+// Создание отражения для блока: клон с переворотом по оси Y, прозрачностью 0.3
+function addReflection(originalMesh) {
+  let reflection = originalMesh.clone();
+  reflection.material = originalMesh.material.clone();
+  reflection.material.opacity = 0.3;
+  reflection.material.transparent = true;
+  reflection.scale.y = -1;
+  reflection.position.y = originalMesh.position.y - BLOCK_HEIGHT * 1.1;
+  scene.add(reflection);
+}
+
+// Инициализация Three.js и сцены
+let clock = new THREE.Clock();
 function initThree() {
   scene = new THREE.Scene();
+  // Устанавливаем фон – динамичный градиент
   scene.background = createBackgroundTexture();
 
-  camera = new THREE.PerspectiveCamera(60, breakoutCanvas.width / breakoutCanvas.height, 1, 2000);
-  camera.position.set(0, 300, 800);
+  camera = new THREE.PerspectiveCamera(60, game2Canvas.width / game2Canvas.height, 1, 2000);
+  // Камера установлена в (400,800,600) и направлена на (0,300,0) – наклон ≈35° вниз
+  camera.position.set(400, 800, 600);
   camera.lookAt(new THREE.Vector3(0, 300, 0));
   camera.updateProjectionMatrix();
 
-  renderer = new THREE.WebGLRenderer({ canvas: breakoutCanvas, antialias: true });
-  renderer.setSize(breakoutCanvas.width, breakoutCanvas.height);
+  renderer = new THREE.WebGLRenderer({ canvas: game2Canvas, antialias: true });
+  renderer.setSize(game2Canvas.width, game2Canvas.height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  let ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  let ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
-
-  let directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  let directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(100, 200, 100);
   directionalLight.castShadow = true;
+  directionalLight.shadow.camera.left = -500;
+  directionalLight.shadow.camera.right = 500;
+  directionalLight.shadow.camera.top = 500;
+  directionalLight.shadow.camera.bottom = -500;
+  directionalLight.shadow.mapSize.width = 1024;
+  directionalLight.shadow.mapSize.height = 1024;
   scene.add(directionalLight);
+  
+  // Дополнительный glow-свет для башни
+  glowLight = new THREE.PointLight(0x00FF00, 1, 500);
+  glowLight.position.set(0, stack.length > 0 ? stack[stack.length - 1].mesh.position.y : 0, 0);
+  scene.add(glowLight);
 }
 
-// ------------------------- Создание игровых объектов -------------------------
-function createPaddle() {
-  const geometry = new THREE.BoxGeometry(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_DEPTH);
-  const material = new THREE.MeshLambertMaterial({ color: 0x0095DD });
-  let paddleMesh = new THREE.Mesh(geometry, material);
-  paddleMesh.position.set(0, PADDLE_HEIGHT / 2, -250);
-  paddleMesh.castShadow = true;
-  paddleMesh.receiveShadow = true;
-  scene.add(paddleMesh);
-  return paddleMesh;
+// Создание базового (нижнего) блока
+function createBaseBlock() {
+  let geometry = new THREE.BoxGeometry(INITIAL_BLOCK_SIZE.width, BLOCK_HEIGHT, INITIAL_BLOCK_SIZE.depth);
+  let material = getBlockMaterial();
+  let mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.position.set(0, BLOCK_HEIGHT / 2, 0);
+  let block = { mesh: mesh, size: { width: INITIAL_BLOCK_SIZE.width, depth: INITIAL_BLOCK_SIZE.depth } };
+  scene.add(mesh);
+  addReflection(mesh);
+  stack.push(block);
 }
 
-function createBall() {
-  const geometry = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);
-  const material = new THREE.MeshLambertMaterial({ color: 0xFF4500 });
-  let ballMesh = new THREE.Mesh(geometry, material);
-  ballMesh.position.set(0, BALL_RADIUS + 200, -240);
-  ballMesh.castShadow = true;
-  ballMesh.receiveShadow = true;
-  scene.add(ballMesh);
-  return ballMesh;
-}
-
-function createBricks() {
-  let brickArray = [];
-  for (let r = 0; r < BRICK_ROWS; r++) {
-    brickArray[r] = [];
-    for (let c = 0; c < BRICK_COLUMNS; c++) {
-      const geometry = new THREE.BoxGeometry(BRICK_WIDTH, BRICK_HEIGHT, BRICK_DEPTH);
-      const material = new THREE.MeshLambertMaterial({ color: getRandomBrickColor() });
-      let brickMesh = new THREE.Mesh(geometry, material);
-      // Расчёт позиции кирпича
-      let x = c * (BRICK_WIDTH + BRICK_PADDING) - ((BRICK_COLUMNS * (BRICK_WIDTH + BRICK_PADDING)) / 2) + BRICK_WIDTH / 2 + BRICK_OFFSET_LEFT;
-      let y = GAME_TOP - r * (BRICK_HEIGHT + BRICK_PADDING) - BRICK_OFFSET_TOP;
-      brickMesh.position.set(x, y, 0);
-      brickMesh.castShadow = true;
-      brickMesh.receiveShadow = true;
-      scene.add(brickMesh);
-      brickArray[r][c] = { mesh: brickMesh, status: 1 }; // status: 1 - кирпич существует
-    }
+// Создание нового движущегося блока
+function spawnNewBlock() {
+  let topBlock = stack[stack.length - 1];
+  let newSize = { width: topBlock.size.width, depth: topBlock.size.depth };
+  // Чередуем ось движения: четное число блоков – по оси X, нечетное – по оси Z
+  let movingAxis = (stack.length % 2 === 0) ? "x" : "z";
+  let blockSpeed = 2 + Math.random() * 4;
+  let direction = 1;
+  let startX = topBlock.mesh.position.x;
+  let startZ = topBlock.mesh.position.z;
+  if (movingAxis === "x") {
+    startX = topBlock.mesh.position.x - newSize.width;
+    direction = 1;
+  } else {
+    startZ = topBlock.mesh.position.z - newSize.depth;
+    direction = 1;
   }
-  return brickArray;
-}
-
-function getRandomBrickColor() {
-  // Набор ярких цветов для кирпичей
-  const colors = [0xff5733, 0xffbd33, 0x75ff33, 0x33ffbd, 0x3375ff, 0xbd33ff];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-// ------------------------- Обработка столкновений -------------------------
-function checkCollisionSphereBox(sphere, box) {
-  // Простейшая проверка столкновения "сфера–осьно-выравненный прямоугольный параллелепипед (AABB)"
-  let boxPos = box.position;
-  // Получаем размеры коробки
-  let boxSize = new THREE.Vector3();
-  box.geometry.computeBoundingBox();
-  box.geometry.boundingBox.getSize(boxSize);
-  let halfExtents = boxSize.multiplyScalar(0.5);
-  // Вычисляем ближайшую точку на коробке к центру сферы
-  let closestPoint = new THREE.Vector3(
-    THREE.MathUtils.clamp(sphere.position.x, boxPos.x - halfExtents.x, boxPos.x + halfExtents.x),
-    THREE.MathUtils.clamp(sphere.position.y, boxPos.y - halfExtents.y, boxPos.y + halfExtents.y),
-    THREE.MathUtils.clamp(sphere.position.z, boxPos.z - halfExtents.z, boxPos.z + halfExtents.z)
+  let newY = topBlock.mesh.position.y + BLOCK_HEIGHT;
+  let geometry = new THREE.BoxGeometry(newSize.width, BLOCK_HEIGHT, newSize.depth);
+  let material = getBlockMaterial();
+  let mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.position.set(
+    (movingAxis === "x") ? startX : topBlock.mesh.position.x,
+    newY,
+    (movingAxis === "z") ? startZ : topBlock.mesh.position.z
   );
-  let distance = sphere.position.distanceTo(closestPoint);
-  return distance < BALL_RADIUS;
+  currentBlock = { mesh: mesh, size: newSize, movingAxis: movingAxis, speed: blockSpeed, direction: direction };
+  scene.add(mesh);
 }
 
-function checkCollisionSpherePlane(sphere, planeY) {
-  // Проверка столкновения с горизонтальной плоскостью (например, нижняя граница)
-  return (sphere.position.y - BALL_RADIUS) < planeY;
-}
-
-// ------------------------- Управление и обновление игры -------------------------
+// Обновление положения движущегося блока и падающих отсекаемых частей
 function updateGame() {
   updateBackground();
-
-  // Движение шарика
-  ball.position.add(ballVelocity);
-
-  // Отскок от боковых стен
-  if (ball.position.x + BALL_RADIUS > GAME_RIGHT) {
-    ball.position.x = GAME_RIGHT - BALL_RADIUS;
-    ballVelocity.x = -ballVelocity.x;
-  }
-  if (ball.position.x - BALL_RADIUS < GAME_LEFT) {
-    ball.position.x = GAME_LEFT + BALL_RADIUS;
-    ballVelocity.x = -ballVelocity.x;
-  }
-  // Отскок от верхней стены
-  if (ball.position.y + BALL_RADIUS > GAME_TOP) {
-    ball.position.y = GAME_TOP - BALL_RADIUS;
-    ballVelocity.y = -ballVelocity.y;
-  }
-  // Если шарик упал ниже игрового поля – потеря жизни
-  if (ball.position.y - BALL_RADIUS < GAME_BOTTOM) {
-    lives--;
-    if (lives <= 0) {
-      gameOver();
-      return;
+  
+  if (currentBlock) {
+    let topBlock = stack[stack.length - 1];
+    if (currentBlock.movingAxis === "x") {
+      currentBlock.mesh.position.x += currentBlock.speed * currentBlock.direction;
+      let leftBound = topBlock.mesh.position.x - (topBlock.size.width / 2 + currentBlock.size.width);
+      let rightBound = topBlock.mesh.position.x + (topBlock.size.width / 2 + currentBlock.size.width);
+      if (currentBlock.mesh.position.x < leftBound) {
+        currentBlock.mesh.position.x = leftBound;
+        currentBlock.direction = 1;
+      } else if (currentBlock.mesh.position.x > rightBound) {
+        currentBlock.mesh.position.x = rightBound;
+        currentBlock.direction = -1;
+      }
     } else {
-      resetBallAndPaddle();
-    }
-  }
-
-  // Столкновение с платформой
-  if (checkCollisionSphereBox(ball, paddle)) {
-    // Меняем направление шарика по вертикали
-    ballVelocity.y = Math.abs(ballVelocity.y);
-    // Корректируем горизонтальную скорость в зависимости от точки удара
-    let hitPoint = (ball.position.x - paddle.position.x) / (PADDLE_WIDTH / 2);
-    ballVelocity.x = hitPoint * 5;
-  }
-
-  // Столкновения с кирпичами
-  for (let r = 0; r < bricks.length; r++) {
-    for (let c = 0; c < bricks[r].length; c++) {
-      let brick = bricks[r][c];
-      if (brick.status === 1 && checkCollisionSphereBox(ball, brick.mesh)) {
-        // Удаляем кирпич из сцены
-        scene.remove(brick.mesh);
-        brick.status = 0;
-        score += 10;
-        // Простой алгоритм – меняем направление шарика по вертикали
-        ballVelocity.y = -ballVelocity.y;
+      currentBlock.mesh.position.z += currentBlock.speed * currentBlock.direction;
+      let frontBound = topBlock.mesh.position.z - (topBlock.size.depth / 2 + currentBlock.size.depth);
+      let backBound = topBlock.mesh.position.z + (topBlock.size.depth / 2 + currentBlock.size.depth);
+      if (currentBlock.mesh.position.z < frontBound) {
+        currentBlock.mesh.position.z = frontBound;
+        currentBlock.direction = 1;
+      } else if (currentBlock.mesh.position.z > backBound) {
+        currentBlock.mesh.position.z = backBound;
+        currentBlock.direction = -1;
       }
     }
+    // Эффект цифрового сбоя: случайное небольшое смещение
+    if (Math.random() < 0.01) {
+      currentBlock.mesh.position.x += (Math.random() - 0.5) * 5;
+      currentBlock.mesh.position.z += (Math.random() - 0.5) * 5;
+    }
+  }
+  
+  // Обновление glow-света
+  if (glowLight) {
+    glowLight.position.y = stack[stack.length - 1].mesh.position.y;
+    glowLight.intensity = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * 3);
+  }
+  
+  // Обновление падающих отсекаемых частей
+  for (let i = fallingPieces.length - 1; i >= 0; i--) {
+    let piece = fallingPieces[i];
+    piece.velocityY -= 0.5;
+    piece.mesh.position.y += piece.velocityY;
+    if (piece.mesh.position.y < -200) {
+      scene.remove(piece.mesh);
+      fallingPieces.splice(i, 1);
+    }
   }
 }
 
-function resetBallAndPaddle() {
-  // Сброс позиций шарика и платформы после потери жизни
-  ball.position.set(0, BALL_RADIUS + 200, -240);
-  ballVelocity.set(2, -2, 2);
-  paddle.position.set(0, PADDLE_HEIGHT / 2, -250);
+// Фиксация блока – вычисление пересечения, создание падающей части при несовпадении
+function onDropBlock() {
+  if (!gameRunning || !currentBlock) return;
+  let topBlock = stack[stack.length - 1];
+  let movingAxis = currentBlock.movingAxis;
+  let overlap = 0;
+  let originalSize = { ...currentBlock.size };
+  if (movingAxis === "x") {
+    let currentLeft = currentBlock.mesh.position.x - currentBlock.size.width / 2;
+    let currentRight = currentBlock.mesh.position.x + currentBlock.size.width / 2;
+    let topLeft = topBlock.mesh.position.x - topBlock.size.width / 2;
+    let topRight = topBlock.mesh.position.x + topBlock.size.width / 2;
+    let overlapLeft = Math.max(currentLeft, topLeft);
+    let overlapRight = Math.min(currentRight, topRight);
+    overlap = overlapRight - overlapLeft;
+    if (overlap <= 0) { gameOver(); return; }
+    let newCenterX = (overlapLeft + overlapRight) / 2;
+    let newGeometry = new THREE.BoxGeometry(overlap, BLOCK_HEIGHT, currentBlock.size.depth);
+    currentBlock.mesh.geometry.dispose();
+    currentBlock.mesh.geometry = newGeometry;
+    currentBlock.mesh.position.x = newCenterX;
+    currentBlock.size.width = overlap;
+    if (overlap < originalSize.width) {
+      let extraWidth = originalSize.width - overlap;
+      let extraGeometry = new THREE.BoxGeometry(extraWidth, BLOCK_HEIGHT, currentBlock.size.depth);
+      let extraMaterial = getBlockMaterial();
+      let extraMesh = new THREE.Mesh(extraGeometry, extraMaterial);
+      extraMesh.castShadow = true;
+      extraMesh.receiveShadow = true;
+      if (currentBlock.mesh.position.x > topBlock.mesh.position.x) {
+        extraMesh.position.x = currentBlock.mesh.position.x + overlap / 2 + extraWidth / 2;
+      } else {
+        extraMesh.position.x = currentBlock.mesh.position.x - overlap / 2 - extraWidth / 2;
+      }
+      extraMesh.position.y = currentBlock.mesh.position.y;
+      extraMesh.position.z = currentBlock.mesh.position.z;
+      scene.add(extraMesh);
+      fallingPieces.push({ mesh: extraMesh, velocityY: 0 });
+    }
+  } else {
+    let currentFront = currentBlock.mesh.position.z - currentBlock.size.depth / 2;
+    let currentBack = currentBlock.mesh.position.z + currentBlock.size.depth / 2;
+    let topFront = topBlock.mesh.position.z - topBlock.size.depth / 2;
+    let topBack = topBlock.mesh.position.z + topBlock.size.depth / 2;
+    let overlapFront = Math.max(currentFront, topFront);
+    let overlapBack = Math.min(currentBack, topBack);
+    overlap = overlapBack - overlapFront;
+    if (overlap <= 0) { gameOver(); return; }
+    let newCenterZ = (overlapFront + overlapBack) / 2;
+    let newGeometry = new THREE.BoxGeometry(currentBlock.size.width, BLOCK_HEIGHT, overlap);
+    currentBlock.mesh.geometry.dispose();
+    currentBlock.mesh.geometry = newGeometry;
+    currentBlock.mesh.position.z = newCenterZ;
+    currentBlock.size.depth = overlap;
+    if (overlap < originalSize.depth) {
+      let extraDepth = originalSize.depth - overlap;
+      let extraGeometry = new THREE.BoxGeometry(currentBlock.size.width, BLOCK_HEIGHT, extraDepth);
+      let extraMaterial = getBlockMaterial();
+      let extraMesh = new THREE.Mesh(extraGeometry, extraMaterial);
+      extraMesh.castShadow = true;
+      extraMesh.receiveShadow = true;
+      if (currentBlock.mesh.position.z > topBlock.mesh.position.z) {
+        extraMesh.position.z = currentBlock.mesh.position.z + overlap / 2 + extraDepth / 2;
+      } else {
+        extraMesh.position.z = currentBlock.mesh.position.z - overlap / 2 - extraDepth / 2;
+      }
+      extraMesh.position.y = currentBlock.mesh.position.y;
+      extraMesh.position.x = currentBlock.mesh.position.x;
+      scene.add(extraMesh);
+      fallingPieces.push({ mesh: extraMesh, velocityY: 0 });
+    }
+  }
+  stack.push(currentBlock);
+  score++;
+  updateScoreDisplay();
+  addReflection(currentBlock.mesh);
+  let newY = currentBlock.mesh.position.y;
+  if (newY > camera.position.y - 100) {
+    camera.position.y = newY + 100;
+  }
+  spawnNewBlock();
 }
 
+// Основной цикл игры: обновление и рендеринг
 function gameLoop() {
   if (!gameRunning) return;
   updateGame();
@@ -243,49 +319,39 @@ function gameLoop() {
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
+// Завершение игры
 function gameOver() {
   gameRunning = false;
   cancelAnimationFrame(animationFrameId);
-  window.removeEventListener("mousemove", onMouseMove);
-  alert("Game Over! Score: " + score);
+  window.removeEventListener("keydown", onDropBlock);
+  game2Canvas.removeEventListener("click", onDropBlock);
+  showEndGameModal("Game Over", "Score: " + (score * 5));
 }
 
-// ------------------------- Управление платформой -------------------------
-// Управление мышью для перемещения платформы по оси X
-function onMouseMove(event) {
-  let rect = breakoutCanvas.getBoundingClientRect();
-  let mouseX = event.clientX - rect.left;
-  // Преобразуем координаты мыши (0...ширина) в диапазон от -1 до 1
-  let normalizedX = (mouseX / rect.width) * 2 - 1;
-  // Масштабируем до границ игрового поля
-  paddle.position.x = normalizedX * (GAME_RIGHT - 50);
-}
-
-// ------------------------- Инициализация игры -------------------------
-function initGame4() {
-  breakoutCanvas = document.getElementById("breakoutCanvas");
-  if (!breakoutCanvas) {
-    console.error("Элемент canvas с id 'breakoutCanvas' не найден.");
+// Инициализация игры
+function initGame2() {
+  game2Canvas = document.getElementById('match3Canvas');
+  if (!game2Canvas) {
+    console.error("Элемент canvas с id 'match3Canvas' не найден.");
     return;
   }
   initThree();
-
-  // Создаём игровые объекты
-  paddle = createPaddle();
-  ball = createBall();
-  bricks = createBricks();
-
+  createBaseBlock();
+  spawnNewBlock();
   score = 0;
-  lives = 3;
+  updateScoreDisplay();
   gameRunning = true;
-
-  // Назначаем обработчик движения мыши для управления платформой
-  window.addEventListener("mousemove", onMouseMove);
-
+  window.addEventListener("keydown", onDropBlock);
+  game2Canvas.addEventListener("click", onDropBlock);
   gameLoop();
 }
 
-// ------------------------- Экспорт и запуск -------------------------
-// Для запуска игры вызовите функцию initGame4() после загрузки страницы.
-// Например:
-// window.onload = initGame4;
+// Сброс игры
+function resetGame2() {
+  cancelAnimationFrame(animationFrameId);
+  window.removeEventListener("keydown", onDropBlock);
+  game2Canvas.removeEventListener("click", onDropBlock);
+  if (renderer) {
+    renderer.clear();
+  }
+}
