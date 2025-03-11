@@ -1,21 +1,40 @@
-/* game2.js – 3D Игра «Stack» с оптимизированными настройками камеры и чёрным фоном
+/* game2.js – 3D Игра «Stack» с новой цветовой палитрой, цифровыми эффектами и оптимальной камерой
+
    Основные механики:
    • Базовый блок создаётся в центре сцены.
    • Каждый новый блок появляется над предыдущим и движется по горизонтали (чередуя оси X и Z).
    • При нажатии клавиши или клике движущийся блок фиксируется – вычисляется пересечение с предыдущим блоком:
        – Если пересечение есть, размер блока уменьшается до области пересечения.
        – Если пересечения нет – игра заканчивается (вызывается модальное окно).
-   • Скорость движения нового блока выбирается случайным образом (от 2 до 6), чтобы затруднить авто-клики.
-   • Каждый блок получает случайный пастельный цвет из заданной палитры.
-   • Сцена оформлена с чёрным фоном.
-   • Камера расположена над центром стека, чуть выше и дальше, с увеличенным FOV (60°) и наклоном около 35°, чтобы вся конструкция полностью помещалась в кадре.
+   • Скорость движения нового блока выбирается случайным образом (от 2 до 6) для усложнения авто-кликов.
+   • Каждый блок создаётся с прозрачностью и цифровыми зелёными оттенками с лёгким свечением.
+   • Дополнительно: движущийся блок получает пульсирующий эффект и иногда "дергается" (цифровой сбой).
+   • Камера с FOV 60°, расположенная в (400,800,600) и направленная на (0,300,0), обеспечивает вид с наклоном около 35°.
+   • Фон сцены – чёрный, а вокруг башни пульсирует точечный свет, усиливая атмосферу.
 */
 
+// Параметры блоков
 const BLOCK_HEIGHT = 20;
 const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
 
-// Палитра пастельных цветов
-const pastelColors = [0xA8DADC, 0xF4A261, 0x457B9D, 0xE63946, 0xB7E4C7];
+// Новая палитра зелёных оттенков
+function getRandomBlockColor() {
+  const colors = [0x00FF00, 0x008000, 0x00C2A0, 0x39FF14];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+// Функция создания материала для блока с прозрачностью, свечением и текстурой (здесь можно добавить цифровые символы)
+function getBlockMaterial() {
+  let color = getRandomBlockColor();
+  let material = new THREE.MeshPhongMaterial({
+    color: color,
+    emissive: new THREE.Color(color),
+    transparent: true,
+    opacity: 0.8,
+    shininess: 100
+  });
+  return material;
+}
 
 let scene, camera, renderer;
 let game2Canvas;
@@ -28,19 +47,18 @@ let stack = [];
 // Текущий движущийся блок (объект { mesh, size, movingAxis, speed, direction })
 let currentBlock = null;
 
-// Инициализация Three.js и базовых параметров сцены
+let glowLight; // точечный свет для эффекта свечения вокруг башни
+let clock = new THREE.Clock();
+
+// Инициализация Three.js и сцены
 function initThree() {
   scene = new THREE.Scene();
   // Фон сцены – чёрный
   scene.background = new THREE.Color(0x000000);
 
-  // Настройка перспективной камеры:
-  // Увеличенный угол обзора (FOV = 60°) и соотношение сторон из canvas.
+  // Настройка перспективной камеры с FOV = 60° и соотношением сторон canvas
   camera = new THREE.PerspectiveCamera(60, game2Canvas.width / game2Canvas.height, 1, 2000);
-  /* Оптимальное расположение камеры:
-     Камера установлена на позиции (400, 800, 600) и направлена на точку (0, 300, 0),
-     что обеспечивает наклон примерно 35° вниз и позволяет увидеть всю конструкцию.
-  */
+  // Камера установлена в (400,800,600) и направлена на (0,300,0) – наклон ~35° вниз
   camera.position.set(400, 800, 600);
   camera.lookAt(new THREE.Vector3(0, 300, 0));
   camera.updateProjectionMatrix();
@@ -50,10 +68,10 @@ function initThree() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // Мягкое общее освещение
+  // Освещение: AmbientLight для общего мягкого света
   let ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
-  // Направленное освещение для создания теней
+  // DirectionalLight для создания теней
   let directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(100, 200, 100);
   directionalLight.castShadow = true;
@@ -64,21 +82,21 @@ function initThree() {
   directionalLight.shadow.mapSize.width = 1024;
   directionalLight.shadow.mapSize.height = 1024;
   scene.add(directionalLight);
-}
 
-// Функция выбора случайного цвета из палитры
-function getRandomColor() {
-  return pastelColors[Math.floor(Math.random() * pastelColors.length)];
+  // Точечный свет для пульсирующего свечения башни
+  glowLight = new THREE.PointLight(0x00FF00, 1, 500);
+  glowLight.position.set(0, stack.length > 0 ? stack[stack.length-1].mesh.position.y : 0, 0);
+  scene.add(glowLight);
 }
 
 // Создание базового (нижнего) блока
 function createBaseBlock() {
   let geometry = new THREE.BoxGeometry(INITIAL_BLOCK_SIZE.width, BLOCK_HEIGHT, INITIAL_BLOCK_SIZE.depth);
-  let material = new THREE.MeshPhongMaterial({ color: getRandomColor() });
+  let material = getBlockMaterial();
   let mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  // Размещаем базовый блок в центре, нижняя грань на y = 0
+  // Размещаем базовый блок в центре; нижняя грань на y = 0
   mesh.position.set(0, BLOCK_HEIGHT / 2, 0);
   let block = {
     mesh: mesh,
@@ -108,7 +126,7 @@ function spawnNewBlock() {
   }
   let newY = topBlock.mesh.position.y + BLOCK_HEIGHT;
   let geometry = new THREE.BoxGeometry(newSize.width, BLOCK_HEIGHT, newSize.depth);
-  let material = new THREE.MeshPhongMaterial({ color: getRandomColor() });
+  let material = getBlockMaterial();
   let mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -127,7 +145,7 @@ function spawnNewBlock() {
   scene.add(mesh);
 }
 
-// Обновление положения движущегося блока
+// Обновление положения движущегося блока с пульсацией и эффектом "цифрового сбоя"
 function updateGame() {
   if (!currentBlock) return;
   let topBlock = stack[stack.length - 1];
@@ -154,9 +172,25 @@ function updateGame() {
       currentBlock.direction = -1;
     }
   }
+  
+  // Пульсирующий неоновый эффект для движущегося блока
+  let pulse = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * 5);
+  currentBlock.mesh.material.emissive = new THREE.Color(0x00FF00).multiplyScalar(pulse);
+  
+  // Анимированный эффект "цифрового сбоя": случайное небольшое смещение
+  if (Math.random() < 0.01) {
+    currentBlock.mesh.position.x += (Math.random() - 0.5) * 5;
+    currentBlock.mesh.position.z += (Math.random() - 0.5) * 5;
+  }
+  
+  // Обновление пульсирующего glow-света вокруг башни
+  if (glowLight) {
+    glowLight.position.y = stack[stack.length - 1].mesh.position.y;
+    glowLight.intensity = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * 3);
+  }
 }
 
-// Фиксация блока (вызывается по нажатию клавиши или клику)
+// Фиксация блока (вызывается по нажатию клавиши или клике)
 function onDropBlock() {
   if (!gameRunning || !currentBlock) return;
   let topBlock = stack[stack.length - 1];
@@ -199,7 +233,7 @@ function onDropBlock() {
     currentBlock.mesh.position.z = newCenterZ;
     currentBlock.size.depth = overlap;
   }
-  // Добавляем успешно зафиксированный блок в башню
+  // Успешно зафиксированный блок добавляем в башню
   stack.push(currentBlock);
   score++;
   // Поднимаем камеру, чтобы новый блок оставался в кадре
