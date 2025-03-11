@@ -3,10 +3,9 @@
    Управление:
      - Мышь: движение ракетки по X
      - Тач-события: движение пальцем по экрану (горизонтально)
-   При уничтожении кирпичей добавляем очки (localUserData.points).
-   При проигрыше или полном прохождении — вызываем showEndGameModal.
+   При уничтожении кирпичей добавляются очки (localUserData.points).
+   При проигрыше или полном прохождении вызывается showEndGameModal.
 ========================= */
-// game4.js – Игра Breakout (обновлённая версия)
 
 // Глобальные переменные для game4
 let game4Canvas, game4Ctx;
@@ -38,7 +37,7 @@ function initGame4() {
   paddleX = (game4Canvas.width - paddleWidth) / 2;
   const paddleY = game4Canvas.height - paddleHeight - 10;
 
-  // Пока игра не запущена — мяч «прилипает» к платформе
+  // Пока игра не запущена — мяч "прилипает" к платформе
   ballX = paddleX + paddleWidth / 2;
   ballY = paddleY - ballRadius;
   // Скорость мяча
@@ -132,7 +131,7 @@ function updateGame4() {
     showEndGameModal("Game Over", "Your score: " + score);
   }
 
-  // Проверка столкновений с кирпичиками (улучшенная коллизия)
+  // Проверка столкновений с кирпичиками
   for (let c = 0; c < brickColumnCount; c++) {
     for (let r = 0; r < brickRowCount; r++) {
       let b = bricks[c][r];
@@ -188,7 +187,6 @@ function drawGame4() {
         bricks[c][r].x = brickX;
         bricks[c][r].y = brickY;
         game4Ctx.fillStyle = "#0095DD";
-
         game4Ctx.fillRect(brickX, brickY, brickWidth, brickHeight);
       }
     }
@@ -268,3 +266,4 @@ function resetGame4() {
     game4Ctx.clearRect(0, 0, game4Canvas.width, game4Canvas.height);
   }
 }
+
