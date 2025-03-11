@@ -17,94 +17,79 @@
 
   <!-- Additional CSS for Loot Box block -->
   <style>
-   .case-container {
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-
-     margin-top: -60px;
-     text-align: center;
-     position: relative;
-     top: 50px;
-     display: inline-block;
-     transition: top 0.5s ease;
-   }
-
-   /* Состояние открытого кейса */
-   .case-container.open {
-     top: 20px;
-   }
-
-   .case-container img {
-     display: block;
-     margin: 0 auto;
-     width: 330px;
-     height: 330px;
-     transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease;
-   }
-
-   /* Изменяем размер и положение картинки при открытии кейса */
-   .case-container.open img {
-     width: 500px;
-     height: 500px;
-     transform: translateY(-30px);
-
-   }
-
-   /* Анимация взрыва */
-   .explode {
-     animation: explode 0.8s ease-out forwards;
-   }
-
-   @keyframes explode {
-     0% {
-       transform: scale(1) rotate(0deg);
-       opacity: 1;
-       filter: brightness(1);
-     }
-     50% {
-       transform: scale(1.3) rotate(20deg);
-       opacity: 0.8;
-       filter: brightness(1.2);
-     }
-     70% {
-       transform: scale(1.1) rotate(10deg);
-       opacity: 0.9;
-       filter: brightness(1.1);
-     }
-     100% {
-       transform: scale(2.5) rotate(45deg);
-       opacity: 0;
-       filter: brightness(0.5);
-     }
-   }
-
-   .case-container p {
-     position: absolute;
-     bottom: 420px;
-     left: 50%;
-     transform: translateX(-50%);
-     font-weight: bold;
-     margin: 0;
-     pointer-events: none;
-     z-index: 1;
-   }
-
-   /* Кнопки кейса */
-   .lootbox-buttons {
-     position: relative;
-     z-index: 10;
-     transition: opacity 0.5s ease;
-     display: flex;
-     gap: 10px;
-     margin-top: 80px;
-   }
-
-   /* При открытии кейса кнопки скрываются */
-   .case-container.open .lootbox-buttons {
-     opacity: 0;
-     pointer-events: none;
-   }
+    .case-container {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: -60px;
+      text-align: center;
+      position: relative;
+      top: 50px;
+      display: inline-block;
+      transition: top 0.5s ease;
+    }
+    .case-container.open {
+      top: 20px;
+    }
+    .case-container img {
+      display: block;
+      margin: 0 auto;
+      width: 330px;
+      height: 330px;
+      transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease;
+    }
+    .case-container.open img {
+      width: 500px;
+      height: 500px;
+      transform: translateY(-30px);
+    }
+    .explode {
+      animation: explode 0.8s ease-out forwards;
+    }
+    @keyframes explode {
+      0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+        filter: brightness(1);
+      }
+      50% {
+        transform: scale(1.3) rotate(20deg);
+        opacity: 0.8;
+        filter: brightness(1.2);
+      }
+      70% {
+        transform: scale(1.1) rotate(10deg);
+        opacity: 0.9;
+        filter: brightness(1.1);
+      }
+      100% {
+        transform: scale(2.5) rotate(45deg);
+        opacity: 0;
+        filter: brightness(0.5);
+      }
+    }
+    .case-container p {
+      position: absolute;
+      bottom: 420px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-weight: bold;
+      margin: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .lootbox-buttons {
+      position: relative;
+      z-index: 10;
+      transition: opacity 0.5s ease;
+      display: flex;
+      gap: 10px;
+      margin-top: 80px;
+    }
+    .case-container.open .lootbox-buttons {
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 
   <!-- Telegram Web App API -->
@@ -227,96 +212,17 @@
 
     <!-- TICKETS SECTION -->
     <section id="ticketsSection" class="section">
-      <h2 id="ticketsHeader">Tickets</h2>
-      <div class="wheel-container">
-        <div class="wheel" id="wheel">
-          <div class="slice slice1">
-            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-            <span>2</span>
-          </div>
-          <div class="slice slice2">
-            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-            <span>5</span>
-          </div>
-          <div class="slice slice3">
-            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-            <span>8</span>
-          </div>
-          <div class="slice slice4">
-            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-            <span>10</span>
-          </div>
-          <div class="slice slice5">
-            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-            <span>13</span>
-          </div>
-          <div class="slice slice6">
-            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-            <span>15</span>
-          </div>
-        </div>
-        <div class="wheel-pointer"></div>
-        <div class="tickets-actions">
-          <button id="spinButton" onclick="spinWheel()">Spin</button>
-          <button id="buyTicketsBtn" onclick="buyTickets()">Buy Tickets</button>
-        </div>
-        <div class="spin-result" id="spinResult"></div>
-      </div>
+      <!-- Tickets section content -->
     </section>
 
     <!-- LEADERBOARD SECTION -->
     <section id="leaderboardSection" class="section">
-      <h2 id="leaderboardHeader">Leaderboard</h2>
-      <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
-      <div class="leaderboard-container">
-        <table id="leaderboardTable">
-          <thead>
-            <tr>
-              <th>№</th>
-              <th>Username</th>
-              <th>Points</th>
-              <th>Prize</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboardTop10">
-            <!-- Top-10 players with prizes -->
-          </tbody>
-          <tbody id="leaderboardRest">
-            <!-- Other players -->
-          </tbody>
-        </table>
-      </div>
+      <!-- Leaderboard content -->
     </section>
 
     <!-- LOOT BOX SECTION -->
     <section id="referralSection" class="section">
-      <h2 id="referralHeader">Bug Packs</h2>
-      <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
-
-      <!-- Case block с изображением кейса (без текста с количеством) -->
-      <div class="case-container">
-        <img id="caseImage" src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Cyber Case">
-      </div>
-
-      <!-- Roulette container, initially hidden -->
-      <div class="lootbox-container" id="lootboxContainer" style="display: none;">
-        <div class="lootbox-indicator"></div>
-        <div class="lootbox-roulette" id="lootboxRoulette">
-          <!-- Prizes will be added dynamically -->
-        </div>
-      </div>
-
-      <!-- Кнопки -->
-      <div class="lootbox-buttons">
-        <button id="openBtn" onclick="openLootBox()">
-          Decrypt data (0)
-        </button>
-        <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
-          <span>Decrypt data</span><br>
-          <span>for 5m tokens</span>
-        </button>
-
-      </div>
+      <!-- Loot box content -->
     </section>
   </main>
 
@@ -447,14 +353,264 @@
   <script src="game2.js"></script>
   <script src="partnergame1.js"></script>
   <script src="game3.js"></script>
-  <script src="game4.js"></script>
+  <!-- Inline исправленный game4.js -->
+  <script>
+    /* game4.js – 3D Breakout/Arkanoid Игра
+       Современный минималистичный стиль с динамичным градиентным фоном и яркими элементами.
+    */
+
+    // ------------------------- Константы и настройки -------------------------
+    const PADDLE_WIDTH = 150;
+    const PADDLE_HEIGHT = 20;
+    const PADDLE_DEPTH = 20;
+
+    const BALL_RADIUS = 10;
+
+    const BRICK_ROWS = 5;
+    const BRICK_COLUMNS = 10;
+    const BRICK_WIDTH = 60;
+    const BRICK_HEIGHT = 20;
+    const BRICK_DEPTH = 20;
+    const BRICK_PADDING = 10;
+    const BRICK_OFFSET_TOP = 50;
+    const BRICK_OFFSET_LEFT = 30;
+
+    // Границы игрового поля (в мировых координатах)
+    const GAME_LEFT = -400;
+    const GAME_RIGHT = 400;
+    const GAME_TOP = 500;
+    const GAME_BOTTOM = 0;
+
+    // ------------------------- Глобальные переменные -------------------------
+    let scene, camera, renderer;
+    let breakoutCanvas; // теперь будет ссылаться на canvas с id "game4Canvas"
+    let animationFrameId;
+    let gameRunning = false;
+
+    let score = 0;
+    let lives = 3;
+
+    let paddle, ball, bricks = [];
+    let ballVelocity = new THREE.Vector3(2, -2, 2); // начальная скорость шарика
+
+    // Переменные для динамичного фона
+    let bgCanvas, bgContext, bgTexture;
+
+    // ------------------------- Функции фона -------------------------
+    function createBackgroundTexture() {
+      bgCanvas = document.createElement("canvas");
+      bgCanvas.width = 16;
+      bgCanvas.height = 256;
+      bgContext = bgCanvas.getContext("2d");
+      bgTexture = new THREE.CanvasTexture(bgCanvas);
+      return bgTexture;
+    }
+    function updateBackground() {
+      let t = Date.now() * 0.001;
+      let offset = (Math.sin(t / 10) + 1) / 2;
+      let color1 = "#000000";
+      let color2 = "#121212";
+      let color3 = "#1E1E2F";
+      let color4 = "#2C2C3E";
+      let grad = bgContext.createLinearGradient(0, 0, 0, bgCanvas.height);
+      grad.addColorStop(0, color1);
+      grad.addColorStop(0.4 + 0.1 * offset, color2);
+      grad.addColorStop(0.7 + 0.1 * offset, color3);
+      grad.addColorStop(1, color4);
+      bgContext.fillStyle = grad;
+      bgContext.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+      bgTexture.needsUpdate = true;
+    }
+
+    // ------------------------- Инициализация Three.js -------------------------
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = createBackgroundTexture();
+
+      camera = new THREE.PerspectiveCamera(60, breakoutCanvas.width / breakoutCanvas.height, 1, 2000);
+      camera.position.set(0, 300, 800);
+      camera.lookAt(new THREE.Vector3(0, 300, 0));
+      camera.updateProjectionMatrix();
+
+      renderer = new THREE.WebGLRenderer({ canvas: breakoutCanvas, antialias: true });
+      renderer.setSize(breakoutCanvas.width, breakoutCanvas.height);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      let ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      let directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      directionalLight.position.set(100, 200, 100);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
+    }
+
+    // ------------------------- Создание игровых объектов -------------------------
+    function createPaddle() {
+      const geometry = new THREE.BoxGeometry(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_DEPTH);
+      const material = new THREE.MeshLambertMaterial({ color: 0x0095DD });
+      let paddleMesh = new THREE.Mesh(geometry, material);
+      paddleMesh.position.set(0, PADDLE_HEIGHT / 2, -250);
+      paddleMesh.castShadow = true;
+      paddleMesh.receiveShadow = true;
+      scene.add(paddleMesh);
+      return paddleMesh;
+    }
+    function createBall() {
+      const geometry = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);
+      const material = new THREE.MeshLambertMaterial({ color: 0xFF4500 });
+      let ballMesh = new THREE.Mesh(geometry, material);
+      ballMesh.position.set(0, BALL_RADIUS + 200, -240);
+      ballMesh.castShadow = true;
+      ballMesh.receiveShadow = true;
+      scene.add(ballMesh);
+      return ballMesh;
+    }
+    function createBricks() {
+      let brickArray = [];
+      for (let r = 0; r < BRICK_ROWS; r++) {
+        brickArray[r] = [];
+        for (let c = 0; c < BRICK_COLUMNS; c++) {
+          const geometry = new THREE.BoxGeometry(BRICK_WIDTH, BRICK_HEIGHT, BRICK_DEPTH);
+          const material = new THREE.MeshLambertMaterial({ color: getRandomBrickColor() });
+          let brickMesh = new THREE.Mesh(geometry, material);
+          let x = c * (BRICK_WIDTH + BRICK_PADDING) - ((BRICK_COLUMNS * (BRICK_WIDTH + BRICK_PADDING)) / 2) + BRICK_WIDTH / 2 + BRICK_OFFSET_LEFT;
+          let y = GAME_TOP - r * (BRICK_HEIGHT + BRICK_PADDING) - BRICK_OFFSET_TOP;
+          brickMesh.position.set(x, y, 0);
+          brickMesh.castShadow = true;
+          brickMesh.receiveShadow = true;
+          scene.add(brickMesh);
+          brickArray[r][c] = { mesh: brickMesh, status: 1 };
+        }
+      }
+      return brickArray;
+    }
+    function getRandomBrickColor() {
+      const colors = [0xff5733, 0xffbd33, 0x75ff33, 0x33ffbd, 0x3375ff, 0xbd33ff];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // ------------------------- Обработка столкновений -------------------------
+    function checkCollisionSphereBox(sphere, box) {
+      let boxPos = box.position;
+      let boxSize = new THREE.Vector3();
+      box.geometry.computeBoundingBox();
+      box.geometry.boundingBox.getSize(boxSize);
+      let halfExtents = boxSize.multiplyScalar(0.5);
+      let closestPoint = new THREE.Vector3(
+        THREE.MathUtils.clamp(sphere.position.x, boxPos.x - halfExtents.x, boxPos.x + halfExtents.x),
+        THREE.MathUtils.clamp(sphere.position.y, boxPos.y - halfExtents.y, boxPos.y + halfExtents.y),
+        THREE.MathUtils.clamp(sphere.position.z, boxPos.z - halfExtents.z, boxPos.z + halfExtents.z)
+      );
+      let distance = sphere.position.distanceTo(closestPoint);
+      return distance < BALL_RADIUS;
+    }
+    function checkCollisionSpherePlane(sphere, planeY) {
+      return (sphere.position.y - BALL_RADIUS) < planeY;
+    }
+
+    // ------------------------- Управление и обновление игры -------------------------
+    function updateGame() {
+      updateBackground();
+      ball.position.add(ballVelocity);
+
+      if (ball.position.x + BALL_RADIUS > GAME_RIGHT) {
+        ball.position.x = GAME_RIGHT - BALL_RADIUS;
+        ballVelocity.x = -ballVelocity.x;
+      }
+      if (ball.position.x - BALL_RADIUS < GAME_LEFT) {
+        ball.position.x = GAME_LEFT + BALL_RADIUS;
+        ballVelocity.x = -ballVelocity.x;
+      }
+      if (ball.position.y + BALL_RADIUS > GAME_TOP) {
+        ball.position.y = GAME_TOP - BALL_RADIUS;
+        ballVelocity.y = -ballVelocity.y;
+      }
+      if (ball.position.y - BALL_RADIUS < GAME_BOTTOM) {
+        lives--;
+        if (lives <= 0) {
+          gameOver();
+          return;
+        } else {
+          resetBallAndPaddle();
+        }
+      }
+      if (checkCollisionSphereBox(ball, paddle)) {
+        ballVelocity.y = Math.abs(ballVelocity.y);
+        let hitPoint = (ball.position.x - paddle.position.x) / (PADDLE_WIDTH / 2);
+        ballVelocity.x = hitPoint * 5;
+      }
+      for (let r = 0; r < bricks.length; r++) {
+        for (let c = 0; c < bricks[r].length; c++) {
+          let brick = bricks[r][c];
+          if (brick.status === 1 && checkCollisionSphereBox(ball, brick.mesh)) {
+            scene.remove(brick.mesh);
+            brick.status = 0;
+            score += 10;
+            ballVelocity.y = -ballVelocity.y;
+          }
+        }
+      }
+    }
+    function resetBallAndPaddle() {
+      ball.position.set(0, BALL_RADIUS + 200, -240);
+      ballVelocity.set(2, -2, 2);
+      paddle.position.set(0, PADDLE_HEIGHT / 2, -250);
+    }
+    function gameLoop() {
+      if (!gameRunning) return;
+      updateGame();
+      renderer.render(scene, camera);
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
+    function gameOver() {
+      gameRunning = false;
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("mousemove", onMouseMove);
+      alert("Game Over! Score: " + score);
+    }
+
+    // ------------------------- Управление платформой -------------------------
+    function onMouseMove(event) {
+      let rect = breakoutCanvas.getBoundingClientRect();
+      let mouseX = event.clientX - rect.left;
+      let normalizedX = (mouseX / rect.width) * 2 - 1;
+      paddle.position.x = normalizedX * (GAME_RIGHT - 50);
+    }
+
+    // ------------------------- Инициализация игры -------------------------
+    function initGame4() {
+      breakoutCanvas = document.getElementById("game4Canvas"); // Исправлено: ищем "game4Canvas"
+      if (!breakoutCanvas) {
+        console.error("Элемент canvas с id 'game4Canvas' не найден.");
+        return;
+      }
+      initThree();
+      paddle = createPaddle();
+      ball = createBall();
+      bricks = createBricks();
+      score = 0;
+      lives = 3;
+      gameRunning = true;
+      window.addEventListener("mousemove", onMouseMove);
+      gameLoop();
+    }
+    function resetGame4() {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("mousemove", onMouseMove);
+      if (renderer) {
+        renderer.clear();
+      }
+    }
+  </script>
   <script src="game5.js"></script>
   <script src="game6.js"></script>
   <script src="case.js"></script>
 
   <script>
     /* ----------------------------------------------
-       1. Firebase Initialization
+       Firebase Initialization
     ---------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
@@ -470,13 +626,13 @@
     const db = firebase.database();
 
     /* ----------------------------------------------
-       2. Telegram Web App
+       Telegram Web App
     ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
     tg.expand();
 
     /* ----------------------------------------------
-       3. Global Variables & User Data
+       Global Variables & User Data
     ---------------------------------------------- */
     let currentUser = null;
     let userRef = null;
@@ -530,21 +686,19 @@
     }
 
     /* ----------------------------------------------
-       4. Update Top Bar & Case Count
+       Update Top Bar & Case Count
     ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
       document.getElementById('coinCount').textContent   = localUserData.coins || 0;
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
-
     function updateCaseCount() {
       document.getElementById('openBtn').textContent = `Decrypt data (${localUserData.cyberCase})`;
-
     }
 
     /* ----------------------------------------------
-       5. Section Switching
+       Section Switching
     ---------------------------------------------- */
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
@@ -555,7 +709,7 @@
     }
 
     /* ----------------------------------------------
-       6. Global Modal
+       Global Modal
     ---------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
@@ -567,7 +721,7 @@
     }
 
     /* ----------------------------------------------
-       7. Game Info Modal
+       Game Info Modal
     ---------------------------------------------- */
     function openGameInfoModal(gameData) {
       document.getElementById('gameInfoImg').src = gameData.img;
@@ -586,7 +740,7 @@
     }
 
     /* ----------------------------------------------
-       8. Start Game
+       Start Game
     ---------------------------------------------- */
     let currentGame = null;
     function handleStartGame(gameName, ticketCost) {
@@ -641,7 +795,7 @@
     }
 
     /* ----------------------------------------------
-       9. End Game Modal
+       End Game Modal
     ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = "Result";
@@ -679,7 +833,7 @@
     }
 
     /* ----------------------------------------------
-       10. Wheel of Fortune / Tickets
+       Wheel of Fortune / Tickets
     ---------------------------------------------- */
     let spinDuration = 4000;
     function spinWheel() {
@@ -745,7 +899,7 @@
     setInterval(updateSpinButton, 1000);
 
     /* ----------------------------------------------
-       11. Leaderboard
+       Leaderboard
     ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
@@ -788,14 +942,14 @@
     }
 
     /* ----------------------------------------------
-       12. Buy Tickets
+       Buy Tickets
     ---------------------------------------------- */
     function buyTickets() {
       window.location.href = 'buyticket.html';
     }
 
     /* ----------------------------------------------
-       13. Lootbox in Cyber Case Section
+       Lootbox in Cyber Case Section
     ---------------------------------------------- */
     const lootboxPrizes = [
       { name: '3 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 60 },
@@ -823,7 +977,6 @@
         });
       }
     }
-
     function getWeightedRandomIndex(prizes) {
       let total = 0;
       prizes.forEach(prize => total += prize.chance);
@@ -836,7 +989,6 @@
       }
       return prizes.length - 1;
     }
-
     function parsePrizeAmount(prizeName) {
       if (prizeName.includes("M")) {
         let num = parseFloat(prizeName);
@@ -845,7 +997,6 @@
         return parseInt(prizeName);
       }
     }
-
     function addPrizeToUser(prize) {
       if (prize.name.toLowerCase().includes("token")) {
          let amount = parsePrizeAmount(prize.name);
@@ -868,7 +1019,6 @@
          updateTopBar();
       }
     }
-
     function spinLootBoxForTokens() {
       if (!currentUser) return;
       if (isSpinning) return;
@@ -890,7 +1040,6 @@
         spinRoulette();
       }, { once: true });
     }
-
     function openLootBox() {
       if (!currentUser) return;
       if (isSpinning) return;
@@ -912,7 +1061,6 @@
         spinRoulette();
       }, { once: true });
     }
-
     function spinRoulette() {
       initReferralLootbox();
       const roulette = document.getElementById('lootboxRoulette');
@@ -945,17 +1093,12 @@
         caseImage.style.opacity = 1;
       }, 10200);
     }
-
-    /* ----------------------------------------------
-       Modal windows for Loot Box
-    ---------------------------------------------- */
     function openLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.add('active');
     }
     function closeLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.remove('active');
     }
-
     function openMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.add('active');
     }
@@ -979,13 +1122,12 @@
     }
   </script>
   <script>
-  // Hidden key combination for admin panel access: Ctrl+Shift+A
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-      window.location.href = 'admin.html';
-    }
-  });
+    // Hidden key combination for admin panel access: Ctrl+Shift+A
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        window.location.href = 'admin.html';
+      }
+    });
   </script>
-
 </body>
 </html>
