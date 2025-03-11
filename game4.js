@@ -68,7 +68,7 @@ function initGame4() {
 
   // Флаги: игра ещё не запущена
   gameStarted = false;
-  gameRunning = false;
+  gameRunning = false; // игра запустится при первом движении платформы
 
   // Добавляем обработчики событий для управления платформой
   game4Canvas.addEventListener("mousemove", mouseMoveHandler, false);
@@ -187,24 +187,25 @@ function drawGame4() {
         let brickY = brickOffsetTop + r * (brickHeight + brickPadding);
         bricks[c][r].x = brickX;
         bricks[c][r].y = brickY;
-        game4Ctx.fillStyle = "#0095DD";
+        // Используем темно-синий цвет для кирпичей
+        game4Ctx.fillStyle = "#003366";
         game4Ctx.fillRect(brickX, brickY, brickWidth, brickHeight);
       }
     }
   }
 
-  // Рисуем мяч
+  // Рисуем мяч – используем тёмно-оранжевый цвет
   game4Ctx.beginPath();
   game4Ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-  game4Ctx.fillStyle = "#FF4500";
+  game4Ctx.fillStyle = "#CC3300";
   game4Ctx.fill();
   game4Ctx.closePath();
   
-  // Рисуем платформу
+  // Рисуем платформу – используем тёмно-серый цвет
   const paddleY = game4Canvas.height - paddleHeight - 10;
   game4Ctx.beginPath();
   game4Ctx.rect(paddleX, paddleY, paddleWidth, paddleHeight);
-  game4Ctx.fillStyle = "#0095DD";
+  game4Ctx.fillStyle = "#444444";
   game4Ctx.fill();
   game4Ctx.closePath();
   
