@@ -16,7 +16,7 @@ let bricks = [];
 let brickRowCount, brickColumnCount, brickWidth, brickHeight, brickPadding, brickOffsetTop, brickOffsetLeft;
 let score;
 let gameRunning = false;   // Флаг работы игрового цикла
-let gameStarted = false;   // Флаг, показывающий, что игра запущена
+let gameStarted = false;   // Игра стартует по первому движению платформы
 let animationFrameId;
 const DEATH_LINE_OFFSET = 20; // Дополнительный отступ ниже нижней границы
 
@@ -38,7 +38,7 @@ function initGame4() {
   paddleX = (game4Canvas.width - paddleWidth) / 2;
   const paddleY = game4Canvas.height - paddleHeight - 10;
   
-  // Устанавливаем мяч на платформу
+  // Пока игра не запущена — мяч «прилипает» к платформе
   ballX = paddleX + paddleWidth / 2;
   ballY = paddleY - ballRadius;
   // Скорость мяча
@@ -66,16 +66,16 @@ function initGame4() {
   // Сброс счёта
   score = 0;
 
-  // Запускаем игру сразу
-  gameStarted = true;
-  gameRunning = true;
+  // Флаги: игра ещё не запущена
+  gameStarted = false;
+  gameRunning = false;
 
   // Добавляем обработчики событий для управления платформой
   game4Canvas.addEventListener("mousemove", mouseMoveHandler, false);
   game4Canvas.addEventListener("touchmove", touchMoveHandler, { passive: false });
 
-  // Запускаем игровой цикл
-  gameLoop();
+  // Отрисовываем начальное состояние
+  drawGame4();
 }
 
 // Основной игровой цикл
@@ -92,7 +92,7 @@ function updateGame4() {
   const paddleY = game4Canvas.height - paddleHeight - 10;
   const deathLine = game4Canvas.height + DEATH_LINE_OFFSET;
   
-  // Если игра ещё не запущена — мяч остаётся на платформе
+  // Если игра ещё не запущена — мяч держится на платформе
   if (!gameStarted) {
     ballX = paddleX + paddleWidth / 2;
     ballY = paddleY - ballRadius;
@@ -132,7 +132,7 @@ function updateGame4() {
     showEndGameModal("Game Over", "Your score: " + score);
   }
 
-  // Проверка столкновений с кирпичиками
+  // Проверка столкновений с кирпичиками (улучшенная коллизия)
   for (let c = 0; c < brickColumnCount; c++) {
     for (let r = 0; r < brickRowCount; r++) {
       let b = bricks[c][r];
@@ -141,7 +141,7 @@ function updateGame4() {
         let brickY = brickOffsetTop + r * (brickHeight + brickPadding);
         b.x = brickX;
         b.y = brickY;
-        // Проверка столкновения мяча с кирпичом
+        // Проверяем столкновение по всей области мяча
         if (
           ballX + ballRadius > brickX &&
           ballX - ballRadius < brickX + brickWidth &&
@@ -175,7 +175,7 @@ function updateGame4() {
 function drawGame4() {
   // Очистка холста
   game4Ctx.clearRect(0, 0, game4Canvas.width, game4Canvas.height);
-  // Фон (чёрный)
+  // Фон
   game4Ctx.fillStyle = "#000";
   game4Ctx.fillRect(0, 0, game4Canvas.width, game4Canvas.height);
   
@@ -221,6 +221,12 @@ function mouseMoveHandler(e) {
   if (relativeX > 0 && relativeX < game4Canvas.width) {
     paddleX = relativeX - paddleWidth / 2;
   }
+  // При первом движении запускаем игру
+  if (!gameStarted) {
+    gameStarted = true;
+    gameRunning = true;
+    gameLoop();
+  }
 }
 
 // Обработчик касания для мобильных устройств
@@ -231,6 +237,11 @@ function touchMoveHandler(e) {
   let relativeX = touch.clientX - rect.left;
   if (relativeX > 0 && relativeX < game4Canvas.width) {
     paddleX = relativeX - paddleWidth / 2;
+  }
+  if (!gameStarted) {
+    gameStarted = true;
+    gameRunning = true;
+    gameLoop();
   }
 }
 
@@ -256,4 +267,3 @@ function resetGame4() {
     game4Ctx.clearRect(0, 0, game4Canvas.width, game4Canvas.height);
   }
 }
-
