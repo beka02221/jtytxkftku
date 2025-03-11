@@ -48,7 +48,6 @@
      width: 500px;
      height: 500px;
      transform: translateY(-30px);
-     /* animation: explode 0.8s ease-out forwards; */
    }
 
    /* Анимация взрыва */
@@ -95,6 +94,9 @@
      position: relative;
      z-index: 10;
      transition: opacity 0.5s ease;
+     display: flex;
+     gap: 10px;
+     margin-top: 80px;
    }
 
    /* При открытии кейса кнопки скрываются */
@@ -535,8 +537,7 @@
     }
 
     function updateCaseCount() {
-      document.getElementById('openBtn').textContent =
-        `Decrypt data (${localUserData.cyberCase})`;
+      document.getElementById('openBtn').textContent = `Decrypt data (${localUserData.cyberCase})`;
     }
 
     /* ----------------------------------------------
