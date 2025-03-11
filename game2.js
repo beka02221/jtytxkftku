@@ -1,31 +1,29 @@
-/* game2.js – 3D Игра «Stack» 
-   Современный, минималистичный стиль с динамичным градиентным фоном и яркими градиентными блоками.
-   
+/* game2.js – 3D Игра «Stack»
+   Современный минималистичный стиль с динамичным градиентным фоном и плоскими, матовыми цветами блоков.
+
    Основные особенности:
-   1. Фон – динамический градиент, который плавно меняется (от чёрного к серому, синему и фиолетовому).
-   2. Блоки – объёмные, с мягкими тенями, отражениями, бликами и градиентными текстурами. Классические яркие цвета, хорошо видимые на тёмном фоне.
-   3. При несовпадении блоков лишняя часть отсекается и анимированно падает вниз.
-   4. Минималистичный интерфейс – очки (5 points за успешно уложенный блок) выводятся в верхней части экрана.
-   5. Камера с FOV = 60° расположена в точке (400,800,600) и направлена на (0,300,0) – наклон примерно 35° для полного обзора конструкции.
+   1. Фон – динамический градиент, плавно меняющийся от чёрного к темно-серому, синему и фиолетовому.
+   2. Блоки – объёмные, с мягкими тенями, отражениями (отражение создаётся как перевёрнутый дубликат)
+      и простыми, плоскими (матовыми) цветами без бликов.
+      Цвета выбираются случайно из набора классических вариантов: неоново-зелёный (#00FF00), глубокий зелёный (#008000),
+      тёмно-бирюзовый (#00C2A0) и ядовито-зелёный (#39FF14).
+   3. При несовпадении блоков лишняя часть отсекается и падает вниз с эффектом гравитации.
+   4. Минималистичный интерфейс – очки (5 points за блок) отображаются в верхней части экрана.
+   5. Камера с FOV = 60° расположена в точке (400,800,600) и направлена на (0,300,0) (наклон ≈35°),
+      чтобы видеть всю конструкцию.
 */
 
 const BLOCK_HEIGHT = 20;
 const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
 
-// Градиентные наборы для блоков – яркие классические цвета
-const gradientSets = [
-  ["#00FF00", "#00CC00", "#009900"],       // Неоново-зелёный
-  ["#0077FF", "#0055CC", "#003399"],       // Яркий синий
-  ["#FF0033", "#CC0029", "#990020"],       // Насыщенный красный
-  ["#AA00FF", "#8800CC", "#660099"]        // Электрический фиолетовый
-];
+// Набор плоских цветов для блоков
+const flatColors = [0x00FF00, 0x008000, 0x00C2A0, 0x39FF14];
 
 let scene, camera, renderer;
 let game2Canvas;
 let animationFrameId;
 let gameRunning = false;
-let score = 0;  // количество блоков
-// Для отображения очков (5 points за блок)
+let score = 0;
 function updateScoreDisplay() {
   const el = document.getElementById("scoreDisplay");
   if (el) {
@@ -37,10 +35,10 @@ function updateScoreDisplay() {
 let stack = [];
 // Текущий движущийся блок (объект { mesh, size, movingAxis, speed, direction })
 let currentBlock = null;
-// Массив отсекаемых частей, которые падают вниз
+// Массив падающих отсекаемых частей
 let fallingPieces = [];
 
-// Фон: создаём динамический градиентный texture через canvas
+// Создание динамичного градиентного фона (черный → темно-серый → глубокий синий → угольно-фиолетовый)
 let bgCanvas, bgContext, bgTexture;
 function createBackgroundTexture() {
   bgCanvas = document.createElement("canvas");
@@ -50,19 +48,13 @@ function createBackgroundTexture() {
   bgTexture = new THREE.CanvasTexture(bgCanvas);
   return bgTexture;
 }
-// Обновление фона – плавное изменение градиента на основе времени
 function updateBackground() {
   let t = clock.getElapsedTime();
-  // Используем синусоиду для плавного смещения градиентных стопов
-  // Например, добавим небольшой сдвиг к каждой остановке
   let offset = (Math.sin(t / 10) + 1) / 2; // от 0 до 1
-  // Определённые базовые цвета
-  // Верхняя: темно-серый, затем глубокий серо-синий, затем угольно-фиолетовый
-  let color1 = "#000000"; // верх
+  let color1 = "#000000";
   let color2 = "#121212";
   let color3 = "#1E1E2F";
   let color4 = "#2C2C3E";
-  // Можем немного менять прозрачность или позицию стопов
   let grad = bgContext.createLinearGradient(0, 0, 0, bgCanvas.height);
   grad.addColorStop(0, color1);
   grad.addColorStop(0.4 + 0.1 * offset, color2);
@@ -73,44 +65,18 @@ function updateBackground() {
   bgTexture.needsUpdate = true;
 }
 
-// Функция для создания градиентной текстуры для блока на основе выбранного набора цветов
-function createBlockTexture(gradientColors) {
-  let width = 256, height = 256;
-  let canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  let ctx = canvas.getContext("2d");
-
-  let grad = ctx.createLinearGradient(0, 0, 0, height);
-  grad.addColorStop(0, gradientColors[0]);
-  grad.addColorStop(0.5, gradientColors[1]);
-  grad.addColorStop(1, gradientColors[2]);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
-
-  // Добавляем блик сверху – белый прямоугольник с 10% прозрачностью
-  ctx.fillStyle = "rgba(255,255,255,0.1)";
-  ctx.fillRect(0, 0, width, height * 0.1);
-
-  return new THREE.CanvasTexture(canvas);
-}
-
-// Функция создания материала для блока с использованием градиентной текстуры
+// Функция создания материала для блока с плоским матовым цветом
 function getBlockMaterial() {
-  let colors = gradientSets[Math.floor(Math.random() * gradientSets.length)];
-  let texture = createBlockTexture(colors);
-  texture.minFilter = THREE.LinearFilter;
-  let material = new THREE.MeshPhongMaterial({
-    map: texture,
-    transparent: true,
-    opacity: 0.95,
-    shininess: 100,
-    specular: new THREE.Color("#2C2C2C")
+  let color = flatColors[Math.floor(Math.random() * flatColors.length)];
+  let material = new THREE.MeshLambertMaterial({
+    color: color,
+    flatShading: true,
+    emissive: 0x000000
   });
   return material;
 }
 
-// Создание отражения для блока: клон, перевёрнутый по оси Y с прозрачностью 0.3
+// Создание отражения для блока: клон с переворотом по оси Y, прозрачностью 0.3
 function addReflection(originalMesh) {
   let reflection = originalMesh.clone();
   reflection.material = originalMesh.material.clone();
@@ -125,11 +91,11 @@ function addReflection(originalMesh) {
 let clock = new THREE.Clock();
 function initThree() {
   scene = new THREE.Scene();
-  // Фон – динамический градиентный texture
+  // Устанавливаем фон – динамичный градиент
   scene.background = createBackgroundTexture();
 
   camera = new THREE.PerspectiveCamera(60, game2Canvas.width / game2Canvas.height, 1, 2000);
-  // Камера установлена в (400,800,600) и направлена на (0,300,0) – наклон ~35° вниз
+  // Камера установлена в (400,800,600) и направлена на (0,300,0) – наклон ≈35° вниз
   camera.position.set(400, 800, 600);
   camera.lookAt(new THREE.Vector3(0, 300, 0));
   camera.updateProjectionMatrix();
@@ -151,14 +117,14 @@ function initThree() {
   directionalLight.shadow.mapSize.width = 1024;
   directionalLight.shadow.mapSize.height = 1024;
   scene.add(directionalLight);
-
-  // Glow-свет для башни
+  
+  // Дополнительный glow-свет для башни
   glowLight = new THREE.PointLight(0x00FF00, 1, 500);
   glowLight.position.set(0, stack.length > 0 ? stack[stack.length - 1].mesh.position.y : 0, 0);
   scene.add(glowLight);
 }
 
-// Создание базового блока (нижний)
+// Создание базового (нижнего) блока
 function createBaseBlock() {
   let geometry = new THREE.BoxGeometry(INITIAL_BLOCK_SIZE.width, BLOCK_HEIGHT, INITIAL_BLOCK_SIZE.depth);
   let material = getBlockMaterial();
@@ -204,11 +170,10 @@ function spawnNewBlock() {
   scene.add(mesh);
 }
 
-// Обновление движущегося блока и анимация падающих отрезков
+// Обновление положения движущегося блока и падающих отсекаемых частей
 function updateGame() {
-  // Обновление динамичного фона
   updateBackground();
-
+  
   if (currentBlock) {
     let topBlock = stack[stack.length - 1];
     if (currentBlock.movingAxis === "x") {
@@ -234,28 +199,27 @@ function updateGame() {
         currentBlock.direction = -1;
       }
     }
-    // Пульсирующий эффект эмиссии для движущегося блока
+    // Пульсирующий эффект (умеренный, чтобы не отвлекать)
     let pulse = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * 5);
-    currentBlock.mesh.material.emissive = new THREE.Color(0x00FF00).multiplyScalar(pulse);
-    // Эффект цифрового сбоя: случайное небольшое смещение
+    // Здесь не используем усиленную эмиссию – оставляем материал плоским
+    // Эффект цифрового сбоя
     if (Math.random() < 0.01) {
       currentBlock.mesh.position.x += (Math.random() - 0.5) * 5;
       currentBlock.mesh.position.z += (Math.random() - 0.5) * 5;
     }
   }
   
-  // Обновление glow-света вокруг башни
+  // Обновление glow-света
   if (glowLight) {
     glowLight.position.y = stack[stack.length - 1].mesh.position.y;
     glowLight.intensity = 0.5 + 0.5 * Math.sin(clock.getElapsedTime() * 3);
   }
   
-  // Обновляем падающие отрезки (эффект отсекаемой части)
+  // Обновление падающих отсекаемых частей
   for (let i = fallingPieces.length - 1; i >= 0; i--) {
     let piece = fallingPieces[i];
-    piece.velocityY -= 0.5;  // имитация гравитации
+    piece.velocityY -= 0.5;
     piece.mesh.position.y += piece.velocityY;
-    // Удаляем, если ушли ниже сцены
     if (piece.mesh.position.y < -200) {
       scene.remove(piece.mesh);
       fallingPieces.splice(i, 1);
@@ -263,13 +227,12 @@ function updateGame() {
   }
 }
 
-// Фиксация блока – вычисление пересечения, отсекаем лишнее и создаём анимацию падающей части
+// Фиксация блока – вычисление пересечения и создание падающей части (если есть)
 function onDropBlock() {
   if (!gameRunning || !currentBlock) return;
   let topBlock = stack[stack.length - 1];
   let movingAxis = currentBlock.movingAxis;
   let overlap = 0;
-  // Сохраним исходные размеры перед изменениями
   let originalSize = { ...currentBlock.size };
   if (movingAxis === "x") {
     let currentLeft = currentBlock.mesh.position.x - currentBlock.size.width / 2;
@@ -286,7 +249,6 @@ function onDropBlock() {
     currentBlock.mesh.geometry = newGeometry;
     currentBlock.mesh.position.x = newCenterX;
     currentBlock.size.width = overlap;
-    // Если не идеальное совпадение – создаём отсекаемую часть
     if (overlap < originalSize.width) {
       let extraWidth = originalSize.width - overlap;
       let extraGeometry = new THREE.BoxGeometry(extraWidth, BLOCK_HEIGHT, currentBlock.size.depth);
@@ -294,7 +256,6 @@ function onDropBlock() {
       let extraMesh = new THREE.Mesh(extraGeometry, extraMaterial);
       extraMesh.castShadow = true;
       extraMesh.receiveShadow = true;
-      // Определяем, с какой стороны отсекаем – в зависимости от смещения
       if (currentBlock.mesh.position.x > topBlock.mesh.position.x) {
         extraMesh.position.x = currentBlock.mesh.position.x + overlap / 2 + extraWidth / 2;
       } else {
@@ -338,12 +299,10 @@ function onDropBlock() {
       fallingPieces.push({ mesh: extraMesh, velocityY: 0 });
     }
   }
-  // Успешно зафиксированный блок добавляем в башню и отражение
   stack.push(currentBlock);
   score++;
   updateScoreDisplay();
   addReflection(currentBlock.mesh);
-  // Поднимаем камеру, если нужно
   let newY = currentBlock.mesh.position.y;
   if (newY > camera.position.y - 100) {
     camera.position.y = newY + 100;
@@ -351,7 +310,7 @@ function onDropBlock() {
   spawnNewBlock();
 }
 
-// Основной цикл игры: обновление состояния, рендеринг и динамичный фон
+// Основной игровой цикл: обновление и рендеринг
 function gameLoop() {
   if (!gameRunning) return;
   updateGame();
@@ -359,7 +318,7 @@ function gameLoop() {
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Завершение игры: остановка анимации, удаление обработчиков и вызов модального окна
+// Завершение игры
 function gameOver() {
   gameRunning = false;
   cancelAnimationFrame(animationFrameId);
@@ -386,7 +345,7 @@ function initGame2() {
   gameLoop();
 }
 
-// Функция сброса игры (например, при закрытии)
+// Сброс игры
 function resetGame2() {
   cancelAnimationFrame(animationFrameId);
   window.removeEventListener("keydown", onDropBlock);
