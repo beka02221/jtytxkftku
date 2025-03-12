@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+        content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Breakout Fullscreen</title>
 
   <!-- Font: Press Start 2P -->
@@ -18,88 +18,31 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Обнуление отступов и запрет прокрутки */
+    /* Сбрасываем отступы и растягиваем на весь экран */
     html, body {
       margin: 0; 
-      padding: 0; 
-      width: 100%; 
+      padding: 0;
+      width: 100%;
       height: 100%;
-      overflow: hidden; /* Запрещаем прокрутку */
-      font-family: 'Press Start 2P', monospace;
+      overflow: hidden; /* Без полос прокрутки */
       background: #00103c;
-      color: #FF00FF;
+      font-family: 'Press Start 2P', monospace;
     }
 
-    /* Контейнер всей страницы: шапка + игра */
-    #app {
-      display: flex;
-      flex-direction: column;
+    /* Обёртка для всей игры, занимающая 100% экрана */
+    #gameWrapper {
+      position: relative;
       width: 100%;
       height: 100%;
     }
 
-    /* Шапка (панель сверху) */
-    #topBar {
-      flex: 0 0 50px;
-      background: #6d4fba;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-      z-index: 1000;
-    }
-    #backBtn {
-      font-size: 10px;
-      padding: 5px 10px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-    }
-    #userInfo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 10px;
-      color: #fff;
-    }
-    #userPhoto {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      object-fit: cover;
-    }
-    #ticketCount {
-      color: #fff;
-      font-size: 10px;
-    }
-
-    /* Основная область (игра) */
-    #gameArea {
-      flex: 1;
-      position: relative; /* для абсолютного позиционирования canvas и кнопки */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Canvas заполняет #gameArea целиком */
-    #breakoutCanvas {
-      background: #000;
-      width: 100%;
-      height: 100%;
-      max-width: 100%; /* Без ограничений */
-      max-height: 100%;
-      display: none; /* Изначально скрыт */
-    }
-
-    /* Кнопка Start по центру */
+    /* Кнопка Start по центру экрана */
     #startBtn {
       position: absolute;
       z-index: 10;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       font-size: 12px;
       padding: 10px 20px;
       background: #06B6D1;
@@ -110,7 +53,15 @@
       box-shadow: 0 3px #6b6b6b;
     }
 
-    /* Модальное окно */
+    /* Canvas на весь экран */
+    #breakoutCanvas {
+      width: 100%;
+      height: 100%;
+      display: none; /* Скрыт, пока не нажмём Start */
+      background: #000;
+    }
+
+    /* Модальное окно окончания игры */
     .modal-backdrop {
       position: absolute;
       top: 0; left: 0;
@@ -146,28 +97,15 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-
   </style>
 </head>
 <body>
-<div id="app">
-  <!-- Верхняя панель -->
-  <div id="topBar">
-    <button id="backBtn" onclick="goBack()">Back</button>
-    <div id="userInfo">
-      <img id="userPhoto" src="https://img.icons8.com/ios-filled/50/00FF00/user.png" alt="User Photo">
-      <span id="username">@User</span>
-      <span id="ticketCount">Tickets: 0</span>
-    </div>
-  </div>
-
-  <!-- Основная область игры -->
-  <div id="gameArea">
-    <!-- Canvas для Breakout -->
-    <canvas id="breakoutCanvas" width="360" height="640"></canvas>
-
+  <div id="gameWrapper">
     <!-- Кнопка старта -->
     <button id="startBtn" onclick="startBreakout()">Start (1 Ticket)</button>
+
+    <!-- Canvas для игры -->
+    <canvas id="breakoutCanvas" width="360" height="640"></canvas>
 
     <!-- Модальное окно окончания игры -->
     <div id="endModal" class="modal-backdrop">
@@ -178,403 +116,347 @@
       </div>
     </div>
   </div>
-</div>
 
-<script>
-/* ---------------------------------------
-   1. Firebase и Telegram инициализация
----------------------------------------- */
-const firebaseConfig = {
-  apiKey: "AIzaSyB90ev-example",
-  authDomain: "test-with-likes.firebaseapp.com",
-  databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-  projectId: "test-with-likes",
-  storageBucket: "test-with-likes.appspot.com",
-  messagingSenderId: "764738820142",
-  appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-  measurementId: "G-WJNF0HSN9P"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  <script>
+    /* ------------------------------------------------
+       1. Firebase и Telegram инициализация (для билетов)
+    ------------------------------------------------ */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev-ex",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-// Проверка Telegram
-let tg = null;
-if(window.Telegram && window.Telegram.WebApp) {
-  tg = window.Telegram.WebApp;
-  tg.expand();
-}
+    let tg = null;
+    if(window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.expand();
+    }
 
-let currentUser = null;
-let userRef = null;
-let localUserData = {
-  photo: '',
-  tickets: 0,
-  coins: 0,
-  points: 0
-};
+    let currentUser = null;
+    let userRef = null;
+    let localUserData = {
+      tickets: 0,
+      points: 0
+    };
 
-if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-  currentUser = tg.initDataUnsafe.user;
-  document.getElementById('username').textContent = '@' + currentUser.username;
-  if(currentUser.photo_url) {
-    document.getElementById('userPhoto').src = currentUser.photo_url;
-  }
-  userRef = db.ref('users/' + currentUser.username);
-  userRef.once('value').then(snapshot => {
-    if(!snapshot.exists()) {
-      userRef.set({
-        photo: currentUser.photo_url || '',
-        tickets: 5,
-        coins: 0,
-        points: 0
+    // Попытка взять данные из Telegram
+    if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user;
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value').then(snapshot => {
+        if(!snapshot.exists()) {
+          userRef.set({
+            tickets: 5,
+            points: 0
+          });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points  = data.points  || 0;
+      });
+    } else {
+      // Тестовый пользователь
+      currentUser = { username: 'TestUser' };
+      userRef = db.ref('users/TestUser');
+      userRef.once('value').then(snapshot => {
+        if(!snapshot.exists()) {
+          userRef.set({
+            tickets: 5,
+            points: 0
+          });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points  = data.points  || 0;
       });
     }
-  });
-  userRef.on('value', snapshot => {
-    const data = snapshot.val() || {};
-    localUserData = {
-      photo: data.photo || '',
-      tickets: data.tickets || 0,
-      coins: data.coins || 0,
-      points: data.points || 0
-    };
-    updateTopBar();
-  });
-} else {
-  // Тестовый пользователь (offline)
-  currentUser = { username: 'TestUser', photo_url: '' };
-  document.getElementById('username').textContent = '@TestUser';
-  userRef = db.ref('users/TestUser');
-  userRef.once('value').then(snapshot => {
-    if(!snapshot.exists()) {
-      userRef.set({
-        photo: '',
-        tickets: 5,
-        coins: 0,
-        points: 0
-      });
-    }
-  });
-  userRef.on('value', snapshot => {
-    const data = snapshot.val() || {};
-    localUserData = {
-      photo: data.photo || '',
-      tickets: data.tickets || 0,
-      coins: data.coins || 0,
-      points: data.points || 0
-    };
-    updateTopBar();
-  });
-}
 
-function updateTopBar() {
-  document.getElementById('ticketCount').textContent = 'Tickets: ' + localUserData.tickets;
-}
-function goBack() {
-  // Возврат на главную (или куда вам нужно)
-  window.location.href = 'index.html';
-}
+    /* ------------------------------------------------
+       2. Параметры игры Breakout
+    ------------------------------------------------ */
+    const canvas = document.getElementById('breakoutCanvas');
+    const ctx = canvas.getContext('2d');
 
-/* ---------------------------------------
-   2. Параметры Breakout
----------------------------------------- */
-const canvas = document.getElementById('breakoutCanvas');
-const ctx = canvas.getContext('2d');
+    const GAME_WIDTH  = canvas.width;   // 360
+    const GAME_HEIGHT = canvas.height;  // 640
 
-// Размеры логической области (совпадают с атрибутами canvas)
-const GAME_WIDTH = canvas.width;   // 360
-const GAME_HEIGHT = canvas.height; // 640
+    // Мяч
+    let ballRadius = 8;
+    let ballX, ballY;
+    let ballDX = 0;
+    let ballDY = 0;
 
-// Параметры мяча (увеличена скорость)
-let ballRadius = 8;
-let ballX, ballY;
-let ballDX = 0;
-let ballDY = 0;
+    // Ракетка
+    let paddleWidth = 50;
+    let paddleHeight = 10;
+    let paddleX;
+    let paddleSpeed = 7;
 
-// Параметры ракетки (меньше ширина)
-let paddleWidth = 50;
-let paddleHeight = 10;
-let paddleX;
-let paddleSpeed = 7;
+    // Управление
+    let rightPressed = false;
+    let leftPressed = false;
+    let isGameRunning = false;
 
-// Управление
-let rightPressed = false;
-let leftPressed = false;
-let isGameRunning = false;
+    // Кирпичи (двойной удар)
+    let brickRowCount = 5;
+    let brickColumnCount = 8;
+    let brickWidth = 40;
+    let brickHeight = 15;
+    let brickPadding = 5;
+    let brickOffsetTop = 50;
+    let brickOffsetLeft = 2;
+    let bricks = [];
 
-// Система кирпичей
-let brickRowCount = 5;
-let brickColumnCount = 8;
-let brickWidth = 40;
-let brickHeight = 15;
-let brickPadding = 5;
-let brickOffsetTop = 50;
-let brickOffsetLeft = 2;  // Чтобы они были строго внутри
-let bricks = [];
+    // Очки
+    let score = 0;
 
-// Счёт
-let score = 0;
+    // Игровой цикл
+    let gameLoop = null;
 
-// Игровой цикл
-let gameLoop = null;
+    /* ------------------------------------------------
+       3. Инициализация новой игры
+    ------------------------------------------------ */
+    function initGameParams() {
+      score = 0;
+      isGameRunning = false;
+      // Позиции мяча
+      ballX = GAME_WIDTH / 2;
+      ballY = GAME_HEIGHT - 30;
+      ballDX = 0;
+      ballDY = 0;
+      // Ракетка
+      paddleX = (GAME_WIDTH - paddleWidth) / 2;
+      rightPressed = false;
+      leftPressed  = false;
 
-/* ---------------------------------------
-   3. Инициализация новой игры
----------------------------------------- */
-function initGameParams() {
-  score = 0;
-  isGameRunning = false;
-
-  // Мяч в центре, скорость по умолчанию 0 (запустится при первом движении)
-  ballX = GAME_WIDTH / 2;
-  ballY = GAME_HEIGHT - 30;
-  ballDX = 0;
-  ballDY = 0;
-
-  // Ракетка внизу, по центру
-  paddleX = (GAME_WIDTH - paddleWidth) / 2;
-
-  // Создаём кирпичи. 
-  // При первой атаке -> кирпич красный (hits=1), при второй -> уничтожен (hits=2).
-  bricks = [];
-  for(let c = 0; c < brickColumnCount; c++){
-    bricks[c] = [];
-    for(let r = 0; r < brickRowCount; r++){
-      bricks[c][r] = {
-        x: 0,
-        y: 0,
-        hits: 0  // 0 = целый (синий), 1 = красный, 2 = уничтожен
-      };
-    }
-  }
-}
-
-/* ---------------------------------------
-   4. Управление (клавиатура и сенсор)
----------------------------------------- */
-document.addEventListener('keydown', keyDownHandler, false);
-document.addEventListener('keyup', keyUpHandler, false);
-
-function keyDownHandler(e){
-  if(e.key === 'ArrowRight') rightPressed = true;
-  if(e.key === 'ArrowLeft')  leftPressed = true;
-  // Запуск мяча при первом движении
-  if(!isGameRunning && (rightPressed || leftPressed)) {
-    ballDX = 4;
-    ballDY = -4;
-    isGameRunning = true;
-  }
-}
-function keyUpHandler(e){
-  if(e.key === 'ArrowRight') rightPressed = false;
-  if(e.key === 'ArrowLeft')  leftPressed = false;
-}
-
-// Сенсорное управление
-canvas.addEventListener('touchstart', handleTouch, {passive: false});
-canvas.addEventListener('touchmove', handleTouch, {passive: false});
-function handleTouch(e){
-  e.preventDefault();
-  let touch = e.touches[0];
-  // Координаты касания относительно canvas
-  const rect = canvas.getBoundingClientRect();
-  let touchX = touch.clientX - rect.left;
-  // Двигаем ракетку
-  paddleX = touchX - paddleWidth / 2;
-
-  // Запуск мяча при первом движении
-  if(!isGameRunning) {
-    ballDX = 4;
-    ballDY = -4;
-    isGameRunning = true;
-  }
-}
-
-/* ---------------------------------------
-   5. Рендер: кирпичи, мяч, ракетка, счёт
----------------------------------------- */
-function drawBricks(){
-  for(let c = 0; c < brickColumnCount; c++){
-    for(let r = 0; r < brickRowCount; r++){
-      let b = bricks[c][r];
-      if(b.hits < 2) {
-        // Координаты кирпича
-        let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
-        let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
-        b.x = brickX;
-        b.y = brickY;
-        
-        ctx.beginPath();
-        ctx.rect(brickX, brickY, brickWidth, brickHeight);
-
-        // hits=0 -> синий, hits=1 -> красный
-        if(b.hits === 0) ctx.fillStyle = '#06B6D1';
-        else if(b.hits === 1) ctx.fillStyle = 'red';
-
-        ctx.fill();
-        ctx.closePath();
+      // Кирпичи
+      bricks = [];
+      for(let c = 0; c < brickColumnCount; c++){
+        bricks[c] = [];
+        for(let r = 0; r < brickRowCount; r++){
+          bricks[c][r] = { hits: 0 }; // 0=синий, 1=красный, 2=уничтожен
+        }
       }
     }
-  }
-}
-function drawBall(){
-  ctx.beginPath();
-  ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
-  ctx.fillStyle = "#FF6600";
-  ctx.fill();
-  ctx.closePath();
-}
-function drawPaddle(){
-  ctx.beginPath();
-  ctx.rect(paddleX, GAME_HEIGHT - paddleHeight - 5, paddleWidth, paddleHeight);
-  ctx.fillStyle = "#FF00FF";
-  ctx.fill();
-  ctx.closePath();
-}
-function drawScore(){
-  ctx.font = "14px 'Press Start 2P', monospace";
-  ctx.fillStyle = "#fff";
-  ctx.fillText("Score: " + score, 10, 30);
-}
 
-/* ---------------------------------------
-   6. Логика столкновений
----------------------------------------- */
-function collisionDetection(){
-  for(let c = 0; c < brickColumnCount; c++){
-    for(let r = 0; r < brickRowCount; r++){
-      let b = bricks[c][r];
-      if(b.hits < 2){
-        // Проверяем, коснулся ли мяч
-        if(
-          ballX > b.x &&
-          ballX < b.x + brickWidth &&
-          ballY > b.y &&
-          ballY < b.y + brickHeight
-        ){
-          ballDY = -ballDY;
-          // Увеличиваем hits
-          b.hits++;
-          if(b.hits === 2){
-            // Полностью уничтожен
-            score += 10;
-            // Сохраняем очки
-            if(userRef){
-              localUserData.points += 10;
-              userRef.update({ points: localUserData.points });
-            }
-            // Проверяем победу
-            if(checkWin()){
-              endGame("Congratulations! You won!");
+    /* ------------------------------------------------
+       4. Управление (клавиатура + сенсор)
+    ------------------------------------------------ */
+    document.addEventListener('keydown', keyDownHandler, false);
+    document.addEventListener('keyup',   keyUpHandler,   false);
+
+    function keyDownHandler(e){
+      if(e.key === 'ArrowRight') rightPressed = true;
+      if(e.key === 'ArrowLeft')  leftPressed  = true;
+      // Запуск мяча
+      if(!isGameRunning && (rightPressed || leftPressed)){
+        ballDX = 5;
+        ballDY = -5;
+        isGameRunning = true;
+      }
+    }
+    function keyUpHandler(e){
+      if(e.key === 'ArrowRight') rightPressed = false;
+      if(e.key === 'ArrowLeft')  leftPressed  = false;
+    }
+
+    // Сенсор
+    canvas.addEventListener('touchstart', handleTouch, {passive: false});
+    canvas.addEventListener('touchmove',  handleTouch, {passive: false});
+    function handleTouch(e){
+      e.preventDefault();
+      let touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      let touchX = touch.clientX - rect.left;
+      paddleX = touchX - paddleWidth / 2;
+
+      if(!isGameRunning){
+        ballDX = 5;
+        ballDY = -5;
+        isGameRunning = true;
+      }
+    }
+
+    /* ------------------------------------------------
+       5. Отрисовка кирпичей, мяча, ракетки, счёта
+    ------------------------------------------------ */
+    function drawBricks(){
+      for(let c = 0; c < brickColumnCount; c++){
+        for(let r = 0; r < brickRowCount; r++){
+          let b = bricks[c][r];
+          if(b.hits < 2){
+            let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+            if(b.hits === 0) ctx.fillStyle = '#06B6D1'; // синий
+            else if(b.hits === 1) ctx.fillStyle = 'red'; // красный
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+
+    function drawBall(){
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
+      ctx.fillStyle = "#FF6600";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawPaddle(){
+      ctx.beginPath();
+      ctx.rect(paddleX, GAME_HEIGHT - paddleHeight - 5, paddleWidth, paddleHeight);
+      ctx.fillStyle = "#FF00FF";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawScore(){
+      ctx.font = "14px 'Press Start 2P', monospace";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("Score: " + score, 10, 30);
+    }
+
+    /* ------------------------------------------------
+       6. Логика столкновений
+    ------------------------------------------------ */
+    function collisionDetection(){
+      for(let c = 0; c < brickColumnCount; c++){
+        for(let r = 0; r < brickRowCount; r++){
+          let b = bricks[c][r];
+          if(b.hits < 2){
+            let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+            // Проверяем касание
+            if(
+              ballX > brickX &&
+              ballX < brickX + brickWidth &&
+              ballY > brickY &&
+              ballY < brickY + brickHeight
+            ){
+              ballDY = -ballDY;
+              b.hits++;
+              if(b.hits === 2){
+                // Полностью разрушен
+                score += 10;
+                // Обновляем очки в Firebase
+                if(userRef){
+                  localUserData.points += 10;
+                  userRef.update({ points: localUserData.points });
+                }
+                if(checkWin()){
+                  endGame("Congratulations! You won!");
+                }
+              }
             }
           }
         }
       }
     }
-  }
-}
-function checkWin(){
-  // Если все кирпичи имеют hits >= 2, значит всё уничтожено
-  for(let c = 0; c < brickColumnCount; c++){
-    for(let r = 0; r < brickRowCount; r++){
-      if(bricks[c][r].hits < 2){
-        return false;
+
+    function checkWin(){
+      for(let c = 0; c < brickColumnCount; c++){
+        for(let r = 0; r < brickRowCount; r++){
+          if(bricks[c][r].hits < 2) return false;
+        }
+      }
+      return true;
+    }
+
+    /* ------------------------------------------------
+       7. Главный цикл игры
+    ------------------------------------------------ */
+    function draw(){
+      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      drawScore();
+
+      collisionDetection();
+
+      // Столкновения со стенами
+      if(ballX + ballDX > GAME_WIDTH - ballRadius || ballX + ballDX < ballRadius){
+        ballDX = -ballDX;
+      }
+      if(ballY + ballDY < ballRadius){
+        ballDY = -ballDY;
+      } else if(ballY + ballDY > GAME_HEIGHT - ballRadius){
+        // Проверяем ракетку
+        if(ballX > paddleX && ballX < paddleX + paddleWidth){
+          ballDY = -ballDY;
+        } else {
+          // Проигрыш
+          endGame("Game Over! You lost.");
+          return;
+        }
+      }
+
+      // Двигаем мяч
+      ballX += ballDX;
+      ballY += ballDY;
+
+      // Двигаем ракетку
+      if(rightPressed && paddleX < GAME_WIDTH - paddleWidth){
+        paddleX += paddleSpeed;
+      } else if(leftPressed && paddleX > 0){
+        paddleX -= paddleSpeed;
       }
     }
-  }
-  return true;
-}
 
-/* ---------------------------------------
-   7. Основной цикл отрисовки
----------------------------------------- */
-function draw(){
-  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    /* ------------------------------------------------
+       8. Запуск / Завершение игры
+    ------------------------------------------------ */
+    function startBreakout(){
+      // Проверяем билеты
+      if(localUserData.tickets < 1){
+        alert("Not enough tickets!");
+        return;
+      }
+      // Списываем билет
+      localUserData.tickets--;
+      userRef.update({ tickets: localUserData.tickets });
 
-  drawBricks();
-  drawBall();
-  drawPaddle();
-  drawScore();
+      // Скрываем кнопку, показываем canvas
+      document.getElementById('startBtn').style.display = 'none';
+      canvas.style.display = 'block';
 
-  collisionDetection();
-
-  // Столкновения со стенами
-  if(ballX + ballDX > GAME_WIDTH - ballRadius || ballX + ballDX < ballRadius){
-    ballDX = -ballDX;
-  }
-  if(ballY + ballDY < ballRadius){
-    ballDY = -ballDY;
-  } else if(ballY + ballDY > GAME_HEIGHT - ballRadius){
-    // Проверяем ракетку
-    if(
-      ballX > paddleX &&
-      ballX < paddleX + paddleWidth
-    ){
-      ballDY = -ballDY;
-    } else {
-      // Проигрыш
-      endGame("Game Over! You lost.");
-      return;
+      // Инициализируем игру
+      initGameParams();
+      if(gameLoop) clearInterval(gameLoop);
+      gameLoop = setInterval(draw, 16); // ~60 fps
     }
-  }
 
-  // Двигаем мяч
-  ballX += ballDX;
-  ballY += ballDY;
+    function endGame(message){
+      clearInterval(gameLoop);
+      document.getElementById('endMessage').textContent = message + " Score: " + score;
+      document.getElementById('endModal').classList.add('active');
+    }
 
-  // Двигаем ракетку по нажатию
-  if(rightPressed && paddleX < GAME_WIDTH - paddleWidth){
-    paddleX += paddleSpeed;
-  } else if(leftPressed && paddleX > 0){
-    paddleX -= paddleSpeed;
-  }
-}
-
-/* ---------------------------------------
-   8. Запуск / Завершение игры
----------------------------------------- */
-function startBreakout(){
-  // Проверка билетов
-  if(localUserData.tickets < 1){
-    alert("Not enough tickets!");
-    return;
-  }
-  // Списываем 1 билет
-  localUserData.tickets--;
-  if(userRef){
-    userRef.update({ tickets: localUserData.tickets });
-  }
-  updateTopBar();
-
-  // Скрываем кнопку, показываем canvas
-  document.getElementById('startBtn').style.display = 'none';
-  canvas.style.display = 'block';
-
-  // Инициализируем все параметры
-  initGameParams();
-
-  // Запуск цикла
-  if(gameLoop) clearInterval(gameLoop);
-  gameLoop = setInterval(draw, 16); // ~60fps
-}
-
-function endGame(message){
-  clearInterval(gameLoop);
-  document.getElementById('endMessage').textContent = message + " Score: " + score;
-  document.getElementById('endModal').classList.add('active');
-}
-
-function closeEndModal(){
-  // Прячем модалку
-  document.getElementById('endModal').classList.remove('active');
-  // Останавливаем игру и возвращаем к начальному состоянию (canvas скрыт, кнопка видна)
-  canvas.style.display = 'none';
-  document.getElementById('startBtn').style.display = 'block';
-}
-
-/* ---------------------------------------
-   Конец
----------------------------------------- */
-</script>
+    function closeEndModal(){
+      // Прячем модалку
+      document.getElementById('endModal').classList.remove('active');
+      // Скрываем canvas, возвращаем кнопку Start
+      canvas.style.display = 'none';
+      document.getElementById('startBtn').style.display = 'block';
+    }
+  </script>
 </body>
 </html>
