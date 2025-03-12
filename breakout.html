@@ -1,1 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Breakout Game</title>
 
+  <!-- Font: Press Start 2P -->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <!-- Стили темы (например, st1.css) -->
+  <link id="themeStylesheet" rel="stylesheet" href="st1.css">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    /* Основные стили для Breakout */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #00103c;
+      color: #FF00FF;
+      font-family: 'Press Start 2P', sans-serif;
+      overflow: hidden;
+    }
+    #topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      height: 50px;
+      padding: 0 10px;
+      box-sizing: border-box;
+      background: #6d4fba;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+    }
+    #backBtn {
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #userInfo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #userPhoto {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      object-fit: cover;
+    }
+    #ticketCount {
+      font-size: 14px;
+    }
+    #gameContainer {
+      margin-top: 60px; /* Отступ для верхней панели */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #breakoutCanvas {
+      background: #000;
+      border: 2px solid #FF00FF;
+    }
+    #startBtn {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .modal-backdrop {
+      position: fixed;
+      top: 0; 
+      left: 0;
+      width: 100%; 
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      border-radius: 8px;
+      color: #FF00FF;
+      font-size: 14px;
+      font-family: 'Press Start 2P', sans-serif;
+    }
+    .modal button {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Верхняя панель -->
+  <div id="topBar">
+    <button id="backBtn" onclick="goBack()">Back</button>
+    <div id="userInfo">
+      <img id="userPhoto" src="https://img.icons8.com/ios-filled/50/00FF00/user.png" alt="User Photo">
+      <span id="username">@User</span>
+      <span id="ticketCount">Tickets: 0</span>
+    </div>
+  </div>
+
+  <!-- Контейнер игры -->
+  <div id="gameContainer">
+    <canvas id="breakoutCanvas" width="400" height="600"></canvas>
+    <button id="startBtn" onclick="startBreakout()">Start Game (Cost: 1 Ticket)</button>
+  </div>
+
+  <!-- Модальное окно окончания игры -->
+  <div id="endModal" class="modal-backdrop">
+    <div class="modal">
+      <h2 id="endTitle">Game Over!</h2>
+      <p id="endMessage"></p>
+      <button onclick="closeEndModal()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    /* --------------------------------------
+       1. Firebase и Telegram инициализация
+    -------------------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let currentUser = null;
+    let userRef = null;
+    let localUserData = {
+      photo: '',
+      tickets: 0,
+      coins: 0,
+      points: 0
+    };
+
+    // Получаем данные пользователя из Telegram Web App
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user;
+      document.getElementById('username').textContent = "@" + currentUser.username;
+      if (currentUser.photo_url) {
+        document.getElementById('userPhoto').src = currentUser.photo_url;
+      }
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          // При первом запуске задаём стартовый баланс билетов (например, 5)
+          userRef.set({
+            photo: currentUser.photo_url || '',
+            tickets: 5,
+            coins: 0,
+            points: 0
+          });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData = {
+          photo: data.photo || '',
+          tickets: data.tickets || 0,
+          coins: data.coins || 0,
+          points: data.points || 0
+        };
+        updateTopBar();
+      });
+    } else {
+      // Если Telegram недоступен (тестовый режим)
+      currentUser = { username: "TestUser", photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png" };
+      document.getElementById('username').textContent = "@" + currentUser.username;
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          userRef.set({
+            photo: currentUser.photo_url || '',
+            tickets: 5,
+            coins: 0,
+            points: 0
+          });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData = {
+          photo: data.photo || '',
+          tickets: data.tickets || 0,
+          coins: data.coins || 0,
+          points: data.points || 0
+        };
+        updateTopBar();
+      });
+    }
+
+    function updateTopBar() {
+      document.getElementById('ticketCount').textContent = "Tickets: " + localUserData.tickets;
+    }
+
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+
+    /* --------------------------------------
+       2. Логика игры Breakout
+    -------------------------------------- */
+    const canvas = document.getElementById('breakoutCanvas');
+    const ctx = canvas.getContext('2d');
+    let paddleWidth = 80;
+    let paddleHeight = 10;
+    let paddleX = (canvas.width - paddleWidth) / 2;
+    let ballRadius = 8;
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height - 30;
+    let ballDX = 2;
+    let ballDY = -2;
+    let brickRowCount = 5;
+    let brickColumnCount = 7;
+    let brickWidth = 50;
+    let brickHeight = 15;
+    let brickPadding = 10;
+    let brickOffsetTop = 30;
+    let brickOffsetLeft = 30;
+    let bricks = [];
+    let rightPressed = false;
+    let leftPressed = false;
+    let gameInterval = null;
+    let isGameStarted = false;
+
+    // Инициализируем массив кирпичей
+    for(let c = 0; c < brickColumnCount; c++) {
+      bricks[c] = [];
+      for(let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, status: 1 };
+      }
+    }
+
+    // Обработчики событий клавиатуры
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+    function keyDownHandler(e) {
+      if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true;
+      } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true;
+      }
+    }
+    function keyUpHandler(e) {
+      if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false;
+      } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false;
+      }
+    }
+    // Обработчик движения мыши для управления ракеткой
+    document.addEventListener("mousemove", mouseMoveHandler, false);
+    function mouseMoveHandler(e) {
+      const relativeX = e.clientX - canvas.offsetLeft;
+      if(relativeX > 0 && relativeX < canvas.width) {
+        paddleX = relativeX - paddleWidth / 2;
+      }
+    }
+
+    function drawBricks() {
+      for(let c = 0; c < brickColumnCount; c++) {
+        for(let r = 0; r < brickRowCount; r++) {
+          if(bricks[c][r].status === 1) {
+            const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+            bricks[c][r].x = brickX;
+            bricks[c][r].y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+            ctx.fillStyle = "#FF00FF";
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
+      ctx.fillStyle = "#06B6D1";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+      ctx.fillStyle = "#06B6D1";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      collisionDetection();
+
+      // Стены
+      if(ballX + ballDX > canvas.width - ballRadius || ballX + ballDX < ballRadius) {
+        ballDX = -ballDX;
+      }
+      if(ballY + ballDY < ballRadius) {
+        ballDY = -ballDY;
+      } else if(ballY + ballDY > canvas.height - ballRadius) {
+        if(ballX > paddleX && ballX < paddleX + paddleWidth) {
+          ballDY = -ballDY;
+        } else {
+          endGame("Game Over! You lost.");
+          return;
+        }
+      }
+
+      ballX += ballDX;
+      ballY += ballDY;
+
+      if(rightPressed && paddleX < canvas.width - paddleWidth) {
+        paddleX += 7;
+      } else if(leftPressed && paddleX > 0) {
+        paddleX -= 7;
+      }
+    }
+
+    function collisionDetection() {
+      for(let c = 0; c < brickColumnCount; c++) {
+        for(let r = 0; r < brickRowCount; r++) {
+          let b = bricks[c][r];
+          if(b.status === 1) {
+            if(ballX > b.x && ballX < b.x + brickWidth && ballY > b.y && ballY < b.y + brickHeight) {
+              ballDY = -ballDY;
+              b.status = 0;
+              // Начисляем очки (например, 10)
+              localUserData.points += 10;
+              userRef.update({ points: localUserData.points });
+              if(checkWin()) {
+                endGame("Congratulations! You won!");
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function checkWin() {
+      for(let c = 0; c < brickColumnCount; c++) {
+        for(let r = 0; r < brickRowCount; r++) {
+          if(bricks[c][r].status === 1) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    /* --------------------------------------
+       3. Запуск игры: списывание билета и запуск цикла отрисовки
+    -------------------------------------- */
+    function startBreakout() {
+      if(localUserData.tickets < 1) {
+        alert("Not enough tickets to play!");
+        return;
+      }
+      // Списываем 1 билет
+      localUserData.tickets -= 1;
+      userRef.update({ tickets: localUserData.tickets });
+      updateTopBar();
+      // Скрываем кнопку старта
+      document.getElementById("startBtn").style.display = "none";
+      if(!isGameStarted) {
+        gameInterval = setInterval(draw, 10);
+        isGameStarted = true;
+      }
+    }
+
+    /* --------------------------------------
+       4. Завершение игры и вывод результата
+    -------------------------------------- */
+    function endGame(message) {
+      clearInterval(gameInterval);
+      isGameStarted = false;
+      document.getElementById("endMessage").textContent = message + " Your points: " + localUserData.points;
+      document.getElementById("endModal").style.display = "flex";
+    }
+    
+    function closeEndModal() {
+      document.getElementById("endModal").style.display = "none";
+      // Перезагружаем страницу для новой игры
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
