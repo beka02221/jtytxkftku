@@ -2,7 +2,7 @@
    Современный минималистичный стиль с динамичным градиентным фоном и плоскими, матовыми цветами блоков.
 
    Основные особенности:
-   1. Фон – динамичный градиент, плавно меняющийся от чёрного к темно-серому, синему и фиолетовому.
+   1. Фон – динамический градиент, плавно меняющийся от чёрного к темно-серому, синему и фиолетовому.
    2. Блоки – объёмные, с мягкими тенями, отражениями (отражение создаётся как перевёрнутый дубликат)
       и простыми, плоскими (матовыми) цветами без бликов.
       Цвета выбираются случайно из нового набора темных, не отражающих оттенков:
@@ -13,13 +13,13 @@
          • Тёмно-бирюзовый (0x004D4D)
    3. При несовпадении блоков лишняя часть отсекается и падает вниз с эффектом гравитации.
    4. Минималистичный интерфейс – очки (5 points за блок) отображаются в верхней части экрана.
-   5. Камера с FOV = 60° изначально расположена в точке (400,800,600) и направлена на башню.
-      При накоплении, камера плавно поднимается.
+   5. Камера с FOV = 60° расположена в точке (400,800,600) и направлена на (0,300,0) (наклон ≈35°),
+      чтобы видеть всю конструкцию.
 */
 
 // Определяем размеры базового блока
 const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
-// Изменено: теперь высота равна ширине, что делает блоки кубами
+// Высота блока равна ширине для создания кубов
 const BLOCK_HEIGHT = INITIAL_BLOCK_SIZE.width;
 
 // Новый набор плоских цветов для блоков – темные, не отражающие оттенки
@@ -31,8 +31,7 @@ let animationFrameId;
 let gameRunning = false;
 let score = 0;
 let glowLight;  // Для glow-света
-// Переменная для плавного перемещения камеры по оси Y
-let cameraTargetY = 800;
+let targetCameraY; // Целевая позиция камеры по оси Y для плавного перемещения
 
 function updateScoreDisplay() {
   const el = document.getElementById("scoreDisplay");
@@ -104,11 +103,14 @@ function initThree() {
   // Устанавливаем фон – динамичный градиент
   scene.background = createBackgroundTexture();
 
-  camera = new THREE.PerspectiveCamera(60, game2Canvas.width / game2Canvas.height, 1, 2000);
-  // Изначально камера установлена в (400,800,600)
-  camera.position.set(400, cameraTargetY, 600);
+  camera = new THREE.PerspectiveCamera(60, game2Canvas.width / game2Canvas.height, 1, 5000);
+  // Камера установлена в (400,800,600) и направлена на (0,300,0) – наклон ≈35° вниз
+  camera.position.set(400, 800, 600);
   camera.lookAt(new THREE.Vector3(0, 300, 0));
   camera.updateProjectionMatrix();
+
+  // Инициализируем целевую позицию камеры по Y
+  targetCameraY = camera.position.y;
 
   renderer = new THREE.WebGLRenderer({ canvas: game2Canvas, antialias: true });
   renderer.setSize(game2Canvas.width, game2Canvas.height);
@@ -117,17 +119,17 @@ function initThree() {
 
   let ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
+  
   let directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(100, 200, 100);
   directionalLight.castShadow = true;
-  // Улучшаем тени: увеличиваем разрешение и настраиваем смещение
-  directionalLight.shadow.mapSize.width = 2048;
-  directionalLight.shadow.mapSize.height = 2048;
-  directionalLight.shadow.bias = -0.001;
   directionalLight.shadow.camera.left = -500;
   directionalLight.shadow.camera.right = 500;
   directionalLight.shadow.camera.top = 500;
   directionalLight.shadow.camera.bottom = -500;
+  directionalLight.shadow.mapSize.width = 2048;  // Улучшенное качество теней
+  directionalLight.shadow.mapSize.height = 2048;
+  directionalLight.shadow.bias = -0.001;  // Уменьшение артефактов теней
   scene.add(directionalLight);
   
   // Дополнительный glow-свет для башни
@@ -182,7 +184,7 @@ function spawnNewBlock() {
   scene.add(mesh);
 }
 
-// Обновление положения движущегося блока, падающих отсекаемых частей и плавное перемещение камеры
+// Обновление положения движущегося блока и падающих отсекаемых частей
 function updateGame() {
   updateBackground();
   
@@ -217,12 +219,6 @@ function updateGame() {
       currentBlock.mesh.position.z += (Math.random() - 0.5) * 5;
     }
   }
-  
-  // Плавное перемещение камеры вверх, если башня растёт
-  let targetY = stack[stack.length - 1].mesh.position.y + 100;
-  camera.position.y += (targetY - camera.position.y) * 0.05;
-  // Обновляем направление взгляда камеры так, чтобы она всегда смотрела на верх башни
-  camera.lookAt(new THREE.Vector3(0, stack[stack.length - 1].mesh.position.y, 0));
   
   // Обновление glow-света
   if (glowLight) {
@@ -318,15 +314,26 @@ function onDropBlock() {
   score++;
   updateScoreDisplay();
   addReflection(currentBlock.mesh);
-  // Обновляем целевую позицию камеры – она будет стремиться к верхнему блоку + 100 по Y
-  cameraTargetY = currentBlock.mesh.position.y + 100;
+  
+  // Плавное перемещение камеры каждые 10 блоков
+  if ((stack.length - 1) % 10 === 0 && (stack.length - 1) !== 0) {
+    targetCameraY = currentBlock.mesh.position.y + 100;
+  }
+  
   spawnNewBlock();
 }
 
 // Основной цикл игры: обновление и рендеринг
 function gameLoop() {
   if (!gameRunning) return;
+  
   updateGame();
+  
+  // Плавное обновление позиции камеры по Y
+  camera.position.y += (targetCameraY - camera.position.y) * 0.05;
+  // Сохраняем первоначальный угол обзора: камера смотрит на точку с координатами (0, camera.position.y - 500, 0)
+  camera.lookAt(new THREE.Vector3(0, camera.position.y - 500, 0));
+  
   renderer.render(scene, camera);
   animationFrameId = requestAnimationFrame(gameLoop);
 }
