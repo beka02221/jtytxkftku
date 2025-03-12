@@ -3,7 +3,7 @@ function initBreakout() {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
 
-  // Стили canvas (рамка, фон)
+  // Стили canvas
   canvas.style.backgroundColor = "black";
   canvas.style.border = "2px solid blue";
 
@@ -12,17 +12,19 @@ function initBreakout() {
   let paddleWidth = 40;
   let paddleX = (canvas.width - paddleWidth) / 2;
 
-  // Параметры мяча и базовая скорость (будем повышать на каждом уровне)
+  // Параметры мяча
   const ballRadius = 10;
+  // Начальная скорость (будет расти при переходе на следующий уровень)
   let baseSpeedX = 4; 
   let baseSpeedY = 4; 
-  // Текущая скорость мяча
-  let dx = 0;  
-  let dy = 0;  
 
-  // Позиция мяча
-  let x = paddleX + paddleWidth / 2;  
-  let y = canvas.height - paddleHeight - 10 - ballRadius;
+  // Текущая скорость мяча
+  let dx = 0;
+  let dy = 0;
+
+  // Координаты мяча
+  let x = paddleX + paddleWidth / 2;
+  let y = canvas.height - paddleHeight - ballRadius - 2;
 
   // Параметры кирпичей
   let brickRowCount = 4;    
@@ -33,13 +35,14 @@ function initBreakout() {
   let brickOffsetTop = 40;
   let brickOffsetLeft = 15;
 
-  // Количество кирпичей всего
-  const totalBricks = brickRowCount * brickColumnCount;
+  // Подсчёт очков/уровней
+  let score = 0;
+  let level = 1;
+  let lives = 1; // только 1 жизнь
+  let gameStarted = false; // мяч ждёт, пока пользователь не двинет платформу
 
   // Массив кирпичей
   let bricks = [];
-
-  // Функция, восстанавливающая все кирпичи
   function resetBricks() {
     bricks = [];
     for (let c = 0; c < brickColumnCount; c++) {
@@ -51,13 +54,7 @@ function initBreakout() {
   }
   resetBricks();
 
-  // Начальные значения
-  let score = 0;
-  let level = 1; 
-  let lives = 1;       // только 1 жизнь
-  let gameStarted = false; // пока не двигаем мяч, пока игрок не сдвинет платформу
-
-  // Обработчики событий клавиатуры
+  // Управление клавиатурой
   let rightPressed = false;
   let leftPressed = false;
 
@@ -82,44 +79,52 @@ function initBreakout() {
     }
   }
 
-  // Если игра ещё не началась, запускаем мяч, когда игрок впервые двигает платформу
+  // Управление касанием (телефоны, планшеты)
+  canvas.addEventListener("touchmove", function(e) {
+    // Берём координаты пальца относительно canvas
+    let rect = canvas.getBoundingClientRect();
+    let touchX = e.touches[0].clientX - rect.left;
+    // Центрируем платформу на точке касания
+    paddleX = touchX - paddleWidth / 2;
+    // Ограничиваем движение платформы
+    if(paddleX < 0) paddleX = 0;
+    if(paddleX > canvas.width - paddleWidth) {
+      paddleX = canvas.width - paddleWidth;
+    }
+    // Запускаем мяч, если ещё не запущен
+    startBallIfNeeded();
+    e.preventDefault();
+  }, { passive: false });
+
+  // При первом движении платформы запускаем мяч
   function startBallIfNeeded() {
     if(!gameStarted) {
       gameStarted = true;
-      // Задаём скорости мяча в зависимости от уровня
       dx = baseSpeedX + (level - 1);
       dy = -(baseSpeedY + (level - 1));
     }
   }
 
-  // Проверка столкновений мяча и кирпичей
   function collisionDetection() {
     for (let c = 0; c < brickColumnCount; c++) {
       for (let r = 0; r < brickRowCount; r++) {
-        const b = bricks[c][r];
+        let b = bricks[c][r];
         if (b.status === 1) {
-          if (
-            x > b.x &&
-            x < b.x + brickWidth &&
-            y > b.y &&
-            y < b.y + brickHeight
-          ) {
+          if (x > b.x && x < b.x + brickWidth && y > b.y && y < b.y + brickHeight) {
             dy = -dy;
             b.status = 0;
             score++;
-            // Проверяем, все ли кирпичи уничтожены
-            if(score % totalBricks === 0) {
-              // Переход на следующий уровень
+            // Если все кирпичи сбиты – новый уровень
+            if(score % (brickRowCount * brickColumnCount) === 0) {
               level++;
-              // Увеличиваем скорость мяча (на каждый уровень +1 к скорости)
+              // Увеличиваем скорость мяча
               dx = baseSpeedX + (level - 1);
               dy = -(baseSpeedY + (level - 1));
-              // Сбрасываем кирпичи
               resetBricks();
-              // Возвращаем мяч на платформу, чтобы игрок мог начать заново
+              // Возвращаем мяч на платформу
               gameStarted = false;
-              x = paddleX + paddleWidth / 2; 
-              y = canvas.height - paddleHeight - 10 - ballRadius;
+              x = paddleX + paddleWidth / 2;
+              y = canvas.height - paddleHeight - ballRadius - 2;
             }
           }
         }
@@ -129,17 +134,16 @@ function initBreakout() {
 
   function drawBall() {
     ctx.beginPath();
-    // Оранжевый мяч
-    ctx.arc(x, y, ballRadius, 0, Math.PI*2);
-    ctx.fillStyle = "#FF4500";
+    ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "#FF4500"; // оранжевый
     ctx.fill();
     ctx.closePath();
   }
 
   function drawPaddle() {
     ctx.beginPath();
-    ctx.rect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight);
-    ctx.fillStyle = "#0095DD";
+    ctx.rect(paddleX, canvas.height - paddleHeight - 2, paddleWidth, paddleHeight);
+    ctx.fillStyle = "#0095DD"; 
     ctx.fill();
     ctx.closePath();
   }
@@ -148,13 +152,13 @@ function initBreakout() {
     for (let c = 0; c < brickColumnCount; c++) {
       for (let r = 0; r < brickRowCount; r++) {
         if (bricks[c][r].status === 1) {
-          const brickX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
-          const brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
+          let brickX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
+          let brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
           bricks[c][r].x = brickX;
           bricks[c][r].y = brickY;
           ctx.beginPath();
           ctx.rect(brickX, brickY, brickWidth, brickHeight);
-          ctx.fillStyle = "#0080FF"; 
+          ctx.fillStyle = "#0080FF"; // синий
           ctx.fill();
           ctx.closePath();
         }
@@ -176,45 +180,42 @@ function initBreakout() {
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     drawBricks();
     drawBall();
     drawPaddle();
     drawScore();
     drawLives();
-
     collisionDetection();
 
-    // Если игра не началась, мяч следует за платформой
     if(!gameStarted) {
+      // Пока игра не началась, мяч "лежит" на платформе
       x = paddleX + paddleWidth / 2;
-      y = canvas.height - paddleHeight - 10 - ballRadius;
+      y = canvas.height - paddleHeight - ballRadius - 2;
     } else {
-      // Двигаем мяч, если игра идёт
-      // Отскок от боковых стен
+      // Движение мяча
       if(x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
         dx = -dx;
       }
-      // Отскок от верхней стены
       if(y + dy < ballRadius) {
         dy = -dy;
-      }
-      // Проверка нижней границы
-      else if(y + dy > canvas.height - ballRadius) {
-        // Проверяем, попал ли мяч на платформу
+      } else if(y + dy > canvas.height - ballRadius) {
+        // Проверка попадания на платформу
         if(x > paddleX && x < paddleX + paddleWidth) {
           dy = -dy;
         } else {
-          // Потеряли жизнь
+          // Потеряли жизнь (у нас их всего 1)
           lives--;
           if(lives <= 0) {
-            alert("GAME OVER");
-            document.location.reload();
+            // Game Over через модальное окно
+            showGlobalModal("Game Over", "Your final score: " + score);
+            // Останавливаем отрисовку
+            cancelAnimationFrame(animationId);
+            return;
           } else {
-            // Сброс мяча и остановка, чтобы ждать движения платформы
+            // Возвращаем мяч на платформу
             gameStarted = false;
             x = paddleX + paddleWidth / 2;
-            y = canvas.height - paddleHeight - 10 - ballRadius;
+            y = canvas.height - paddleHeight - ballRadius - 2;
             dx = 0;
             dy = 0;
           }
@@ -224,20 +225,37 @@ function initBreakout() {
       y += dy;
     }
 
-    // Движение платформы
+    // Движение платформы с клавиатуры
     if(rightPressed && paddleX < canvas.width - paddleWidth) {
       paddleX += 7;
     } else if(leftPressed && paddleX > 0) {
       paddleX -= 7;
     }
 
-    requestAnimationFrame(draw);
+    animationId = requestAnimationFrame(draw);
   }
 
-  draw();
+  // Запуск
+  let animationId = requestAnimationFrame(draw);
 }
 
-// Сброс игры (можно просто заново вызывать initBreakout)
+// Функция для сброса (или закрытия) игры. Можно вызывать из finishGame()
 function resetBreakout() {
-  initBreakout();
+  // Остановим анимацию, уберём обработчики
+  cancelAnimationFrame(animationId);
+  document.removeEventListener("keydown", keyDownHandler);
+  document.removeEventListener("keyup", keyUpHandler);
+  // При необходимости очистить canvas
+  const canvas = document.getElementById("breakoutCanvas");
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+// Пример, как можно завершить игру модально:
+function finishBreakout() {
+  // Можно закрыть модалку, вернуть интерфейс, скрыть canvas и т.д.
+  resetBreakout();
+  // Дополнительно вызываем closeGameModal() или showSection() и т.п. по вашему сценарию
 }
