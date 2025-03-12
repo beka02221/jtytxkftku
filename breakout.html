@@ -28,7 +28,7 @@
       background: #00103c;
       font-family: 'Press Start 2P', monospace;
     }
-    /* Header с информацией по центру */
+    /* Header: информация по центру */
     #header {
       position: absolute;
       top: 0;
@@ -61,7 +61,7 @@
       width: 16px;
       height: 16px;
     }
-    /* Back кнопка вынесена ниже header */
+    /* Кнопка Back, вынесенная ниже header */
     #backContainer {
       position: absolute;
       top: 50px;
@@ -148,7 +148,7 @@
   </style>
 </head>
 <body>
-  <!-- Header: информация по центру (без кнопки Back и без иконки пользователя) -->
+  <!-- Header с информацией (показывается до начала игры) -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -163,7 +163,7 @@
     </div>
   </div>
 
-  <!-- Кнопка Back вынесена ниже header -->
+  <!-- Кнопка Back (видна до старта игры) -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
@@ -466,7 +466,7 @@
           ballY = paddleY - ballRadius;
         }
       }
-      // Завершение игры, если мяч полностью уходит за нижнюю границу
+      // Если мяч полностью уходит за нижнюю границу
       if(ballY - ballRadius > GAME_HEIGHT){
         endGame("Game Over! You lost.");
         return;
@@ -493,10 +493,10 @@
       localUserData.tickets--;
       if(userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем header и кнопку Start
+      // Скрываем header, back и кнопку Start
       document.getElementById('header').style.display = 'none';
+      document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
-      // Показываем canvas
       canvas.style.display = 'block';
 
       initGameParams();
@@ -509,7 +509,7 @@
       document.getElementById('endMessage').textContent = message + " Score: " + score;
       document.getElementById('endModal').classList.add('active');
     }
-    // Кнопка OK в модальном окне перенаправляет на index.html
+    // При нажатии на кнопку OK модальное окно перенаправляет на index.html
   </script>
 </body>
 </html>
