@@ -20,7 +20,7 @@
 // Определяем размеры базового блока
 const INITIAL_BLOCK_SIZE = { width: 300, depth: 300 };
 // Высота блока равна ширине для создания кубов
-const BLOCK_HEIGHT = INITIAL_BLOCK_SIZE.width;
+const BLOCK_HEIGHT 50;
 
 // Новый набор плоских цветов для блоков – темные, не отражающие оттенки
 const flatColors = [0x003366, 0xCC5500, 0x444444, 0x330033, 0x004D4D];
