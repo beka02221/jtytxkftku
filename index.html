@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -589,6 +589,20 @@
       localUserData.tickets -= ticketCost;
       updateTopBar();
       userRef.update({ tickets: localUserData.tickets });
+      
+      // Если игра партнерская, Breakout или Space Explorer, выполняем редирект
+      if (gameName === 'partnergame1') {
+        window.location.href = 'partnergame.html';
+        return;
+      } else if (gameName === 'breakout') {
+        window.location.href = 'breakout.html';
+        return;
+      } else if (gameName === 'game4') {
+        window.location.href = 'space.html';
+        return;
+      }
+      
+      // Для остальных игр продолжается стандартный процесс запуска
       currentGame = gameName;
       gameInProgress = true;
       document.getElementById('mainNav').classList.add('hidden');
@@ -610,24 +624,15 @@
       } else if (gameName === 'game2') {
         document.getElementById('match3Canvas').style.display = 'block';
         initGame2();
-      } else if (gameName === 'partnergame1') {
-        document.getElementById('partnerGameCanvas').style.display = 'block';
-        initPartnerGame1();
       } else if (gameName === 'game3') {
         document.getElementById('game3Canvas').style.display = 'block';
         initGame3();
-      } else if (gameName === 'game4') {
-        document.getElementById('game4Canvas').style.display = 'block';
-        initGame4();
       } else if (gameName === 'game5') {
         document.getElementById('game5Canvas').style.display = 'block';
         initGame5();
       } else if (gameName === 'game6') {
         document.getElementById('game6Canvas').style.display = 'block';
         initGame6();
-      } else if (gameName === 'breakout') {
-        document.getElementById('breakoutCanvas').style.display = 'block';
-        initBreakout();
       }
     }
 
