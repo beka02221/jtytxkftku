@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <!-- Указываем размеры экрана для мобильных устройств -->
+  <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Breakout Fullscreen</title>
 
@@ -18,7 +18,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Сброс отступов и растягивание на весь экран */
+    /* Сброс отступов и растяжение на весь экран */
     html, body {
       margin: 0;
       padding: 0;
@@ -28,7 +28,7 @@
       background: #00103c;
       font-family: 'Press Start 2P', monospace;
     }
-    /* Header: отображается в стартовом состоянии */
+    /* Header с информацией по центру */
     #header {
       position: absolute;
       top: 0;
@@ -38,8 +38,34 @@
       background: #6d4fba;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
+      justify-content: center;
+      z-index: 1000;
+    }
+    /* Контейнер информации: имя, билеты и points */
+    #info {
+      display: flex;
+      gap: 20px;
+      font-size: 10px;
+      color: #fff;
+      align-items: center;
+    }
+    #info span {
+      white-space: nowrap;
+    }
+    .balance {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .balance img {
+      width: 16px;
+      height: 16px;
+    }
+    /* Back кнопка вынесена ниже header */
+    #backContainer {
+      position: absolute;
+      top: 50px;
+      left: 10px;
       z-index: 1000;
     }
     #backBtn {
@@ -52,32 +78,6 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Блок информации о пользователе */
-    #userInfo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 10px;
-      color: #fff;
-    }
-    #userInfo img {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      object-fit: cover;
-    }
-    /* Баланс: иконки и числа */
-    .balance {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .balance img {
-      width: 16px;
-      height: 16px;
-    }
-
     /* Обёртка для всей игры */
     #gameWrapper {
       position: relative;
@@ -148,11 +148,9 @@
   </style>
 </head>
 <body>
-  <!-- Header с кнопкой Back и информацией о пользователе -->
+  <!-- Header: информация по центру (без кнопки Back и без иконки пользователя) -->
   <div id="header">
-    <button id="backBtn" onclick="goBack()">Back</button>
-    <div id="userInfo">
-      <img id="userPhoto" src="https://img.icons8.com/ios-filled/50/00FF00/user.png" alt="User Photo">
+    <div id="info">
       <span id="username">@User</span>
       <div class="balance">
         <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Ticket">
@@ -163,6 +161,11 @@
         <span id="pointCount">0</span>
       </div>
     </div>
+  </div>
+
+  <!-- Кнопка Back вынесена ниже header -->
+  <div id="backContainer">
+    <button id="backBtn" onclick="goBack()">Back</button>
   </div>
 
   <!-- Обёртка для игры -->
@@ -176,7 +179,7 @@
       <div class="modal">
         <h2 id="endTitle">Game Over!</h2>
         <p id="endMessage"></p>
-        <!-- Кнопка OK перенаправляет в index.html -->
+        <!-- При нажатии кнопки OK переходим на index.html -->
         <button onclick="window.location.href='index.html'">OK</button>
       </div>
     </div>
@@ -212,7 +215,7 @@
       points: 0
     };
 
-    // Если доступны данные из Telegram, использовать их, иначе тестовый пользователь
+    // Используем данные из Telegram, если доступны, иначе тестовый пользователь
     if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
@@ -269,7 +272,7 @@
     const GAME_WIDTH  = canvas.width;   // 360
     const GAME_HEIGHT = canvas.height;  // 640
 
-    // Мяч: увеличенная скорость (5)
+    // Мяч с увеличенной скоростью
     let ballRadius = 8;
     let ballX, ballY;
     let ballDX = 0;
@@ -456,14 +459,14 @@
       if(ballY + ballDY < ballRadius){
         ballDY = -ballDY;
       }
-      // Проверяем столкновение с ракеткой: только верхняя сторона
+      // Столкновение с ракеткой (учитываем только верхнюю сторону)
       if(ballDY > 0 && ballY + ballDY >= paddleY - ballRadius && ballY < paddleY){
         if(ballX > paddleX && ballX < paddleX + paddleWidth){
           ballDY = -ballDY;
           ballY = paddleY - ballRadius;
         }
       }
-      // Если мяч полностью уходит за нижнюю границу
+      // Завершение игры, если мяч полностью уходит за нижнюю границу
       if(ballY - ballRadius > GAME_HEIGHT){
         endGame("Game Over! You lost.");
         return;
@@ -493,6 +496,7 @@
       // Скрываем header и кнопку Start
       document.getElementById('header').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
+      // Показываем canvas
       canvas.style.display = 'block';
 
       initGameParams();
@@ -505,7 +509,7 @@
       document.getElementById('endMessage').textContent = message + " Score: " + score;
       document.getElementById('endModal').classList.add('active');
     }
-    // При нажатии на кнопку OK в модальном окне пользователь перенаправляется на index.html
+    // Кнопка OK в модальном окне перенаправляет на index.html
   </script>
 </body>
 </html>
