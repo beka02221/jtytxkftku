@@ -21,7 +21,7 @@ function initBreakout() {
   let baseSpeedY = 4;
   let dx = 0;
   let dy = 0;
-  // Мяч стартует, расположившись на центре платформы
+  // Мяч стартует, расположившись на платформе
   let x = paddleX + paddleWidth / 2;
   let y = canvas.height - paddleHeight - ballRadius - 2;
 
@@ -75,7 +75,7 @@ function initBreakout() {
     }
   }
 
-  // Поддержка управления касанием для мобильных устройств
+  // Поддержка сенсорного управления (мобильные устройства)
   canvas.addEventListener("touchmove", function(e) {
     let rect = canvas.getBoundingClientRect();
     let touchX = e.touches[0].clientX - rect.left;
@@ -104,13 +104,14 @@ function initBreakout() {
             dy = -dy;
             b.status = 0;
             score++;
-            // Если все кирпичи сбиты, переходим на новый уровень
+            // Если все кирпичи сбиты – переход на следующий уровень
             if (score % (brickRowCount * brickColumnCount) === 0) {
               level++;
               dx = baseSpeedX + (level - 1);
               dy = -(baseSpeedY + (level - 1));
               resetBricks();
               gameStarted = false;
+              // Перемещаем мяч обратно на платформу
               x = paddleX + paddleWidth / 2;
               y = canvas.height - paddleHeight - ballRadius - 2;
             }
@@ -176,7 +177,7 @@ function initBreakout() {
     collisionDetection();
 
     if (!gameStarted) {
-      // Пока игрок не запустил игру, мяч остается на платформе
+      // Пока игра не запущена, мяч остается на платформе
       x = paddleX + paddleWidth / 2;
       y = canvas.height - paddleHeight - ballRadius - 2;
     } else {
@@ -187,31 +188,32 @@ function initBreakout() {
       if (y + dy < ballRadius) {
         dy = -dy;
       }
-      // Если мяч опускается ниже уровня платформы (учитываем положение платформы)
-      else if (y + dy > canvas.height - paddleHeight - ballRadius - 2) {
+      // Если мяч достигает уровня платформы, проверяем: если он касается платформы — отскок, иначе ждем, пока мяч полностью уйдет вниз
+      if (y + dy > canvas.height - paddleHeight - 2) {
         if (x > paddleX && x < paddleX + paddleWidth) {
           dy = -dy;
+        }
+      }
+      // Если мяч полностью ушел ниже экрана, игра окончена
+      if (y - ballRadius > canvas.height) {
+        lives--;
+        if (lives <= 0) {
+          showGlobalModal("Game Over", "Your final score: " + score);
+          cancelAnimationFrame(breakoutAnimationId);
+          return;
         } else {
-          // Промах – игра окончена
-          lives--;
-          if (lives <= 0) {
-            showGlobalModal("Game Over", "Your final score: " + score);
-            cancelAnimationFrame(breakoutAnimationId);
-            return;
-          } else {
-            gameStarted = false;
-            x = paddleX + paddleWidth / 2;
-            y = canvas.height - paddleHeight - ballRadius - 2;
-            dx = 0;
-            dy = 0;
-          }
+          gameStarted = false;
+          x = paddleX + paddleWidth / 2;
+          y = canvas.height - paddleHeight - ballRadius - 2;
+          dx = 0;
+          dy = 0;
         }
       }
       x += dx;
       y += dy;
     }
 
-    // Обновление позиции платформы (клавиатура)
+    // Движение платформы (клавиатура)
     if (rightPressed && paddleX < canvas.width - paddleWidth) {
       paddleX += 7;
     } else if (leftPressed && paddleX > 0) {
@@ -226,7 +228,7 @@ function initBreakout() {
 
 function resetBreakout() {
   cancelAnimationFrame(breakoutAnimationId);
-  // Удаляем обработчики клавиатуры (если нужно)
+  // Удаляем обработчики клавиатуры (если необходимо)
   document.removeEventListener("keydown", keyDownHandler);
   document.removeEventListener("keyup", keyUpHandler);
   const canvas = document.getElementById("breakoutCanvas");
@@ -238,5 +240,5 @@ function resetBreakout() {
 
 function finishBreakout() {
   resetBreakout();
-  // Дополнительная логика закрытия игры (например, показать главное меню)
+  // Дополнительная логика закрытия игры, например, возврат в главное меню
 }
