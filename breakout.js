@@ -7,38 +7,55 @@ function initBreakout() {
   canvas.style.backgroundColor = "black";
   canvas.style.border = "2px solid blue";
 
-  // Начальные параметры мяча
-  let ballRadius = 10;
-  // Увеличим скорость (было 2, -2)
-  let x = canvas.width / 2;
-  let y = canvas.height - 30;
-  let dx = 4;    // скорость по X
-  let dy = -4;   // скорость по Y
-
-  // Параметры платформы (уменьшим ширину до 50)
+  // Параметры платформы (уменьшим ширину)
   const paddleHeight = 10;
-  let paddleWidth = 50;
+  let paddleWidth = 40;
   let paddleX = (canvas.width - paddleWidth) / 2;
 
-  // Параметры кирпичей
-  const brickRowCount = 4;   // количество рядов
-  const brickColumnCount = 10; // количество столбцов
-  const brickWidth = 35;
-  const brickHeight = 15;
-  const brickPadding = 8;
-  const brickOffsetTop = 40;
-  const brickOffsetLeft = 15;
+  // Параметры мяча и базовая скорость (будем повышать на каждом уровне)
+  const ballRadius = 10;
+  let baseSpeedX = 4; 
+  let baseSpeedY = 4; 
+  // Текущая скорость мяча
+  let dx = 0;  
+  let dy = 0;  
 
+  // Позиция мяча
+  let x = paddleX + paddleWidth / 2;  
+  let y = canvas.height - paddleHeight - 10 - ballRadius;
+
+  // Параметры кирпичей
+  let brickRowCount = 4;    
+  let brickColumnCount = 10;
+  let brickWidth = 35;
+  let brickHeight = 15;
+  let brickPadding = 8;
+  let brickOffsetTop = 40;
+  let brickOffsetLeft = 15;
+
+  // Количество кирпичей всего
+  const totalBricks = brickRowCount * brickColumnCount;
+
+  // Массив кирпичей
   let bricks = [];
-  for (let c = 0; c < brickColumnCount; c++) {
-    bricks[c] = [];
-    for (let r = 0; r < brickRowCount; r++) {
-      bricks[c][r] = { x: 0, y: 0, status: 1 };
+
+  // Функция, восстанавливающая все кирпичи
+  function resetBricks() {
+    bricks = [];
+    for (let c = 0; c < brickColumnCount; c++) {
+      bricks[c] = [];
+      for (let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, status: 1 };
+      }
     }
   }
+  resetBricks();
 
+  // Начальные значения
   let score = 0;
-  let lives = 3;
+  let level = 1; 
+  let lives = 1;       // только 1 жизнь
+  let gameStarted = false; // пока не двигаем мяч, пока игрок не сдвинет платформу
 
   // Обработчики событий клавиатуры
   let rightPressed = false;
@@ -50,8 +67,10 @@ function initBreakout() {
   function keyDownHandler(e) {
     if(e.key === "Right" || e.key === "ArrowRight") {
       rightPressed = true;
+      startBallIfNeeded();
     } else if(e.key === "Left" || e.key === "ArrowLeft") {
       leftPressed = true;
+      startBallIfNeeded();
     }
   }
 
@@ -60,6 +79,16 @@ function initBreakout() {
       rightPressed = false;
     } else if(e.key === "Left" || e.key === "ArrowLeft") {
       leftPressed = false;
+    }
+  }
+
+  // Если игра ещё не началась, запускаем мяч, когда игрок впервые двигает платформу
+  function startBallIfNeeded() {
+    if(!gameStarted) {
+      gameStarted = true;
+      // Задаём скорости мяча в зависимости от уровня
+      dx = baseSpeedX + (level - 1);
+      dy = -(baseSpeedY + (level - 1));
     }
   }
 
@@ -78,9 +107,19 @@ function initBreakout() {
             dy = -dy;
             b.status = 0;
             score++;
-            if(score === brickRowCount * brickColumnCount) {
-              alert("YOU WIN, CONGRATULATIONS!");
-              document.location.reload();
+            // Проверяем, все ли кирпичи уничтожены
+            if(score % totalBricks === 0) {
+              // Переход на следующий уровень
+              level++;
+              // Увеличиваем скорость мяча (на каждый уровень +1 к скорости)
+              dx = baseSpeedX + (level - 1);
+              dy = -(baseSpeedY + (level - 1));
+              // Сбрасываем кирпичи
+              resetBricks();
+              // Возвращаем мяч на платформу, чтобы игрок мог начать заново
+              gameStarted = false;
+              x = paddleX + paddleWidth / 2; 
+              y = canvas.height - paddleHeight - 10 - ballRadius;
             }
           }
         }
@@ -100,7 +139,6 @@ function initBreakout() {
   function drawPaddle() {
     ctx.beginPath();
     ctx.rect(paddleX, canvas.height - paddleHeight - 10, paddleWidth, paddleHeight);
-    // Платформа тоже может быть синей
     ctx.fillStyle = "#0095DD";
     ctx.fill();
     ctx.closePath();
@@ -116,8 +154,7 @@ function initBreakout() {
           bricks[c][r].y = brickY;
           ctx.beginPath();
           ctx.rect(brickX, brickY, brickWidth, brickHeight);
-          // Синие кирпичи
-          ctx.fillStyle = "#0080FF";
+          ctx.fillStyle = "#0080FF"; 
           ctx.fill();
           ctx.closePath();
         }
@@ -127,7 +164,7 @@ function initBreakout() {
 
   function drawScore() {
     ctx.font = "16px Arial";
-    ctx.fillStyle = "#FFFFFF"; // белый текст
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillText("Score: " + score, 8, 20);
   }
 
@@ -139,40 +176,52 @@ function initBreakout() {
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     drawBricks();
     drawBall();
     drawPaddle();
     drawScore();
     drawLives();
+
     collisionDetection();
 
-    // Отскок от боковых стен
-    if(x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
-      dx = -dx;
-    }
-    // Отскок от верхней стены
-    if(y + dy < ballRadius) {
-      dy = -dy;
-    }
-    // Проверка нижней границы
-    else if(y + dy > canvas.height - ballRadius) {
-      // Попал ли мяч на ракетку?
-      if(x > paddleX && x < paddleX + paddleWidth) {
+    // Если игра не началась, мяч следует за платформой
+    if(!gameStarted) {
+      x = paddleX + paddleWidth / 2;
+      y = canvas.height - paddleHeight - 10 - ballRadius;
+    } else {
+      // Двигаем мяч, если игра идёт
+      // Отскок от боковых стен
+      if(x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+        dx = -dx;
+      }
+      // Отскок от верхней стены
+      if(y + dy < ballRadius) {
         dy = -dy;
-      } else {
-        lives--;
-        if(!lives) {
-          alert("GAME OVER");
-          document.location.reload();
+      }
+      // Проверка нижней границы
+      else if(y + dy > canvas.height - ballRadius) {
+        // Проверяем, попал ли мяч на платформу
+        if(x > paddleX && x < paddleX + paddleWidth) {
+          dy = -dy;
         } else {
-          // Сброс мяча и платформы
-          x = canvas.width / 2;
-          y = canvas.height - 30;
-          dx = 4;
-          dy = -4;
-          paddleX = (canvas.width - paddleWidth) / 2;
+          // Потеряли жизнь
+          lives--;
+          if(lives <= 0) {
+            alert("GAME OVER");
+            document.location.reload();
+          } else {
+            // Сброс мяча и остановка, чтобы ждать движения платформы
+            gameStarted = false;
+            x = paddleX + paddleWidth / 2;
+            y = canvas.height - paddleHeight - 10 - ballRadius;
+            dx = 0;
+            dy = 0;
+          }
         }
       }
+      x += dx;
+      y += dy;
     }
 
     // Движение платформы
@@ -182,8 +231,6 @@ function initBreakout() {
       paddleX -= 7;
     }
 
-    x += dx;
-    y += dy;
     requestAnimationFrame(draw);
   }
 
