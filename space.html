@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <!-- Для мобильных устройств -->
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Breakout - Another Game</title>
+
+  <!-- Font: Press Start 2P -->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    /* Общие стили: полноэкранный режим, запрет прокрутки */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #00103c;
+      font-family: 'Press Start 2P', monospace;
+    }
+    /* Header с информацией (центрировано) */
+    #header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background: #6d4fba;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    /* Информационный блок внутри header */
+    #info {
+      display: flex;
+      gap: 20px;
+      font-size: 10px;
+      color: #fff;
+      align-items: center;
+    }
+    /* Баланс: иконки и числа */
+    .balance {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .balance img {
+      width: 16px;
+      height: 16px;
+    }
+    /* Контейнер для кнопки Back (расположен ниже header) */
+    #backContainer {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      z-index: 1000;
+    }
+    #backBtn {
+      font-size: 10px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Обёртка для игры */
+    #gameWrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    /* Кнопка Start, расположенная по центру экрана (видна до старта игры) */
+    #startBtn {
+      position: absolute;
+      z-index: 10;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      padding: 10px 20px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Canvas занимает весь экран */
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: none;
+      background: #000;
+    }
+    /* Модальное окно окончания игры */
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      padding: 20px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      color: #FF00FF;
+      font-size: 14px;
+    }
+    .modal button {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header с информацией (до старта игры) -->
+  <div id="header">
+    <div id="info">
+      <span id="username">@User</span>
+      <div class="balance">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Ticket">
+        <span id="ticketCount">0</span>
+      </div>
+      <div class="balance">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png" alt="Points">
+        <span id="pointCount">0</span>
+      </div>
+    </div>
+  </div>
+  <!-- Кнопка Back (до старта игры) -->
+  <div id="backContainer">
+    <button id="backBtn" onclick="goBack()">Back</button>
+  </div>
+  <!-- Обёртка для игры -->
+  <div id="gameWrapper">
+    <!-- Кнопка Start -->
+    <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
+    <!-- Canvas для игры -->
+    <canvas id="gameCanvas" width="360" height="640"></canvas>
+    <!-- Модальное окно окончания игры -->
+    <div id="endModal" class="modal-backdrop">
+      <div class="modal">
+        <h2 id="endTitle">Game Over!</h2>
+        <p id="endMessage"></p>
+        <!-- При нажатии кнопки OK переходим на index.html -->
+        <button onclick="window.location.href='index.html'">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ------------------------------------------------
+    // 1. Firebase и Telegram инициализация
+    // ------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev-ex",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let tg = null;
+    if(window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.expand();
+    }
+
+    let currentUser = null;
+    let userRef = null;
+    let localUserData = { tickets: 0, points: 0 };
+
+    if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user;
+      document.getElementById('username').textContent = '@' + currentUser.username;
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value').then(snapshot => {
+        if(!snapshot.exists()){
+          userRef.set({ tickets: 5, points: 0 });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points = data.points || 0;
+        updateHeader();
+      });
+    } else {
+      currentUser = { username: 'TestUser' };
+      document.getElementById('username').textContent = '@TestUser';
+      userRef = db.ref('users/TestUser');
+      userRef.once('value').then(snapshot => {
+        if(!snapshot.exists()){
+          userRef.set({ tickets: 5, points: 0 });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points = data.points || 0;
+        updateHeader();
+      });
+    }
+
+    function updateHeader() {
+      document.getElementById('ticketCount').textContent = localUserData.tickets;
+      document.getElementById('pointCount').textContent = localUserData.points;
+    }
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+
+    // ------------------------------------------------
+    // 2. Параметры игры (на основе CodePen FRADAR: yLgaYjp)
+    // ------------------------------------------------
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const GAME_WIDTH = canvas.width;    // 360
+    const GAME_HEIGHT = canvas.height;  // 640
+
+    // Пример реализации игры (Breakout-style) с использованием requestAnimationFrame
+    let ball = { x: GAME_WIDTH/2, y: GAME_HEIGHT - 50, radius: 8, dx: 6, dy: -6 };
+    let paddle = { width: 50, height: 10, x: (GAME_WIDTH - 50)/2, y: GAME_HEIGHT - 20, speed: 7 };
+    let bricks = [];
+    const brickRowCount = 5;
+    const brickColumnCount = 8;
+    const brickWidth = 40;
+    const brickHeight = 15;
+    const brickPadding = 5;
+    const brickOffsetTop = 50;
+    const brickOffsetLeft = 2;
+    let score = 0;
+    let isGameRunning = false;
+    let animationId;
+
+    function initGame() {
+      // Инициализация кирпичей (каждый кирпич требует 2 попадания)
+      bricks = [];
+      for (let c = 0; c < brickColumnCount; c++) {
+        bricks[c] = [];
+        for (let r = 0; r < brickRowCount; r++) {
+          bricks[c][r] = { x: 0, y: 0, hits: 0 };
+        }
+      }
+      // Сброс мяча и ракетки
+      ball.x = GAME_WIDTH/2;
+      ball.y = GAME_HEIGHT - 50;
+      ball.dx = 6;
+      ball.dy = -6;
+      paddle.x = (GAME_WIDTH - paddle.width) / 2;
+      score = 0;
+    }
+
+    function drawBricks() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          let b = bricks[c][r];
+          if (b.hits < 2) {
+            let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+            b.x = brickX;
+            b.y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+            ctx.fillStyle = (b.hits === 0) ? '#06B6D1' : 'red';
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+      ctx.fillStyle = "#FF6600";
+      ctx.fill();
+      ctx.closePath();
+    }
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddle.x, paddle.y, paddle.width, paddle.height);
+      ctx.fillStyle = "#FF00FF";
+      ctx.fill();
+      ctx.closePath();
+    }
+    function drawScore() {
+      ctx.font = "14px 'Press Start 2P', monospace";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("Score: " + score, 10, 30);
+    }
+    function collisionDetection() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          let b = bricks[c][r];
+          if (b.hits < 2) {
+            if (
+              ball.x > b.x &&
+              ball.x < b.x + brickWidth &&
+              ball.y > b.y &&
+              ball.y < b.y + brickHeight
+            ) {
+              ball.dy = -ball.dy;
+              b.hits++;
+              if (b.hits === 2) {
+                score += 5;
+                if (userRef) {
+                  localUserData.points += 5;
+                  userRef.update({ points: localUserData.points });
+                }
+                if (checkWin()) {
+                  endGame("Congratulations! You won!");
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    function checkWin() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          if (bricks[c][r].hits < 2) return false;
+        }
+      }
+      return true;
+    }
+    function gameLoopFunc() {
+      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      drawScore();
+      collisionDetection();
+
+      if (ball.x + ball.dx > GAME_WIDTH - ball.radius || ball.x + ball.dx < ball.radius) {
+        ball.dx = -ball.dx;
+      }
+      if (ball.y + ball.dy < ball.radius) {
+        ball.dy = -ball.dy;
+      }
+      // Проверяем столкновение с ракеткой (только верхняя сторона)
+      if (ball.dy > 0 && ball.y + ball.dy >= paddle.y - ball.radius && ball.y < paddle.y) {
+        if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+          ball.dy = -ball.dy;
+          ball.y = paddle.y - ball.radius;
+        }
+      }
+      // Если мяч уходит за нижнюю границу, игра окончена
+      if (ball.y - ball.radius > GAME_HEIGHT) {
+        endGame("Game Over! You lost.");
+        return;
+      }
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+      animationId = requestAnimationFrame(gameLoopFunc);
+    }
+
+    // Клавиатурное управление
+    document.addEventListener('keydown', function(e) {
+      if(e.key === 'ArrowRight') rightPressed = true;
+      if(e.key === 'ArrowLeft') leftPressed = true;
+    });
+    document.addEventListener('keyup', function(e) {
+      if(e.key === 'ArrowRight') rightPressed = false;
+      if(e.key === 'ArrowLeft') leftPressed = false;
+    });
+    // Сенсорное управление
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      let touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      let touchX = touch.clientX - rect.left;
+      paddle.x = touchX - paddle.width/2;
+    }, {passive: false});
+    canvas.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+      let touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      let touchX = touch.clientX - rect.left;
+      paddle.x = touchX - paddle.width/2;
+    }, {passive: false});
+
+    function startGame() {
+      if (localUserData.tickets < 1) {
+        alert("Not enough tickets!");
+        return;
+      }
+      localUserData.tickets--;
+      if (userRef) userRef.update({ tickets: localUserData.tickets });
+      updateHeader();
+      // Скрываем header, Back-кнопку и Start кнопку
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('backContainer').style.display = 'none';
+      document.getElementById('startBtn').style.display = 'none';
+      canvas.style.display = 'block';
+      initGame();
+      animationId = requestAnimationFrame(gameLoopFunc);
+    }
+
+    function endGame(message) {
+      cancelAnimationFrame(animationId);
+      document.getElementById('endMessage').textContent = message + " Score: " + score;
+      document.getElementById('endModal').classList.add('active');
+    }
+  </script>
+</body>
+</html>
