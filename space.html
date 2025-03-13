@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Crossy Road 3D Vertical с туманом</title>
+  <title>Crossy Road 3D Vertical без тумана</title>
   <style>
     @import url('https://fonts.googleapis.com/css?family=Press+Start+2P');
     body {
@@ -116,17 +116,16 @@
   <!-- Подключаем Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // ------------------- 3D ИГРА (с перспективной камерой, тенями и туманом) -------------------
+    // ------------------- 3D ИГРА (с перспективной камерой, тенями, без тумана) -------------------
     const counterDOM = document.getElementById('counter');
     const endDOM = document.getElementById('end');
 
     const scene = new THREE.Scene();
-    // Добавляем туман: объекты, находящиеся дальше, постепенно исчезают в чёрном тумане
-    scene.fog = new THREE.FogExp2(0x000000, 0.002);
+    // Туман удалён
 
     // Используем перспективную камеру для естественного 3D эффекта
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-    // Новая позиция камеры: немного выше и ближе к игроку, что создаёт эффект наклона вперёд
+    // Новая позиция камеры: немного выше и ближе к игроку, наклонена вперёд
     const cameraOffset = { x: 0, y: -400, z: 600 };
     camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -682,3 +681,4 @@
   </script>
 </body>
 </html>
+
