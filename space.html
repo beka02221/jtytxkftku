@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Crossy Road Vertical</title>
+  <title>Crossy Road 3D Vertical</title>
   <style>
     @import url('https://fonts.googleapis.com/css?family=Press+Start+2P');
     body {
@@ -16,9 +16,9 @@
     button {
       outline: none;
       cursor: pointer;
-      border: none;
+      border: 1px solid white;
       box-shadow: 3px 5px 0px 0px rgba(0,0,0,0.75);
-      background-color: white;
+      background-color: black;
     }
     #counter {
       position: absolute;
@@ -41,7 +41,7 @@
       font-family: inherit;
       font-size: inherit;
     }
-    /* Контролы – располагаем в виде ромба */
+    /* Расположение кнопок управления в виде ромба */
     #controlls {
       position: absolute;
       width: 100%;
@@ -67,6 +67,10 @@
     #left { grid-area: left; }
     #backward { grid-area: backward; }
     #right { grid-area: right; }
+    /* Белые стрелки */
+    #controlls button svg path {
+      fill: white;
+    }
   </style>
 </head>
 <body>
@@ -109,46 +113,38 @@
     <button id="retry">Retry</button>
   </div>
   
-  <!-- Подключаем библиотеку Three.js -->
+  <!-- Подключаем Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // ------------------- ИГРОВАЯ ЛОГИКА (вертикальная версия) -------------------
-    const counterDOM = document.getElementById('counter');  
-    const endDOM = document.getElementById('end');  
-    
+    // ------------------- 3D ИГРА (Версия с перспективной камерой и тенями) -------------------
+    const counterDOM = document.getElementById('counter');
+    const endDOM = document.getElementById('end');
+
     const scene = new THREE.Scene();
-    
-    const distance = 500;
-    // Создаём ортографическую камеру, привязанную к размерам окна
-    const camera = new THREE.OrthographicCamera(
-      window.innerWidth / -2,
-      window.innerWidth / 2,
-      window.innerHeight / 2,
-      window.innerHeight / -2,
-      0.1,
-      10000
-    );
-    // Для вертикальной версии камера позиционируется так, чтобы игрок (курица) шёл по оси Y
-    const cameraOffset = { x: 0, y: -500, z: 500 };
+
+    // Используем перспективную камеру для реального 3D эффекта
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+    // Позиция камеры задаётся так, чтобы игрок (курица) был в центре и ощущался 3D эффект
+    const cameraOffset = { x: 0, y: -600, z: 400 };
     camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
-    
+
     const zoom = 2;
     const chickenSize = 15;
-    
+
     const positionWidth = 42;
     const columns = 17;
     const boardWidth = positionWidth * columns;
-    
+
     const stepTime = 200; // время шага в мс
-    
+
     let lanes, currentLane, currentColumn;
     let previousTimestamp;
     let startMoving;
     let moves;
     let stepStartTimestamp;
-    
-    // Текстуры для машин и грузовиков создаются с помощью Canvas
+
+    // Создаёт текстуры с помощью Canvas
     function Texture(width, height, rects) {
       const canvas = document.createElement("canvas");
       canvas.width = width;
@@ -162,18 +158,17 @@
       });
       return new THREE.CanvasTexture(canvas);
     }
-    
+
     const carFrontTexture = new Texture(40,80,[{x: 0, y: 10, w: 30, h: 60 }]);
     const carBackTexture = new Texture(40,80,[{x: 10, y: 10, w: 30, h: 60 }]);
     const carRightSideTexture = new Texture(110,40,[{x: 10, y: 0, w: 50, h: 30 }, {x: 70, y: 0, w: 30, h: 30 }]);
     const carLeftSideTexture = new Texture(110,40,[{x: 10, y: 10, w: 50, h: 30 }, {x: 70, y: 10, w: 30, h: 30 }]);
-    
+
     const truckFrontTexture = new Texture(30,30,[{x: 15, y: 0, w: 10, h: 30 }]);
     const truckRightSideTexture = new Texture(25,30,[{x: 0, y: 15, w: 10, h: 10 }]);
     const truckLeftSideTexture = new Texture(25,30,[{x: 0, y: 5, w: 10, h: 10 }]);
-    
+
     const generateLanes = () => {
-      // Создаём полосы с индексами от -9 до 9, используем только с индексом >= 0
       return [-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9].map((index) => {
         const lane = new Lane(index);
         lane.mesh.position.y = index * positionWidth * zoom;
@@ -181,7 +176,7 @@
         return lane;
       }).filter((lane) => lane.index >= 0);
     };
-    
+
     const addLane = () => {
       const index = lanes.length;
       const lane = new Lane(index);
@@ -189,19 +184,21 @@
       scene.add(lane.mesh);
       lanes.push(lane);
     };
-    
+
     const chicken = new Chicken();
     scene.add(chicken);
-    
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6);
+
+    // Настройка освещения: HemisphereLight для общего света и DirectionalLight для теней
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    hemiLight.position.set(0, 0, 1000);
     scene.add(hemiLight);
-    
+
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
     dirLight.position.set(chicken.position.x + cameraOffset.x, chicken.position.y + cameraOffset.y, cameraOffset.z);
     dirLight.castShadow = true;
     dirLight.target = chicken;
     scene.add(dirLight);
-    
+
     dirLight.shadow.mapSize.width = 2048;
     dirLight.shadow.mapSize.height = 2048;
     const d = 500;
@@ -209,17 +206,17 @@
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = -d;
-    
+
     const backLight = new THREE.DirectionalLight(0x000000, 0.4);
     backLight.position.set(200, 200, 50);
     backLight.castShadow = true;
     scene.add(backLight);
-    
+
     const laneTypes = ['car', 'truck', 'forest'];
     const laneSpeeds = [2, 2.5, 3];
     const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const threeHeights = [20,45,60];
-    
+
     const initaliseValues = () => {
       lanes = generateLanes();
       currentLane = 0;
@@ -232,18 +229,19 @@
       camera.position.set(chicken.position.x + cameraOffset.x, chicken.position.y + cameraOffset.y, cameraOffset.z);
       dirLight.position.set(chicken.position.x + cameraOffset.x, chicken.position.y + cameraOffset.y, cameraOffset.z);
     };
-    
+
     initaliseValues();
-    
+
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true
     });
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setClearColor(0x000000, 1);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-    
+
     // ------------------ Объекты сцены ------------------
     function Wheel() {
       const wheel = new THREE.Mesh( 
@@ -251,9 +249,10 @@
         new THREE.MeshLambertMaterial({ color: 0x333333, flatShading: true })
       );
       wheel.position.z = 6 * zoom;
+      wheel.castShadow = true;
       return wheel;
     }
-    
+
     function Car() {
       const car = new THREE.Group();
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
@@ -293,11 +292,9 @@
       car.add(backWheel);
     
       car.castShadow = true;
-      car.receiveShadow = false;
-      
       return car;  
     }
-    
+
     function Truck() {
       const truck = new THREE.Group();
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
@@ -307,6 +304,7 @@
         new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: true })
       );
       base.position.z = 10 * zoom;
+      base.castShadow = true;
       truck.add(base);
     
       const cargo = new THREE.Mesh(
@@ -350,7 +348,7 @@
     
       return truck;  
     }
-    
+
     function ThreeTree() {
       const tree = new THREE.Group();
     
@@ -368,14 +366,13 @@
         new THREE.BoxBufferGeometry(30 * zoom, 30 * zoom, height * zoom), 
         new THREE.MeshLambertMaterial({ color: 0x7aa21d, flatShading: true })
       );
-      crown.position.z = (height/2 + 20) * zoom;
+      crown.position.z = (height / 2 + 20) * zoom;
       crown.castShadow = true;
-      crown.receiveShadow = false;
       tree.add(crown);
     
       return tree;  
     }
-    
+
     function Chicken() {
       const chicken = new THREE.Group();
     
@@ -394,17 +391,16 @@
       );
       rowel.position.z = 21 * zoom;
       rowel.castShadow = true;
-      rowel.receiveShadow = false;
       chicken.add(rowel);
     
       return chicken;  
     }
-    
+
     function Road() {
       const road = new THREE.Group();
     
       const createSection = color => new THREE.Mesh(
-        new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom), 
+        new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom),
         new THREE.MeshPhongMaterial({ color })
       );
     
@@ -422,12 +418,12 @@
     
       return road;
     }
-    
+
     function Grass() {
       const grass = new THREE.Group();
     
       const createSection = color => new THREE.Mesh(
-        new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom), 
+        new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom),
         new THREE.MeshPhongMaterial({ color })
       );
     
@@ -446,7 +442,7 @@
       grass.position.z = 1.5 * zoom;
       return grass;
     }
-    
+
     function Lane(index) {
       this.index = index;
       this.type = index <= 0 ? 'field' : laneTypes[Math.floor(Math.random() * laneTypes.length)];
@@ -513,26 +509,26 @@
         }
       }
     }
-    
+
     // Обработчики кнопок и клавиш
     document.querySelector("#retry").addEventListener("click", () => {
       lanes.forEach(lane => scene.remove(lane.mesh));
       initaliseValues();
       endDOM.style.visibility = 'hidden';
     });
-    
+
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
     document.getElementById('left').addEventListener("click", () => move('left'));
     document.getElementById('right').addEventListener("click", () => move('right'));
-    
+
     window.addEventListener("keydown", event => {
       if (event.keyCode === 38) move('forward');
       else if (event.keyCode === 40) move('backward');
       else if (event.keyCode === 37) move('left');
       else if (event.keyCode === 39) move('right');
     });
-    
+
     function move(direction) {
       const finalPositions = moves.reduce((position, move) => {
         if(move === 'forward') return { lane: position.lane + 1, column: position.column };
@@ -540,7 +536,7 @@
         if(move === 'left') return { lane: position.lane, column: position.column - 1 };
         if(move === 'right') return { lane: position.lane, column: position.column + 1 };
       }, { lane: currentLane, column: currentColumn });
-    
+
       if (direction === 'forward') {
         if(lanes[finalPositions.lane + 1].type === 'forest' &&
            lanes[finalPositions.lane + 1].occupiedPositions.has(finalPositions.column)) return;
@@ -564,14 +560,14 @@
       }
       moves.push(direction);
     }
-    
+
     function animate(timestamp) {
       requestAnimationFrame(animate);
-    
+
       if(!previousTimestamp) previousTimestamp = timestamp;
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
-    
+
       // Анимация движения транспортных средств
       lanes.forEach(lane => {
         if(lane.type === 'car' || lane.type === 'truck') {
@@ -586,12 +582,12 @@
           });
         }
       });
-    
+
       if(startMoving) {
         stepStartTimestamp = timestamp;
         startMoving = false;
       }
-    
+
       if(stepStartTimestamp) {
         const moveDeltaTime = timestamp - stepStartTimestamp;
         const progress = Math.min(moveDeltaTime / stepTime, 1);
@@ -660,7 +656,7 @@
           stepStartTimestamp = moves.length === 0 ? null : timestamp;
         }
       }
-    
+
       // Проверка столкновений
       if(lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
@@ -674,9 +670,12 @@
           }
         });
       }
-      renderer.render(scene, camera);	
+
+      // Обновляем камеру, чтобы она всегда смотрела на курицу (3D эффект)
+      camera.lookAt(chicken.position);
+      renderer.render(scene, camera);
     }
-    
+
     requestAnimationFrame(animate);
   </script>
 </body>
