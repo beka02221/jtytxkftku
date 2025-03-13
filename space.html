@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Crossy Road 3D Vertical</title>
+  <title>Crossy Road 3D Vertical с туманом</title>
   <style>
     @import url('https://fonts.googleapis.com/css?family=Press+Start+2P');
     body {
@@ -116,16 +116,18 @@
   <!-- Подключаем Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // ------------------- 3D ИГРА (Версия с перспективной камерой и тенями) -------------------
+    // ------------------- 3D ИГРА (с перспективной камерой, тенями и туманом) -------------------
     const counterDOM = document.getElementById('counter');
     const endDOM = document.getElementById('end');
 
     const scene = new THREE.Scene();
+    // Добавляем туман: объекты, находящиеся дальше, постепенно исчезают в чёрном тумане
+    scene.fog = new THREE.FogExp2(0x000000, 0.002);
 
-    // Используем перспективную камеру для реального 3D эффекта
+    // Используем перспективную камеру для естественного 3D эффекта
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-    // Позиция камеры задаётся так, чтобы игрок (курица) был в центре и ощущался 3D эффект
-    const cameraOffset = { x: 0, y: -600, z: 400 };
+    // Новая позиция камеры: немного выше и ближе к игроку, что создаёт эффект наклона вперёд
+    const cameraOffset = { x: 0, y: -400, z: 600 };
     camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -188,7 +190,7 @@
     const chicken = new Chicken();
     scene.add(chicken);
 
-    // Настройка освещения: HemisphereLight для общего света и DirectionalLight для теней
+    // Настройка освещения: HemisphereLight для общего освещения и DirectionalLight для теней
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
     hemiLight.position.set(0, 0, 1000);
     scene.add(hemiLight);
