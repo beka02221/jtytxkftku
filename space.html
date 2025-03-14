@@ -1,47 +1,115 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Crossy Road 3D Vertical со звуком</title>
+  <meta charset="UTF-8" />
+  <!-- Для мобильных устройств -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crossy Road 3D Vertical с меню</title>
+
+  <!-- Font: Press Start 2P -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css?family=Press+Start+2P');
-    body {
+    /* Общие стили */
+    html, body {
       margin: 0;
-      font-family: 'Press Start 2P', cursive;
-      font-size: 2em;
-      color: white;
+      padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      background: #000;
+      background: #00103c;
+      font-family: 'Press Start 2P', monospace;
     }
-    button {
-      outline: none;
+    /* Header с информацией о пользователе */
+    #header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background: #6d4fba;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #info {
+      display: flex;
+      gap: 20px;
+      font-size: 10px;
+      color: #fff;
+      align-items: center;
+    }
+    #info span {
+      white-space: nowrap;
+    }
+    .balance {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .balance img {
+      width: 16px;
+      height: 16px;
+    }
+    /* Кнопка Back */
+    #backContainer {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      z-index: 1000;
+    }
+    #backBtn {
+      font-size: 10px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
       cursor: pointer;
-      border: 1px solid white;
-      box-shadow: 3px 5px 0px 0px rgba(0,0,0,0.75);
-      background-color: black;
+      box-shadow: 0 3px #6b6b6b;
     }
+    /* Обёртка для игры (скрыта до старта) */
+    #gameWrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    /* Кнопка Start (по центру меню) */
+    #startBtn {
+      position: absolute;
+      z-index: 10;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      padding: 10px 20px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Элемент счётчика (игровой) */
     #counter {
       position: absolute;
       top: 20px;
       right: 20px;
+      z-index: 1000;
     }
-    #end {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      visibility: hidden;
-      z-index: 10;
-    }
-    #end button {
-      background-color: red;
-      padding: 20px 50px;
-      font-family: inherit;
-      font-size: inherit;
-    }
-    /* Расположение кнопок управления в виде ромба */
+    /* Контролы игры */
     #controlls {
       position: absolute;
       width: 100%;
@@ -67,171 +135,211 @@
     #left { grid-area: left; }
     #backward { grid-area: backward; }
     #right { grid-area: right; }
-    /* Белые стрелки */
     #controlls button svg path {
       fill: white;
+    }
+    /* Окончание игры */
+    #end {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
+      z-index: 1000;
+    }
+    #end button {
+      background-color: red;
+      padding: 20px 50px;
+      font-family: inherit;
+      font-size: inherit;
     }
   </style>
 </head>
 <body>
+  <!-- Меню с информацией пользователя -->
+  <div id="header">
+    <div id="info">
+      <span id="username">@User</span>
+      <div class="balance">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Ticket">
+        <span id="ticketCount">0</span>
+      </div>
+      <div class="balance">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png" alt="Points">
+        <span id="pointCount">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Кнопка Back -->
+  <div id="backContainer">
+    <button id="backBtn" onclick="goBack()">Back</button>
+  </div>
+
+  <!-- Обёртка для игры -->
+  <div id="gameWrapper">
+    <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
+    <!-- В эту обёртку будет добавлен canvas Three.js после запуска игры -->
+  </div>
+
+  <!-- Игровые элементы (счётчик, контролы, окончание игры) -->
   <div id="counter">0</div>
-  
   <div id="controlls">
     <div>
       <button id="forward">
         <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(0, 5,5)">
+          <g transform="rotate(0,5,5)">
             <path d="M5,4 L7,6 L3,6 L5,4" />
           </g>
         </svg>
       </button>
       <button id="left">
         <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(-90, 5,5)">
+          <g transform="rotate(-90,5,5)">
             <path d="M5,4 L7,6 L3,6 L5,4" />
           </g>
         </svg>
       </button>
       <button id="backward">
         <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(180, 5,5)">
+          <g transform="rotate(180,5,5)">
             <path d="M5,4 L7,6 L3,6 L5,4" />
           </g>
         </svg>
       </button>
       <button id="right">
         <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(90, 5,5)">
+          <g transform="rotate(90,5,5)">
             <path d="M5,4 L7,6 L3,6 L5,4" />
           </g>
         </svg>
       </button>
     </div>
   </div>
-  
+
   <div id="end">
     <button id="retry">Retry</button>
   </div>
-  
-  <!-- Элементы звука -->
-  <audio id="bgSound" src="background.mp3" loop></audio>
-  <audio id="moveSound" src="move.mp3"></audio>
-  
-  <!-- Подключаем Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
   <script>
-    // ------------------- 3D ИГРА (с перспективной камерой, тенями и звуком) -------------------
-    const counterDOM = document.getElementById('counter');
-    const endDOM = document.getElementById('end');
-    const bgSound = document.getElementById('bgSound');
-    const moveSound = document.getElementById('moveSound');
-    
-    // Запускаем фоновую музыку при первом взаимодействии
-    document.body.addEventListener('click', () => {
-      if(bgSound.paused) {
-        bgSound.play().catch(err => console.log(err));
-      }
-    }, { once: true });
-    
-    const scene = new THREE.Scene();
-    // Туман убран
-    
-    // Используем перспективную камеру для естественного 3D эффекта
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-    // Новая позиция камеры: немного выше и ближе к игроку, наклонена вперёд
-    const cameraOffset = { x: 0, y: -400, z: 600 };
-    camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-    
-    const zoom = 2;
+    /* ----------------------------------------
+       1. Firebase и Telegram инициализация
+    ---------------------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev-ex",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let tg = null;
+    if (window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.expand();
+    }
+
+    let currentUser = null;
+    let userRef = null;
+    let localUserData = { tickets: 0, points: 0 };
+
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user;
+      document.getElementById('username').textContent = '@' + currentUser.username;
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          userRef.set({ tickets: 5, points: 0 });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points = data.points || 0;
+        updateHeader();
+      });
+    } else {
+      currentUser = { username: 'TestUser' };
+      document.getElementById('username').textContent = '@TestUser';
+      userRef = db.ref('users/TestUser');
+      userRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          userRef.set({ tickets: 5, points: 0 });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points = data.points || 0;
+        updateHeader();
+      });
+    }
+
+    function updateHeader() {
+      document.getElementById('ticketCount').textContent = localUserData.tickets;
+      document.getElementById('pointCount').textContent = localUserData.points;
+    }
+
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+
+    /* ----------------------------------------
+       2. Игровой код (Crossy Road 3D Vertical)
+    ---------------------------------------- */
+    let scene, camera, renderer;
+    let cameraOffset = { x: 0, y: -400, z: 600 };
+    let zoom = 2;
+    let chicken, lanes, currentLane, currentColumn;
+    let previousTimestamp, startMoving, moves, stepStartTimestamp;
+    const stepTime = 200;
     const chickenSize = 15;
-    
     const positionWidth = 42;
     const columns = 17;
     const boardWidth = positionWidth * columns;
-    
-    const stepTime = 200; // время шага в мс
-    
-    let lanes, currentLane, currentColumn;
-    let previousTimestamp;
-    let startMoving;
-    let moves;
-    let stepStartTimestamp;
-    
-    // Создаёт текстуры с помощью Canvas
-    function Texture(width, height, rects) {
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, width, height);
-      context.fillStyle = "rgba(0,0,0,0.6)";  
-      rects.forEach(rect => {
-        context.fillRect(rect.x, rect.y, rect.w, rect.h);
-      });
-      return new THREE.CanvasTexture(canvas);
-    }
-    
-    const carFrontTexture = new Texture(40,80,[{x: 0, y: 10, w: 30, h: 60 }]);
-    const carBackTexture = new Texture(40,80,[{x: 10, y: 10, w: 30, h: 60 }]);
-    const carRightSideTexture = new Texture(110,40,[{x: 10, y: 0, w: 50, h: 30 }, {x: 70, y: 0, w: 30, h: 30 }]);
-    const carLeftSideTexture = new Texture(110,40,[{x: 10, y: 10, w: 50, h: 30 }, {x: 70, y: 10, w: 30, h: 30 }]);
-    
-    const truckFrontTexture = new Texture(30,30,[{x: 15, y: 0, w: 10, h: 30 }]);
-    const truckRightSideTexture = new Texture(25,30,[{x: 0, y: 15, w: 10, h: 10 }]);
-    const truckLeftSideTexture = new Texture(25,30,[{x: 0, y: 5, w: 10, h: 10 }]);
-    
-    const generateLanes = () => {
-      return [-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9].map((index) => {
-        const lane = new Lane(index);
-        lane.mesh.position.y = index * positionWidth * zoom;
-        scene.add(lane.mesh);
-        return lane;
-      }).filter((lane) => lane.index >= 0);
-    };
-    
-    const addLane = () => {
-      const index = lanes.length;
-      const lane = new Lane(index);
-      lane.mesh.position.y = index * positionWidth * zoom;
-      scene.add(lane.mesh);
-      lanes.push(lane);
-    };
-    
-    const chicken = new Chicken();
-    scene.add(chicken);
-    
-    // Настройка освещения: HemisphereLight для общего освещения и DirectionalLight для теней
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-    hemiLight.position.set(0, 0, 1000);
-    scene.add(hemiLight);
-    
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    dirLight.position.set(chicken.position.x + cameraOffset.x, chicken.position.y + cameraOffset.y, cameraOffset.z);
-    dirLight.castShadow = true;
-    dirLight.target = chicken;
-    scene.add(dirLight);
-    
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    const d = 500;
-    dirLight.shadow.camera.left = -d;
-    dirLight.shadow.camera.right = d;
-    dirLight.shadow.camera.top = d;
-    dirLight.shadow.camera.bottom = -d;
-    
-    const backLight = new THREE.DirectionalLight(0x000000, 0.4);
-    backLight.position.set(200, 200, 50);
-    backLight.castShadow = true;
-    scene.add(backLight);
-    
+    const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const laneTypes = ['car', 'truck', 'forest'];
     const laneSpeeds = [2, 2.5, 3];
-    const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
-    const threeHeights = [20,45,60];
-    
-    const initaliseValues = () => {
+    const threeHeights = [20, 45, 60];
+
+    // Инициализация сцены, камеры, освещения, объектов
+    function initGame() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+      camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
+      camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+      hemiLight.position.set(0, 0, 1000);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(chicken ? chicken.position.x + cameraOffset.x : cameraOffset.x,
+                              chicken ? chicken.position.y + cameraOffset.y : cameraOffset.y,
+                              cameraOffset.z);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      const d = 500;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+
+      const backLight = new THREE.DirectionalLight(0x000000, 0.4);
+      backLight.position.set(200, 200, 50);
+      backLight.castShadow = true;
+      scene.add(backLight);
+
       lanes = generateLanes();
       currentLane = 0;
       currentColumn = Math.floor(columns / 2);
@@ -239,49 +347,81 @@
       startMoving = false;
       moves = [];
       stepStartTimestamp = null;
+
+      chicken = new Chicken();
       chicken.position.set(0, 0, 0);
-      camera.position.set(chicken.position.x + cameraOffset.x, chicken.position.y + cameraOffset.y, cameraOffset.z);
-      dirLight.position.set(chicken.position.x + cameraOffset.x, chicken.position.y + cameraOffset.y, cameraOffset.z);
-    };
-    
-    initaliseValues();
-    
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true
-    });
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setClearColor(0x000000, 1);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-    
-    // ------------------ Объекты сцены ------------------
+      scene.add(chicken);
+    }
+
+    // Создание рендерера и добавление в #gameWrapper
+    function initRenderer() {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setClearColor(0x000000, 1);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.getElementById('gameWrapper').appendChild(renderer.domElement);
+    }
+
+    // Функция создания текстуры через Canvas
+    function Texture(width, height, rects) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+      context.fillStyle = "rgba(0,0,0,0.6)";
+      rects.forEach(rect => {
+        context.fillRect(rect.x, rect.y, rect.w, rect.h);
+      });
+      return new THREE.CanvasTexture(canvas);
+    }
+    const carFrontTexture = new Texture(40, 80, [{ x: 0, y: 10, w: 30, h: 60 }]);
+    const carBackTexture = new Texture(40, 80, [{ x: 10, y: 10, w: 30, h: 60 }]);
+    const carRightSideTexture = new Texture(110, 40, [{ x: 10, y: 0, w: 50, h: 30 }, { x: 70, y: 0, w: 30, h: 30 }]);
+    const carLeftSideTexture = new Texture(110, 40, [{ x: 10, y: 10, w: 50, h: 30 }, { x: 70, y: 10, w: 30, h: 30 }]);
+    const truckFrontTexture = new Texture(30, 30, [{ x: 15, y: 0, w: 10, h: 30 }]);
+    const truckRightSideTexture = new Texture(25, 30, [{ x: 0, y: 15, w: 10, h: 10 }]);
+    const truckLeftSideTexture = new Texture(25, 30, [{ x: 0, y: 5, w: 10, h: 10 }]);
+
+    function generateLanes() {
+      return [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(index => {
+        const lane = new Lane(index);
+        lane.mesh.position.y = index * positionWidth * zoom;
+        scene.add(lane.mesh);
+        return lane;
+      }).filter(lane => lane.index >= 0);
+    }
+    function addLane() {
+      const index = lanes.length;
+      const lane = new Lane(index);
+      lane.mesh.position.y = index * positionWidth * zoom;
+      scene.add(lane.mesh);
+      lanes.push(lane);
+    }
     function Wheel() {
-      const wheel = new THREE.Mesh( 
-        new THREE.BoxBufferGeometry(12 * zoom, 33 * zoom, 12 * zoom), 
+      const wheel = new THREE.Mesh(
+        new THREE.BoxBufferGeometry(12 * zoom, 33 * zoom, 12 * zoom),
         new THREE.MeshLambertMaterial({ color: 0x333333, flatShading: true })
       );
       wheel.position.z = 6 * zoom;
       wheel.castShadow = true;
       return wheel;
     }
-    
     function Car() {
       const car = new THREE.Group();
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
-      
       const main = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(60 * zoom, 30 * zoom, 15 * zoom), 
+        new THREE.BoxBufferGeometry(60 * zoom, 30 * zoom, 15 * zoom),
         new THREE.MeshPhongMaterial({ color, flatShading: true })
       );
       main.position.z = 12 * zoom;
       main.castShadow = true;
       main.receiveShadow = true;
       car.add(main);
-      
       const cabin = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(33 * zoom, 24 * zoom, 12 * zoom), 
+        new THREE.BoxBufferGeometry(33 * zoom, 24 * zoom, 12 * zoom),
         [
           new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true, map: carBackTexture }),
           new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true, map: carFrontTexture }),
@@ -296,33 +436,27 @@
       cabin.castShadow = true;
       cabin.receiveShadow = true;
       car.add(cabin);
-      
       const frontWheel = new Wheel();
       frontWheel.position.x = -18 * zoom;
       car.add(frontWheel);
-    
       const backWheel = new Wheel();
       backWheel.position.x = 18 * zoom;
       car.add(backWheel);
-    
       car.castShadow = true;
-      return car;  
+      return car;
     }
-    
     function Truck() {
       const truck = new THREE.Group();
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
-    
       const base = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(100 * zoom, 25 * zoom, 5 * zoom), 
+        new THREE.BoxBufferGeometry(100 * zoom, 25 * zoom, 5 * zoom),
         new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: true })
       );
       base.position.z = 10 * zoom;
       base.castShadow = true;
       truck.add(base);
-    
       const cargo = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(75 * zoom, 35 * zoom, 40 * zoom), 
+        new THREE.BoxBufferGeometry(75 * zoom, 35 * zoom, 40 * zoom),
         new THREE.MeshPhongMaterial({ color: 0xb4c6fc, flatShading: true })
       );
       cargo.position.x = 15 * zoom;
@@ -330,9 +464,8 @@
       cargo.castShadow = true;
       cargo.receiveShadow = true;
       truck.add(cargo);
-    
       const cabin = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(25 * zoom, 30 * zoom, 30 * zoom), 
+        new THREE.BoxBufferGeometry(25 * zoom, 30 * zoom, 30 * zoom),
         [
           new THREE.MeshPhongMaterial({ color, flatShading: true }),
           new THREE.MeshPhongMaterial({ color, flatShading: true, map: truckFrontTexture }),
@@ -347,121 +480,95 @@
       cabin.castShadow = true;
       cabin.receiveShadow = true;
       truck.add(cabin);
-    
       const frontWheel = new Wheel();
       frontWheel.position.x = -38 * zoom;
       truck.add(frontWheel);
-    
       const middleWheel = new Wheel();
       middleWheel.position.x = -10 * zoom;
       truck.add(middleWheel);
-    
       const backWheel = new Wheel();
       backWheel.position.x = 30 * zoom;
       truck.add(backWheel);
-    
-      return truck;  
+      return truck;
     }
-    
     function ThreeTree() {
       const tree = new THREE.Group();
-    
       const trunk = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(15 * zoom, 15 * zoom, 20 * zoom), 
+        new THREE.BoxBufferGeometry(15 * zoom, 15 * zoom, 20 * zoom),
         new THREE.MeshPhongMaterial({ color: 0x4d2926, flatShading: true })
       );
       trunk.position.z = 10 * zoom;
       trunk.castShadow = true;
       trunk.receiveShadow = true;
       tree.add(trunk);
-    
       const height = threeHeights[Math.floor(Math.random() * threeHeights.length)];
       const crown = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(30 * zoom, 30 * zoom, height * zoom), 
+        new THREE.BoxBufferGeometry(30 * zoom, 30 * zoom, height * zoom),
         new THREE.MeshLambertMaterial({ color: 0x7aa21d, flatShading: true })
       );
       crown.position.z = (height / 2 + 20) * zoom;
       crown.castShadow = true;
       tree.add(crown);
-    
-      return tree;  
+      return tree;
     }
-    
     function Chicken() {
       const chicken = new THREE.Group();
-    
       const body = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(chickenSize * zoom, chickenSize * zoom, 20 * zoom), 
+        new THREE.BoxBufferGeometry(chickenSize * zoom, chickenSize * zoom, 20 * zoom),
         new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true })
       );
       body.position.z = 10 * zoom;
       body.castShadow = true;
       body.receiveShadow = true;
       chicken.add(body);
-    
       const rowel = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(2 * zoom, 4 * zoom, 2 * zoom), 
+        new THREE.BoxBufferGeometry(2 * zoom, 4 * zoom, 2 * zoom),
         new THREE.MeshLambertMaterial({ color: 0xF0619A, flatShading: true })
       );
       rowel.position.z = 21 * zoom;
       rowel.castShadow = true;
       chicken.add(rowel);
-    
-      return chicken;  
+      return chicken;
     }
-    
     function Road() {
       const road = new THREE.Group();
-    
       const createSection = color => new THREE.Mesh(
         new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom),
         new THREE.MeshPhongMaterial({ color })
       );
-    
       const middle = createSection(0x454A59);
       middle.receiveShadow = true;
       road.add(middle);
-    
       const left = createSection(0x393D49);
-      left.position.x = - boardWidth * zoom;
+      left.position.x = -boardWidth * zoom;
       road.add(left);
-    
       const right = createSection(0x393D49);
       right.position.x = boardWidth * zoom;
       road.add(right);
-    
       return road;
     }
-    
     function Grass() {
       const grass = new THREE.Group();
-    
       const createSection = color => new THREE.Mesh(
         new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom),
         new THREE.MeshPhongMaterial({ color })
       );
-    
       const middle = createSection(0xbaf455);
       middle.receiveShadow = true;
       grass.add(middle);
-    
       const left = createSection(0x99C846);
-      left.position.x = - boardWidth * zoom;
+      left.position.x = -boardWidth * zoom;
       grass.add(left);
-    
       const right = createSection(0x99C846);
       right.position.x = boardWidth * zoom;
       grass.add(right);
-    
       grass.position.z = 1.5 * zoom;
       return grass;
     }
-    
     function Lane(index) {
       this.index = index;
       this.type = index <= 0 ? 'field' : laneTypes[Math.floor(Math.random() * laneTypes.length)];
-    
-      switch(this.type) {
+      switch (this.type) {
         case 'field': {
           this.type = 'field';
           this.mesh = new Grass();
@@ -470,14 +577,14 @@
         case 'forest': {
           this.mesh = new Grass();
           this.occupiedPositions = new Set();
-          this.trees = [1,2,3,4].map(() => {
+          this.trees = [1, 2, 3, 4].map(() => {
             const tree = ThreeTree();
             let position;
             do {
               position = Math.floor(Math.random() * columns);
-            } while(this.occupiedPositions.has(position));
+            } while (this.occupiedPositions.has(position));
             this.occupiedPositions.add(position);
-            tree.position.x = (position * positionWidth + positionWidth/2) * zoom - boardWidth * zoom / 2;
+            tree.position.x = (position * positionWidth + positionWidth / 2) * zoom - boardWidth * zoom / 2;
             this.mesh.add(tree);
             return tree;
           });
@@ -487,14 +594,14 @@
           this.mesh = new Road();
           this.direction = Math.random() >= 0.5;
           const occupiedPositions = new Set();
-          this.vechicles = [1,2,3].map(() => {
+          this.vechicles = [1, 2, 3].map(() => {
             const vechicle = new Car();
             let position;
             do {
-              position = Math.floor(Math.random() * (columns/2));
-            } while(occupiedPositions.has(position));
+              position = Math.floor(Math.random() * (columns / 2));
+            } while (occupiedPositions.has(position));
             occupiedPositions.add(position);
-            vechicle.position.x = (position * positionWidth * 2 + positionWidth/2) * zoom - boardWidth * zoom / 2;
+            vechicle.position.x = (position * positionWidth * 2 + positionWidth / 2) * zoom - boardWidth * zoom / 2;
             if (!this.direction) vechicle.rotation.z = Math.PI;
             this.mesh.add(vechicle);
             return vechicle;
@@ -506,14 +613,14 @@
           this.mesh = new Road();
           this.direction = Math.random() >= 0.5;
           const occupiedPositions = new Set();
-          this.vechicles = [1,2].map(() => {
+          this.vechicles = [1, 2].map(() => {
             const vechicle = new Truck();
             let position;
             do {
-              position = Math.floor(Math.random() * (columns/3));
-            } while(occupiedPositions.has(position));
+              position = Math.floor(Math.random() * (columns / 3));
+            } while (occupiedPositions.has(position));
             occupiedPositions.add(position);
-            vechicle.position.x = (position * positionWidth * 3 + positionWidth/2) * zoom - boardWidth * zoom / 2;
+            vechicle.position.x = (position * positionWidth * 3 + positionWidth / 2) * zoom - boardWidth * zoom / 2;
             if (!this.direction) vechicle.rotation.z = Math.PI;
             this.mesh.add(vechicle);
             return vechicle;
@@ -523,81 +630,69 @@
         }
       }
     }
-    
-    // Обработчики кнопок и клавиш
-    document.querySelector("#retry").addEventListener("click", () => {
-      lanes.forEach(lane => scene.remove(lane.mesh));
-      initaliseValues();
-      endDOM.style.visibility = 'hidden';
-    });
-    
+
+    // Звук движения (move.mp3 должен быть доступен по указанному пути)
+    const moveSound = new Audio("move.mp3");
+
+    // Обработчики кнопок управления
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
     document.getElementById('left').addEventListener("click", () => move('left'));
     document.getElementById('right').addEventListener("click", () => move('right'));
-    
-    window.addEventListener("keydown", event => {
-      if (event.keyCode === 38) move('forward');
-      else if (event.keyCode === 40) move('backward');
-      else if (event.keyCode === 37) move('left');
-      else if (event.keyCode === 39) move('right');
-    });
-    
+
     function move(direction) {
-      // Воспроизводим звук движения при каждом нажатии
       moveSound.currentTime = 0;
       moveSound.play().catch(err => console.log(err));
-      
-      // Запускаем фоновую музыку, если она ещё не играет
-      if(bgSound.paused) {
-        bgSound.play().catch(err => console.log(err));
-      }
-      
       const finalPositions = moves.reduce((position, move) => {
-        if(move === 'forward') return { lane: position.lane + 1, column: position.column };
-        if(move === 'backward') return { lane: position.lane - 1, column: position.column };
-        if(move === 'left') return { lane: position.lane, column: position.column - 1 };
-        if(move === 'right') return { lane: position.lane, column: position.column + 1 };
+        if (move === 'forward') return { lane: position.lane + 1, column: position.column };
+        if (move === 'backward') return { lane: position.lane - 1, column: position.column };
+        if (move === 'left') return { lane: position.lane, column: position.column - 1 };
+        if (move === 'right') return { lane: position.lane, column: position.column + 1 };
       }, { lane: currentLane, column: currentColumn });
-    
+
       if (direction === 'forward') {
-        if(lanes[finalPositions.lane + 1].type === 'forest' &&
-           lanes[finalPositions.lane + 1].occupiedPositions.has(finalPositions.column)) return;
-        if(!stepStartTimestamp) startMoving = true;
+        if (lanes[finalPositions.lane + 1].type === 'forest' &&
+            lanes[finalPositions.lane + 1].occupiedPositions.has(finalPositions.column)) return;
+        if (!stepStartTimestamp) startMoving = true;
         addLane();
       } else if (direction === 'backward') {
-        if(finalPositions.lane === 0) return;
-        if(lanes[finalPositions.lane - 1].type === 'forest' &&
-           lanes[finalPositions.lane - 1].occupiedPositions.has(finalPositions.column)) return;
-        if(!stepStartTimestamp) startMoving = true;
+        if (finalPositions.lane === 0) return;
+        if (lanes[finalPositions.lane - 1].type === 'forest' &&
+            lanes[finalPositions.lane - 1].occupiedPositions.has(finalPositions.column)) return;
+        if (!stepStartTimestamp) startMoving = true;
       } else if (direction === 'left') {
-        if(finalPositions.column === 0) return;
-        if(lanes[finalPositions.lane].type === 'forest' &&
-           lanes[finalPositions.lane].occupiedPositions.has(finalPositions.column - 1)) return;
-        if(!stepStartTimestamp) startMoving = true;
+        if (finalPositions.column === 0) return;
+        if (lanes[finalPositions.lane].type === 'forest' &&
+            lanes[finalPositions.lane].occupiedPositions.has(finalPositions.column - 1)) return;
+        if (!stepStartTimestamp) startMoving = true;
       } else if (direction === 'right') {
-        if(finalPositions.column === columns - 1) return;
-        if(lanes[finalPositions.lane].type === 'forest' &&
-           lanes[finalPositions.lane].occupiedPositions.has(finalPositions.column + 1)) return;
-        if(!stepStartTimestamp) startMoving = true;
+        if (finalPositions.column === columns - 1) return;
+        if (lanes[finalPositions.lane].type === 'forest' &&
+            lanes[finalPositions.lane].occupiedPositions.has(finalPositions.column + 1)) return;
+        if (!stepStartTimestamp) startMoving = true;
       }
       moves.push(direction);
     }
-    
+
+    document.getElementById('retry').addEventListener("click", () => {
+      lanes.forEach(lane => scene.remove(lane.mesh));
+      initGame();
+      document.getElementById('end').style.visibility = 'hidden';
+    });
+
+    // Главный игровой цикл
     function animate(timestamp) {
       requestAnimationFrame(animate);
-    
-      if(!previousTimestamp) previousTimestamp = timestamp;
+      if (!previousTimestamp) previousTimestamp = timestamp;
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
-    
-      // Анимация движения транспортных средств
+
       lanes.forEach(lane => {
-        if(lane.type === 'car' || lane.type === 'truck') {
+        if (lane.type === 'car' || lane.type === 'truck') {
           const aBitBefore = -boardWidth * zoom / 2 - positionWidth * 2 * zoom;
-          const aBitAfter  = boardWidth * zoom / 2 + positionWidth * 2 * zoom;
+          const aBitAfter = boardWidth * zoom / 2 + positionWidth * 2 * zoom;
           lane.vechicles.forEach(vehicle => {
-            if(lane.direction) {
+            if (lane.direction) {
               vehicle.position.x = vehicle.position.x < aBitBefore ? aBitAfter : vehicle.position.x - lane.speed / 16 * delta;
             } else {
               vehicle.position.x = vehicle.position.x > aBitAfter ? aBitBefore : vehicle.position.x + lane.speed / 16 * delta;
@@ -605,25 +700,24 @@
           });
         }
       });
-    
-      if(startMoving) {
+
+      if (startMoving) {
         stepStartTimestamp = timestamp;
         startMoving = false;
       }
-    
-      if(stepStartTimestamp) {
+
+      if (stepStartTimestamp) {
         const moveDeltaTime = timestamp - stepStartTimestamp;
         const progress = Math.min(moveDeltaTime / stepTime, 1);
         const moveDeltaDistance = progress * positionWidth * zoom;
         const jumpDeltaDistance = Math.sin(progress * Math.PI) * 8 * zoom;
-        switch(moves[0]) {
+        switch (moves[0]) {
           case 'forward': {
             const targetY = currentLane * positionWidth * zoom + moveDeltaDistance;
             chicken.position.y = targetY;
             chicken.position.z = jumpDeltaDistance;
             camera.position.y = chicken.position.y + cameraOffset.y;
             camera.position.x = chicken.position.x + cameraOffset.x;
-            dirLight.position.y = chicken.position.y + cameraOffset.y;
             break;
           }
           case 'backward': {
@@ -632,38 +726,35 @@
             chicken.position.z = jumpDeltaDistance;
             camera.position.y = chicken.position.y + cameraOffset.y;
             camera.position.x = chicken.position.x + cameraOffset.x;
-            dirLight.position.y = chicken.position.y + cameraOffset.y;
             break;
           }
           case 'left': {
-            const targetX = (currentColumn * positionWidth + positionWidth/2) * zoom - boardWidth * zoom / 2 - moveDeltaDistance;
+            const targetX = (currentColumn * positionWidth + positionWidth / 2) * zoom - boardWidth * zoom / 2 - moveDeltaDistance;
             chicken.position.x = targetX;
             chicken.position.z = jumpDeltaDistance;
             camera.position.x = chicken.position.x + cameraOffset.x;
             camera.position.y = chicken.position.y + cameraOffset.y;
-            dirLight.position.x = chicken.position.x + cameraOffset.x;
             break;
           }
           case 'right': {
-            const targetX = (currentColumn * positionWidth + positionWidth/2) * zoom - boardWidth * zoom / 2 + moveDeltaDistance;
+            const targetX = (currentColumn * positionWidth + positionWidth / 2) * zoom - boardWidth * zoom / 2 + moveDeltaDistance;
             chicken.position.x = targetX;
             chicken.position.z = jumpDeltaDistance;
             camera.position.x = chicken.position.x + cameraOffset.x;
             camera.position.y = chicken.position.y + cameraOffset.y;
-            dirLight.position.x = chicken.position.x + cameraOffset.x;
             break;
           }
         }
-        if(moveDeltaTime > stepTime) {
-          switch(moves[0]) {
+        if (moveDeltaTime > stepTime) {
+          switch (moves[0]) {
             case 'forward': {
               currentLane++;
-              counterDOM.innerHTML = currentLane;
+              document.getElementById('counter').textContent = currentLane;
               break;
             }
             case 'backward': {
               currentLane--;
-              counterDOM.innerHTML = currentLane;
+              document.getElementById('counter').textContent = currentLane;
               break;
             }
             case 'left': {
@@ -679,27 +770,47 @@
           stepStartTimestamp = moves.length === 0 ? null : timestamp;
         }
       }
-    
-      // Проверка столкновений
-      if(lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
+
+      if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
         const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
         const vehicleLength = { car: 60, truck: 105 }[lanes[currentLane].type];
         lanes[currentLane].vechicles.forEach(vehicle => {
           const vehicleMinX = vehicle.position.x - vehicleLength * zoom / 2;
           const vehicleMaxX = vehicle.position.x + vehicleLength * zoom / 2;
-          if(chickenMaxX > vehicleMinX && chickenMinX < vehicleMaxX) {
-            endDOM.style.visibility = 'visible';
+          if (chickenMaxX > vehicleMinX && chickenMinX < vehicleMaxX) {
+            document.getElementById('end').style.visibility = 'visible';
           }
         });
       }
-    
+
       camera.lookAt(chicken.position);
       renderer.render(scene, camera);
     }
-    
     requestAnimationFrame(animate);
+
+    /* ----------------------------------------
+       3. Функция старта игры
+    ---------------------------------------- */
+    function startGame() {
+      if (localUserData.tickets < 1) {
+        alert("Not enough tickets!");
+        return;
+      }
+      localUserData.tickets--;
+      if (userRef) userRef.update({ tickets: localUserData.tickets });
+      updateHeader();
+      // Скрываем меню
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('backContainer').style.display = 'none';
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('gameWrapper').style.display = 'block';
+
+      initGame();
+      if (!renderer) {
+        initRenderer();
+      }
+    }
   </script>
 </body>
 </html>
-
