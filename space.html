@@ -79,14 +79,13 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Обёртка для игры (скрыта до старта) */
+    /* Обёртка для меню – изначально видна */
     #gameWrapper {
       position: relative;
       width: 100%;
       height: 100%;
-      display: none;
     }
-    /* Кнопка Start (по центру меню) */
+    /* Кнопка Start – по центру меню */
     #startBtn {
       position: absolute;
       z-index: 10;
@@ -102,22 +101,23 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Элемент счётчика (игровой) */
+    /* Игровой счётчик */
     #counter {
       position: absolute;
       top: 20px;
       right: 20px;
       z-index: 1000;
     }
-    /* Контролы игры */
+    /* Контролы игры – изначально скрыты */
     #controlls {
       position: absolute;
       width: 100%;
       height: 100%;
-      display: flex;
+      display: none;
       align-items: flex-end;
       justify-content: center;
       pointer-events: none;
+      z-index: 1000;
     }
     #controlls div {
       display: grid;
@@ -154,11 +154,14 @@
       padding: 20px 50px;
       font-family: inherit;
       font-size: inherit;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <!-- Меню с информацией пользователя -->
+  <!-- Меню с информацией о пользователе -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -178,10 +181,10 @@
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
 
-  <!-- Обёртка для игры -->
+  <!-- Меню игры – пока игра не запущена -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- В эту обёртку будет добавлен canvas Three.js после запуска игры -->
+    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
   <!-- Игровые элементы (счётчик, контролы, окончание игры) -->
@@ -219,14 +222,19 @@
     </div>
   </div>
 
+  <!-- Окончание игры -->
   <div id="end">
     <button id="retry">Retry</button>
   </div>
 
+  <!-- Звуки (фон и звук движения) -->
+  <audio id="bgSound" src="background.mp3" loop></audio>
+  <audio id="moveSound" src="move.mp3"></audio>
+
   <script>
-    /* ----------------------------------------
-       1. Firebase и Telegram инициализация
-    ---------------------------------------- */
+    /* ------------------------
+       1. Firebase и Telegram
+    ------------------------ */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -291,9 +299,9 @@
       window.location.href = 'index.html';
     }
 
-    /* ----------------------------------------
-       2. Игровой код (Crossy Road 3D Vertical)
-    ---------------------------------------- */
+    /* ------------------------
+       2. Игровой код (3D Crossy Road)
+    ------------------------ */
     let scene, camera, renderer;
     let cameraOffset = { x: 0, y: -400, z: 600 };
     let zoom = 2;
@@ -304,13 +312,15 @@
     const positionWidth = 42;
     const columns = 17;
     const boardWidth = positionWidth * columns;
-    const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const laneTypes = ['car', 'truck', 'forest'];
     const laneSpeeds = [2, 2.5, 3];
+    const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const threeHeights = [20, 45, 60];
+    let gameEnded = false; // Для предотвращения повторного вызова endGame
 
     // Инициализация сцены, камеры, освещения, объектов
     function initGame() {
+      gameEnded = false;
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
       camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
@@ -321,6 +331,7 @@
       scene.add(hemiLight);
 
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      // Если курица уже существует – позиционируем относительно неё, иначе по offset
       dirLight.position.set(chicken ? chicken.position.x + cameraOffset.x : cameraOffset.x,
                               chicken ? chicken.position.y + cameraOffset.y : cameraOffset.y,
                               cameraOffset.z);
@@ -634,7 +645,7 @@
     // Звук движения (move.mp3 должен быть доступен по указанному пути)
     const moveSound = new Audio("move.mp3");
 
-    // Обработчики кнопок управления
+    // Обработчики кнопок управления (будут активны только после старта игры)
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
     document.getElementById('left').addEventListener("click", () => move('left'));
@@ -674,10 +685,26 @@
       moves.push(direction);
     }
 
+    // Функция завершения игры: обновляет баллы в Firebase и скрывает элементы управления
+    function endGame() {
+      if (gameEnded) return;
+      gameEnded = true;
+      // Каждый шаг считается за 1 point; прибавляем значение currentLane к баллам
+      localUserData.points += currentLane;
+      if (userRef) userRef.update({ points: localUserData.points });
+      // Скрываем кнопки управления
+      document.getElementById('controlls').style.display = 'none';
+      // Показываем окно окончания игры
+      document.getElementById('end').style.visibility = 'visible';
+    }
+
+    // Обработчик кнопки Retry: сбрасывает игру (баллы остаются обновлёнными)
     document.getElementById('retry').addEventListener("click", () => {
       lanes.forEach(lane => scene.remove(lane.mesh));
       initGame();
       document.getElementById('end').style.visibility = 'hidden';
+      // Если нужно – можно также перезапустить анимацию (она уже работает бесконечно)
+      gameEnded = false;
     });
 
     // Главный игровой цикл
@@ -690,7 +717,7 @@
       lanes.forEach(lane => {
         if (lane.type === 'car' || lane.type === 'truck') {
           const aBitBefore = -boardWidth * zoom / 2 - positionWidth * 2 * zoom;
-          const aBitAfter = boardWidth * zoom / 2 + positionWidth * 2 * zoom;
+          const aBitAfter  = boardWidth * zoom / 2 + positionWidth * 2 * zoom;
           lane.vechicles.forEach(vehicle => {
             if (lane.direction) {
               vehicle.position.x = vehicle.position.x < aBitBefore ? aBitAfter : vehicle.position.x - lane.speed / 16 * delta;
@@ -771,6 +798,7 @@
         }
       }
 
+      // Проверка столкновений: если курица сталкивается с транспортным средством, игра завершается
       if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
         const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
@@ -779,7 +807,7 @@
           const vehicleMinX = vehicle.position.x - vehicleLength * zoom / 2;
           const vehicleMaxX = vehicle.position.x + vehicleLength * zoom / 2;
           if (chickenMaxX > vehicleMinX && chickenMinX < vehicleMaxX) {
-            document.getElementById('end').style.visibility = 'visible';
+            endGame();
           }
         });
       }
@@ -789,9 +817,17 @@
     }
     requestAnimationFrame(animate);
 
-    /* ----------------------------------------
+    /* ------------------------
        3. Функция старта игры
-    ---------------------------------------- */
+    ------------------------ */
+    // Фоновая музыка запускается при первом клике на body (из-за ограничений браузера)
+    document.body.addEventListener('click', () => {
+      const bgSound = document.getElementById('bgSound');
+      if (bgSound.paused) {
+        bgSound.play().catch(err => console.log(err));
+      }
+    }, { once: true });
+
     function startGame() {
       if (localUserData.tickets < 1) {
         alert("Not enough tickets!");
@@ -800,11 +836,13 @@
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем меню
+      // Скрываем меню (header, back и кнопку Start)
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
+      // Показываем область игры и кнопки управления
       document.getElementById('gameWrapper').style.display = 'block';
+      document.getElementById('controlls').style.display = 'flex';
 
       initGame();
       if (!renderer) {
