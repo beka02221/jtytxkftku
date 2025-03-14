@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crossy Road 3D Vertical с меню</title>
+  <title>Crossy Road 3D Vertical с меню и итогами</title>
 
   <!-- Font: Press Start 2P -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -115,12 +115,10 @@
       left: 0;
       width: 100%;
       height: 100%;
-      display: none;  /* Скрыты до старта игры */
+      display: none;
       align-items: flex-end;
       justify-content: center;
       z-index: 1100;
-      /* Временно для отладки можно задать фон, затем удалить */
-      /* background: rgba(255, 0, 0, 0.2); */
     }
     #controlls div {
       display: grid;
@@ -146,25 +144,43 @@
     #controlls button svg path {
       fill: white;
     }
-    /* Окончание игры */
-    #end {
+    /* Окончание игры – модальное окно */
+    .modal-backdrop {
       position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      display: flex;
+      background: rgba(0,0,0,0.7);
+      display: none;
       align-items: center;
       justify-content: center;
-      visibility: hidden;
-      z-index: 1000;
+      z-index: 1200;
     }
-    #end button {
-      background-color: red;
-      padding: 20px 50px;
-      font-family: inherit;
-      font-size: inherit;
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      padding: 20px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      color: #FF00FF;
+      font-size: 14px;
+    }
+    .modal button {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: #06B6D1;
+      color: #262626;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
     }
     /* Canvas занимает весь экран, ниже контролов */
     canvas {
@@ -200,7 +216,7 @@
     <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
-  <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
+  <!-- Игровой счётчик и контролы (изначально контролы скрыты) -->
   <div id="counter">0</div>
   <div id="controlls">
     <div>
@@ -235,14 +251,19 @@
     </div>
   </div>
 
-  <!-- Окончание игры -->
-  <div id="end">
-    <button id="retry">Retry</button>
+  <!-- Модальное окно окончания игры -->
+  <div id="endModal" class="modal-backdrop">
+    <div class="modal">
+      <h2 id="endTitle">Game Over!</h2>
+      <p id="endMessage">Your score: 0</p>
+      <button onclick="window.location.href='index.html'">OK</button>
+    </div>
   </div>
 
-  <!-- Звуки (фон и звук движения) -->
+  <!-- Звуки: фоновая музыка, звук движения и звук смерти -->
   <audio id="bgSound" src="background.mp3" loop></audio>
   <audio id="moveSound" src="move.mp3"></audio>
+  <audio id="deathSound" src="death.mp3"></audio>
 
   <script>
     /* ----------------------------------------
@@ -697,23 +718,28 @@
       moves.push(direction);
     }
 
-    // Функция завершения игры: прибавляем очки (каждый шаг = 1 point) к балансу в Firebase
+    // Функция завершения игры: обновляет очки, проигрывает звук смерти и показывает модальное окно
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
+      // Каждый шаг считается за 1 point – прибавляем текущее значение currentLane к очкам
       localUserData.points += currentLane;
       if (userRef) userRef.update({ points: localUserData.points });
       // Скрываем контролы
       document.getElementById('controlls').style.display = 'none';
-      document.getElementById('end').style.visibility = 'visible';
+      // Проигрываем звук смерти
+      const deathSound = document.getElementById('deathSound');
+      deathSound.currentTime = 0;
+      deathSound.play().catch(err => console.log(err));
+      // Показываем модальное окно с итогами
+      document.getElementById('endModal').classList.add('active');
+      document.getElementById('endMessage').textContent = "Your score: " + currentLane;
     }
 
-    // Обработчик кнопки Retry
+    // Обработчик кнопки Retry (модальное окно)
     document.getElementById('retry').addEventListener("click", () => {
-      lanes.forEach(lane => scene.remove(lane.mesh));
-      initGame();
-      document.getElementById('end').style.visibility = 'hidden';
-      gameEnded = false;
+      // При клике на Retry переходим на index.html
+      window.location.href = 'index.html';
     });
 
     // Главный игровой цикл
@@ -829,6 +855,7 @@
     /* ----------------------------------------
        3. Функция старта игры
     ---------------------------------------- */
+    // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
