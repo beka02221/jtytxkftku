@@ -79,7 +79,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Обёртка для меню – изначально видна */
+    /* Меню игры – изначально видно */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -116,8 +116,7 @@
       display: none;
       align-items: flex-end;
       justify-content: center;
-      pointer-events: none;
-      z-index: 1000;
+      z-index: 1100;
     }
     #controlls div {
       display: grid;
@@ -129,7 +128,6 @@
         ". forward ."
         "left . right"
         ". backward .";
-      pointer-events: auto;
     }
     #forward { grid-area: forward; }
     #left { grid-area: left; }
@@ -158,6 +156,11 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    /* Задаём canvas нижний слой */
+    canvas {
+      position: absolute;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
@@ -181,7 +184,7 @@
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
 
-  <!-- Меню игры – пока игра не запущена -->
+  <!-- Меню игры – изначально видимо -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
     <!-- Здесь будет добавлен canvas Three.js после старта игры -->
@@ -232,9 +235,9 @@
   <audio id="moveSound" src="move.mp3"></audio>
 
   <script>
-    /* ------------------------
-       1. Firebase и Telegram
-    ------------------------ */
+    /* ----------------------------------------
+       1. Firebase и Telegram инициализация
+    ---------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -299,9 +302,9 @@
       window.location.href = 'index.html';
     }
 
-    /* ------------------------
+    /* ----------------------------------------
        2. Игровой код (3D Crossy Road)
-    ------------------------ */
+    ---------------------------------------- */
     let scene, camera, renderer;
     let cameraOffset = { x: 0, y: -400, z: 600 };
     let zoom = 2;
@@ -316,9 +319,9 @@
     const laneSpeeds = [2, 2.5, 3];
     const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const threeHeights = [20, 45, 60];
-    let gameEnded = false; // Для предотвращения повторного вызова endGame
+    let gameEnded = false; // для предотвращения повторного вызова endGame
 
-    // Инициализация сцены, камеры, освещения, объектов
+    // Инициализация сцены, камеры, освещения и объектов
     function initGame() {
       gameEnded = false;
       scene = new THREE.Scene();
@@ -331,7 +334,6 @@
       scene.add(hemiLight);
 
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      // Если курица уже существует – позиционируем относительно неё, иначе по offset
       dirLight.position.set(chicken ? chicken.position.x + cameraOffset.x : cameraOffset.x,
                               chicken ? chicken.position.y + cameraOffset.y : cameraOffset.y,
                               cameraOffset.z);
@@ -645,7 +647,7 @@
     // Звук движения (move.mp3 должен быть доступен по указанному пути)
     const moveSound = new Audio("move.mp3");
 
-    // Обработчики кнопок управления (будут активны только после старта игры)
+    // Обработчики кнопок управления (будут активны после старта игры)
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
     document.getElementById('left').addEventListener("click", () => move('left'));
@@ -685,25 +687,22 @@
       moves.push(direction);
     }
 
-    // Функция завершения игры: обновляет баллы в Firebase и скрывает элементы управления
+    // Функция завершения игры: прибавляет баллы (каждый шаг = 1 point) в Firebase
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
-      // Каждый шаг считается за 1 point; прибавляем значение currentLane к баллам
       localUserData.points += currentLane;
       if (userRef) userRef.update({ points: localUserData.points });
-      // Скрываем кнопки управления
+      // Скрываем контролы
       document.getElementById('controlls').style.display = 'none';
-      // Показываем окно окончания игры
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Обработчик кнопки Retry: сбрасывает игру (баллы остаются обновлёнными)
+    // Обработчик кнопки Retry
     document.getElementById('retry').addEventListener("click", () => {
       lanes.forEach(lane => scene.remove(lane.mesh));
       initGame();
       document.getElementById('end').style.visibility = 'hidden';
-      // Если нужно – можно также перезапустить анимацию (она уже работает бесконечно)
       gameEnded = false;
     });
 
@@ -798,7 +797,7 @@
         }
       }
 
-      // Проверка столкновений: если курица сталкивается с транспортным средством, игра завершается
+      // Проверка столкновений
       if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
         const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
@@ -817,10 +816,10 @@
     }
     requestAnimationFrame(animate);
 
-    /* ------------------------
+    /* ----------------------------------------
        3. Функция старта игры
-    ------------------------ */
-    // Фоновая музыка запускается при первом клике на body (из-за ограничений браузера)
+    ---------------------------------------- */
+    // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -836,7 +835,7 @@
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем меню (header, back и кнопку Start)
+      // Скрываем меню: header, back и кнопку Start
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
