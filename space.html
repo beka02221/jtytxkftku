@@ -79,7 +79,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню игры – изначально видно */
+    /* Меню игры – изначально видимо */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -88,7 +88,7 @@
     /* Кнопка Start – по центру меню */
     #startBtn {
       position: absolute;
-      z-index: 10;
+      z-index: 1100;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -111,12 +111,16 @@
     /* Контролы игры – изначально скрыты */
     #controlls {
       position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      display: none;
+      display: none;  /* Скрыты до старта игры */
       align-items: flex-end;
       justify-content: center;
       z-index: 1100;
+      /* Временно для отладки можно задать фон, затем удалить */
+      /* background: rgba(255, 0, 0, 0.2); */
     }
     #controlls div {
       display: grid;
@@ -133,6 +137,12 @@
     #left { grid-area: left; }
     #backward { grid-area: backward; }
     #right { grid-area: right; }
+    #controlls button {
+      background: black;
+      border: 1px solid white;
+      box-shadow: 3px 5px 0 rgba(0, 0, 0, 0.75);
+      cursor: pointer;
+    }
     #controlls button svg path {
       fill: white;
     }
@@ -156,7 +166,7 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    /* Задаём canvas нижний слой */
+    /* Canvas занимает весь экран, ниже контролов */
     canvas {
       position: absolute;
       z-index: 1;
@@ -184,13 +194,13 @@
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
 
-  <!-- Меню игры – изначально видимо -->
+  <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
     <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
-  <!-- Игровые элементы (счётчик, контролы, окончание игры) -->
+  <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
   <div id="counter">0</div>
   <div id="controlls">
     <div>
@@ -319,7 +329,7 @@
     const laneSpeeds = [2, 2.5, 3];
     const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const threeHeights = [20, 45, 60];
-    let gameEnded = false; // для предотвращения повторного вызова endGame
+    let gameEnded = false;
 
     // Инициализация сцены, камеры, освещения и объектов
     function initGame() {
@@ -644,10 +654,10 @@
       }
     }
 
-    // Звук движения (move.mp3 должен быть доступен по указанному пути)
+    // Звук движения
     const moveSound = new Audio("move.mp3");
 
-    // Обработчики кнопок управления (будут активны после старта игры)
+    // Обработчики кнопок управления (активны после старта игры)
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
     document.getElementById('left').addEventListener("click", () => move('left'));
@@ -687,7 +697,7 @@
       moves.push(direction);
     }
 
-    // Функция завершения игры: прибавляет баллы (каждый шаг = 1 point) в Firebase
+    // Функция завершения игры: прибавляем очки (каждый шаг = 1 point) к балансу в Firebase
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
@@ -819,7 +829,6 @@
     /* ----------------------------------------
        3. Функция старта игры
     ---------------------------------------- */
-    // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -839,7 +848,7 @@
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
-      // Показываем область игры и кнопки управления
+      // Показываем область игры и контролы
       document.getElementById('gameWrapper').style.display = 'block';
       document.getElementById('controlls').style.display = 'flex';
 
