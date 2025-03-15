@@ -150,6 +150,7 @@
           <button id="miniGamesInfoBtn" class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
+          <!-- Игра STACK (game2) – при нажатии происходит переход на stack.html без списания билетов -->
           <div class="game-card">
             <img src="https://raw.githubusercontent.com/qnexst/404token/main/1.jpg" alt="Match-3">
             <p id="gameCard2Title">STACK</p>
@@ -157,18 +158,19 @@
               gameId: 'game2',
               title: 'STACK',
               img: 'https://img.icons8.com/external-icongeek26-glyph-icongeek26/64/00FF00/external-candy-alimentation-icongeek26-glyph-icongeek26.png',
-              desc: 'Stack is a casual arcade game where you carefully stack moving blocks on top of each other to build the highest tower possible. In this version, each correctly placed block awards you 1 star, and the game lasts for 5 minutes, challenging your precision and timing as you aim to accumulate as many stars as you can.',
+              desc: 'Stack is a casual arcade game where you carefully stack moving blocks. Click play to open the dedicated page.',
               cost: 1
             })">More Details</button>
           </div>
+          <!-- Игра TETRIS (game3) – списываются билеты и запускается игра -->
           <div class="game-card">
             <img src="https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg" alt="Game 3">
             <p id="gameCard3Title">TETRIS</p>
             <button id="gameCard3Button" onclick="openGameInfoModal({
               gameId: 'game3',
-              title: 'Game 3',
+              title: 'TETRIS',
               img: 'https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg',
-              desc: 'Tetris is a classic tile-matching puzzle game where you strategically arrange falling tetrominoes to create complete rows. In this version, every cleared row rewards you with 30 stars, adding an extra sparkle to your gameplay as you aim for the highest score.',
+              desc: 'Tetris is a classic tile-matching puzzle game. Each cleared row awards you 30 stars.',
               cost: 1
             })">More Details</button>
           </div>
@@ -179,7 +181,7 @@
               gameId: 'game4',
               title: 'Crossy Road',
               img: 'photo',
-              desc: 'Crossy Road is a fast-paced, endless arcade game where you navigate through busy roads and obstacles. In this version, every step you take earns you 1 star, and you have 5 minutes to collect as many stars as possible, adding an extra layer of challenge to your adventure.',
+              desc: 'Crossy Road is a fast-paced arcade game where every step earns you 1 star.',
               cost: 1
             })">More Details</button>
           </div>
@@ -191,7 +193,7 @@
               gameId: 'breakout',
               title: 'Breakout',
               img: 'https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg',
-              desc: 'Breakout is a classic arcade game where you control a paddle to bounce a ball and break bricks arranged in patterns. In this version, each broken brick awards you 5 stars, offering an extra incentive for precise and skillful play.',
+              desc: 'Breakout is a classic arcade game where each broken brick awards you 5 stars.',
               cost: 1
             })">More Details</button>
           </div>
@@ -371,15 +373,8 @@
   <div class="game-modal-backdrop" id="gameModalBackdrop">
     <div class="game-modal-content">
       <div class="game-canvas">
-         <canvas id="gameCanvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <canvas id="match3Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <canvas id="partnerGameCanvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <canvas id="game3Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <canvas id="game4Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <canvas id="game5Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <canvas id="game6Canvas" width="400" height="740" style="display: block; position: relative; top: -0px;"></canvas>
-         <!-- Новый canvas для Breakout -->
-         <canvas id="breakoutCanvas" width="400" height="740" style="display: none; position: relative; top: -0px;"></canvas>
+         <!-- Оставлен только canvas для TETRIS (game3) -->
+         <canvas id="game3Canvas" width="400" height="740" style="display: none; position: relative; top: -0px;"></canvas>
       </div>
     </div>
   </div>
@@ -583,7 +578,12 @@
         return;
       }
       
-      // Если игра перенаправляет на другую страницу, списание билета не выполняется
+      // Если игра STACK – открываем stack.html без списания билетов
+      if (gameName === 'game2') {
+        window.location.href = 'stack.html';
+        return;
+      }
+      // Если игра партнерская, Breakout или Crossy Road – выполняем редирект
       if (gameName === 'partnergame1') {
         window.location.href = 'partnergame.html';
         return;
@@ -595,46 +595,23 @@
         return;
       }
       
-      // Для игр, реализованных на JS (например, Tetris), проверяем наличие билетов и списываем их
-      if ((localUserData.tickets || 0) < ticketCost) {
-        showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
-        return;
-      }
-      localUserData.tickets -= ticketCost;
-      updateTopBar();
-      userRef.update({ tickets: localUserData.tickets });
-      
-      // Продолжаем стандартный процесс запуска игры
-      currentGame = gameName;
-      gameInProgress = true;
-      document.getElementById('mainNav').classList.add('hidden');
-
-      document.getElementById('gameCanvas').style.display = 'none';
-      document.getElementById('match3Canvas').style.display = 'none';
-      document.getElementById('partnerGameCanvas').style.display = 'none';
-      document.getElementById('game3Canvas').style.display = 'none';
-      document.getElementById('game4Canvas').style.display = 'none';
-      document.getElementById('game5Canvas').style.display = 'none';
-      document.getElementById('game6Canvas').style.display = 'none';
-      document.getElementById('breakoutCanvas').style.display = 'none';
-
-      document.getElementById('gameModalBackdrop').classList.add('active');
-
-      if (gameName === 'game1') {
-        document.getElementById('gameCanvas').style.display = 'block';
-        initGame1();
-      } else if (gameName === 'game2') {
-        document.getElementById('match3Canvas').style.display = 'block';
-        initGame2();
-      } else if (gameName === 'game3') {
+      // Для Tetris (game3) проверяем наличие билетов и списываем их
+      if (gameName === 'game3') {
+        if ((localUserData.tickets || 0) < ticketCost) {
+          showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
+          return;
+        }
+        localUserData.tickets -= ticketCost;
+        updateTopBar();
+        userRef.update({ tickets: localUserData.tickets });
+        
+        currentGame = gameName;
+        gameInProgress = true;
+        document.getElementById('mainNav').classList.add('hidden');
+        
+        // Показываем только canvas для Tetris
         document.getElementById('game3Canvas').style.display = 'block';
         initGame3();
-      } else if (gameName === 'game5') {
-        document.getElementById('game5Canvas').style.display = 'block';
-        initGame5();
-      } else if (gameName === 'game6') {
-        document.getElementById('game6Canvas').style.display = 'block';
-        initGame6();
       }
     }
 
@@ -657,22 +634,8 @@
       if (userRef && currentGame) {
         userRef.update({ points: localUserData.points });
       }
-      if (currentGame === 'game1') {
-        resetGame1();
-      } else if (currentGame === 'game2') {
-        resetGame2();
-      } else if (currentGame === 'partnergame1') {
-        resetPartnerGame1();
-      } else if (currentGame === 'game3') {
+      if (currentGame === 'game3') {
         resetGame3();
-      } else if (currentGame === 'game4') {
-        resetGame4();
-      } else if (currentGame === 'game5') {
-        resetGame5();
-      } else if (currentGame === 'game6') {
-        resetGame6();
-      } else if (currentGame === 'breakout') {
-        resetBreakout();
       }
       currentGame = null;
       gameInProgress = false;
