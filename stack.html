@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Для мобильных устройств -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stack The Blocks с меню и Firebase</title>
+
+  <!-- Font для игры -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Cannon.js (старой версии для совместимости с исходным кодом) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+  <style>
+    /* Стили меню и интерфейса */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #00103c;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      cursor: pointer;
+    }
+    /* Header с информацией о пользователе */
+    #header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background: #6d4fba;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #info {
+      display: flex;
+      gap: 20px;
+      font-size: 10px;
+      color: #fff;
+      align-items: center;
+    }
+    #info span {
+      white-space: nowrap;
+    }
+    .balance {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .balance img {
+      width: 16px;
+      height: 16px;
+    }
+    /* Кнопка Back */
+    #backContainer {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      z-index: 1000;
+    }
+    #backBtn {
+      font-size: 10px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Контейнер меню игры – содержит кнопку Start */
+    #gameWrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #startBtn {
+      position: absolute;
+      z-index: 1100;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      padding: 10px 20px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Счёт (количество слоёв) */
+    #score {
+      position: absolute;
+      color: white;
+      font-size: 3em;
+      font-weight: bold;
+      top: 30px;
+      right: 30px;
+      z-index: 1000;
+    }
+    /* YouTube баннер (как в оригинале) */
+    #youtube,
+    #youtube-card {
+      display: none;
+      color: black;
+    }
+    @media (min-height: 425px) {
+      #youtube {
+        z-index: 50;
+        width: 100px;
+        height: 70px;
+        position: fixed;
+        bottom: 20px;
+        transform: scale(0.8);
+        transition: transform 0.5s;
+      }
+      #youtube {
+        display: block;
+        background: red;
+        right: 20px;
+        border-radius: 50% / 11%;
+      }
+      #youtube:hover,
+      #youtube:focus {
+        transform: scale(0.9);
+        color: black;
+      }
+      #youtube::before {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 7.5%;
+        left: -6%;
+        width: 112%;
+        height: 85%;
+        background: red;
+        border-radius: 9% / 50%;
+      }
+      #youtube::after {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 20px;
+        left: 40px;
+        width: 45px;
+        height: 30px;
+        border: 15px solid transparent;
+        box-sizing: border-box;
+        border-left: 30px solid white;
+      }
+      #youtube span {
+        font-size: 0;
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+      #youtube:hover + #youtube-card {
+        z-index: 49;
+        display: block;
+        position: fixed;
+        bottom: 12px;
+        width: 300px;
+        background-color: white;
+      }
+      #youtube:hover + #youtube-card {
+        right: 10px;
+        padding: 25px 130px 25px 25px;
+      }
+    }
+    /* Контролы игры (элементы для управления блоками) – по умолчанию скрыты */
+    #controlls {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1100;
+    }
+    #controlls div {
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 10px;
+      margin-bottom: 20px;
+      grid-template-areas:
+        ". forward ."
+        "left . right"
+        ". backward .";
+    }
+    #forward { grid-area: forward; }
+    #left { grid-area: left; }
+    #backward { grid-area: backward; }
+    #right { grid-area: right; }
+    #controlls button {
+      background: black;
+      border: 1px solid white;
+      box-shadow: 3px 5px 0 rgba(0,0,0,0.75);
+      cursor: pointer;
+    }
+    #controlls button svg path {
+      fill: white;
+    }
+    /* Модальное окно для окончания игры или уведомлений */
+    #end {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
+      z-index: 1200;
+      background: rgba(0,0,0,0.7);
+    }
+    #end .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      padding: 20px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      color: #FF00FF;
+      font-size: 14px;
+    }
+    #end .modal button {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Canvas занимает весь экран */
+    canvas {
+      position: absolute;
+      z-index: 1;
+    }
+    /* Инструкции и результаты игры (из оригинального кода) */
+    #instructions {
+      display: none;
+    }
+    #results,
+    body:hover #instructions {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(20,20,20,0.75);
+    }
+    #results {
+      display: none;
+      cursor: default;
+    }
+    #results .content,
+    #instructions .content {
+      max-width: 300px;
+      padding: 50px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Меню с информацией о пользователе -->
+  <div id="header">
+    <div id="info">
+      <span id="username">@User</span>
+      <div class="balance">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Ticket">
+        <span id="ticketCount">0</span>
+      </div>
+      <div class="balance">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png" alt="Points">
+        <span id="pointCount">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Временной индикатор (появляется после старта игры) -->
+  <div id="timeBarContainer">
+    <div id="timeBar"></div>
+  </div>
+
+  <!-- Кнопка Back -->
+  <div id="backContainer">
+    <button id="backBtn" onclick="goBack()">Back</button>
+  </div>
+
+  <!-- Меню игры -->
+  <div id="gameWrapper">
+    <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
+    <!-- Здесь будет добавлен canvas после старта игры -->
+  </div>
+
+  <!-- Игровой счётчик и контролы (для управления игрой, появятся после старта) -->
+  <div id="score">0</div>
+  <div id="controlls">
+    <div>
+      <button id="forward">
+        <svg width="30" height="30" viewBox="0 0 10 10">
+          <g transform="rotate(0,5,5)">
+            <path d="M5,4 L7,6 L3,6 L5,4" />
+          </g>
+        </svg>
+      </button>
+      <button id="left">
+        <svg width="30" height="30" viewBox="0 0 10 10">
+          <g transform="rotate(-90,5,5)">
+            <path d="M5,4 L7,6 L3,6 L5,4" />
+          </g>
+        </svg>
+      </button>
+      <button id="backward">
+        <svg width="30" height="30" viewBox="0 0 10 10">
+          <g transform="rotate(180,5,5)">
+            <path d="M5,4 L7,6 L3,6 L5,4" />
+          </g>
+        </svg>
+      </button>
+      <button id="right">
+        <svg width="30" height="30" viewBox="0 0 10 10">
+          <g transform="rotate(90,5,5)">
+            <path d="M5,4 L7,6 L3,6 L5,4" />
+          </g>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Инструкции и результаты (как в оригинале) -->
+  <div id="instructions">
+    <div class="content">
+      <p>Stack the blocks on top of each other</p>
+      <p>Click, tap or press Space when a block is above the stack. Can you reach the blue color blocks?</p>
+      <p>Click, tap or press Space to start game</p>
+    </div>
+  </div>
+  <div id="results">
+    <div class="content">
+      <p>You missed the block</p>
+      <p>To reset the game press R</p>
+      <p>
+        Follow me
+        <a href="https://twitter.com/HunorBorbely" target="_top">@HunorBorbely</a>
+      </p>
+    </div>
+  </div>
+  <div id="score">0</div>
+
+  <a id="youtube" target="_top" href="https://youtu.be/hBiGFpBle7E">
+    <span>Learn Three.js + Cannon.js</span>
+  </a>
+  <div id="youtube-card">
+    Learn Three.js + Cannon.js while building this game
+  </div>
+
+  <!-- Модальное окно для уведомлений и окончания игры -->
+  <div id="end">
+    <div class="modal">
+      <h2 id="endTitle"></h2>
+      <p id="endMessage"></p>
+      <button id="endBtn">OK</button>
+    </div>
+  </div>
+
+  <!-- Звуки -->
+  <audio id="bgSound" src="background.mp3" loop></audio>
+  <audio id="moveSound" src="move.mp3"></audio>
+  <audio id="deathSound" src="death.mp3"></audio>
+
+  <script>
+    /******** Firebase и Telegram ********/
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev-ex",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes.appspot.com",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let tg = null;
+    if (window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.expand();
+    }
+
+    let currentUser = null;
+    let userRef = null;
+    let localUserData = { tickets: 0, points: 0 };
+    let dataLoaded = false;
+    // Если данные не загрузились за 3 секунды, разрешаем старт
+    setTimeout(() => { dataLoaded = true; }, 3000);
+
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUser = tg.initDataUnsafe.user;
+      document.getElementById('username').textContent = '@' + currentUser.username;
+      userRef = db.ref('users/' + currentUser.username);
+      userRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          userRef.set({ tickets: 5, points: 0 });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points = data.points || 0;
+        updateHeader();
+        dataLoaded = true;
+      });
+    } else {
+      currentUser = { username: 'TestUser' };
+      document.getElementById('username').textContent = '@TestUser';
+      userRef = db.ref('users/TestUser');
+      userRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          userRef.set({ tickets: 5, points: 0 });
+        }
+      });
+      userRef.on('value', snapshot => {
+        const data = snapshot.val() || {};
+        localUserData.tickets = data.tickets || 0;
+        localUserData.points = data.points || 0;
+        updateHeader();
+        dataLoaded = true;
+      });
+    }
+
+    function updateHeader() {
+      document.getElementById('ticketCount').textContent = localUserData.tickets;
+      document.getElementById('pointCount').textContent = localUserData.points;
+    }
+
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+    let modalType = "gameOver"; // "gameOver" или "noTickets"
+    document.getElementById('endBtn').addEventListener('click', function() {
+      if (modalType === "gameOver") {
+        goToIndex();
+      } else if (modalType === "noTickets") {
+        document.getElementById('end').style.visibility = 'hidden';
+      }
+    });
+    function goToIndex() {
+      window.location.href = 'index.html';
+    }
+
+    /******** Стековая игра (Stack the Blocks) ********/
+    window.focus(); // Сразу фокус для перехвата клавиш
+
+    // Глобальные переменные для Three.js и Cannon.js
+    let camera3D, scene, renderer, world;
+    let lastTime; 
+    let stack, overhangs;
+    const boxHeight = 1;
+    const originalBoxSize = 3;
+    let autopilot;
+    let gameEnded;
+    let robotPrecision;
+    
+    // Элементы из HTML
+    const scoreElement = document.getElementById("score");
+    const instructionsElement = document.getElementById("instructions");
+    const resultsElement = document.getElementById("results");
+    
+    // Устанавливаем точность робота (автопилота)
+    function setRobotPrecision() {
+      robotPrecision = Math.random() * 1 - 0.5;
+    }
+    
+    // Инициализация игры
+    function initStackGame() {
+      autopilot = true;
+      gameEnded = false;
+      lastTime = 0;
+      stack = [];
+      overhangs = [];
+      setRobotPrecision();
+      
+      // Инициализация CannonJS
+      world = new CANNON.World();
+      world.gravity.set(0, -10, 0);
+      world.broadphase = new CANNON.NaiveBroadphase();
+      world.solver.iterations = 40;
+      
+      // Инициализация Three.js (используем ортографическую камеру)
+      const aspect = window.innerWidth / window.innerHeight;
+      const width = 10;
+      const height = width / aspect;
+      camera3D = new THREE.OrthographicCamera(
+        width / -2, width / 2, height / 2, height / -2, 0, 100
+      );
+      camera3D.position.set(4, 4, 4);
+      camera3D.lookAt(0, 0, 0);
+      
+      scene = new THREE.Scene();
+      
+      // Добавляем первый слой (фундамент)
+      addLayer(0, 0, originalBoxSize, originalBoxSize);
+      // Первый двигающийся слой
+      addLayer(-10, 0, originalBoxSize, originalBoxSize, "x");
+      
+      // Освещение
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(10, 20, 0);
+      scene.add(dirLight);
+      
+      // Рендерер
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setAnimationLoop(animation);
+      // Добавляем canvas в документ (если ещё не добавлен)
+      if (!document.body.contains(renderer.domElement)) {
+        document.body.appendChild(renderer.domElement);
+      }
+    }
+    
+    // Функция добавления слоя (блока)
+    function addLayer(x, z, width, depth, direction) {
+      const y = boxHeight * stack.length;
+      const layer = generateBox(x, y, z, width, depth, false);
+      layer.direction = direction;
+      stack.push(layer);
+    }
+    
+    // Функция добавления нависающего блока (overhang)
+    function addOverhang(x, z, width, depth) {
+      const y = boxHeight * (stack.length - 1);
+      const overhang = generateBox(x, y, z, width, depth, true);
+      overhangs.push(overhang);
+    }
+    
+    // Генерация блока
+    function generateBox(x, y, z, width, depth, falls) {
+      // Three.js
+      const geometry = new THREE.BoxGeometry(width, boxHeight, depth);
+      const color = new THREE.Color(`hsl(${30 + stack.length * 4}, 100%, 50%)`);
+      const material = new THREE.MeshLambertMaterial({ color });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+      
+      // Cannon.js
+      const shape = new CANNON.Box(new CANNON.Vec3(width / 2, boxHeight / 2, depth / 2));
+      let mass = falls ? 5 : 0;
+      mass *= width / originalBoxSize;
+      mass *= depth / originalBoxSize;
+      const body = new CANNON.Body({ mass, shape });
+      body.position.set(x, y, z);
+      world.addBody(body);
+      
+      return {
+        threejs: mesh,
+        cannonjs: body,
+        width,
+        depth
+      };
+    }
+    
+    // Функция обрезки верхнего блока (если перекрытие есть)
+    function cutBox(topLayer, overlap, size, delta) {
+      const direction = topLayer.direction;
+      const newWidth = direction == "x" ? overlap : topLayer.width;
+      const newDepth = direction == "z" ? overlap : topLayer.depth;
+      
+      topLayer.width = newWidth;
+      topLayer.depth = newDepth;
+      
+      topLayer.threejs.scale[direction] = overlap / size;
+      topLayer.threejs.position[direction] -= delta / 2;
+      
+      topLayer.cannonjs.position[direction] -= delta / 2;
+      
+      const shape = new CANNON.Box(new CANNON.Vec3(newWidth / 2, boxHeight / 2, newDepth / 2));
+      topLayer.cannonjs.shapes = [];
+      topLayer.cannonjs.addShape(shape);
+    }
+    
+    function eventHandler() {
+      if (autopilot) startStackGame();
+      else splitBlockAndAddNextOneIfOverlaps();
+    }
+    
+    // Функция старта игры (при первом нажатии)
+    function startStackGame() {
+      autopilot = false;
+      gameEnded = false;
+      lastTime = 0;
+      stack = [];
+      overhangs = [];
+      setRobotPrecision();
+      
+      // Скрываем инструкции, если они есть
+      if (instructionsElement) instructionsElement.style.display = "none";
+      if (resultsElement) resultsElement.style.display = "none";
+      if (scoreElement) scoreElement.innerText = 0;
+      
+      // Инициализируем игру
+      initStackGame();
+    }
+    
+    // При нажатии (мышь, касание или пробел) запускается игра или происходит действие
+    window.addEventListener("mousedown", eventHandler);
+    window.addEventListener("touchstart", eventHandler);
+    window.addEventListener("keydown", function (event) {
+      if (event.key == " ") {
+        event.preventDefault();
+        eventHandler();
+      }
+      if (event.key == "R" || event.key == "r") {
+        event.preventDefault();
+        startStackGame();
+      }
+    });
+    
+    // Функция, которая проверяет позицию верхнего блока и обрезает его или завершает игру
+    function splitBlockAndAddNextOneIfOverlaps() {
+      if (gameEnded) return;
+      
+      const topLayer = stack[stack.length - 1];
+      const previousLayer = stack[stack.length - 2];
+      
+      const direction = topLayer.direction;
+      const size = direction == "x" ? topLayer.width : topLayer.depth;
+      const delta = topLayer.threejs.position[direction] - previousLayer.threejs.position[direction];
+      const overhangSize = Math.abs(delta);
+      const overlap = size - overhangSize;
+      
+      if (overlap > 0) {
+        cutBox(topLayer, overlap, size, delta);
+        
+        const overhangShift = (overlap / 2 + overhangSize / 2) * Math.sign(delta);
+        const overhangX = direction == "x" ? topLayer.threejs.position.x + overhangShift : topLayer.threejs.position.x;
+        const overhangZ = direction == "z" ? topLayer.threejs.position.z + overhangShift : topLayer.threejs.position.z;
+        const overhangWidth = direction == "x" ? overhangSize : topLayer.width;
+        const overhangDepth = direction == "z" ? overhangSize : topLayer.depth;
+        
+        addOverhang(overhangX, overhangZ, overhangWidth, overhangDepth);
+        
+        const nextX = direction == "x" ? topLayer.threejs.position.x : -10;
+        const nextZ = direction == "z" ? topLayer.threejs.position.z : -10;
+        const newWidth = topLayer.width;
+        const newDepth = topLayer.depth;
+        const nextDirection = direction == "x" ? "z" : "x";
+        
+        scoreElement.innerText = stack.length - 1;
+        addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);
+      } else {
+        missedTheSpot();
+      }
+    }
+    
+    function missedTheSpot() {
+      const topLayer = stack[stack.length - 1];
+      addOverhang(
+        topLayer.threejs.position.x,
+        topLayer.threejs.position.z,
+        topLayer.width,
+        topLayer.depth
+      );
+      world.remove(topLayer.cannonjs);
+      scene.remove(topLayer.threejs);
+      
+      gameEnded = true;
+      if (resultsElement && !autopilot) resultsElement.style.display = "flex";
+    }
+    
+    function animation(time) {
+      if (lastTime) {
+        const timePassed = time - lastTime;
+        const speed = 0.008;
+        
+        const topLayer = stack[stack.length - 1];
+        const previousLayer = stack[stack.length - 2];
+        
+        const boxShouldMove =
+          !gameEnded &&
+          (!autopilot ||
+           (autopilot &&
+            topLayer.threejs.position[topLayer.direction] <
+              previousLayer.threejs.position[topLayer.direction] + robotPrecision));
+        
+        if (boxShouldMove) {
+          topLayer.threejs.position[topLayer.direction] += speed * timePassed;
+          topLayer.cannonjs.position[topLayer.direction] += speed * timePassed;
+          
+          if (topLayer.threejs.position[topLayer.direction] > 10) {
+            missedTheSpot();
+          }
+        } else {
+          if (autopilot) {
+            splitBlockAndAddNextOneIfOverlaps();
+            setRobotPrecision();
+          }
+        }
+        
+        if (camera3D.position.y < boxHeight * (stack.length - 2) + 4) {
+          camera3D.position.y += speed * timePassed;
+        }
+        
+        updatePhysics(timePassed);
+        renderer.render(scene, camera3D);
+      }
+      lastTime = time;
+    }
+    
+    function updatePhysics(timePassed) {
+      world.step(timePassed / 1000);
+      overhangs.forEach((element) => {
+        element.threejs.position.copy(element.cannonjs.position);
+        element.threejs.quaternion.copy(element.cannonjs.quaternion);
+      });
+    }
+    
+    window.addEventListener("resize", () => {
+      const aspect = window.innerWidth / window.innerHeight;
+      const width = 10;
+      const height = width / aspect;
+      camera3D.left = width / -2;
+      camera3D.right = width / 2;
+      camera3D.top = height / 2;
+      camera3D.bottom = height / -2;
+      camera3D.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    /******** Главный игровой цикл ********/
+    window.addEventListener("keydown", (e) => {
+      if(e.key == "R" || e.key == "r") {
+        e.preventDefault();
+        startStackGame();
+      }
+    });
+    
+    // Запускаем анимацию
+    renderer && renderer.setAnimationLoop(animation);
+    
+    /******** Интеграция с интерфейсом Firebase/Telegram ********/
+    // Фоновая музыка запускается при первом клике
+    document.body.addEventListener('click', () => {
+      const bgSound = document.getElementById('bgSound');
+      if(bgSound.paused) {
+        bgSound.play().catch(err => console.log(err));
+      }
+    }, { once: true });
+    
+    // Функция, вызываемая при нажатии на кнопку Start (из меню)
+    function startGame() {
+      if (!dataLoaded || localUserData.tickets < 1) {
+        modalType = "noTickets";
+        showNoTicketsModal();
+        return;
+      }
+      localUserData.tickets--;
+      if(userRef) userRef.update({ tickets: localUserData.tickets });
+      updateHeader();
+      // Скрываем меню
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('backContainer').style.display = 'none';
+      document.getElementById('startBtn').style.display = 'none';
+      // Показываем область игры и контролы
+      document.getElementById('gameWrapper').style.display = 'block';
+      document.getElementById('controlls').style.display = 'flex';
+      // Показываем time bar, если нужно (для данного примера он можно оставить, даже если не используется в игре)
+      document.getElementById('timeBarContainer').style.display = 'block';
+      // Устанавливаем время старта игры для таймера (если потребуется)
+      gameStartTime = performance.now();
+      
+      // Запускаем игру
+      initStackGame();
+      if (!renderer) {
+        initRenderer();
+      }
+    }
+    
+    function showNoTicketsModal() {
+      modalType = "noTickets";
+      document.getElementById('endTitle').textContent = 'Not enough tickets!';
+      document.getElementById('endMessage').textContent = 'Please come back later.';
+      document.getElementById('end').style.visibility = 'visible';
+    }
+  </script>
+</body>
+</html>
