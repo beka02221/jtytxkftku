@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crossy Road 3D Vertical с меню и итогами</title>
+  <title>Crossy Road 3D Vertical с меню</title>
 
   <!-- Font: Press Start 2P -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -144,23 +144,21 @@
     #controlls button svg path {
       fill: white;
     }
-    /* Окончание игры – модальное окно */
-    .modal-backdrop {
+    /* Модальное окно окончания игры / уведомление */
+    #end {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
+      visibility: hidden;
       z-index: 1200;
+      background: rgba(0,0,0,0.7);
     }
-    .modal-backdrop.active {
-      display: flex;
-    }
-    .modal {
+    #end .modal {
       background: #222;
       border: 2px solid #0f0;
       border-radius: 8px;
@@ -171,7 +169,7 @@
       color: #FF00FF;
       font-size: 14px;
     }
-    .modal button {
+    #end .modal button {
       margin-top: 10px;
       font-size: 12px;
       padding: 6px 12px;
@@ -216,7 +214,7 @@
     <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
-  <!-- Игровой счётчик и контролы (изначально контролы скрыты) -->
+  <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
   <div id="counter">0</div>
   <div id="controlls">
     <div>
@@ -251,16 +249,16 @@
     </div>
   </div>
 
-  <!-- Модальное окно окончания игры -->
-  <div id="endModal" class="modal-backdrop">
+  <!-- Модальное окно для окончания игры или уведомления (скрыто по умолчанию) -->
+  <div id="end">
     <div class="modal">
-      <h2 id="endTitle">Game Over!</h2>
-      <p id="endMessage">Your score: 0</p>
-      <button onclick="window.location.href='index.html'">OK</button>
+      <h2 id="endTitle"></h2>
+      <p id="endMessage"></p>
+      <button id="endBtn" onclick="goToIndex()">OK</button>
     </div>
   </div>
 
-  <!-- Звуки: фоновая музыка, звук движения и звук смерти -->
+  <!-- Звуки -->
   <audio id="bgSound" src="background.mp3" loop></audio>
   <audio id="moveSound" src="move.mp3"></audio>
   <audio id="deathSound" src="death.mp3"></audio>
@@ -333,6 +331,10 @@
       window.location.href = 'index.html';
     }
 
+    function goToIndex() {
+      window.location.href = 'index.html';
+    }
+
     /* ----------------------------------------
        2. Игровой код (3D Crossy Road)
     ---------------------------------------- */
@@ -352,7 +354,6 @@
     const threeHeights = [20, 45, 60];
     let gameEnded = false;
 
-    // Инициализация сцены, камеры, освещения и объектов
     function initGame() {
       gameEnded = false;
       scene = new THREE.Scene();
@@ -397,7 +398,6 @@
       scene.add(chicken);
     }
 
-    // Создание рендерера и добавление в #gameWrapper
     function initRenderer() {
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
       renderer.shadowMap.enabled = true;
@@ -407,7 +407,7 @@
       document.getElementById('gameWrapper').appendChild(renderer.domElement);
     }
 
-    // Функция создания текстуры через Canvas
+    // Функция для создания текстур
     function Texture(width, height, rects) {
       const canvas = document.createElement("canvas");
       canvas.width = width;
@@ -718,29 +718,29 @@
       moves.push(direction);
     }
 
-    // Функция завершения игры: обновляет очки, проигрывает звук смерти и показывает модальное окно
+    // Функция завершения игры – воспроизводит звук смерти, записывает очки и показывает модальное окно
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
-      // Каждый шаг считается за 1 point – прибавляем текущее значение currentLane к очкам
+      // Воспроизводим звук смерти
+      document.getElementById('deathSound').play().catch(err => console.log(err));
+      // Каждый шаг считается за 1 point; прибавляем currentLane к баллам
       localUserData.points += currentLane;
       if (userRef) userRef.update({ points: localUserData.points });
       // Скрываем контролы
       document.getElementById('controlls').style.display = 'none';
-      // Проигрываем звук смерти
-      const deathSound = document.getElementById('deathSound');
-      deathSound.currentTime = 0;
-      deathSound.play().catch(err => console.log(err));
       // Показываем модальное окно с итогами
-      document.getElementById('endModal').classList.add('active');
-      document.getElementById('endMessage').textContent = "Your score: " + currentLane;
+      document.getElementById('endTitle').textContent = 'Game Over!';
+      document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
+      document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Обработчик кнопки Retry (модальное окно)
-    document.getElementById('retry').addEventListener("click", () => {
-      // При клике на Retry переходим на index.html
-      window.location.href = 'index.html';
-    });
+    // Если билетов нет – вместо alert показываем модальное окно
+    function showNoTicketsModal() {
+      document.getElementById('endTitle').textContent = 'Not enough tickets!';
+      document.getElementById('endMessage').textContent = 'Please come back later.';
+      document.getElementById('end').style.visibility = 'visible';
+    }
 
     // Главный игровой цикл
     function animate(timestamp) {
@@ -855,7 +855,6 @@
     /* ----------------------------------------
        3. Функция старта игры
     ---------------------------------------- */
-    // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -864,8 +863,9 @@
     }, { once: true });
 
     function startGame() {
+      // Если билетов недостаточно, показываем модальное окно и ничего не запускаем
       if (localUserData.tickets < 1) {
-        alert("Not enough tickets!");
+        showNoTicketsModal();
         return;
       }
       localUserData.tickets--;
@@ -887,3 +887,4 @@
   </script>
 </body>
 </html>
+
