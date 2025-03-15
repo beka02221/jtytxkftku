@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <title>The Stack Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <!-- Используем шрифт Comfortaa -->
+  
+  <!-- Шрифт Comfortaa -->
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa&display=swap" rel="stylesheet">
   
   <!-- Firebase SDK -->
@@ -14,7 +15,7 @@
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
-  <!-- THREE.js и GSAP (для игры The Stack) -->
+  <!-- THREE.js и GSAP для игры The Stack -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenLite.min.js"></script>
   
@@ -34,7 +35,7 @@
       height: 100%;
       position: relative;
     }
-    /* Header с информацией о пользователе */
+    /* Header с информацией (Telegram user, билеты, очки) */
     #header {
       position: absolute;
       top: 0;
@@ -83,7 +84,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Кнопка Start (начальный экран) */
+    /* Кнопка Start – начальный экран */
     #start-button {
       position: absolute;
       top: 50%;
@@ -98,28 +99,27 @@
       cursor: pointer;
       transition: opacity 0.5s ease, transform 0.5s ease;
     }
-    /* Контейнер для игры The Stack (canvas) */
+    /* Контейнер игры (The Stack) – изначально скрыт */
     #game {
       position: absolute;
       top: 0;
       right: 0;
       bottom: 0;
       left: 0;
-      display: none; /* появится после старта игры */
+      display: none;
     }
-    /* Счёт */
+    /* Счётчик – появляется только когда игра запущена */
     #score {
       position: absolute;
       top: 20px;
-      width: 100%;
-      text-align: center;
+      right: 20px;
       font-size: 10vh;
       color: #333344;
       transform: translateY(-200px) scale(1);
       z-index: 1000;
       display: none;
     }
-    /* Временной индикатор */
+    /* Временной индикатор – появляется только после старта игры */
     #timeBarContainer {
       position: absolute;
       top: 10px;
@@ -136,7 +136,7 @@
       height: 100%;
       background: #ff66cc;
     }
-    /* Модальное окно (Game Over / No Tickets) */
+    /* Модальное окно (Game Over или Not enough tickets) */
     #modalNoTickets {
       position: absolute;
       top: 0;
@@ -175,7 +175,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Canvas (от Stage) */
+    /* Canvas, добавляемый Stage */
     canvas {
       position: absolute;
       z-index: 1;
@@ -184,7 +184,7 @@
 </head>
 <body>
   <div id="container">
-    <!-- Header (user info) -->
+    <!-- Header с информацией -->
     <div id="header">
       <div id="info">
         <span id="username">@User</span>
@@ -198,25 +198,25 @@
         </div>
       </div>
     </div>
-    <!-- Back Button -->
+    <!-- Кнопка Back -->
     <div id="backContainer">
       <button id="backBtn">Back</button>
     </div>
-    <!-- Модальное окно для отсутствия билетов или если данные ещё не загружены -->
+    <!-- Модальное окно для уведомлений (Not enough tickets / Game Over) -->
     <div id="modalNoTickets">
       <div class="modal-content">
-        <h3 id="modalTitle">Not enough tickets!</h3>
-        <p id="modalMessage">Please come back later.</p>
-        <button id="closeNoTickets">OK</button>
+        <h3 id="modalTitle"></h3>
+        <p id="modalMessage"></p>
+        <button id="modalBtn">OK</button>
       </div>
     </div>
-    <!-- Контейнер для игры The Stack -->
+    <!-- Контейнер для игры (The Stack) -->
     <div id="game"></div>
-    <!-- Счёт (отображается во время игры) -->
+    <!-- Счёт (показывается только во время игры) -->
     <div id="score">0</div>
     <!-- Кнопка Start (начальный экран) -->
     <button id="start-button">Start (1 Ticket)</button>
-    <!-- Временной индикатор (появляется после старта игры) -->
+    <!-- Временной индикатор (появляется после старта) -->
     <div id="timeBarContainer">
       <div id="timeBar"></div>
     </div>
@@ -229,7 +229,7 @@
 
   <script>
     "use strict";
-    /* ---------- Firebase и Telegram интеграция ---------- */
+    /* -------------------- Firebase и Telegram -------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -252,15 +252,27 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
+    // Флаг, что данные загружены
     let dataLoaded = false;
+    // Если данные не загрузятся за 3 секунды, всё равно разрешаем старт
     setTimeout(() => { dataLoaded = true; }, 3000);
 
     const usernameElem = document.getElementById('username');
     const ticketCountElem = document.getElementById('ticketCount');
     const pointCountElem = document.getElementById('pointCount');
     const modalNoTickets = document.getElementById('modalNoTickets');
-    document.getElementById('closeNoTickets').addEventListener('click', () => {
-      modalNoTickets.classList.remove('active');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalBtn = document.getElementById('modalBtn');
+
+    modalBtn.addEventListener('click', () => {
+      // Если это уведомление о билета (noTickets), просто скрываем модал
+      // Если это Game Over, перенаправляем на index.html
+      if (modalType === "gameOver") {
+        window.location.href = 'index.html';
+      } else {
+        modalNoTickets.classList.remove('active');
+      }
     });
 
     document.getElementById('backBtn').addEventListener('click', () => {
@@ -306,7 +318,8 @@
       pointCountElem.textContent = localUserData.points;
     }
 
-    /* ---------- Логика The Stack Game ---------- */
+    /* -------------------- Логика The Stack Game -------------------- */
+    // Класс Stage (из примера игры The Stack)
     class Stage {
       constructor() {
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -347,6 +360,7 @@
       }
     }
 
+    // Класс Block
     class Block {
       constructor(block) {
         this.STATES = { ACTIVE: "active", STOPPED: "stopped", MISSED: "missed" };
@@ -425,10 +439,8 @@
           placedMesh.position.set(this.position.x, this.position.y, this.position.z);
           choppedMesh.position.set(choppedPosition.x, choppedPosition.y, choppedPosition.z);
           blocksToReturn.placed = placedMesh;
-          if (!blocksToReturn.bonus)
-            blocksToReturn.chopped = choppedMesh;
-        }
-        else {
+          if (!blocksToReturn.bonus) blocksToReturn.chopped = choppedMesh;
+        } else {
           this.state = this.STATES.MISSED;
         }
         this.dimension[this.workingDimension] = overlap;
@@ -437,8 +449,7 @@
       tick() {
         if (this.state == this.STATES.ACTIVE) {
           let value = this.position[this.workingPlane];
-          if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT)
-            this.reverseDirection();
+          if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT) this.reverseDirection();
           this.position[this.workingPlane] += this.direction;
           this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
         }
@@ -512,12 +523,20 @@
         let currentBlock = this.blocks[this.blocks.length - 1];
         let newBlocks = currentBlock.place();
         this.newBlocksGroup.remove(currentBlock.mesh);
-        if (newBlocks.placed)
-          this.placedBlocksGroup.add(newBlocks.placed);
+        if (newBlocks.placed) this.placedBlocksGroup.add(newBlocks.placed);
         if (newBlocks.chopped) {
           this.choppedBlocksGroup.add(newBlocks.chopped);
-          let posParams = { y: "-=30", ease: Power1.easeIn, onComplete: () => this.choppedBlocksGroup.remove(newBlocks.chopped) };
-          let rotateParams = { delay: 0.05, x: 0.1, z: 0.1, y: Math.random() * 0.1 };
+          let posParams = {
+            y: "-=30",
+            ease: Power1.easeIn,
+            onComplete: () => this.choppedBlocksGroup.remove(newBlocks.chopped)
+          };
+          let rotateParams = {
+            delay: 0.05,
+            x: 0.1,
+            z: 0.1,
+            y: Math.random() * 0.1
+          };
           if (newBlocks.plane == "z") rotateParams.x = Math.random() * 10 - 5;
           if (newBlocks.plane == "x") rotateParams.z = Math.random() * 10 - 5;
           if (newBlocks.chopped.position[newBlocks.plane] > newBlocks.placed.position[newBlocks.plane]) {
@@ -557,12 +576,11 @@
       }
     }
 
-    // Создаем экземпляр игры
     let stackGame = new StackGame();
 
     // Таймер игры (5 минут)
     let gameStartTime = null;
-    const gameDuration = 300000; // 5 минут в мс
+    const gameDuration = 300000; // 300000 мс = 5 минут
 
     function updateTimer(timestamp) {
       let timeBar = document.getElementById('timeBar');
@@ -580,21 +598,23 @@
       }
     }
 
-    function animate(timestamp) {
-      requestAnimationFrame(animate);
+    function timerAnimate(timestamp) {
+      requestAnimationFrame(timerAnimate);
       updateTimer(timestamp);
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(timerAnimate);
 
-    // Старт игры: скрываем все меню, показываем игру, счет и таймер
+    // Функция, запускающая игру (скрывает меню и показывает игру, счёт и таймер)
     function startStackGame() {
+      // Скрываем начальные элементы
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('start-button').style.display = 'none';
+      // Показываем область игры, счётчик и таймер
       document.getElementById('game').style.display = 'block';
       document.getElementById('score').style.display = 'block';
       document.getElementById('timeBarContainer').style.display = 'block';
-      // Запускаем игру
+      // Перезапускаем игру
       stackGame.restartGame();
       stackGame.startGame();
       gameStartTime = performance.now();
@@ -603,17 +623,20 @@
     // Обработчик стартовой кнопки
     document.getElementById('start-button').addEventListener('click', () => {
       if (!dataLoaded || localUserData.tickets < 1) {
-        showNoTicketsModal();
+        // Если данных еще нет или билетов недостаточно
+        modalTitle.textContent = "Not enough tickets!";
+        modalMessage.textContent = "Please come back later.";
+        modalNoTickets.classList.add("active");
         return;
       }
-      // Уменьшаем билет
+      // Уменьшаем количество билетов и обновляем Firebase
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
       startStackGame();
     });
 
-    // Фоновая музыка (из-за ограничений браузера)
+    // Фоновая музыка (запускается при первом клике)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -621,14 +644,25 @@
       }
     }, { once: true });
 
-    // Модальное окно "Not enough tickets" уже настроено выше
+    // Функция завершения игры – воспроизводит звук смерти, записывает очки и показывает модальное окно
+    function endGame() {
+      if (stackGame.state === "ENDED") return;
+      stackGame.state = "ENDED";
+      document.getElementById('deathSound').play().catch(err => console.log(err));
+      // Каждый блок = 1 point; итоговый счет = число поставленных блоков (без первого)
+      localUserData.points += (stackGame.blocks.length - 1);
+      if (userRef) userRef.update({ points: localUserData.points });
+      modalType = "gameOver";
+      document.getElementById('modalTitle').textContent = "Game Over!";
+      document.getElementById('modalMessage').textContent = "Your score: " + (stackGame.blocks.length - 1);
+      modalNoTickets.classList.add("active");
+    }
 
-    // При завершении игры (Game Over) мы считаем, что количество блоков = points,
-    // обновляем базу, и затем при нажатии на OK (в модальном окне) перенаправляем на index.html.
-    // Для этого в StackGame.endGame() используется класс "ENDED", а модальное окно
-    // выводится через CSS (например, добавив класс "ended" к container).
-    // Здесь мы просто слушаем кнопку OK в модальном окне.
+    // При нажатии на пробел/клик в игре вызывается onAction() внутри StackGame
+    // (Обработчики установлены в конструкторе StackGame)
+
+    // Если игра закончилась (Game Over), модальное окно при нажатии на OK перенаправляет на index.html,
+    // а если уведомление о билетах – просто скрывает модал.
   </script>
 </body>
 </html>
-
