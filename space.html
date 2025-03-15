@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crossy Road 3D Vertical с меню и таймером</title>
 
@@ -108,7 +109,7 @@
       width: 100%;
       height: 10px;
       background: #555;
-      z-index: 1000;
+      z-index: 1100;
     }
     #timeBar {
       width: 100%;
@@ -118,7 +119,7 @@
     /* Игровой счётчик */
     #counter {
       position: absolute;
-      top: 70px; /* сдвигаем ниже timeBar */
+      top: 70px; /* ниже timeBar */
       right: 20px;
       z-index: 1000;
     }
@@ -158,7 +159,7 @@
     #controlls button svg path {
       fill: white;
     }
-    /* Модальное окно для окончания игры/уведомления */
+    /* Модальное окно для окончания игры/уведомлений */
     #end {
       position: absolute;
       top: 0;
@@ -230,7 +231,7 @@
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
+    <!-- Canvas Three.js добавится сюда после старта игры -->
   </div>
 
   <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
@@ -273,7 +274,7 @@
     <div class="modal">
       <h2 id="endTitle"></h2>
       <p id="endMessage"></p>
-      <button id="endBtn" onclick="goToIndex()">OK</button>
+      <button id="endBtn">OK</button>
     </div>
   </div>
 
@@ -310,7 +311,7 @@
     let localUserData = { tickets: 0, points: 0 };
     // Флаг, что данные загружены
     let dataLoaded = false;
-    // Задержка 3 секунды для загрузки данных
+    // Если данные не загрузились в течение 3 секунд, dataLoaded станет true (можно изменить логику по необходимости)
     setTimeout(() => { dataLoaded = true; }, 3000);
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -355,6 +356,15 @@
     function goBack() {
       window.location.href = 'index.html';
     }
+    // Для случая Game Over, OK отправляет на index.html; для noTickets просто скрывает модал
+    let modalType = "gameOver"; // "gameOver" или "noTickets"
+    document.getElementById('endBtn').addEventListener('click', function() {
+      if(modalType === "gameOver") {
+        goToIndex();
+      } else if(modalType === "noTickets") {
+        document.getElementById('end').style.visibility = 'hidden';
+      }
+    });
     function goToIndex() {
       window.location.href = 'index.html';
     }
@@ -378,9 +388,9 @@
     const threeHeights = [20, 45, 60];
     let gameEnded = false;
 
-    // Добавляем переменные для таймера
-    let gameStartTime = null; 
-    const gameDuration = 300000; // 5 минут в миллисекундах
+    // Таймер игры (5 минут = 300000 мс)
+    let gameStartTime = null;
+    const gameDuration = 300000; // 5 минут
 
     function initGame() {
       gameEnded = false;
@@ -753,13 +763,15 @@
       localUserData.points += currentLane;
       if (userRef) userRef.update({ points: localUserData.points });
       document.getElementById('controlls').style.display = 'none';
+      modalType = "gameOver";
       document.getElementById('endTitle').textContent = 'Game Over!';
       document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Если билетов нет или данные не загружены – показываем модальное окно
+    // Если билетов нет или данные не загружены – показываем модальное окно (но OK просто скрывает модал)
     function showNoTicketsModal() {
+      modalType = "noTickets";
       document.getElementById('endTitle').textContent = 'Not enough tickets!';
       document.getElementById('endMessage').textContent = 'Please come back later.';
       document.getElementById('end').style.visibility = 'visible';
@@ -768,17 +780,13 @@
     /* ----------------------------------------
        3. Главный игровой цикл и таймер
     ---------------------------------------- */
-    // Переменная для времени старта игры и длительности (5 минут = 300000 мс)
-    let gameStartTime = null;
-    const gameDuration = 300000; // 5 минут в мс
-
     function animate(timestamp) {
       requestAnimationFrame(animate);
       if (!previousTimestamp) previousTimestamp = timestamp;
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
 
-      // Обновляем таймер, если игра запущена
+      // Обновление таймера (если игра запущена)
       if (gameStartTime) {
         let elapsed = timestamp - gameStartTime;
         let remaining = gameDuration - elapsed;
@@ -907,7 +915,7 @@
     }, { once: true });
 
     function startGame() {
-      // Если данные не загружены или билетов недостаточно, показываем модальное окно
+      // Если данные ещё не загружены или билетов недостаточно, показываем модальное окно
       if (!dataLoaded || localUserData.tickets < 1) {
         showNoTicketsModal();
         return;
