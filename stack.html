@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pure CSS STACK с меню и таймером</title>
+  <title>Stack Game</title>
   
-  <!-- Font: Press Start 2P -->
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Font: Comfortaa & Press Start 2P -->
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa&family=Press+Start+2P&display=swap" rel="stylesheet">
   
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -16,18 +17,22 @@
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
+  <!-- Three.js и TweenLite (GSAP) для Stack Game -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenLite.min.js"></script>
+  
+  <!-- Стили Stack Game (можно подключить внешний файл, здесь приведён инлайн вариант для примера) -->
   <style>
-    /* Общие стили интерфейса */
     html, body {
       margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
       overflow: hidden;
+      height: 100%;
+      width: 100%;
+      position: relative;
+      font-family: "Comfortaa", cursive;
       background: #00103c;
-      font-family: 'Press Start 2P', monospace;
     }
-    /* Header с информацией о пользователе */
+    /* Header с информацией */
     #header {
       position: absolute;
       top: 0;
@@ -76,53 +81,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню игры – изначально видимо */
-    #gameWrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-    /* Кнопка Start – по центру меню */
-    #startBtn {
-      position: absolute;
-      z-index: 1100;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12px;
-      padding: 10px 20px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-    }
-    /* Временной индикатор – появляется после старта игры */
-    #timeBarContainer {
-      position: absolute;
-      top: 20px; /* поднят выше */
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80%;
-      height: 5px;
-      background: #555;
-      z-index: 1100;
-      display: none;
-    }
-    #timeBar {
-      width: 100%;
-      height: 100%;
-      background: #ff66cc;
-    }
-    /* Игровой счётчик */
-    #counter {
-      position: absolute;
-      top: 40px; /* ниже time bar */
-      right: 20px;
-      z-index: 1000;
-    }
-    /* Модальное окно для окончания игры/уведомлений */
+    /* Модальное окно (для Game Over и при отсутствии билетов) */
     #end {
       position: absolute;
       top: 0;
@@ -158,232 +117,98 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Если используется canvas – он ниже (здесь не используется) */
-    canvas {
-      position: absolute;
-      z-index: 1;
-    }
-    /* ------------------ Стили Pure CSS STACK игры ------------------ */
-    .screen {
-      position: relative;
-      margin: 0 auto;
-      max-width: 100vw;
-      width: 75vh;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .sky {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      pointer-events: none;
-    }
-    .sky > div {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-    }
-    .sky > div::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      display: block;
-      height: 1000vh;
-    }
-    .sky > div + div {
-      animation: opacity 30s linear infinite forwards;
-    }
-    .sky > div::before {
-      background: linear-gradient(
-        #f12711,
-        #f5af19 10%,
-        #91eae4 11%,
-        #86a8e7,
-        #7f7fd5 21%,
-        #f64f59 22%,
-        #c471ed,
-        #12c2e9 32%,
-        #f7797d 33%,
-        #fbd786,
-        #c6ffdd 43%,
-        #8a2387 44%,
-        #e94057,
-        #f27121 54%,
-        #3a1c71 55%,
-        #d76d77,
-        #fdbb2d 65%,
-        #22c1c3 66%,
-        #fdbb2d 76%,
-        #1a2a6c 77%,
-        #b21f1f,
-        #fdbb2d 87%
-      );
-      animation: sky 240s steps(8, end) infinite forwards;
-    }
-    input,
-    .last {
-      z-index: 1;
-      position: absolute;
+    /* Контейнер Stack Game (изначально скрыт до старта) */
+    #container {
+      width: 100%;
+      height: 100%;
       display: none;
-      width: 300vh;
-      height: 300vh;
+      position: relative;
+      z-index: 1;
+    }
+    /* Стили для Stack Game (копия вашего stack.css, можно доработать) */
+    #game {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+    #score {
+      position: absolute;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 10vh;
+      transition: transform 0.5s ease;
+      color: #333344;
+      transform: translateY(-200px) scale(1);
+    }
+    #instructions {
+      position: absolute;
+      width: 100%;
+      top: 16vh;
+      left: 0;
+      text-align: center;
+      transition: opacity 0.5s ease, transform 0.5s ease;
       opacity: 0;
-      cursor: pointer;
-      pointer-events: auto;
-      transform: translate(-150vh, -150vh);
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
     }
-    #last {
-      display: initial;
-      pointer-events: none;
-    }
-    input:checked,
-    #last:checked {
-      display: none !important;
-    }
-    .base {
-      position: relative;
-      left: calc(50% - 15vh);
-      top: 50vh;
-      width: 30vh;
-      height: 30vh;
-      background-color: red;
-      pointer-events: none;
-      transform: rotateX(45deg) rotateZ(45deg);
-      transform-style: preserve-3d;
-      transition: transform 0.5s ease-in-out;
-    }
-    .base::before,
-    .base::after {
-      content: "";
-      z-index: -1;
+    .game-over {
       position: absolute;
-      display: block;
-    }
-    .base::before {
-      right: 0;
-      width: 50vh;
-      height: 100%;
-      background: linear-gradient(to left, #d00, rgba(221, 0, 0, 0));
-      transform: rotateY(-90deg);
-      transform-origin: right;
-    }
-    .base::after {
-      bottom: 0;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 50vh;
-      background: linear-gradient(to top, #e00, rgba(238, 0, 0, 0));
-      transform: rotateX(90deg);
-      transform-origin: bottom;
-    }
-    .container {
-      position: absolute;
+      height: 85%;
       display: flex;
-      transform-style: preserve-3d;
-    }
-    .container.horizontal {
-      left: -45vh;
-      flex-direction: row;
-      width: calc(90vh + 100%);
-      height: 100%;
-    }
-    .container.vertical {
-      top: -45vh;
       flex-direction: column;
-      width: 100%;
-      height: calc(90vh + 100%);
+      align-items: center;
+      justify-content: center;
     }
-    .container::before,
-    .container::after {
-      content: "";
+    .game-over * {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      opacity: 0;
+      transform: translateY(-50px);
+      color: #333344;
     }
-    .container.horizontal::before,
-    .container.horizontal::after {
-      max-width: calc(100% - 45vh);
-      min-width: 45vh;
-      height: 100%;
+    .game-over h2 {
+      margin: 0;
+      padding: 0;
+      font-size: 40px;
     }
-    .container.vertical::before,
-    .container.vertical::after {
-      width: 100%;
-      max-height: calc(100% - 45vh);
-      min-height: 45vh;
-    }
-    .block {
-      position: relative;
-      visibility: hidden;
-      flex-grow: 1;
-      background-color: currentColor;
-      transform: translateZ(6vh);
-      transform-style: preserve-3d;
-    }
-    .block.horizontal {
-      height: 100%;
-    }
-    .block.vertical {
-      width: 100%;
-    }
-    .block.floating {
+    .game-ready {
       position: absolute;
-      display: none;
-      visibility: visible;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-around;
     }
-    .block.floating.horizontal {
-      width: calc(100% - 90vh);
-      animation: left 2s linear alternate infinite both;
+    .game-ready #start-button {
+      display: none; /* скроем встроенную кнопку Stack Game */
     }
-    .block.floating.vertical {
-      height: calc(100% - 90vh);
-      animation: top 2s linear alternate infinite both;
-    }
-    body {
-      counter-reset: points;
-    }
-    .points {
-      display: none;
-    }
-    .points::after {
-      content: counter(points);
-    }
-    @keyframes opacity {
-      0% { opacity: 1; }
-      25% { opacity: 1; }
-      50% { opacity: 0; }
-      75% { opacity: 0; }
-      100% { opacity: 1; }
-    }
-    @keyframes sky {
-      from { transform: none; }
-      to { transform: translateY(-880vh); }
-    }
-    @keyframes left {
-      from { left: 0; }
-      to { left: 90vh; }
-    }
-    @keyframes top {
-      from { top: 0; }
-      to { top: 90vh; }
-    }
-    @keyframes color {
-      0% { color: #f00; }
-      19% { color: #ff0; }
-      31% { color: #0f0; }
-      43% { color: #0ff; }
-      62% { color: #00f; }
-      81% { color: #f0f; }
-      100% { color: #f00; }
+    /* Наш интегрированный startBtn */
+    #startBtn {
+      position: absolute;
+      z-index: 1100;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 30px;
+      padding: 10px 20px;
+      background: #06B6D1;
+      color: #262626;
+      border: 3px solid #333344;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <!-- Интерфейс -->
+  <!-- Header с информацией о пользователе -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -397,245 +222,33 @@
       </div>
     </div>
   </div>
-  
-  <!-- Временной индикатор (появляется после старта) -->
-  <div id="timeBarContainer">
-    <div id="timeBar"></div>
-  </div>
-  
+
+  <!-- Кнопка Back -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
-  
-  <!-- Меню игры -->
+
+  <!-- Интегрированная кнопка Start (появляется до старта игры) -->
   <div id="gameWrapper">
-    <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Контейнер для Pure CSS STACK игры -->
-    <div id="cssGameContainer" style="display: none;">
-      <!-- Копия разметки Pure CSS STACK игры из вашего примера -->
-      <form class="screen" novalidate>
-        <input id="start" type="checkbox" tabindex="-1">
-        <input id="end" type="checkbox" tabindex="-1">
-        <input id="last" type="checkbox" tabindex="-1">
-        <div class="sky">
-          <div></div>
-          <div></div>
-        </div>
-        <div class="base">
-          <input type="checkbox" tabindex="-1" required>
-          <div class="container horizontal">
-            <div class="block floating horizontal"></div>
-            <div class="block horizontal">
-              <input type="checkbox" tabindex="-1">
-              <div class="container vertical">
-                <div class="block floating vertical"></div>
-                <div class="block vertical">
-                  <input type="checkbox" tabindex="-1">
-                  <div class="container horizontal">
-                    <div class="block floating horizontal"></div>
-                    <div class="block horizontal">
-                      <input type="checkbox" tabindex="-1">
-                      <div class="container vertical">
-                        <div class="block floating vertical"></div>
-                        <div class="block vertical">
-                          <input type="checkbox" tabindex="-1">
-                          <div class="container horizontal">
-                            <div class="block floating horizontal"></div>
-                            <div class="block horizontal">
-                              <input type="checkbox" tabindex="-1">
-                              <div class="container vertical">
-                                <div class="block floating vertical"></div>
-                                <div class="block vertical">
-                                  <input type="checkbox" tabindex="-1">
-                                  <div class="container horizontal">
-                                    <div class="block floating horizontal"></div>
-                                    <div class="block horizontal">
-                                      <input type="checkbox" tabindex="-1">
-                                      <div class="container vertical">
-                                        <div class="block floating vertical"></div>
-                                        <div class="block vertical">
-                                          <input type="checkbox" tabindex="-1">
-                                          <div class="container horizontal">
-                                            <div class="block floating horizontal"></div>
-                                            <div class="block horizontal">
-                                              <input type="checkbox" tabindex="-1">
-                                              <div class="container vertical">
-                                                <div class="block floating vertical"></div>
-                                                <div class="block vertical">
-                                                  <input type="checkbox" tabindex="-1">
-                                                  <div class="container horizontal">
-                                                    <div class="block floating horizontal"></div>
-                                                    <div class="block horizontal">
-                                                      <input type="checkbox" tabindex="-1">
-                                                      <div class="container vertical">
-                                                        <div class="block floating vertical"></div>
-                                                        <div class="block vertical">
-                                                          <input type="checkbox" tabindex="-1">
-                                                          <div class="container horizontal">
-                                                            <div class="block floating horizontal"></div>
-                                                            <div class="block horizontal">
-                                                              <input type="checkbox" tabindex="-1">
-                                                              <div class="container vertical">
-                                                                <div class="block floating vertical"></div>
-                                                                <div class="block vertical">
-                                                                  <input type="checkbox" tabindex="-1">
-                                                                  <div class="container horizontal">
-                                                                    <div class="block floating horizontal"></div>
-                                                                    <div class="block horizontal">
-                                                                      <input type="checkbox" tabindex="-1">
-                                                                      <div class="container vertical">
-                                                                        <div class="block floating vertical"></div>
-                                                                        <div class="block vertical">
-                                                                          <input type="checkbox" tabindex="-1">
-                                                                          <div class="container horizontal">
-                                                                            <div class="block floating horizontal"></div>
-                                                                            <div class="block horizontal">
-                                                                              <input type="checkbox" tabindex="-1">
-                                                                              <div class="container vertical">
-                                                                                <div class="block floating vertical"></div>
-                                                                                <div class="block vertical">
-                                                                                  <input type="checkbox" tabindex="-1">
-                                                                                  <div class="container horizontal">
-                                                                                    <div class="block floating horizontal"></div>
-                                                                                    <div class="block horizontal">
-                                                                                      <input type="checkbox" tabindex="-1">
-                                                                                      <div class="container vertical">
-                                                                                        <div class="block floating vertical"></div>
-                                                                                        <div class="block vertical">
-                                                                                          <input type="checkbox" tabindex="-1">
-                                                                                          <div class="container horizontal">
-                                                                                            <div class="block floating horizontal"></div>
-                                                                                            <div class="block horizontal">
-                                                                                              <input type="checkbox" tabindex="-1">
-                                                                                              <div class="container vertical">
-                                                                                                <div class="block floating vertical"></div>
-                                                                                                <div class="block vertical">
-                                                                                                  <input type="checkbox" tabindex="-1">
-                                                                                                  <div class="container horizontal">
-                                                                                                    <div class="block floating horizontal"></div>
-                                                                                                    <div class="block horizontal">
-                                                                                                      <input type="checkbox" tabindex="-1">
-                                                                                                      <div class="container vertical">
-                                                                                                        <div class="block floating vertical"></div>
-                                                                                                        <div class="block vertical">
-                                                                                                          <input type="checkbox" tabindex="-1">
-                                                                                                          <div class="container horizontal">
-                                                                                                            <div class="block floating horizontal"></div>
-                                                                                                            <div class="block horizontal">
-                                                                                                              <input type="checkbox" tabindex="-1">
-                                                                                                              <div class="container vertical">
-                                                                                                                <div class="block floating vertical"></div>
-                                                                                                                <div class="block vertical">
-                                                                                                                  <input type="checkbox" tabindex="-1">
-                                                                                                                  <div class="container horizontal">
-                                                                                                                    <div class="block floating horizontal"></div>
-                                                                                                                    <div class="block horizontal">
-                                                                                                                      <input type="checkbox" tabindex="-1">
-                                                                                                                      <div class="container vertical">
-                                                                                                                        <div class="block floating vertical"></div>
-                                                                                                                        <div class="block vertical">
-                                                                                                                          <input type="checkbox" tabindex="-1">
-                                                                                                                          <div class="container horizontal">
-                                                                                                                            <div class="block floating horizontal"></div>
-                                                                                                                            <div class="block horizontal">
-                                                                                                                              <input type="checkbox" tabindex="-1">
-                                                                                                                              <div class="container vertical">
-                                                                                                                                <div class="block floating vertical"></div>
-                                                                                                                                <div class="block vertical">
-                                                                                                                                  <input type="checkbox" tabindex="-1">
-                                                                                                                                  <div class="container horizontal">
-                                                                                                                                    <div class="block floating horizontal"></div>
-                                                                                                                                    <div class="block horizontal">
-                                                                                                                                      <input type="checkbox" tabindex="-1">
-                                                                                                                                      <div class="container vertical">
-                                                                                                                                        <div class="block floating vertical"></div>
-                                                                                                                                        <div class="block vertical">
-                                                                                                                                          <input type="checkbox" tabindex="-1">
-                                                                                                                                          <div class="container horizontal">
-                                                                                                                                            <div class="block floating horizontal"></div>
-                                                                                                                                            <div class="block horizontal">
-                                                                                                                                              <label class="last" for="last" tabindex="-1"></label>
-                                                                                                                                              <div class="container vertical">
-                                                                                                                                                <div class="block floating vertical"></div>
-                                                                                                                                                <div class="block vertical">
-                                                                                                                                                  <label class="end horizontal" for="end"></label>
-                                                                                                                                                  <label class="end vertical" for="end"></label>
-                                                                                                                                                </div>
-                                                                                                                                              </div>
-                                                                                                                                            </div>
-                                                                                                                                          </div>
-                                                                                                                                        </div>
-                                                                                                                                      </div>
-                                                                                                                                    </div>
-                                                                                                                                  </div>
-                                                                                                                                </div>
-                                                                                                                              </div>
-                                                                                                                            </div>
-                                                                                                                          </div>
-                                                                                                                        </div>
-                                                                                                                      </div>
-                                                                                                                    </div>
-                                                                                                                  </div>
-                                                                                                                </div>
-                                                                                                              </div>
-                                                                                                            </div>
-                                                                                                          </div>
-                                                                                                        </div>
-                                                                                                      </div>
-                                                                                                    </div>
-                                                                                                  </div>
-                                                                                                </div>
-                                                                                              </div>
-                                                                                            </div>
-                                                                                          </div>
-                                                                                        </div>
-                                                                                      </div>
-                                                                                    </div>
-                                                                                  </div>
-                                                                                </div>
-                                                                              </div>
-                                                                            </div>
-                                                                          </div>
-                                                                        </div>
-                                                                      </div>
-                                                                    </div>
-                                                                  </div>
-                                                                </div>
-                                                              </div>
-                                                            </div>
-                                                          </div>
-                                                        </div>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </form>
+    <button id="startBtn">Start (1 Ticket)</button>
+  </div>
+
+  <!-- Контейнер Stack Game -->
+  <div id="container">
+    <div id="game"></div>
+    <div id="score">0</div>
+    <div id="instructions">Click (or press the spacebar) to place the block</div>
+    <div class="game-over">
+      <h2>Game Over</h2>
+      <p>You did great, you're the best.</p>
+      <p>Click or spacebar to start again</p>
+    </div>
+    <div class="game-ready">
+      <div id="start-button">Start</div>
+      <div></div>
     </div>
   </div>
-  
-  <!-- Дополнительный счётчик Pure CSS игры (если используется) -->
-  <div id="counter">0</div>
-  
+
   <!-- Модальное окно для окончания игры/уведомлений -->
   <div id="end">
     <div class="modal">
@@ -644,14 +257,23 @@
       <button id="endBtn">OK</button>
     </div>
   </div>
-  
+
   <!-- Звуки -->
   <audio id="bgSound" src="background.mp3" loop></audio>
   <audio id="moveSound" src="move.mp3"></audio>
   <audio id="deathSound" src="death.mp3"></audio>
+
+  <!-- Stack Game скрипты -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenLite.min.js"></script>
+  <script src="stack.js"></script>
   
+  <!-- Интеграция с Firebase и управление игрой -->
   <script>
-    /* 1. Firebase и Telegram */
+    "use strict";
+    /* ----------------------------------------
+       1. Firebase и Telegram инициализация
+    ---------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -664,19 +286,21 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-  
+
     let tg = null;
     if (window.Telegram && window.Telegram.WebApp) {
       tg = window.Telegram.WebApp;
       tg.expand();
     }
-  
+
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
+    // Флаг, что данные загружены
     let dataLoaded = false;
+    // Если данные не загрузились за 3 секунды, dataLoaded станет true
     setTimeout(() => { dataLoaded = true; }, 3000);
-  
+
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
@@ -710,16 +334,16 @@
         dataLoaded = true;
       });
     }
-  
+
     function updateHeader() {
       document.getElementById('ticketCount').textContent = localUserData.tickets;
       document.getElementById('pointCount').textContent = localUserData.points;
     }
-  
+
     function goBack() {
       window.location.href = 'index.html';
     }
-  
+    // Для модального окна: если modalType = "gameOver", OK перенаправляет; если "noTickets", скрывает модал
     let modalType = "gameOver";
     document.getElementById('endBtn').addEventListener('click', function() {
       if (modalType === "gameOver") {
@@ -731,92 +355,59 @@
     function goToIndex() {
       window.location.href = 'index.html';
     }
-  
-    /* 2. Игровой код (Pure CSS STACK) */
-    let gameEnded = false;
-    let gameStartTime = null;
-    const gameDuration = 300000; // 5 минут
-  
-    function initGameInterface() {
-      gameStartTime = performance.now();
-      document.getElementById('timeBarContainer').style.display = 'block';
-    }
-  
-    // Функция завершения игры: воспроизводится звук смерти, итоговые очки записываются в базу, появляется модальное окно
-    function endGame() {
-      if (gameEnded) return;
-      gameEnded = true;
-      document.getElementById('deathSound').play().catch(err => console.log(err));
-      // Попробуем получить очки из счетчика (Pure CSS может подсчитывать очки через counter)
-      let score = 0;
-      let pointsEl = document.querySelector('.points');
-      if (pointsEl) {
-        score = getComputedStyle(pointsEl, '::after').content;
-        score = parseInt(score.replace(/"/g, '')) || 0;
+
+    /* ----------------------------------------
+       2. Интеграция Stack Game
+    ---------------------------------------- */
+    // Предполагается, что в stack.js создается глобальный объект game (new Game())
+    // Через setTimeout ждём загрузки stack.js (примерно 1 секунда), затем переопределяем встроенную кнопку старта
+    setTimeout(() => {
+      // Скрываем встроенную кнопку старта Stack Game
+      let builtInStart = document.getElementById("start-button");
+      if (builtInStart) {
+        builtInStart.style.display = "none";
       }
-      localUserData.points += score;
-      if (userRef) userRef.update({ points: localUserData.points });
-      modalType = "gameOver";
-      document.getElementById('endTitle').textContent = 'Game Over!';
-      document.getElementById('endMessage').textContent = 'Your score: ' + score;
-      document.getElementById('end').style.visibility = 'visible';
-    }
-  
-    function showNoTicketsModal() {
-      modalType = "noTickets";
-      document.getElementById('endTitle').textContent = 'Not enough tickets!';
-      document.getElementById('endMessage').textContent = 'Please come back later.';
-      document.getElementById('end').style.visibility = 'visible';
-    }
-  
-    /* 3. Главный игровой цикл для таймера */
-    function animate(timestamp) {
-      requestAnimationFrame(animate);
-      if (!gameStartTime) return;
-      let elapsed = timestamp - gameStartTime;
-      let remaining = gameDuration - elapsed;
-      let timeBar = document.getElementById('timeBar');
-      if (remaining <= 0) {
-        timeBar.style.width = "0%";
-        if (!gameEnded) {
-          endGame();
+      // Наша интегрированная кнопка (с id="startBtn") уже видна в #gameWrapper
+      document.getElementById("startBtn").addEventListener("click", () => {
+        // Если данные не загружены или билетов недостаточно, показываем модальное окно
+        if (!dataLoaded || localUserData.tickets < 1) {
+          modalType = "noTickets";
+          document.getElementById('endTitle').textContent = 'Not enough tickets!';
+          document.getElementById('endMessage').textContent = 'Please come back later.';
+          document.getElementById('end').style.visibility = 'visible';
+          return;
         }
-      } else {
-        timeBar.style.width = (remaining / gameDuration * 100) + "%";
+        // Вычитаем билет
+        localUserData.tickets--;
+        if (userRef) userRef.update({ tickets: localUserData.tickets });
+        updateHeader();
+        // Скрываем меню (header, back, стартовая кнопка)
+        document.getElementById('header').style.display = 'none';
+        document.getElementById('backContainer').style.display = 'none';
+        document.getElementById('startBtn').style.display = 'none';
+        // Показываем контейнер игры и контролы (если они используются в Stack Game, можно их оставить скрытыми, так как Stack Game управляется по клику/пробел)
+        document.getElementById('container').style.display = 'block';
+        // Если в Stack Game предусмотрен метод startGame, вызываем его:
+        if (game && game.startGame) {
+          game.startGame();
+        }
+      });
+      // Переопределяем метод endGame глобального объекта game, чтобы добавить обновление баланса
+      if (game) {
+        let originalEndGame = game.endGame;
+        game.endGame = function() {
+          originalEndGame.apply(game);
+          // Получаем очки из элемента #score (предполагается, что они обновляются в Stack Game)
+          let scoreValue = parseInt(document.getElementById("score").innerHTML) || 0;
+          localUserData.points += scoreValue;
+          if (userRef) userRef.update({ points: localUserData.points });
+          modalType = "gameOver";
+          document.getElementById('endTitle').textContent = 'Game Over!';
+          document.getElementById('endMessage').textContent = 'Your score: ' + scoreValue;
+          document.getElementById('end').style.visibility = 'visible';
+        };
       }
-    }
-    requestAnimationFrame(animate);
-  
-    /* 4. Функция старта игры */
-    document.body.addEventListener('click', () => {
-      const bgSound = document.getElementById('bgSound');
-      if (bgSound.paused) {
-        bgSound.play().catch(err => console.log(err));
-      }
-    }, { once: true });
-  
-    function startGame() {
-      if (!dataLoaded || localUserData.tickets < 1) {
-        showNoTicketsModal();
-        return;
-      }
-      localUserData.tickets--;
-      if (userRef) userRef.update({ tickets: localUserData.tickets });
-      updateHeader();
-      // Скрываем меню: header, Back, Start
-      document.getElementById('header').style.display = 'none';
-      document.getElementById('backContainer').style.display = 'none';
-      document.getElementById('startBtn').style.display = 'none';
-      // Показываем игровое поле (Pure CSS игра) и таймер
-      document.getElementById('gameWrapper').style.display = 'block';
-      document.getElementById('cssGameContainer').style.display = 'block';
-      document.getElementById('timeBarContainer').style.display = 'block';
-      // Записываем время старта
-      gameStartTime = performance.now();
-      initGameInterface();
-      // ВАЖНО: чтобы запустить анимации Pure CSS игры, автоматически ставим чекбокс "start"
-      document.getElementById('start').checked = true;
-    }
+    }, 1000);
   </script>
 </body>
 </html>
