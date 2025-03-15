@@ -2,9 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pure CSS Game с меню и таймером</title>
+  <title>Pure CSS Stack с меню, таймером и баллами</title>
 
   <!-- Font: Press Start 2P -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -17,7 +16,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Общие стили интеграции */
+    /* Общие стили для интеграции */
     html, body {
       margin: 0;
       padding: 0;
@@ -76,7 +75,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню игры – изначально видимо */
+    /* Меню игры */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -101,7 +100,7 @@
     /* Временной индикатор – появляется только после старта игры */
     #timeBarContainer {
       position: absolute;
-      top: 20px; /* немного выше */
+      top: 20px; /* поднят выше */
       left: 50%;
       transform: translateX(-50%);
       width: 80%;
@@ -113,17 +112,16 @@
     #timeBar {
       width: 100%;
       height: 100%;
-      background: #ff66cc; /* розовый цвет */
+      background: #ff66cc; /* розовый */
     }
     /* Игровой счётчик */
     #counter {
       position: absolute;
-      top: 40px; /* ниже time bar */
+      top: 40px; /* ниже тайм-бара */
       right: 20px;
       z-index: 1000;
     }
-    /* Для данной игры внешние контролы не нужны – они были для 3D игры */
-    /* Модальное окно для окончания игры/уведомлений */
+    /* Модальное окно */
     #end {
       position: absolute;
       top: 0;
@@ -159,14 +157,14 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Canvas (если нужны для дополнительных элементов) – в нашем случае игра реализована через форму */
-    canvas {
-      position: absolute;
-      z-index: 1;
-    }
 
-    /* ==================== PURE CSS GAME СТИЛИ ==================== */
-    /* Ниже вставлены стили из предоставленной вами игры */
+    /* ==================== PURE CSS STACK GAME СТИЛИ ==================== */
+    /* Эти стили взяты из вашего примера игры */
+    body {
+      margin: 0;
+      background-color: black;
+      counter-reset: points;
+    }
     .screen {
       position: relative;
       margin: 0 auto;
@@ -175,6 +173,7 @@
       height: 100vh;
       overflow: hidden;
     }
+    /* Sky */
     .sky {
       position: absolute;
       left: 0;
@@ -256,312 +255,28 @@
       );
       animation: sky 240s steps(8, end) -15s infinite forwards paused;
     }
-    input,
-    .last {
-      z-index: 1;
-      position: absolute;
-      display: none;
-      width: 300vh;
-      height: 300vh;
-      opacity: 0;
-      cursor: pointer;
-      pointer-events: auto;
-      transform: translate(-150vh, -150vh);
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    #last {
-      display: initial;
-      pointer-events: none;
-    }
-    input:checked,
-    #last:checked {
-      display: none !important;
-    }
-    .base {
-      position: relative;
-      left: calc(50% - 15vh);
-      top: 50vh;
-      width: 30vh;
-      height: 30vh;
-      background-color: red;
-      pointer-events: none;
-      transform: rotateX(45deg) rotateZ(45deg);
-      transform-style: preserve-3d;
-      transition: transform 0.5s ease-in-out;
-    }
-    .base::before,
-    .base::after {
-      content: "";
-      z-index: -1;
-      position: absolute;
-      display: block;
-    }
-    .base::before {
-      right: 0;
-      width: 50vh;
-      height: 100%;
-      background: linear-gradient(to left, #d00, rgba(221, 0, 0, 0));
-      transform: rotateY(-90deg);
-      transform-origin: right;
-    }
-    .base::after {
-      bottom: 0;
-      width: 100%;
-      height: 50vh;
-      background: linear-gradient(to top, #e00, rgba(238, 0, 0, 0));
-      transform: rotateX(90deg);
-      transform-origin: bottom;
-    }
-    .container {
-      position: absolute;
-      display: flex;
-      transform-style: preserve-3d;
-    }
-    .container.horizontal {
-      left: -45vh;
-      flex-direction: row;
-      width: calc(90vh + 100%);
-      height: 100%;
-    }
-    .container.vertical {
-      top: -45vh;
-      flex-direction: column;
-      width: 100%;
-      height: calc(90vh + 100%);
-    }
-    .container::before,
-    .container::after {
-      content: "";
-    }
-    .container.horizontal::before,
-    .container.horizontal::after {
-      max-width: calc(100% - 45vh);
-      min-width: 45vh;
-      height: 100%;
-    }
-    .container.vertical::before,
-    .container.vertical::after {
-      width: 100%;
-      max-height: calc(100% - 45vh);
-      min-height: 45vh;
-    }
-    .block {
-      position: relative;
-      visibility: hidden;
-      flex-grow: 1;
-      background-color: currentColor;
-      transform: translateZ(6vh);
-      transform-style: preserve-3d;
-    }
-    .block.horizontal {
-      height: 100%;
-    }
-    .block.vertical {
-      width: 100%;
-    }
-    .block.floating {
-      position: absolute;
-      display: none;
-      visibility: visible;
-    }
-    .block.floating.horizontal {
-      width: calc(100% - 90vh);
-      animation: left 2s linear alternate infinite both;
-    }
-    .block.floating.vertical {
-      height: calc(100% - 90vh);
-      animation: top 2s linear alternate infinite both;
-    }
-    .block::before,
-    .block::after {
-      content: "";
-      z-index: -1;
-      position: absolute;
-      display: block;
-      background-color: currentColor;
-    }
-    .block::before {
-      right: 0;
-      width: 6vh;
-      height: 100%;
-      box-shadow: inset -6vh 0 rgba(0, 0, 0, 0.2);
-      transform: rotateY(-90deg);
-      transform-origin: right;
-    }
-    .block::after {
-      bottom: 0;
-      width: 100%;
-      height: 6vh;
-      box-shadow: inset 0 -6vh rgba(0, 0, 0, 0.1);
-      transform: rotateX(90deg);
-      transform-origin: bottom;
-    }
-    .end {
-      position: absolute;
-      left: -200vh;
-      top: -300vh;
-      visibility: visible;
-      max-width: 400vh;
-      max-height: 600vh;
-      pointer-events: auto;
-      cursor: pointer;
-      transform: rotateZ(-45deg) rotateX(-45deg) translateZ(100vh);
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .end.horizontal {
-      width: calc(400vh - 100000%);
-      height: 600vh;
-    }
-    .end.vertical {
-      width: 400vh;
-      height: calc(600vh - 100000%);
-    }
-    #last:checked ~ .base .last + .container > .floating + .block {
-      visibility: visible;
-    }
-    .points {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      display: none;
-      text-align: center;
-      color: white;
-      font-family: "Helvetica", "Roboto", "Segoe UI", "Arial", sans-serif;
-      font-size: 9vh;
-      font-weight: lighter;
-      pointer-events: none;
-    }
-    .points::before {
-      content: "YOU'VE REACHED THE TOP!";
-      display: block;
-      margin: 4vh auto;
-      font-size: 4vh;
-      opacity: 0;
-      transition: opacity 0.25s;
-    }
-    .points::after {
-      content: counter(points);
-      display: block;
-    }
-    .start {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      padding: 15vh 0;
-      text-align: center;
-      color: transparent;
-      text-shadow: 0 0 0 white;
-      font-family: "Helvetica", "Roboto", "Segoe UI", "Arial", sans-serif;
-      font-size: 9vh;
-      font-weight: lighter;
-      cursor: pointer;
-      transition: opacity 0.25s;
-      animation: start 0.75s linear;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .start::before {
-      content: "";
-      position: absolute;
-      left: calc(50% - 3vh);
-      top: 59.5vh;
-      display: block;
-      border-top: 5vh solid transparent;
-      border-bottom: 5vh solid transparent;
-      border-left: 8.5vh solid white;
-    }
-    .start::after {
-      content: "";
-      position: absolute;
-      left: calc(50% - 10vh);
-      top: 54.5vh;
-      display: block;
-      box-sizing: border-box;
-      border: solid 2vh white;
-      border-radius: 50%;
-      width: 20vh;
-      height: 20vh;
-    }
-    button {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      border: none;
-      padding-top: 80vh;
-      width: 100%;
-      color: white;
-      background: transparent;
-      opacity: 0;
-      pointer-events: none;
-      font-family: "Helvetica", "Roboto", "Segoe UI", "Arial", sans-serif;
-      font-size: 4vh;
-      font-weight: lighter;
-      cursor: pointer;
-      transition: opacity 0.25s;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    @keyframes opacity {
-      0% { opacity: 1; }
-      25% { opacity: 1; }
-      50% { opacity: 0; }
-      75% { opacity: 0; }
-      100% { opacity: 1; }
-    }
-    @keyframes sky {
-      from { transform: none; }
-      to { transform: translateY(-880vh); }
-    }
-    @keyframes width {
-      from { width: 0; }
-      to { width: 90vh; }
-    }
-    @keyframes height {
-      from { height: 0; }
-      to { height: 90vh; }
-    }
-    @keyframes left {
-      from { left: 0; }
-      to { left: 90vh; }
-    }
-    @keyframes top {
-      from { top: 0; }
-      to { top: 90vh; }
-    }
-    @keyframes color {
-      0% { color: #f00; }
-      19% { color: #ff0; }
-      31% { color: #0f0; }
-      43% { color: #0ff; }
-      62% { color: #00f; }
-      81% { color: #f0f; }
-      100% { color: #f00; }
-    }
-    @keyframes start {
-      from {
-        text-shadow: 0 0 1vh white, 2vh -2vh 1vh white, 2vh 2vh 1vh white,
-          -2vh 2vh 1vh white, -2vh -2vh 1vh white;
+    /* Обратите внимание, что ниже изменены id игровых чекбоксов, чтобы не конфликтовать с модальным окном */
+    <style>
+      input,
+      .last {
+        z-index: 1;
+        position: absolute;
+        display: none;
+        width: 300vh;
+        height: 300vh;
         opacity: 0;
+        cursor: pointer;
+        pointer-events: auto;
+        transform: translate(-150vh, -150vh);
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
       }
-      to {
-        text-shadow: 0 0 0 white;
-        opacity: 1;
-      }
-    }
+      /* Изменяем id: start → gameStart, end → gameEnd, last → gameLast */
+    </style>
   </style>
 </head>
 <body>
-  <!-- Меню с информацией о пользователе -->
+  <!-- Header и меню -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -575,26 +290,23 @@
       </div>
     </div>
   </div>
-
-  <!-- Временной индикатор (будет показан после старта игры) -->
+  <!-- Временной индикатор (скрыт до старта) -->
   <div id="timeBarContainer">
     <div id="timeBar"></div>
   </div>
-
   <!-- Кнопка Back -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
-
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Здесь будет содержаться игра (чистый CSS вариант) -->
-    <!-- Вставляем код игры ниже -->
+    <!-- Здесь размещается игра (PURE CSS STACK) -->
     <form class="screen" novalidate>
-      <input id="start" type="checkbox" tabindex="-1">
-      <input id="end" type="checkbox" tabindex="-1">
-      <input id="last" type="checkbox" tabindex="-1">
+      <!-- Переименованные игровые чекбоксы -->
+      <input id="gameStart" type="checkbox" tabindex="-1">
+      <input id="gameEnd" type="checkbox" tabindex="-1">
+      <input id="gameLast" type="checkbox" tabindex="-1">
       <div class="sky">
         <div></div>
         <div></div>
@@ -732,12 +444,12 @@
                                                                                                                                         <div class="container horizontal">
                                                                                                                                           <div class="block floating horizontal"></div>
                                                                                                                                           <div class="block horizontal">
-                                                                                                                                            <label class="last" for="last" tabindex="-1"></label>
+                                                                                                                                            <label class="last" for="gameLast" tabindex="-1"></label>
                                                                                                                                             <div class="container vertical">
                                                                                                                                               <div class="block floating vertical"></div>
                                                                                                                                               <div class="block vertical">
-                                                                                                                                                <label class="end horizontal" for="end"></label>
-                                                                                                                                                <label class="end vertical" for="end"></label>
+                                                                                                                                                <label class="end horizontal" for="gameEnd"></label>
+                                                                                                                                                <label class="end vertical" for="gameEnd"></label>
                                                                                                                                               </div>
                                                                                                                                             </div>
                                                                                                                                           </div>
@@ -808,10 +520,10 @@
         </div>
       </div>
     </form>
-    <!-- Конец кода игры PURE CSS STACK -->
+    <!-- Конец кода игры -->
   </div>
 
-  <!-- Модальное окно для окончания игры и уведомлений -->
+  <!-- Модальное окно для окончания игры/уведомлений -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -851,7 +563,7 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
-    // Флаг, что данные загружены (данные должны загрузиться за 3 секунды)
+    // Флаг, что данные загружены (ожидаем примерно 3 секунды)
     let dataLoaded = false;
     setTimeout(() => { dataLoaded = true; }, 3000);
 
@@ -911,11 +623,52 @@
     });
 
     /* ----------------------------------------
-       2. Таймер игры и обновление time bar
+       2. Игровой код – логика завершения Pure CSS STACK
+          Мы будем считать очки как количество отмеченных (checked) input внутри формы .screen.
     ---------------------------------------- */
     let gameStartTime = null;
     const gameDuration = 300000; // 5 минут
+    let gameEnded = false;
 
+    // Функция подсчёта очков: количество поставленных кубов (отмеченных input)
+    function getScore() {
+      // Получаем все input внутри .screen, исключая те, что используются для управления (gameStart, gameEnd, gameLast)
+      const inputs = document.querySelectorAll('.screen input[type="checkbox"]');
+      let score = 0;
+      inputs.forEach(input => {
+        // Если id не равен gameStart, gameEnd, gameLast, считаем как куб (при условии, что он отмечен)
+        if (input.id !== 'gameStart' && input.id !== 'gameEnd' && input.id !== 'gameLast') {
+          if (input.checked) score++;
+        }
+      });
+      return score;
+    }
+
+    // Функция завершения игры – вызывается либо по истечении времени, либо при срабатывании состояния проигрыша
+    function endGame(timestamp) {
+      if (gameEnded) return;
+      gameEnded = true;
+      document.getElementById('deathSound').play().catch(err => console.log(err));
+      const score = getScore();
+      localUserData.points += score;
+      if (userRef) userRef.update({ points: localUserData.points });
+      modalType = "gameOver";
+      document.getElementById('endTitle').textContent = 'Game Over!';
+      document.getElementById('endMessage').textContent = 'Your score: ' + score;
+      document.getElementById('end').style.visibility = 'visible';
+    }
+
+    // Если билетов нет или данные не загружены – показываем модальное окно
+    function showNoTicketsModal() {
+      modalType = "noTickets";
+      document.getElementById('endTitle').textContent = 'Not enough tickets!';
+      document.getElementById('endMessage').textContent = 'Please come back later.';
+      document.getElementById('end').style.visibility = 'visible';
+    }
+
+    /* ----------------------------------------
+       3. Таймер игры
+    ---------------------------------------- */
     function updateTimer(timestamp) {
       if (gameStartTime) {
         let elapsed = timestamp - gameStartTime;
@@ -933,10 +686,9 @@
     }
 
     /* ----------------------------------------
-       3. Главный игровой цикл (только таймер)
+       4. Главный игровой цикл (только таймер)
     ---------------------------------------- */
     let previousTimestamp = null;
-    let gameEnded = false;
     function animate(timestamp) {
       requestAnimationFrame(animate);
       if (!previousTimestamp) previousTimestamp = timestamp;
@@ -946,7 +698,7 @@
     requestAnimationFrame(animate);
 
     /* ----------------------------------------
-       4. Функция старта игры
+       5. Функция старта игры
     ---------------------------------------- */
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
@@ -956,47 +708,25 @@
     }, { once: true });
 
     function startGame() {
-      // Если данные не загружены или билетов недостаточно – показываем модальное окно
+      // Если данные ещё не загружены или билетов недостаточно – показываем модальное окно
       if (!dataLoaded || localUserData.tickets < 1) {
-        modalType = "noTickets";
         showNoTicketsModal();
         return;
       }
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем меню: header, back и кнопку Start
+      // Скрываем меню (header, back, startBtn)
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
-      // Показываем область игры и time bar
+      // Показываем область игры и таймер
       document.getElementById('gameWrapper').style.display = 'block';
       document.getElementById('timeBarContainer').style.display = 'block';
-      // Запускаем таймер
+      // Устанавливаем время старта игры для таймера
       gameStartTime = performance.now();
-    }
-
-    // Если билетов нет или данные не загружены – показываем модальное окно
-    function showNoTicketsModal() {
-      modalType = "noTickets";
-      document.getElementById('endTitle').textContent = 'Not enough tickets!';
-      document.getElementById('endMessage').textContent = 'Please come back later.';
-      document.getElementById('end').style.visibility = 'visible';
-    }
-
-    // Функция завершения игры – вычисляем итоговый счет (в секундах), воспроизводим звук смерти и показываем модал
-    function endGame(timestamp) {
-      if (gameEnded) return;
-      gameEnded = true;
-      document.getElementById('deathSound').play().catch(err => console.log(err));
-      let score = Math.floor((timestamp - gameStartTime) / 1000);
-      localUserData.points += score;
-      if (userRef) userRef.update({ points: localUserData.points });
-      modalType = "gameOver";
-      document.getElementById('endTitle').textContent = 'Game Over!';
-      document.getElementById('endMessage').textContent = 'Your score: ' + score;
-      document.getElementById('end').style.visibility = 'visible';
     }
   </script>
 </body>
 </html>
+
