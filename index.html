@@ -582,15 +582,8 @@
         showGlobalModal("Error", "No user data available!");
         return;
       }
-      if ((localUserData.tickets || 0) < ticketCost) {
-        showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
-        return;
-      }
-      localUserData.tickets -= ticketCost;
-      updateTopBar();
-      userRef.update({ tickets: localUserData.tickets });
       
-      // Если игра партнерская, Breakout или Space Explorer, выполняем редирект
+      // Если игра перенаправляет на другую страницу, списание билета не выполняется
       if (gameName === 'partnergame1') {
         window.location.href = 'partnergame.html';
         return;
@@ -602,7 +595,16 @@
         return;
       }
       
-      // Для остальных игр продолжается стандартный процесс запуска
+      // Для игр, реализованных на JS (например, Tetris), проверяем наличие билетов и списываем их
+      if ((localUserData.tickets || 0) < ticketCost) {
+        showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
+        return;
+      }
+      localUserData.tickets -= ticketCost;
+      updateTopBar();
+      userRef.update({ tickets: localUserData.tickets });
+      
+      // Продолжаем стандартный процесс запуска игры
       currentGame = gameName;
       gameInProgress = true;
       document.getElementById('mainNav').classList.add('hidden');
@@ -757,16 +759,30 @@
       const restBody = document.getElementById('leaderboardRest');
       top10Body.innerHTML = '';
       restBody.innerHTML = '';
+      
       usersArray.forEach((user, i) => {
         const tr = document.createElement('tr');
         if (currentUser && user.username === currentUser.username) {
           tr.classList.add('current-user');
         }
         if (i < 10) {
+          let multiplier;
+          if (i === 0) {
+            multiplier = "5x";
+          } else if (i === 1) {
+            multiplier = "3x";
+          } else if (i === 2) {
+            multiplier = "2x";
+          } else {
+            multiplier = "1x";
+          }
           tr.innerHTML = `<td>${i + 1}</td>
                           <td>@${user.username}</td>
                           <td>${user.points}</td>
-                          <td><img src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Prize Icon" width="40" height="40"></td>`;
+                          <td>
+                            <img src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Prize Icon" width="40" height="40">
+                            ${multiplier}
+                          </td>`;
           top10Body.appendChild(tr);
         } else {
           tr.innerHTML = `<td>${i + 1}</td>
@@ -854,7 +870,7 @@
          localUserData.cyberCase += 1;
          userRef.update({ cyberCase: localUserData.cyberCase });
          updateCaseCount();
-      } else if (prize.name.toLowerCase().includes("progress") || prize.name.toLowerCase().includes("star")) {
+      } else if (prize.name.toLowerCase().includes("point")) {
          let amount = parsePrizeAmount(prize.name);
          localUserData.points += amount;
          userRef.update({ points: localUserData.points });
