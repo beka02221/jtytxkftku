@@ -144,7 +144,7 @@
     #controlls button svg path {
       fill: white;
     }
-    /* Модальное окно окончания игры / уведомление */
+    /* Модальное окно для окончания игры/уведомления */
     #end {
       position: absolute;
       top: 0;
@@ -211,7 +211,7 @@
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
+    <!-- Canvas Three.js добавится сюда после старта игры -->
   </div>
 
   <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
@@ -249,7 +249,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно для окончания игры или уведомления (скрыто по умолчанию) -->
+  <!-- Модальное окно (для окончания игры и уведомлений) -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -289,6 +289,8 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
+    // Флаг, показывающий, что данные загружены (подождите 3 секунды)
+    let dataLoaded = false;
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -304,6 +306,7 @@
         localUserData.tickets = data.tickets || 0;
         localUserData.points = data.points || 0;
         updateHeader();
+        dataLoaded = true;
       });
     } else {
       currentUser = { username: 'TestUser' };
@@ -319,6 +322,7 @@
         localUserData.tickets = data.tickets || 0;
         localUserData.points = data.points || 0;
         updateHeader();
+        dataLoaded = true;
       });
     }
 
@@ -407,7 +411,6 @@
       document.getElementById('gameWrapper').appendChild(renderer.domElement);
     }
 
-    // Функция для создания текстур
     function Texture(width, height, rects) {
       const canvas = document.createElement("canvas");
       canvas.width = width;
@@ -722,20 +725,16 @@
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
-      // Воспроизводим звук смерти
       document.getElementById('deathSound').play().catch(err => console.log(err));
-      // Каждый шаг считается за 1 point; прибавляем currentLane к баллам
       localUserData.points += currentLane;
       if (userRef) userRef.update({ points: localUserData.points });
-      // Скрываем контролы
       document.getElementById('controlls').style.display = 'none';
-      // Показываем модальное окно с итогами
       document.getElementById('endTitle').textContent = 'Game Over!';
       document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Если билетов нет – вместо alert показываем модальное окно
+    // Если билетов нет – показываем модальное окно
     function showNoTicketsModal() {
       document.getElementById('endTitle').textContent = 'Not enough tickets!';
       document.getElementById('endMessage').textContent = 'Please come back later.';
@@ -833,7 +832,6 @@
         }
       }
 
-      // Проверка столкновений
       if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
         const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
@@ -855,6 +853,7 @@
     /* ----------------------------------------
        3. Функция старта игры
     ---------------------------------------- */
+    // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -862,8 +861,12 @@
       }
     }, { once: true });
 
+    // При нажатии на кнопку Start проверяем, что данные загружены (даётся примерно 3 секунды на загрузку)
     function startGame() {
-      // Если билетов недостаточно, показываем модальное окно и ничего не запускаем
+      if (!dataLoaded) {
+        showNoTicketsModal();
+        return;
+      }
       if (localUserData.tickets < 1) {
         showNoTicketsModal();
         return;
@@ -883,6 +886,13 @@
       if (!renderer) {
         initRenderer();
       }
+    }
+
+    // Если билетов нет или данные не загружены – показываем модальное окно
+    function showNoTicketsModal() {
+      document.getElementById('endTitle').textContent = 'Not enough tickets!';
+      document.getElementById('endMessage').textContent = 'Please come back later.';
+      document.getElementById('end').style.visibility = 'visible';
     }
   </script>
 </body>
