@@ -2,8 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pure CSS STACK с меню и таймером</title>
+  
   <!-- Font: Press Start 2P -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
@@ -14,7 +16,6 @@
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
-  <!-- Pure CSS STACK game (только разметка и стили) + интеграция с нашим интерфейсом -->
   <style>
     /* Общие стили интерфейса */
     html, body {
@@ -75,7 +76,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню игры – изначально видимо */
+    /* Меню игры */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -97,7 +98,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Временной индикатор – появляется только после старта */
+    /* Временной индикатор – скрыт до старта */
     #timeBarContainer {
       position: absolute;
       top: 20px;
@@ -121,43 +122,8 @@
       right: 20px;
       z-index: 1000;
     }
-    /* Контролы игры – если требуются (в данном примере управление игрой происходит через CSS) */
-    #controlls {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
-      align-items: flex-end;
-      justify-content: center;
-      z-index: 1100;
-    }
-    #controlls div {
-      display: grid;
-      grid-template-columns: 60px 60px 60px;
-      grid-template-rows: 60px 60px 60px;
-      gap: 10px;
-      margin-bottom: 20px;
-      grid-template-areas:
-        ". forward ."
-        "left . right"
-        ". backward .";
-    }
-    #forward { grid-area: forward; }
-    #left { grid-area: left; }
-    #backward { grid-area: backward; }
-    #right { grid-area: right; }
-    #controlls button {
-      background: black;
-      border: 1px solid white;
-      box-shadow: 3px 5px 0 rgba(0, 0, 0, 0.75);
-      cursor: pointer;
-    }
-    #controlls button svg path {
-      fill: white;
-    }
-    /* Модальное окно */
+    /* Убираем блок контролов (не нужны для Pure CSS игры) */
+    /* Модальное окно для окончания игры/уведомлений */
     #end {
       position: absolute;
       top: 0;
@@ -193,13 +159,12 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Canvas занимает весь экран (если используется) */
+    /* Если используется canvas – он ниже (здесь не используется, так как игра Pure CSS) */
     canvas {
       position: absolute;
       z-index: 1;
     }
-    /* --- Стили для Pure CSS STACK игры (из вашего примера) --- */
-    /* Обратите внимание, что ниже приведены базовые стили из примера, их можно корректировать под нужный дизайн */
+    /* ------------------ Стили Pure CSS STACK игры ------------------ */
     .screen {
       position: relative;
       margin: 0 auto;
@@ -262,8 +227,7 @@
       );
       animation: sky 240s steps(8, end) infinite forwards;
     }
-    /* Остальные стили из вашего примера... (для brevity ниже приведён сокращённо) */
-    /* --- Начало сокращённого CSS Pure CSS STACK игры --- */
+    /* Остальной CSS для Pure CSS STACK игры (сокращённый) */
     input,
     .last {
       z-index: 1;
@@ -381,7 +345,6 @@
       height: calc(100% - 90vh);
       animation: top 2s linear alternate infinite both;
     }
-    /* Для подсчёта очков */
     body {
       counter-reset: points;
     }
@@ -391,7 +354,35 @@
     .points::after {
       content: counter(points);
     }
-    /* --- Конец сокращённого CSS Pure CSS STACK игры --- */
+    /* Ключевые анимации Pure CSS STACK игры */
+    @keyframes opacity {
+      0% { opacity: 1; }
+      25% { opacity: 1; }
+      50% { opacity: 0; }
+      75% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    @keyframes sky {
+      from { transform: none; }
+      to { transform: translateY(-880vh); }
+    }
+    @keyframes left {
+      from { left: 0; }
+      to { left: 90vh; }
+    }
+    @keyframes top {
+      from { top: 0; }
+      to { top: 90vh; }
+    }
+    @keyframes color {
+      0% { color: #f00; }
+      19% { color: #ff0; }
+      31% { color: #0f0; }
+      43% { color: #0ff; }
+      62% { color: #00f; }
+      81% { color: #f0f; }
+      100% { color: #f00; }
+    }
   </style>
 </head>
 <body>
@@ -422,9 +413,9 @@
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Контейнер для игры Pure CSS STACK -->
+    <!-- Контейнер для Pure CSS STACK игры -->
     <div id="cssGameContainer" style="display: none;">
-      <!-- Вставляем код игры (форма) -->
+      <!-- Вставляем код игры Pure CSS STACK (разметка из вашего примера) -->
       <form class="screen" novalidate>
         <input id="start" type="checkbox" tabindex="-1">
         <input id="end" type="checkbox" tabindex="-1">
@@ -555,7 +546,7 @@
                                                                                                                                 <div class="block floating vertical"></div>
                                                                                                                                 <div class="block vertical">
                                                                                                                                   <input type="checkbox" tabindex="-1">
-                                                                                                                                  <!-- Дополнительно можно добавить элемент для показа очков, например: -->
+                                                                                                                                  <!-- Можно добавить элемент для показа очков Pure CSS игры -->
                                                                                                                                   <div class="points" id="gameScore"></div>
                                                                                                                                   <div class="container horizontal">
                                                                                                                                     <div class="block floating horizontal"></div>
@@ -655,45 +646,14 @@
             </div>
           </div>
         </div>
-      </div>
-    </form>
-  </div>
-  
-  <!-- Остальные элементы интерфейса -->
-  <div id="counter">0</div>
-  <div id="controlls">
-    <div>
-      <button id="forward">
-        <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(0,5,5)">
-            <path d="M5,4 L7,6 L3,6 L5,4"/>
-          </g>
-        </svg>
-      </button>
-      <button id="left">
-        <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(-90,5,5)">
-            <path d="M5,4 L7,6 L3,6 L5,4"/>
-          </g>
-        </svg>
-      </button>
-      <button id="backward">
-        <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(180,5,5)">
-            <path d="M5,4 L7,6 L3,6 L5,4"/>
-          </g>
-        </svg>
-      </button>
-      <button id="right">
-        <svg width="30" height="30" viewBox="0 0 10 10">
-          <g transform="rotate(90,5,5)">
-            <path d="M5,4 L7,6 L3,6 L5,4"/>
-          </g>
-        </svg>
-      </button>
+      </form>
     </div>
   </div>
   
+  <!-- Дополнительный счетчик и (если нужны) контролы – убраны, т.к. игра управляется только через Pure CSS -->
+  <div id="counter">0</div>
+  
+  <!-- Модальное окно для окончания игры/уведомлений -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -734,7 +694,7 @@
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
     let dataLoaded = false;
-    // Если данные не загрузились за 3 секунды, dataLoaded станет true
+    // Если данные не загрузятся за 3 секунды, dataLoaded станет true
     setTimeout(() => { dataLoaded = true; }, 3000);
   
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -788,49 +748,44 @@
         document.getElementById('end').style.visibility = 'hidden';
       }
     });
-  
     function goToIndex() {
       window.location.href = 'index.html';
     }
   
     /* ----------------------------------------
        2. Игровой код (Pure CSS STACK)
+       Управление игрой осуществляется через CSS (чекбоксы)
     ---------------------------------------- */
     let gameEnded = false;
     let gameStartTime = null;
     const gameDuration = 300000; // 5 минут
   
-    // При старте игры (startGame) показываем time bar, cssGameContainer, и скрываем меню
     function initGameInterface() {
       gameStartTime = performance.now();
       document.getElementById('timeBarContainer').style.display = 'block';
-      // Если нужно, можно запустить какие-либо JS-таймеры (у нас таймер обновляется в animate())
     }
   
-    // Функция, вызываемая при окончании игры
+    // Функция завершения игры – вызывается по сбросу формы (событие reset)
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
       document.getElementById('deathSound').play().catch(err => console.log(err));
-      // Получаем итоговое количество очков из Pure CSS игры
-      let pointsEl = document.querySelector('.points');
+      // Получаем итоговое количество очков из счетчика CSS (если реализовано)
+      // Здесь можно задать фиксированное значение или получить его из другой логики
       let score = 0;
+      let pointsEl = document.querySelector('.points');
       if (pointsEl) {
         score = getComputedStyle(pointsEl, '::after').content;
-        // Удаляем кавычки и преобразуем в число
         score = parseInt(score.replace(/"/g, '')) || 0;
       }
-      // Обновляем баллы пользователя
       localUserData.points += score;
       if (userRef) userRef.update({ points: localUserData.points });
-      document.getElementById('controlls').style.display = 'none';
       modalType = "gameOver";
       document.getElementById('endTitle').textContent = 'Game Over!';
       document.getElementById('endMessage').textContent = 'Your score: ' + score;
       document.getElementById('end').style.visibility = 'visible';
     }
   
-    // Если билетов нет или данные не загружены – показываем модальное окно
     function showNoTicketsModal() {
       modalType = "noTickets";
       document.getElementById('endTitle').textContent = 'Not enough tickets!';
@@ -840,23 +795,21 @@
   
     /* ----------------------------------------
        3. Главный игровой цикл для таймера
-       (Поскольку сама игра – Pure CSS – управляется CSS, здесь нам нужен только таймер)
+       (Так как игра управляется CSS, здесь только таймер)
     ---------------------------------------- */
     function animate(timestamp) {
       requestAnimationFrame(animate);
-      // Обновляем таймер, если игра запущена
-      if (gameStartTime) {
-        let elapsed = timestamp - gameStartTime;
-        let remaining = gameDuration - elapsed;
-        let timeBar = document.getElementById('timeBar');
-        if (remaining <= 0) {
-          timeBar.style.width = "0%";
-          if (!gameEnded) {
-            endGame();
-          }
-        } else {
-          timeBar.style.width = (remaining / gameDuration * 100) + "%";
+      if (!gameStartTime) return;
+      let elapsed = timestamp - gameStartTime;
+      let remaining = gameDuration - elapsed;
+      let timeBar = document.getElementById('timeBar');
+      if (remaining <= 0) {
+        timeBar.style.width = "0%";
+        if (!gameEnded) {
+          endGame();
         }
+      } else {
+        timeBar.style.width = (remaining / gameDuration * 100) + "%";
       }
     }
     requestAnimationFrame(animate);
@@ -879,30 +832,19 @@
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем меню: header, back и кнопку Start
+      // Скрываем меню: header, Back и кнопку Start
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
-      // Показываем область игры, контролы (если нужны) и саму игру
+      // Показываем интерфейс игры: контейнер Pure CSS STACK и таймер
       document.getElementById('gameWrapper').style.display = 'block';
-      document.getElementById('controlls').style.display = 'flex';
-      document.getElementById('timeBarContainer').style.display = 'block';
       // Показываем Pure CSS игру
       document.getElementById('cssGameContainer').style.display = 'block';
+      document.getElementById('timeBarContainer').style.display = 'block';
       // Записываем время старта
       gameStartTime = performance.now();
+      initGameInterface();
     }
-  
-    /* ----------------------------------------
-       5. Обработчик события завершения игры (например, при сбросе формы Pure CSS игры)
-       Предполагается, что игра заканчивается, когда форма сбрасывается (reset)
-    ---------------------------------------- */
-    document.querySelector('.screen').addEventListener('reset', function() {
-      // Дадим немного времени (1 секунда) перед завершением игры
-      setTimeout(() => {
-        endGame();
-      }, 1000);
-    });
   </script>
 </body>
 </html>
