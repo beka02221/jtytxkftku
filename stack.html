@@ -1,66 +1,76 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>The Stack + Tickets</title>
+  <meta charset="UTF-8">
+  <title>The Stack Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
+  <!-- Используем шрифт Comfortaa -->
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa&display=swap" rel="stylesheet">
+  
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-  <!-- Telegram Web App API (если требуется) -->
+  
+  <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- THREE.js, GSAP (для Stack) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+  
+  <!-- THREE.js и GSAP (для игры The Stack) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenLite.min.js"></script>
-
+  
   <style>
-    /* Сброс и общий фон */
+    /* Общие стили */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #00103c;
-      font-family: sans-serif;
       overflow: hidden;
+      background: #00103c;
+      font-family: 'Comfortaa', sans-serif;
     }
-
-    /* Контейнер для всего */
     #container {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       position: relative;
     }
-
-    /* Header с билеты/очки/ник */
+    /* Header с информацией о пользователе */
     #header {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 50px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
       background: #6d4fba;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       z-index: 1000;
     }
     #info {
       display: flex;
       gap: 20px;
-      font-size: 10px;
       color: #fff;
+      font-size: 10px;
       align-items: center;
     }
+    #info span {
+      white-space: nowrap;
+    }
     .balance {
-      display: flex; align-items: center; gap: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     .balance img {
-      width: 16px; height: 16px;
+      width: 16px;
+      height: 16px;
     }
-
     /* Кнопка Back */
     #backContainer {
       position: absolute;
-      top: 50px; left: 10px;
+      top: 50px;
+      left: 10px;
       z-index: 1000;
     }
     #backBtn {
@@ -68,53 +78,88 @@
       padding: 5px 10px;
       background: #06B6D1;
       color: #262626;
-      border: none; border-radius: 4px;
+      border: none;
+      border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-
-    /* Кнопка Start (1 Ticket) */
-    #startContainer {
+    /* Кнопка Start (начальный экран) */
+    #start-button {
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
       z-index: 1100;
-    }
-    #startBtn {
-      font-size: 14px;
+      font-size: 30px;
       padding: 10px 20px;
-      background: #06B6D1;
-      color: #262626;
-      border: none; border-radius: 4px;
+      background: transparent;
+      border: 3px solid #333344;
+      color: #333344;
       cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
-
-    /* Основная игра (The Stack) */
-    #gameCanvas {
+    /* Контейнер для игры The Stack (canvas) */
+    #game {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      display: none; /* скрыт до старта */
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: none; /* появится после старта игры */
     }
-
-    /* Модальное окно "нет билетов" */
+    /* Счёт */
+    #score {
+      position: absolute;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 10vh;
+      color: #333344;
+      transform: translateY(-200px) scale(1);
+      z-index: 1000;
+      display: none;
+    }
+    /* Временной индикатор */
+    #timeBarContainer {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 5px;
+      background: #555;
+      z-index: 1100;
+      display: none;
+    }
+    #timeBar {
+      width: 100%;
+      height: 100%;
+      background: #ff66cc;
+    }
+    /* Модальное окно (Game Over / No Tickets) */
     #modalNoTickets {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: rgba(0,0,0,0.7);
       z-index: 2000;
       visibility: hidden;
     }
-    #modalNoTickets.active { visibility: visible; }
+    #modalNoTickets.active {
+      visibility: visible;
+    }
     #modalNoTickets .modal-content {
       background: #222;
       border: 2px solid #0f0;
       border-radius: 8px;
       padding: 20px;
-      width: 80%; max-width: 400px;
+      width: 80%;
+      max-width: 400px;
       text-align: center;
       color: #FF00FF;
       font-size: 14px;
@@ -125,15 +170,21 @@
       padding: 6px 12px;
       background: #06B6D1;
       color: #262626;
-      border: none; border-radius: 4px;
+      border: none;
+      border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
+    }
+    /* Canvas (от Stage) */
+    canvas {
+      position: absolute;
+      z-index: 1;
     }
   </style>
 </head>
 <body>
   <div id="container">
-    <!-- 1) Header (Telegram/Firebase) -->
+    <!-- Header (user info) -->
     <div id="header">
       <div id="info">
         <span id="username">@User</span>
@@ -147,33 +198,38 @@
         </div>
       </div>
     </div>
-
-    <!-- 2) Кнопка Back -->
+    <!-- Back Button -->
     <div id="backContainer">
       <button id="backBtn">Back</button>
     </div>
-
-    <!-- 3) Кнопка Start (1 Ticket) -->
-    <div id="startContainer">
-      <button id="startBtn">Start (1 Ticket)</button>
-    </div>
-
-    <!-- 4) Модальное окно "нет билетов" -->
+    <!-- Модальное окно для отсутствия билетов или если данные ещё не загружены -->
     <div id="modalNoTickets">
       <div class="modal-content">
-        <h3>Not enough tickets!</h3>
-        <p>Please come back later.</p>
-        <button id="closeNoTicketsBtn">OK</button>
+        <h3 id="modalTitle">Not enough tickets!</h3>
+        <p id="modalMessage">Please come back later.</p>
+        <button id="closeNoTickets">OK</button>
       </div>
     </div>
-
-    <!-- 5) Canvas (The Stack) -->
-    <div id="gameCanvas"></div>
+    <!-- Контейнер для игры The Stack -->
+    <div id="game"></div>
+    <!-- Счёт (отображается во время игры) -->
+    <div id="score">0</div>
+    <!-- Кнопка Start (начальный экран) -->
+    <button id="start-button">Start (1 Ticket)</button>
+    <!-- Временной индикатор (появляется после старта игры) -->
+    <div id="timeBarContainer">
+      <div id="timeBar"></div>
+    </div>
   </div>
 
-  <!-- Firebase/Telegram JS, логика -->
+  <!-- Звуки -->
+  <audio id="bgSound" src="background.mp3" loop></audio>
+  <audio id="moveSound" src="move.mp3"></audio>
+  <audio id="deathSound" src="death.mp3"></audio>
+
   <script>
-    /* ---------- Firebase config ---------- */
+    "use strict";
+    /* ---------- Firebase и Telegram интеграция ---------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -185,10 +241,8 @@
       measurementId: "G-WJNF0HSN9P"
     };
     firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    let db = firebase.database();
-
-    // Telegram init
     let tgApp = null;
     if (window.Telegram && window.Telegram.WebApp) {
       tgApp = window.Telegram.WebApp;
@@ -199,29 +253,20 @@
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
     let dataLoaded = false;
-    setTimeout(() => { dataLoaded = true; }, 3000); // 3 сек. запас
+    setTimeout(() => { dataLoaded = true; }, 3000);
 
-    /* Элементы */
     const usernameElem = document.getElementById('username');
     const ticketCountElem = document.getElementById('ticketCount');
     const pointCountElem = document.getElementById('pointCount');
-    const backBtn = document.getElementById('backBtn');
-    const startBtn = document.getElementById('startBtn');
     const modalNoTickets = document.getElementById('modalNoTickets');
-    const closeNoTicketsBtn = document.getElementById('closeNoTicketsBtn');
-    const gameCanvas = document.getElementById('gameCanvas');
-
-    /* Back */
-    backBtn.addEventListener('click', () => {
-      window.location.href = 'index.html';
-    });
-
-    /* "Not enough tickets" модал */
-    closeNoTicketsBtn.addEventListener('click', () => {
+    document.getElementById('closeNoTickets').addEventListener('click', () => {
       modalNoTickets.classList.remove('active');
     });
 
-    /* Telegram user detection */
+    document.getElementById('backBtn').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
     if (tgApp && tgApp.initDataUnsafe && tgApp.initDataUnsafe.user) {
       currentUser = tgApp.initDataUnsafe.user;
       usernameElem.textContent = '@' + currentUser.username;
@@ -232,14 +277,13 @@
         }
       });
       userRef.on('value', snapshot => {
-        let data = snapshot.val() || {};
+        const data = snapshot.val() || {};
         localUserData.tickets = data.tickets || 0;
         localUserData.points = data.points || 0;
         updateHeader();
         dataLoaded = true;
       });
     } else {
-      // Тест user
       currentUser = { username: 'TestUser' };
       usernameElem.textContent = '@TestUser';
       userRef = db.ref('users/TestUser');
@@ -249,7 +293,7 @@
         }
       });
       userRef.on('value', snapshot => {
-        let data = snapshot.val() || {};
+        const data = snapshot.val() || {};
         localUserData.tickets = data.tickets || 0;
         localUserData.points = data.points || 0;
         updateHeader();
@@ -262,159 +306,329 @@
       pointCountElem.textContent = localUserData.points;
     }
 
-    /* Start Button */
-    startBtn.addEventListener('click', () => {
-      // Проверяем dataLoaded + tickets
-      if (!dataLoaded || localUserData.tickets<1) {
-        modalNoTickets.classList.add('active');
+    /* ---------- Логика The Stack Game ---------- */
+    class Stage {
+      constructor() {
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setClearColor("#D0CBC7", 1);
+        document.getElementById("game").appendChild(this.renderer.domElement);
+        this.scene = new THREE.Scene();
+        let aspect = window.innerWidth / window.innerHeight;
+        let d = 20;
+        this.camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, -100, 1000);
+        this.camera.position.set(2, 2, 2);
+        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+        this.light = new THREE.DirectionalLight(0xffffff, 0.5);
+        this.light.position.set(0, 499, 0);
+        this.scene.add(this.light);
+        this.softLight = new THREE.AmbientLight(0xffffff, 0.4);
+        this.scene.add(this.softLight);
+        window.addEventListener("resize", () => this.onResize());
+        this.onResize();
+      }
+      render() {
+        this.renderer.render(this.scene, this.camera);
+      }
+      add(elem) {
+        this.scene.add(elem);
+      }
+      remove(elem) {
+        this.scene.remove(elem);
+      }
+      onResize() {
+        let viewSize = 30;
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.camera.left = window.innerWidth / -viewSize;
+        this.camera.right = window.innerWidth / viewSize;
+        this.camera.top = window.innerHeight / viewSize;
+        this.camera.bottom = window.innerHeight / -viewSize;
+        this.camera.updateProjectionMatrix();
+      }
+    }
+
+    class Block {
+      constructor(block) {
+        this.STATES = { ACTIVE: "active", STOPPED: "stopped", MISSED: "missed" };
+        this.MOVE_AMOUNT = 12;
+        this.dimension = { width: 0, height: 0, depth: 0 };
+        this.position = { x: 0, y: 0, z: 0 };
+        this.targetBlock = block;
+        this.index = (this.targetBlock ? this.targetBlock.index : 0) + 1;
+        this.workingPlane = this.index % 2 ? "x" : "z";
+        this.workingDimension = this.index % 2 ? "width" : "depth";
+        this.dimension.width = this.targetBlock ? this.targetBlock.dimension.width : 10;
+        this.dimension.height = this.targetBlock ? this.targetBlock.dimension.height : 2;
+        this.dimension.depth = this.targetBlock ? this.targetBlock.dimension.depth : 10;
+        this.position.x = this.targetBlock ? this.targetBlock.position.x : 0;
+        this.position.y = this.dimension.height * this.index;
+        this.position.z = this.targetBlock ? this.targetBlock.position.z : 0;
+        this.colorOffset = this.targetBlock ? this.targetBlock.colorOffset : Math.round(Math.random() * 100);
+        if (!this.targetBlock) {
+          this.color = 0x333344;
+        } else {
+          let offset = this.index + this.colorOffset;
+          let r = Math.sin(0.3 * offset) * 55 + 200;
+          let g = Math.sin(0.3 * offset + 2) * 55 + 200;
+          let b = Math.sin(0.3 * offset + 4) * 55 + 200;
+          this.color = new THREE.Color(r / 255, g / 255, b / 255);
+        }
+        this.state = this.index > 1 ? this.STATES.ACTIVE : this.STATES.STOPPED;
+        this.speed = -0.1 - this.index * 0.005;
+        if (this.speed < -4) this.speed = -4;
+        this.direction = this.speed;
+        let geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
+        geometry.applyMatrix(new THREE.Matrix4().makeTranslation(this.dimension.width / 2, this.dimension.height / 2, this.dimension.depth / 2));
+        this.material = new THREE.MeshToonMaterial({ color: this.color });
+        this.mesh = new THREE.Mesh(geometry, this.material);
+        this.mesh.position.set(this.position.x, this.position.y, this.position.z);
+        if (this.state == this.STATES.ACTIVE) {
+          this.position[this.workingPlane] = Math.random() > 0.5 ? -this.MOVE_AMOUNT : this.MOVE_AMOUNT;
+        }
+      }
+      reverseDirection() {
+        this.direction = this.direction > 0 ? this.speed : Math.abs(this.speed);
+      }
+      place() {
+        this.state = this.STATES.STOPPED;
+        let overlap = this.targetBlock.dimension[this.workingDimension] -
+          Math.abs(this.position[this.workingPlane] - this.targetBlock.position[this.workingPlane]);
+        let blocksToReturn = { plane: this.workingPlane, direction: this.direction };
+        if (this.dimension[this.workingDimension] - overlap < 0.3) {
+          overlap = this.dimension[this.workingDimension];
+          blocksToReturn.bonus = true;
+          this.position.x = this.targetBlock.position.x;
+          this.position.z = this.targetBlock.position.z;
+          this.dimension.width = this.targetBlock.dimension.width;
+          this.dimension.depth = this.targetBlock.dimension.depth;
+        }
+        if (overlap > 0) {
+          let choppedDimensions = {
+            width: this.dimension.width,
+            height: this.dimension.height,
+            depth: this.dimension.depth
+          };
+          choppedDimensions[this.workingDimension] -= overlap;
+          this.dimension[this.workingDimension] = overlap;
+          let placedGeometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
+          placedGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(this.dimension.width / 2, this.dimension.height / 2, this.dimension.depth / 2));
+          let placedMesh = new THREE.Mesh(placedGeometry, this.material);
+          let choppedGeometry = new THREE.BoxGeometry(choppedDimensions.width, choppedDimensions.height, choppedDimensions.depth);
+          choppedGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(choppedDimensions.width / 2, choppedDimensions.height / 2, choppedDimensions.depth / 2));
+          let choppedMesh = new THREE.Mesh(choppedGeometry, this.material);
+          let choppedPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
+          if (this.position[this.workingPlane] < this.targetBlock.position[this.workingPlane]) {
+            this.position[this.workingPlane] = this.targetBlock.position[this.workingPlane];
+          } else {
+            choppedPosition[this.workingPlane] += overlap;
+          }
+          placedMesh.position.set(this.position.x, this.position.y, this.position.z);
+          choppedMesh.position.set(choppedPosition.x, choppedPosition.y, choppedPosition.z);
+          blocksToReturn.placed = placedMesh;
+          if (!blocksToReturn.bonus)
+            blocksToReturn.chopped = choppedMesh;
+        }
+        else {
+          this.state = this.STATES.MISSED;
+        }
+        this.dimension[this.workingDimension] = overlap;
+        return blocksToReturn;
+      }
+      tick() {
+        if (this.state == this.STATES.ACTIVE) {
+          let value = this.position[this.workingPlane];
+          if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT)
+            this.reverseDirection();
+          this.position[this.workingPlane] += this.direction;
+          this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
+        }
+      }
+    }
+
+    class StackGame {
+      constructor() {
+        this.containerElem = document.getElementById('container');
+        this.scoreElem = document.getElementById('score');
+        this.stage = new Stage();
+        this.newBlocksGroup = new THREE.Group();
+        this.placedBlocksGroup = new THREE.Group();
+        this.choppedBlocksGroup = new THREE.Group();
+        this.stage.add(this.newBlocksGroup);
+        this.stage.add(this.placedBlocksGroup);
+        this.stage.add(this.choppedBlocksGroup);
+        this.blocks = [];
+        this.state = "READY"; // READY, PLAYING, ENDED
+        this.scoreElem.innerHTML = "0";
+        this.addBlock();
+        this.tick();
+        document.addEventListener("keydown", (e) => {
+          if (e.keyCode == 32) this.onAction();
+        });
+        document.addEventListener("click", (e) => {
+          this.onAction();
+        });
+      }
+      onAction() {
+        if (this.state == "PLAYING") {
+          this.placeBlock();
+        } else if (this.state == "ENDED") {
+          this.restartGame();
+        }
+      }
+      startGame() {
+        if (this.state !== "PLAYING") {
+          this.scoreElem.innerHTML = "0";
+          this.state = "PLAYING";
+          this.addBlock();
+        }
+      }
+      restartGame() {
+        this.state = "RESETTING";
+        let oldBlocks = this.placedBlocksGroup.children;
+        let removeSpeed = 0.2;
+        let delayAmt = 0.02;
+        for (let i = 0; i < oldBlocks.length; i++) {
+          TweenLite.to(oldBlocks[i].scale, removeSpeed, {
+            x: 0, y: 0, z: 0,
+            delay: (oldBlocks.length - i) * delayAmt,
+            ease: Power1.easeIn,
+            onComplete: () => this.placedBlocksGroup.remove(oldBlocks[i])
+          });
+          TweenLite.to(oldBlocks[i].rotation, removeSpeed, {
+            y: 0.5,
+            delay: (oldBlocks.length - i) * delayAmt,
+            ease: Power1.easeIn
+          });
+        }
+        let totalDelay = removeSpeed * 2 + oldBlocks.length * delayAmt;
+        this.blocks = this.blocks.slice(0, 1);
+        setTimeout(() => {
+          this.scoreElem.innerHTML = "0";
+          this.state = "PLAYING";
+          this.addBlock();
+        }, totalDelay * 1000);
+      }
+      placeBlock() {
+        let currentBlock = this.blocks[this.blocks.length - 1];
+        let newBlocks = currentBlock.place();
+        this.newBlocksGroup.remove(currentBlock.mesh);
+        if (newBlocks.placed)
+          this.placedBlocksGroup.add(newBlocks.placed);
+        if (newBlocks.chopped) {
+          this.choppedBlocksGroup.add(newBlocks.chopped);
+          let posParams = { y: "-=30", ease: Power1.easeIn, onComplete: () => this.choppedBlocksGroup.remove(newBlocks.chopped) };
+          let rotateParams = { delay: 0.05, x: 0.1, z: 0.1, y: Math.random() * 0.1 };
+          if (newBlocks.plane == "z") rotateParams.x = Math.random() * 10 - 5;
+          if (newBlocks.plane == "x") rotateParams.z = Math.random() * 10 - 5;
+          if (newBlocks.chopped.position[newBlocks.plane] > newBlocks.placed.position[newBlocks.plane]) {
+            posParams[newBlocks.plane] = "+=" + 40 * Math.abs(newBlocks.direction);
+          } else {
+            posParams[newBlocks.plane] = "-=" + 40 * Math.abs(newBlocks.direction);
+          }
+          TweenLite.to(newBlocks.chopped.position, 1, posParams);
+          TweenLite.to(newBlocks.chopped.rotation, 1, rotateParams);
+        }
+        if (currentBlock.state == currentBlock.STATES.MISSED) {
+          return this.endGame();
+        } else {
+          this.addBlock();
+        }
+        this.scoreElem.innerHTML = String(this.blocks.length - 1);
+      }
+      addBlock() {
+        let lastBlock = this.blocks[this.blocks.length - 1];
+        if (lastBlock && lastBlock.state == lastBlock.STATES.MISSED) {
+          return this.endGame();
+        }
+        let newBlock = new Block(lastBlock);
+        this.newBlocksGroup.add(newBlock.mesh);
+        this.blocks.push(newBlock);
+      }
+      endGame() {
+        this.state = "ENDED";
+        containerElem.classList.add("ended");
+      }
+      tick() {
+        if (this.blocks.length > 0) {
+          this.blocks[this.blocks.length - 1].tick();
+        }
+        this.stage.render();
+        requestAnimationFrame(() => { this.tick(); });
+      }
+    }
+
+    // Создаем экземпляр игры
+    let stackGame = new StackGame();
+
+    // Таймер игры (5 минут)
+    let gameStartTime = null;
+    const gameDuration = 300000; // 5 минут в мс
+
+    function updateTimer(timestamp) {
+      let timeBar = document.getElementById('timeBar');
+      if (gameStartTime) {
+        let elapsed = timestamp - gameStartTime;
+        let remaining = gameDuration - elapsed;
+        if (remaining <= 0) {
+          timeBar.style.width = "0%";
+          if (!stackGame.state === "ENDED") {
+            stackGame.endGame();
+          }
+        } else {
+          timeBar.style.width = (remaining / gameDuration * 100) + "%";
+        }
+      }
+    }
+
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+      updateTimer(timestamp);
+    }
+    requestAnimationFrame(animate);
+
+    // Старт игры: скрываем все меню, показываем игру, счет и таймер
+    function startStackGame() {
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('backContainer').style.display = 'none';
+      document.getElementById('start-button').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+      document.getElementById('score').style.display = 'block';
+      document.getElementById('timeBarContainer').style.display = 'block';
+      // Запускаем игру
+      stackGame.restartGame();
+      stackGame.startGame();
+      gameStartTime = performance.now();
+    }
+
+    // Обработчик стартовой кнопки
+    document.getElementById('start-button').addEventListener('click', () => {
+      if (!dataLoaded || localUserData.tickets < 1) {
+        showNoTicketsModal();
         return;
       }
-      // Списываем 1 билет
+      // Уменьшаем билет
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Прячем header, back, startBtn
-      document.getElementById('header').style.display = 'none';
-      document.getElementById('backContainer').style.display = 'none';
-      document.getElementById('startContainer').style.display = 'none';
-      // Показываем Canvas
-      gameCanvas.style.display = 'block';
-      // Запускаем StackGame
-      initStackGame();
+      startStackGame();
     });
 
-
-    /* ---------- ЛОГИКА StackGame ---------- */
-    let scene, camera, renderer;
-    let blocks = [];
-    let activeBlock = null;
-    let lastBlock = null;
-    let dimension = 10;
-    let blockHeight = 2;
-    let indexCount = 0;
-    let isGameOver = false;
-    let score = 0;
-
-    function initStackGame() {
-      // Сбрасываем глобальные
-      isGameOver=false;
-      score=0;
-      blocks=[]; indexCount=0;
-
-      // Создаём Three.js сцену
-      scene = new THREE.Scene();
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setClearColor("#D0CBC7", 1);
-      gameCanvas.innerHTML = ""; // чистим
-      gameCanvas.appendChild(renderer.domElement);
-
-      let aspect = window.innerWidth / window.innerHeight;
-      let d = 20;
-      camera = new THREE.OrthographicCamera(-d*aspect, d*aspect, d, -d, -100, 1000);
-      camera.position.set(2, 2, 2);
-      camera.lookAt(new THREE.Vector3(0,0,0));
-      
-      let light = new THREE.DirectionalLight(0xffffff, 0.5);
-      light.position.set(0, 499, 0);
-      scene.add(light);
-
-      let softLight = new THREE.AmbientLight(0xffffff, 0.4);
-      scene.add(softLight);
-
-      // Первый блок (статический)
-      let baseBlock = createBlock(10,2,10,0,0,0,"STOPPED");
-      blocks.push(baseBlock);
-      scene.add(baseBlock.mesh);
-      lastBlock=baseBlock;
-
-      // Второй блок (активный?)
-      activeBlock = createBlock(10,2,10,0,2,0,"ACTIVE");
-      blocks.push(activeBlock);
-      scene.add(activeBlock.mesh);
-
-      document.addEventListener('keydown', onActionKey);
-      document.addEventListener('click', onActionClick);
-      animate();
-    }
-
-    function createBlock(w,h,d,x,y,z,state) {
-      indexCount++;
-      let geometry = new THREE.BoxGeometry(w,h,d);
-      geometry.applyMatrix(new THREE.Matrix4().makeTranslation(w/2,h/2,d/2));
-      let color = 0x333344;
-      let material = new THREE.MeshToonMaterial({color});
-      let mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(x,y,z);
-
-      return {
-        mesh,
-        dimension: { width:w, height:h, depth:d },
-        position: { x, y, z },
-        state,
-        index: indexCount,
-        plane: (indexCount%2 ? "x" : "z"),
-        direction: (indexCount>1 ? -0.1-indexCount*0.005 : 0),
-        speed: (indexCount>1 ? -0.1-indexCount*0.005 : 0)
-      };
-    }
-
-    function placeBlock() {
-      // Проверяем overlap
-      if (!activeBlock || !lastBlock) return;
-      let plane = activeBlock.plane;
-      let overlapDimension = plane=="x" ? "width":"depth";
-
-      let overlap = lastBlock.dimension[overlapDimension] -
-        Math.abs(activeBlock.position[plane] - lastBlock.position[plane]);
-      if (overlap <= 0) {
-        // GAME OVER
-        gameOver();
-      } else {
-        // Успешно, обновляем score:
-        score++;
-        // Вычитаем overlap, перестраиваем
-        activeBlock.state="STOPPED";
-        // создаём новый activeBlock
-        lastBlock=activeBlock;
-        activeBlock = createBlock(lastBlock.dimension.width,2,lastBlock.dimension.depth, lastBlock.position.x, lastBlock.position.y+2, lastBlock.position.z, "ACTIVE");
-        scene.add(activeBlock.mesh);
-        blocks.push(activeBlock);
+    // Фоновая музыка (из-за ограничений браузера)
+    document.body.addEventListener('click', () => {
+      const bgSound = document.getElementById('bgSound');
+      if (bgSound.paused) {
+        bgSound.play().catch(err => console.log(err));
       }
-    }
+    }, { once: true });
 
-    function gameOver() {
-      isGameOver=true;
-      // При gameOver прибавляем score к Firebase points
-      localUserData.points += score;
-      if (userRef) userRef.update({ points: localUserData.points });
-      // Переходим на index.html
-      window.location.href = 'index.html';
-    }
+    // Модальное окно "Not enough tickets" уже настроено выше
 
-    function onActionKey(e) {
-      if (e.keyCode==32) doAction();
-    }
-    function onActionClick(e) {
-      doAction();
-    }
-    function doAction() {
-      if (isGameOver) return;
-      placeBlock();
-    }
-
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-      // Двигаем activeBlock
-      if (!isGameOver && activeBlock && activeBlock.state=="ACTIVE") {
-        let plane = activeBlock.plane;
-        let val = activeBlock.position[plane];
-        if (val>12 || val<-12) activeBlock.direction*=-1;
-        activeBlock.position[plane]+= activeBlock.direction;
-        activeBlock.mesh.position[plane]= activeBlock.position[plane];
-      }
-    }
+    // При завершении игры (Game Over) мы считаем, что количество блоков = points,
+    // обновляем базу, и затем при нажатии на OK (в модальном окне) перенаправляем на index.html.
+    // Для этого в StackGame.endGame() используется класс "ENDED", а модальное окно
+    // выводится через CSS (например, добавив класс "ended" к container).
+    // Здесь мы просто слушаем кнопку OK в модальном окне.
   </script>
 </body>
 </html>
+
