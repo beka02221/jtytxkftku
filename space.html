@@ -2,9 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crossy Road 3D Vertical с меню</title>
+  <title>Crossy Road 3D Vertical с меню и таймером</title>
 
   <!-- Font: Press Start 2P -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -101,10 +100,25 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
+    /* Временной индикатор */
+    #timeBarContainer {
+      position: absolute;
+      top: 50px; /* ниже header */
+      left: 0;
+      width: 100%;
+      height: 10px;
+      background: #555;
+      z-index: 1000;
+    }
+    #timeBar {
+      width: 100%;
+      height: 100%;
+      background: #0f0;
+    }
     /* Игровой счётчик */
     #counter {
       position: absolute;
-      top: 20px;
+      top: 70px; /* сдвигаем ниже timeBar */
       right: 20px;
       z-index: 1000;
     }
@@ -203,6 +217,11 @@
     </div>
   </div>
 
+  <!-- Временной индикатор -->
+  <div id="timeBarContainer">
+    <div id="timeBar"></div>
+  </div>
+
   <!-- Кнопка Back -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
@@ -211,7 +230,7 @@
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Canvas Three.js добавится сюда после старта игры -->
+    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
   <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
@@ -249,7 +268,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно (для окончания игры и уведомлений) -->
+  <!-- Модальное окно для окончания игры и уведомлений -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -289,8 +308,10 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
-    // Флаг, показывающий, что данные загружены (подождите 3 секунды)
+    // Флаг, что данные загружены
     let dataLoaded = false;
+    // Задержка 3 секунды для загрузки данных
+    setTimeout(() => { dataLoaded = true; }, 3000);
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -334,7 +355,6 @@
     function goBack() {
       window.location.href = 'index.html';
     }
-
     function goToIndex() {
       window.location.href = 'index.html';
     }
@@ -357,6 +377,10 @@
     const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const threeHeights = [20, 45, 60];
     let gameEnded = false;
+
+    // Добавляем переменные для таймера
+    let gameStartTime = null; 
+    const gameDuration = 300000; // 5 минут в миллисекундах
 
     function initGame() {
       gameEnded = false;
@@ -681,7 +705,7 @@
     // Звук движения
     const moveSound = new Audio("move.mp3");
 
-    // Обработчики кнопок управления (активны после старта игры)
+    // Обработчики кнопок управления
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
     document.getElementById('left').addEventListener("click", () => move('left'));
@@ -734,19 +758,40 @@
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Если билетов нет – показываем модальное окно
+    // Если билетов нет или данные не загружены – показываем модальное окно
     function showNoTicketsModal() {
       document.getElementById('endTitle').textContent = 'Not enough tickets!';
       document.getElementById('endMessage').textContent = 'Please come back later.';
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Главный игровой цикл
+    /* ----------------------------------------
+       3. Главный игровой цикл и таймер
+    ---------------------------------------- */
+    // Переменная для времени старта игры и длительности (5 минут = 300000 мс)
+    let gameStartTime = null;
+    const gameDuration = 300000; // 5 минут в мс
+
     function animate(timestamp) {
       requestAnimationFrame(animate);
       if (!previousTimestamp) previousTimestamp = timestamp;
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
+
+      // Обновляем таймер, если игра запущена
+      if (gameStartTime) {
+        let elapsed = timestamp - gameStartTime;
+        let remaining = gameDuration - elapsed;
+        let timeBar = document.getElementById('timeBar');
+        if (remaining <= 0) {
+          timeBar.style.width = "0%";
+          if (!gameEnded) {
+            endGame();
+          }
+        } else {
+          timeBar.style.width = (remaining / gameDuration * 100) + "%";
+        }
+      }
 
       lanes.forEach(lane => {
         if (lane.type === 'car' || lane.type === 'truck') {
@@ -851,7 +896,7 @@
     requestAnimationFrame(animate);
 
     /* ----------------------------------------
-       3. Функция старта игры
+       4. Функция старта игры
     ---------------------------------------- */
     // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
@@ -861,13 +906,9 @@
       }
     }, { once: true });
 
-    // При нажатии на кнопку Start проверяем, что данные загружены (даётся примерно 3 секунды на загрузку)
     function startGame() {
-      if (!dataLoaded) {
-        showNoTicketsModal();
-        return;
-      }
-      if (localUserData.tickets < 1) {
+      // Если данные не загружены или билетов недостаточно, показываем модальное окно
+      if (!dataLoaded || localUserData.tickets < 1) {
         showNoTicketsModal();
         return;
       }
@@ -881,20 +922,14 @@
       // Показываем область игры и контролы
       document.getElementById('gameWrapper').style.display = 'block';
       document.getElementById('controlls').style.display = 'flex';
+      // Устанавливаем время старта игры для таймера
+      gameStartTime = performance.now();
 
       initGame();
       if (!renderer) {
         initRenderer();
       }
     }
-
-    // Если билетов нет или данные не загружены – показываем модальное окно
-    function showNoTicketsModal() {
-      document.getElementById('endTitle').textContent = 'Not enough tickets!';
-      document.getElementById('endMessage').textContent = 'Please come back later.';
-      document.getElementById('end').style.visibility = 'visible';
-    }
   </script>
 </body>
 </html>
-
