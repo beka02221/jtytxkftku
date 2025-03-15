@@ -101,25 +101,27 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Временной индикатор */
+    /* Временной индикатор - изначально скрыт, появляется после старта игры */
     #timeBarContainer {
       position: absolute;
-      top: 50px; /* ниже header */
-      left: 0;
-      width: 100%;
-      height: 10px;
+      top: 20px; /* поднят выше */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 5px;
       background: #555;
       z-index: 1100;
+      display: none;
     }
     #timeBar {
       width: 100%;
       height: 100%;
-      background: #0f0;
+      background: #ff66cc;
     }
     /* Игровой счётчик */
     #counter {
       position: absolute;
-      top: 70px; /* ниже timeBar */
+      top: 40px; /* сдвинут ниже time bar */
       right: 20px;
       z-index: 1000;
     }
@@ -218,7 +220,7 @@
     </div>
   </div>
 
-  <!-- Временной индикатор -->
+  <!-- Временной индикатор (появится после старта игры) -->
   <div id="timeBarContainer">
     <div id="timeBar"></div>
   </div>
@@ -231,7 +233,7 @@
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Canvas Three.js добавится сюда после старта игры -->
+    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
   <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
@@ -269,7 +271,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно для окончания игры и уведомлений -->
+  <!-- Модальное окно для окончания игры/уведомлений -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -311,7 +313,7 @@
     let localUserData = { tickets: 0, points: 0 };
     // Флаг, что данные загружены
     let dataLoaded = false;
-    // Если данные не загрузились в течение 3 секунд, dataLoaded станет true (можно изменить логику по необходимости)
+    // Если данные не загрузились в течение 3 секунд, dataLoaded станет true
     setTimeout(() => { dataLoaded = true; }, 3000);
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -357,11 +359,11 @@
       window.location.href = 'index.html';
     }
     // Для случая Game Over, OK отправляет на index.html; для noTickets просто скрывает модал
-    let modalType = "gameOver"; // "gameOver" или "noTickets"
+    let modalType = "gameOver";
     document.getElementById('endBtn').addEventListener('click', function() {
-      if(modalType === "gameOver") {
+      if (modalType === "gameOver") {
         goToIndex();
-      } else if(modalType === "noTickets") {
+      } else if (modalType === "noTickets") {
         document.getElementById('end').style.visibility = 'hidden';
       }
     });
@@ -769,7 +771,7 @@
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    // Если билетов нет или данные не загружены – показываем модальное окно (но OK просто скрывает модал)
+    // Если билетов нет или данные не загружены – показываем модальное окно
     function showNoTicketsModal() {
       modalType = "noTickets";
       document.getElementById('endTitle').textContent = 'Not enough tickets!';
@@ -906,7 +908,6 @@
     /* ----------------------------------------
        4. Функция старта игры
     ---------------------------------------- */
-    // Фоновая музыка запускается при первом клике (из-за ограничений браузера)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -915,7 +916,7 @@
     }, { once: true });
 
     function startGame() {
-      // Если данные ещё не загружены или билетов недостаточно, показываем модальное окно
+      // Если данные не загружены или билетов недостаточно, показываем модальное окно
       if (!dataLoaded || localUserData.tickets < 1) {
         showNoTicketsModal();
         return;
@@ -930,6 +931,8 @@
       // Показываем область игры и контролы
       document.getElementById('gameWrapper').style.display = 'block';
       document.getElementById('controlls').style.display = 'flex';
+      // Показываем time bar
+      document.getElementById('timeBarContainer').style.display = 'block';
       // Устанавливаем время старта игры для таймера
       gameStartTime = performance.now();
 
