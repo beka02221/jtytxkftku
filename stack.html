@@ -34,7 +34,7 @@
       height: 100%;
       position: relative;
     }
-    /* Header (информация о пользователе) */
+    /* Header с информацией о пользователе */
     #header {
       position: absolute;
       top: 0;
@@ -107,7 +107,7 @@
       left: 0;
       display: none;
     }
-    /* Пиксельный счётчик – появляется после начала игры (правый верхний угол) */
+    /* Пиксельный счётчик – появляется после старта игры (правый верхний угол) */
     #score {
       position: absolute;
       top: 20px;
@@ -174,7 +174,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Canvas, создаваемый Stage, будет добавлен в #game */
+    /* Canvas (Stage) будет добавлен в #game */
     canvas {
       position: absolute;
       z-index: 1;
@@ -215,10 +215,10 @@
     <!-- Контейнер для игры (The Stack) -->
     <div id="game"></div>
   
-    <!-- Пиксельный счётчик (отображается после старта игры) -->
+    <!-- Пиксельный счётчик -->
     <div id="score">0</div>
   
-    <!-- Кнопка Start (начальный экран) -->
+    <!-- Кнопка Start -->
     <button id="start-button">Start (1 Ticket)</button>
   
     <!-- Временной индикатор -->
@@ -257,7 +257,7 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
-    // Флаг, что данные загружены (3 секунды)
+    // Флаг загрузки данных (примерно 3 секунды)
     let dataLoaded = false;
     setTimeout(() => { dataLoaded = true; }, 3000);
   
@@ -391,14 +391,15 @@
         this.speed = -0.1 - this.index * 0.005;
         if (this.speed < -4) this.speed = -4;
         this.direction = this.speed;
+        // Изменяем начальное положение: случайное в диапазоне [-MOVE_AMOUNT/2, MOVE_AMOUNT/2]
+        if (this.state == this.STATES.ACTIVE) {
+          this.position[this.workingPlane] = Math.random() * this.MOVE_AMOUNT - this.MOVE_AMOUNT / 2;
+        }
         let geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
         geometry.applyMatrix(new THREE.Matrix4().makeTranslation(this.dimension.width / 2, this.dimension.height / 2, this.dimension.depth / 2));
         this.material = new THREE.MeshToonMaterial({ color: this.color });
         this.mesh = new THREE.Mesh(geometry, this.material);
         this.mesh.position.set(this.position.x, this.position.y, this.position.z);
-        if (this.state == this.STATES.ACTIVE) {
-          this.position[this.workingPlane] = Math.random() > 0.5 ? -this.MOVE_AMOUNT : this.MOVE_AMOUNT;
-        }
       }
       reverseDirection() {
         this.direction = this.direction > 0 ? this.speed : Math.abs(this.speed);
@@ -441,8 +442,7 @@
           blocksToReturn.placed = placedMesh;
           if (!blocksToReturn.bonus)
             blocksToReturn.chopped = choppedMesh;
-        }
-        else {
+        } else {
           this.state = this.STATES.MISSED;
         }
         this.dimension[this.workingDimension] = overlap;
@@ -477,7 +477,7 @@
         this.scoreElem.innerHTML = "0";
         this.addBlock();
         this.tick();
-        // Слушатели для Space и кликов – теперь только если игра в PLAYING
+        // Слушатели для Space и кликов
         document.addEventListener("keydown", (e) => {
           if (e.keyCode == 32) this.onAction();
         });
@@ -486,11 +486,11 @@
         });
       }
       onAction() {
-        // Если игра в PLAYING, обрабатываем действие.
-        if (this.state == "PLAYING") {
-          this.placeBlock();
-        }
-        // Если игра закончилась, не перезапускаем игру (нажатия игнорируются)
+        // Если игра уже завершена, игнорируем клики
+        if (this.state !== "PLAYING") return;
+        // Игнорируем клики, если прошло менее 500 мс после старта (чтобы избежать случайного срабатывания)
+        if (performance.now() - gameStartTime < 500) return;
+        this.placeBlock();
       }
       startGame() {
         if (this.state !== "PLAYING") {
@@ -582,9 +582,9 @@
   
     let stackGame = new StackGame();
   
-    // Таймер игры (5 минут = 300000 мс)
+    // Таймер игры (5 минут)
     let gameStartTime = null;
-    const gameDuration = 300000;
+    const gameDuration = 300000; // 5 минут в мс
     function updateTimer(timestamp) {
       let timeBar = document.getElementById('timeBar');
       if (gameStartTime) {
@@ -606,7 +606,7 @@
     }
     requestAnimationFrame(timerAnimate);
   
-    // Функция, которая запускается при нажатии кнопки Start – сразу запускается игра (блоки начинают двигаться)
+    // Функция, запускающая игру при нажатии на кнопку Start – сразу запускается игра, блоки начинают двигаться
     function startStackGame() {
       // Скрываем меню (header, back и кнопку Start)
       document.getElementById('header').style.display = 'none';
@@ -638,14 +638,13 @@
       startStackGame();
     });
   
-    // Фоновая музыка (запускается при первом клике)
+    // Фоновая музыка (автозапуск при первом клике)
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
         bgSound.play().catch(err => console.log(err));
       }
     }, { once: true });
-  
   </script>
 </body>
 </html>
