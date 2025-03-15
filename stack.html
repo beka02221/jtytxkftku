@@ -76,7 +76,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню игры */
+    /* Меню игры – изначально видимо */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -98,10 +98,10 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Временной индикатор – скрыт до старта */
+    /* Временной индикатор – появляется после старта игры */
     #timeBarContainer {
       position: absolute;
-      top: 20px;
+      top: 20px; /* поднят выше */
       left: 50%;
       transform: translateX(-50%);
       width: 80%;
@@ -118,11 +118,10 @@
     /* Игровой счётчик */
     #counter {
       position: absolute;
-      top: 40px;
+      top: 40px; /* ниже time bar */
       right: 20px;
       z-index: 1000;
     }
-    /* Убираем блок контролов (не нужны для Pure CSS игры) */
     /* Модальное окно для окончания игры/уведомлений */
     #end {
       position: absolute;
@@ -159,7 +158,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Если используется canvas – он ниже (здесь не используется, так как игра Pure CSS) */
+    /* Если используется canvas – он ниже (здесь не используется) */
     canvas {
       position: absolute;
       z-index: 1;
@@ -227,7 +226,6 @@
       );
       animation: sky 240s steps(8, end) infinite forwards;
     }
-    /* Остальной CSS для Pure CSS STACK игры (сокращённый) */
     input,
     .last {
       z-index: 1;
@@ -354,7 +352,6 @@
     .points::after {
       content: counter(points);
     }
-    /* Ключевые анимации Pure CSS STACK игры */
     @keyframes opacity {
       0% { opacity: 1; }
       25% { opacity: 1; }
@@ -415,7 +412,7 @@
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
     <!-- Контейнер для Pure CSS STACK игры -->
     <div id="cssGameContainer" style="display: none;">
-      <!-- Вставляем код игры Pure CSS STACK (разметка из вашего примера) -->
+      <!-- Копия разметки Pure CSS STACK игры из вашего примера -->
       <form class="screen" novalidate>
         <input id="start" type="checkbox" tabindex="-1">
         <input id="end" type="checkbox" tabindex="-1">
@@ -546,8 +543,6 @@
                                                                                                                                 <div class="block floating vertical"></div>
                                                                                                                                 <div class="block vertical">
                                                                                                                                   <input type="checkbox" tabindex="-1">
-                                                                                                                                  <!-- Можно добавить элемент для показа очков Pure CSS игры -->
-                                                                                                                                  <div class="points" id="gameScore"></div>
                                                                                                                                   <div class="container horizontal">
                                                                                                                                     <div class="block floating horizontal"></div>
                                                                                                                                     <div class="block horizontal">
@@ -559,24 +554,12 @@
                                                                                                                                           <div class="container horizontal">
                                                                                                                                             <div class="block floating horizontal"></div>
                                                                                                                                             <div class="block horizontal">
-                                                                                                                                              <input type="checkbox" tabindex="-1">
+                                                                                                                                              <label class="last" for="last" tabindex="-1"></label>
                                                                                                                                               <div class="container vertical">
                                                                                                                                                 <div class="block floating vertical"></div>
                                                                                                                                                 <div class="block vertical">
-                                                                                                                                                  <input type="checkbox" tabindex="-1">
-                                                                                                                                                  <div class="container horizontal">
-                                                                                                                                                    <div class="block floating horizontal"></div>
-                                                                                                                                                    <div class="block horizontal">
-                                                                                                                                                      <label class="last" for="last" tabindex="-1"></label>
-                                                                                                                                                      <div class="container vertical">
-                                                                                                                                                        <div class="block floating vertical"></div>
-                                                                                                                                                        <div class="block vertical">
-                                                                                                                                                          <label class="end horizontal" for="end"></label>
-                                                                                                                                                          <label class="end vertical" for="end"></label>
-                                                                                                                                                        </div>
-                                                                                                                                                      </div>
-                                                                                                                                                    </div>
-                                                                                                                                                  </div>
+                                                                                                                                                  <label class="end horizontal" for="end"></label>
+                                                                                                                                                  <label class="end vertical" for="end"></label>
                                                                                                                                                 </div>
                                                                                                                                               </div>
                                                                                                                                             </div>
@@ -650,7 +633,7 @@
     </div>
   </div>
   
-  <!-- Дополнительный счетчик и (если нужны) контролы – убраны, т.к. игра управляется только через Pure CSS -->
+  <!-- Дополнительный счётчик Pure CSS игры (если используется) -->
   <div id="counter">0</div>
   
   <!-- Модальное окно для окончания игры/уведомлений -->
@@ -668,9 +651,7 @@
   <audio id="deathSound" src="death.mp3"></audio>
   
   <script>
-    /* ----------------------------------------
-       1. Firebase и Telegram инициализация
-    ---------------------------------------- */
+    /* 1. Firebase и Telegram */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -694,7 +675,6 @@
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
     let dataLoaded = false;
-    // Если данные не загрузятся за 3 секунды, dataLoaded станет true
     setTimeout(() => { dataLoaded = true; }, 3000);
   
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -752,10 +732,7 @@
       window.location.href = 'index.html';
     }
   
-    /* ----------------------------------------
-       2. Игровой код (Pure CSS STACK)
-       Управление игрой осуществляется через CSS (чекбоксы)
-    ---------------------------------------- */
+    /* 2. Игровой код (Pure CSS STACK) */
     let gameEnded = false;
     let gameStartTime = null;
     const gameDuration = 300000; // 5 минут
@@ -765,13 +742,12 @@
       document.getElementById('timeBarContainer').style.display = 'block';
     }
   
-    // Функция завершения игры – вызывается по сбросу формы (событие reset)
+    // Функция завершения игры: воспроизводится звук смерти, итоговые очки записываются в базу, появляется модальное окно
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
       document.getElementById('deathSound').play().catch(err => console.log(err));
-      // Получаем итоговое количество очков из счетчика CSS (если реализовано)
-      // Здесь можно задать фиксированное значение или получить его из другой логики
+      // Попробуем получить очки из счетчика (Pure CSS может подсчитывать очки через counter)
       let score = 0;
       let pointsEl = document.querySelector('.points');
       if (pointsEl) {
@@ -793,10 +769,7 @@
       document.getElementById('end').style.visibility = 'visible';
     }
   
-    /* ----------------------------------------
-       3. Главный игровой цикл для таймера
-       (Так как игра управляется CSS, здесь только таймер)
-    ---------------------------------------- */
+    /* 3. Главный игровой цикл для таймера */
     function animate(timestamp) {
       requestAnimationFrame(animate);
       if (!gameStartTime) return;
@@ -814,9 +787,7 @@
     }
     requestAnimationFrame(animate);
   
-    /* ----------------------------------------
-       4. Функция старта игры
-    ---------------------------------------- */
+    /* 4. Функция старта игры */
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -832,18 +803,19 @@
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем меню: header, Back и кнопку Start
+      // Скрываем меню: header, Back, Start
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
-      // Показываем интерфейс игры: контейнер Pure CSS STACK и таймер
+      // Показываем игровое поле (Pure CSS игра) и таймер
       document.getElementById('gameWrapper').style.display = 'block';
-      // Показываем Pure CSS игру
       document.getElementById('cssGameContainer').style.display = 'block';
       document.getElementById('timeBarContainer').style.display = 'block';
       // Записываем время старта
       gameStartTime = performance.now();
       initGameInterface();
+      // ВАЖНО: чтобы запустить анимации Pure CSS игры, автоматически ставим чекбокс "start"
+      document.getElementById('start').checked = true;
     }
   </script>
 </body>
