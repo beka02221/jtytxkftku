@@ -18,7 +18,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* --------------- Общие стили и меню --------------- */
+    /* ---------------------- Меню и общие стили ---------------------- */
     html, body {
       margin: 0;
       padding: 0;
@@ -27,8 +27,6 @@
       overflow: hidden;
       background: #00103c;
       font-family: 'Press Start 2P', monospace;
-      display: flex;
-      flex-direction: column;
     }
     /* Header с информацией */
     #header {
@@ -77,14 +75,11 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Обертка для игры */
+    /* Обертка для игры: меню + игра */
     #gameWrapper {
       position: relative;
       width: 100%;
       height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     /* Кнопка старта игры */
     #startBtn {
@@ -103,7 +98,7 @@
       box-shadow: 0 3px #6b6b6b;
     }
     
-    /* --------------- Стили игры Pac-Man --------------- */
+    /* ------------------ Стили игры Pac-Man ------------------ */
     :root {
       --yellow-sprite-x: ;
       --yellow-sprite-y: ;
@@ -125,15 +120,20 @@
     html {
       font-size: 0.625em;
     }
+    
     @media (max-width: 600px), (max-height: 700px) {
       html { font-size: 0.3125em; }
     }
-    /* Игровая секция центрируется с помощью flex-раскладки body и контейнера #gameWrapper */
-    #game {
-      flex-direction: column;
-      display: none;
-      margin: auto;
+    
+    body, #game, #info, #lives { display: flex; }
+    
+    /* Скрываем игру до старта */
+    #game { 
+      flex-direction: column; 
+      display: none; 
+      margin: auto; /* Центрирование игры */
     }
+    
     #info {
       box-sizing: border-box;
       width: 100%;
@@ -141,20 +141,25 @@
       align-items: center;
       padding: 1em 2em;
     }
+    
     #score {
       color: white;
       margin: 0;
       font-size: 2rem;
     }
+    
     .live {
       width: 3.2rem;
       height: 2.6rem;
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites.png");
       background-position: -26rem -3.2rem;
     }
+    
     @media (max-width: 600px), (max-height: 700px) {
       .live { background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png"); }
     }
+    
+    /* Игровое поле */
     #game-board {
       position: relative;
       overflow: hidden;
@@ -163,32 +168,42 @@
       height: 62rem;
       display: grid;
       grid-template-columns: repeat(28, 2rem);
-      background-color: black; /* фон игры */
-      margin: auto;
+      background: black; /* Чёрный фон в игре */
     }
+    
+    /* Общие стили ячеек игрового поля */
     #game-board > * {
       position: relative;
       box-sizing: border-box;
       width: 2rem;
       height: 2rem;
     }
-    /* Убраны заголовки – больше не выводим "Click Anywhere to play" */
+    
+    /* Текст состояния (например, Ready!) */
     #start {
+      position: absolute;
+      margin: auto;
+      width: 100%;
+      top: 54%;
       text-align: center;
       color: yellow;
       font-size: 2.4rem;
       z-index: 1;
       user-select: none;
     }
-    /* Остальные стили (объекты, стены, анимации) остаются без изменений */
+    
+    /* Остальные стили (объекты, стены, персонажи, анимации) оставлены без изменений */
     .wall {
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/map.png");
       z-index: 1;
     }
+    
     @media (max-width: 600px), (max-height: 700px) {
       .wall { background-image: url("https://dominikgorczyca.github.io/Pac-Man/small_map.png"); }
     }
+    
     .blank { background-color: black; }
+    
     .wall > * {
       box-sizing: border-box;
       background-color: black;
@@ -200,6 +215,7 @@
       border-radius: 80%;
       z-index: 1;
     }
+    
     .point,
     .big-point {
       box-sizing: border-box;
@@ -209,17 +225,21 @@
       border-radius: 0;
       z-index: 10;
     }
+    
     .point { border: .8rem solid black; }
+    
     .big-point {
       border: .4rem solid black;
       border-radius: 45%;
       background-color: #ffb897;
     }
+    
     .gate {
       background-color: #ffb897;
       border-top: .7rem solid black;
       border-bottom: .7rem solid black;
     }
+    
     .yellow,
     .red,
     .pink,
@@ -233,10 +253,12 @@
       width: 3rem;
       height: 2.8rem;
     }
+    
     .points::after {
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites.png");
       background-position: var(--yellow-sprite-x) var(--yellow-sprite-y);
     }
+    
     .yellow-visible,
     .red-visible,
     .pink-visible,
@@ -246,6 +268,7 @@
       z-index: 101;
       will-change: transform, background-position;
     }
+    
     @media (max-width: 600px), (max-height: 700px) {
       .points::after,
       .yellow-visible,
@@ -256,31 +279,38 @@
         background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png");
       }
     }
+    
     .yellow-visible {
       background-position: var(--yellow-sprite-x) var(--yellow-sprite-y);
       transition: transform var(--yellow-animation-length) linear;
       z-index: 100;
     }
+    
     .red-visible {
       background-position: var(--red-sprite-x) var(--red-sprite-y);
       transition: transform var(--red-animation-length) linear;
       z-index: 104;
     }
+    
     .pink-visible {
       background-position: var(--pink-sprite-x) var(--pink-sprite-y);
       transition: transform var(--pink-animation-length) linear;
       z-index: 103;
     }
+    
     .blue-visible {
       background-position: var(--blue-sprite-x) var(--blue-sprite-y);
       transition: transform var(--blue-animation-length) linear;
       z-index: 102;
     }
+    
     .orange-visible {
       background-position: var(--orange-sprite-x) var(--orange-sprite-y);
       transition: transform var(--orange-animation-length) linear;
     }
-    /* Ключевые кадры и анимации можно добавить по необходимости */
+    
+    /* Ключевые кадры и остальные анимации оставлены без изменений */
+    /* … */
   </style>
 </head>
 <body>
@@ -309,7 +339,7 @@
     <!-- Кнопка старта игры -->
     <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
     
-    <!-- HTML-разметка игры Pac-Man (без заголовка "Click Anywhere to play") -->
+    <!-- HTML-разметка игры Pac-Man (без текста "Click Anywhere to play") -->
     <div id="game">
       <div id="info">
         <h3 id="score">Score 0</h3>
@@ -503,7 +533,7 @@
       name: "orange",
       direction: "ArrowUp",
       directionOld: undefined,
-      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
+      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
       position: 408,
       nextPosition: undefined,
       scatterTarget: 840,
@@ -1047,7 +1077,7 @@
           makeGhostsScared();
           score += 50;
         } else {
-          // Изменено: теперь обычная точка дает 1 очко вместо 10
+          // Изменено: обычная точка теперь даёт 1 очко
           score += 1;
           if(!sound.src.includes("munch") || sound.paused) {
             sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/munch.wav";
