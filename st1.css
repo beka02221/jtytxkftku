@@ -17,12 +17,11 @@ html, body {
 body {
   display: flex;
   flex-direction: column;
-  background-color: #0e162e; /* тёмный фон */
-  color: #e0e0e0;          /* светлый основной цвет текста */
+  background-color: #0e162e; /* Тёмный фон */
+  color: #e0e0e0;          /* Основной цвет текста */
   font-family: sans-serif;
 }
 
-/* Для английского варианта текста */
 body.en {
   font-weight: bold;
 }
@@ -31,7 +30,7 @@ body.en {
 h1, h2, h3, h4 {
   font-family: 'Press Start 2P', monospace;
   text-transform: uppercase;
-  color: #bb86fc; /* неоновый фиолетовый акцент */
+  color: #bb86fc; /* Неоновый фиолетовый акцент */
 }
 
 /* ========= Анимация "нажатия" ========= */
@@ -48,7 +47,7 @@ button {
   text-transform: uppercase;
   letter-spacing: 1px;
   background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #fff;
+  color: #000; /* Чёрный текст */
   border: none;
   border-radius: 4px;
   padding: 8px 16px;
@@ -169,14 +168,16 @@ button:active {
   transform: translateY(2px);
 }
 
-/* ========= Шапка (header) ========= */
+/* ========= Шапка (header) с эффектом блюра ========= */
 header {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   padding: 12px;
-  background: rgba(14,22,46,0.8);
+  background: rgba(14,22,46,0.6); /* Фон с прозрачностью */
+  backdrop-filter: blur(10px);    /* Эффект блюра */
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 2px solid #fff;
   display: flex;
   flex-direction: column;
@@ -266,6 +267,11 @@ main {
   box-sizing: border-box;
 }
 
+/* Центрирование названия секции игр */
+.games-section h2 {
+  text-align: center;
+}
+
 /* ========= Карточки игр ========= */
 .game-card,
 .game-card1 {
@@ -317,7 +323,7 @@ main {
   color: #000;
 }
 
-/* ========= Нижняя навигация ========= */
+/* ========= Нижняя навигация (nav) с эффектом блюра ========= */
 nav {
   display: flex;
   justify-content: center;
@@ -328,7 +334,9 @@ nav {
   left: 0;
   width: 100%;
   padding: 8px 0;
-  background: rgba(14,22,46,0.8);
+  background: rgba(14,22,46,0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 1000;
 }
 
@@ -376,7 +384,7 @@ nav button img {
 }
 
 .modal {
-  background: rgba(14,22,46,0.9);
+  background: #0e162e; /* Сплошной фон */
   border: 2px solid #3b3b3b;
   padding: 20px;
   width: 80%;
@@ -393,6 +401,11 @@ nav button img {
 .modal p {
   margin-bottom: 16px;
   font-size: 12px;
+}
+
+/* Расстояние между кнопками модального окна */
+.modal button + button {
+  margin-left: 10px;
 }
 
 /* ========= Полноэкранное окно для игр ========= */
@@ -449,7 +462,7 @@ nav button img {
 }
 
 .endgame-modal {
-  background: rgba(14,22,46,0.9);
+  background: #0e162e;
   border: 2px solid #3b3b3b;
   border-radius: 4px;
   padding: 16px;
