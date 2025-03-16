@@ -125,12 +125,6 @@
       }
     }
     
-    body, #game, #infoGame, #lives {
-      display: flex;
-    }
-    
-    /* Основной стиль для body уже задан выше */
-    
     /* Игровая область Pac‑Man */
     #game {
       flex-direction: column;
@@ -316,7 +310,19 @@
       transition: transform var(--orange-animation-length) linear;
     }
     
-    /* Здесь также располагаются остальные стили анимаций – см. исходный код Pac‑Man */
+    /* Здесь располагаются стили анимаций (сокращённый вариант). Дополните по необходимости. */
+    .yellow-animation-move { animation: var(--yellow-animation-length) forwards steps(1, end) yellow; }
+    .red-animation-move { animation: var(--red-animation-length) forwards steps(1, end) red; }
+    .pink-animation-move { animation: var(--pink-animation-length) forwards steps(1, end) pink; z-index: 10000; }
+    .blue-animation-move { animation: var(--blue-animation-length) forwards steps(1, end) blue; }
+    .orange-animation-move { animation: var(--orange-animation-length) forwards steps(1, end) orange; }
+    
+    /* Пример ключевых кадров (дополните остальные по исходному коду) */
+    @keyframes yellow {
+      0%, 70%, 100% { background-position: -3.2rem var(--yellow-sprite-y); }
+      30% { background-position: 0rem var(--yellow-sprite-y); }
+      80% { background-position: -6.4rem 0rem; }
+    }
   </style>
 </head>
 <body>
@@ -342,12 +348,11 @@
   
   <!-- Обёртка для игры -->
   <div id="gameWrapper">
-    <!-- Кнопка Start меню (снимается 1 билет) -->
+    <!-- Кнопка Start меню (списывается 1 билет) -->
     <button id="startBtn">Start (1 Ticket)</button>
     
     <!-- Контейнер с игрой Pac‑Man (по умолчанию скрыт) -->
     <div id="pacmanGame" style="display: none;">
-      <!-- Сообщение для старта игры (можно убрать, если не нужно) -->
       <h3 id="game-start">Click Anywhere to play</h3>
       <div id="game">
         <div id="infoGame">
@@ -370,7 +375,7 @@
       1. Firebase и Telegram Web App инициализация
     ----------------------------------------------------------------*/
     const firebaseConfig = {
-      apiKey: "AIzaSyB90ev-ex", // замените на свои данные
+      apiKey: "AIzaSyB90ev-ex", // Замените на свои данные
       authDomain: "test-with-likes.firebaseapp.com",
       databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
       projectId: "test-with-likes",
@@ -435,7 +440,7 @@
     
     /*–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
       2. Интеграция кода игры Pac‑Man
-         (код взят из вашего исходного примера, с небольшими изменениями)
+         (исправлен: убран лишний обработчик клика)
     ----------------------------------------------------------------*/
     (function(){
       const game = document.getElementById("game");
@@ -541,7 +546,7 @@
           name: "orange",
           direction: "ArrowUp",
           directionOld: undefined,
-          directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
+          directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
           position: 408,
           nextPosition: undefined,
           scatterTarget: 840,
@@ -564,14 +569,14 @@
       let score = 0;
       let livesLost = 0;
       let gameStartLength = 4200;
-      let whichMunch = 1;
       
-      function startGame() {
-          // Скрываем текст "Click Anywhere to play"
+      // Функция запуска игры Pac‑Man (вызывается кнопкой Start)
+      window.startGame = function() {
+          // Скрываем надпись "Click Anywhere to play"
           gameStartEl.style.display = "none";
           game.style.display = "block";
           startLevel();
-      }
+      };
       
       soundtrack.addEventListener('timeupdate', () => {
           let buffer = 0.3;
@@ -622,7 +627,7 @@
               12: "wall-empty" 
           };
       
-          // Вставьте сюда полный массив уровня (gameArray) из вашего исходного кода
+          // Вставьте сюда полный массив уровня (gameArray)
           const gameArray = [ /* ... полный массив ... */ ];
       
           for (let i = 0; i < gameArray.length; i++) {
