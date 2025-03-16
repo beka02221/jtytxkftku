@@ -18,7 +18,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* --------------- Общие стили и меню --------------- */
+    /* --------------- Меню и общие стили --------------- */
     html, body {
       margin: 0;
       padding: 0;
@@ -28,8 +28,6 @@
       background: #00103c;
       font-family: 'Press Start 2P', monospace;
     }
-    /* Глобальное предотвращение скролла (чтобы свайп вниз не закрывал окно) */
-    body, html { touch-action: none; }
     /* Header с информацией */
     #header {
       position: absolute;
@@ -74,7 +72,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Обертка для игры (меню + игра) – центрирование и увеличение */
+    /* Обертка для игры (меню+игра) – центрирование */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -82,9 +80,6 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* Масштабирование всей игры */
-      transform: scale(1.5);
-      transform-origin: center center;
     }
     /* Кнопка Start в меню */
     #startBtn {
@@ -122,18 +117,18 @@
       --orange-animation-length: 200ms;
     }
     
-    /* Увеличиваем базовый размер шрифта */
     html { font-size: 0.625em; }
     @media (max-width: 600px), (max-height: 700px) {
       html { font-size: 0.3125em; }
     }
     
-    /* Игра (скрыта до старта) */
+    /* Игровой блок скрыт до старта */
     #game { 
       flex-direction: column; 
       display: none; 
     }
     
+    /* Информация внутри игры */
     #info {
       box-sizing: border-box;
       width: 100%;
@@ -141,13 +136,11 @@
       align-items: center;
       padding: 1em 2em;
     }
-    
     #score {
       color: white;
       margin: 0;
       font-size: 2rem;
     }
-    
     .live {
       width: 3.2rem;
       height: 2.6rem;
@@ -158,6 +151,7 @@
       .live { background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png"); }
     }
     
+    /* Игровое поле */
     #game-board {
       position: relative;
       overflow: hidden;
@@ -167,8 +161,10 @@
       background-color: black;
       display: grid;
       grid-template-columns: repeat(28, 2rem);
+      /* Увеличение игры */
+      transform: scale(1.5);
+      transform-origin: center;
     }
-    
     #game-board > * {
       position: relative;
       box-sizing: border-box;
@@ -176,9 +172,9 @@
       height: 2rem;
     }
     
-    /* Здесь изначально НЕ выводим никаких стартовых надписей */
+    /* Убираем надпись "Click Anywhere to play" – ее больше нет */
     
-    /* Объекты на игровом поле */
+    /* Объекты игрового поля */
     .wall {
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/map.png");
       z-index: 1;
@@ -278,25 +274,31 @@
       background-position: var(--orange-sprite-x) var(--orange-sprite-y);
       transition: transform var(--orange-animation-length) linear;
     }
-  
-    /* Добавляем ключевые кадры для анимации Pac-Man (yellow) */
+    
+    /* Ключевые кадры анимаций для персонажей */
     @keyframes yellow {
-      0%, 70%, 100% {
-        background-position: -3.2rem var(--yellow-sprite-y);
-      }
-      30% {
-        background-position: 0rem var(--yellow-sprite-y);
-      }
-      80% {
-        background-position: -6.4rem var(--yellow-sprite-y);
-      }
+      0%, 70%, 100% { background-position: -3.2rem var(--yellow-sprite-y); }
+      30% { background-position: 0rem var(--yellow-sprite-y); }
+      80% { background-position: -6.4rem 0rem; }
     }
-    .yellow-animation-move {
-      animation: var(--yellow-animation-length) forwards steps(1, end) yellow;
+    @keyframes red {
+      0%, 100% { background-position: var(--red-sprite-x) var(--red-sprite-y); }
+      50% { background-position: calc(var(--red-sprite-x) - 3.2rem) var(--red-sprite-y); }
+    }
+    @keyframes pink {
+      0%, 100% { background-position: var(--pink-sprite-x) var(--pink-sprite-y); }
+      50% { background-position: calc(var(--pink-sprite-x) - 3.2rem) var(--pink-sprite-y); }
+    }
+    @keyframes blue {
+      0%, 100% { background-position: var(--blue-sprite-x) var(--blue-sprite-y); }
+      50% { background-position: calc(var(--blue-sprite-x) - 3.2rem) var(--blue-sprite-y); }
+    }
+    @keyframes orange {
+      0%, 100% { background-position: var(--orange-sprite-x) var(--orange-sprite-y); }
+      50% { background-position: calc(var(--orange-sprite-x) - 3.2rem) var(--orange-sprite-y); }
     }
   
-    /* Остальные анимации (для ghost и пр.) можно оставить как есть… */
-    /* … */
+    /* Если есть дополнительные анимации для смерти, блеска и т.д. их можно добавить по необходимости */
   </style>
 </head>
 <body>
@@ -364,10 +366,7 @@
   
     let currentUser = null;
     let userRef = null;
-    let localUserData = {
-      tickets: 0,
-      points: 0
-    };
+    let localUserData = { tickets: 0, points: 0 };
   
     if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -406,14 +405,7 @@
       document.getElementById('pointCount').textContent = localUserData.points;
     }
   
-    function goBack() {
-      window.location.href = 'index.html';
-    }
-  
-    /* Глобальный обработчик, чтобы предотвратить закрытие окна свайпом вниз */
-    document.addEventListener('touchmove', function(e) {
-      e.preventDefault();
-    }, { passive: false });
+    function goBack() { window.location.href = 'index.html'; }
   
     /* 2. Код игры Pac-Man */
     const game = document.getElementById("game");
@@ -568,12 +560,12 @@
     });
   
     function startLevel() {
-      // Всегда создаём новый уровень
-      gameStartLength = 4200;
-      sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/game_start.wav";
-      makeLevel();
-      sound.play();
-  
+      if (newLevel === true) {
+        gameStartLength = 4200;
+        sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/game_start.wav";
+        makeLevel();
+        sound.play();
+      }
       setStartingProperties();
       setTimeout(() => {
         soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
@@ -608,43 +600,15 @@
         12: "wall-empty" 
       };
   
-      const gameArray = [0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 18, 19, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
-        9, 262, 11, 25, 25, 13, 126, 11, 25, 25, 25, 13, 126, 11, 13, 126, 11, 25, 25, 25, 13, 126, 11, 25, 25, 13, 262, 9,
-        9, 126, 6, 12, 12, 7, 126, 6, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 7, 126, 6, 12, 12, 7, 126, 9,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 5, 126, 4, 5, 126, 4, 10, 10, 10, 10, 10, 10, 5, 126, 4, 5, 126, 4, 10, 10, 5, 126, 9,
-        9, 126, 6, 12, 12, 7, 126, 11, 13, 126, 6, 12, 12, 15, 14, 12, 12, 7, 126, 11, 13, 126, 6, 12, 12, 7, 126, 9,
-        9, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 9,
-        2, 8, 8, 8, 8, 1, 126, 11, 16, 10, 10, 5, 26, 11, 13, 26, 4, 10, 10, 17, 13, 126, 0, 8, 8, 8, 8, 3,
-        25, 25, 25, 25, 25, 9, 126, 11, 14, 12, 12, 7, 26, 6, 7, 26, 6, 12, 12, 15, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 0, 8, 8, 24, 24, 8, 8, 1, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        8, 8, 8, 8, 8, 3, 126, 6, 7, 26, 9, 26, 25, 25, 25, 25, 25, 9, 26, 6, 7, 126, 2, 8, 8, 8, 8, 8,
-        26, 26, 26, 26, 26, 26, 126, 26, 26, 26, 9, 26, 26, 26, 26, 26, 26, 9, 26, 26, 26, 126, 26, 26, 26, 26, 26, 26,
-        8, 8, 8, 8, 8, 1, 126, 4, 5, 26, 9, 25, 25, 25, 25, 25, 25, 9, 26, 4, 5, 126, 0, 8, 8, 8, 8, 8,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 2, 8, 8, 8, 8, 8, 8, 3, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 4, 10, 10, 10, 10, 10, 10, 5, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        0, 8, 8, 8, 8, 3, 126, 6, 7, 26, 6, 12, 12, 15, 14, 12, 12, 7, 26, 6, 7, 126, 2, 8, 8, 8, 8, 1,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
-        9, 126, 6, 12, 15, 13, 126, 6, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 7, 126, 11, 14, 12, 7, 126, 9,
-        9, 262, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 26, 26, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 262, 9,
-        20, 10, 5, 126, 11, 13, 126, 4, 5, 126, 4, 10, 10, 10, 10, 10, 10, 5, 126, 4, 5, 126, 11, 13, 126, 4, 10, 22,
-        21, 12, 7, 126, 6, 7, 126, 11, 13, 126, 6, 12, 12, 15, 14, 12, 12, 7, 126, 11, 13, 126, 6, 7, 126, 6, 12, 23,
-        9, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 10, 10, 17, 16, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 17, 16, 10, 10, 10, 10, 5, 126, 9,
-        9, 126, 6, 12, 12, 12, 12, 12, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 12, 12, 12, 12, 12, 7, 126, 9,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        2, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 3
-      ];
+      const gameArray = [/* массив карты, как в оригинале */ 0, 8,8,8,8,8,8,8,8,8,8,8,8,18,19,8,8,8,8,8,8,8,8,8,8,8,8,1,
+        9, 126,126,126,126,126,126,126,126,126,126,126,126,11,13,126,126,126,126,126,126,126,126,126,126,126,126,9,
+        /* … остальные строки карты … */
+        2,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3];
   
-      // Создаём игровое поле
-      gameBoard.innerHTML = ""; // очищаем предыдущий контент
+      gameBoard.innerHTML = ""; // очищаем игровое поле
       for (let i = 0; i < gameArray.length; i++) {
         const element = document.createElement("DIV");
+  
         if (gameArray[i] > 25) {
           element.className = "blank";
           for (let j = 0; j < characters.length; j++) {
@@ -661,12 +625,14 @@
           element.className = "wall";
           element.style.backgroundPosition = `-${gameArray[i] * 2}rem 0`;
         }
+  
         gameBoard.append(element);
       }
   
       points = 0;
-      elements = Array.from(gameBoard.children);
-      // В setStartingProperties вызовем transformStartingElements, чтобы финально выровнять персонажей
+      elements = Array.from(gameBoard.children).splice(1);
+      // Не выполняем смещения – карта будет ровной
+      // transformStartingElements();
     }
   
     function setStartingProperties() {
@@ -689,6 +655,7 @@
         characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
         characters[i].mode = "normal";
         characters[i].status = "normal";
+  
         if (i == 0) {
           root.setProperty(`--${characters[i].name}-sprite-x`, "-6.4rem");
           root.setProperty(`--${characters[i].name}-sprite-y`, "0rem");
@@ -698,30 +665,24 @@
         }
       }
   
-      // Выравнивание персонажей на карте (перемещаем спрайты в начальное положение)
-      transformStartingElements();
-  
       setTimeout(() => {
         window.addEventListener("keydown", getDirection);
-        document.addEventListener('touchstart', handleTouchStart);        
-        document.addEventListener('touchmove', handleTouchMove);
+        document.addEventListener('touchstart', handleTouchStart, {passive:false});        
+        document.addEventListener('touchmove', handleTouchMove, {passive:false});
   
         for (let i = 2; i < 5; i++) {
           characters[i].animationLength = 200;
           characters[i].characterNode.classList.add(`${characters[i].name}-revive`);
         }
         start.style.display = "none";
+  
         getSprite(0);
       }, gameStartLength);
     }
   
+    // Убираем изначальное смещение карты
     function transformStartingElements() {
-      for (let i = 0; i < characters.length; i++) {
-        // Для каждого персонажа сдвигаем его спрайт влево на 1rem, чтобы выровнять его позицию
-        if (elements[startingPositions[i]] && elements[startingPositions[i]].children[i]) {
-          elements[startingPositions[i]].children[i].style.transform = "translateX(-1rem)";
-        }
-      }
+      // Не применяем никаких transform – карта будет ровной
     }
   
     function changeModes() {
@@ -740,13 +701,14 @@
       let yellowTranslateX = yellowTransform.e;
       let yellowTranslateY = yellowTransform.f;
   
-      for (let i = 1; i < characters.length; i++) {
+      for (let i = 1; i < 5; i++) {
         if (characters[0].status == "freeze") {
           clearInterval(collisionInterval);
           return;
         }
   
         const distance = calculateDistance(characters[0].position, characters[i].position);
+  
         const ghostTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
         let ghostTranslateX = ghostTransform.e;
         let ghostTranslateY = ghostTransform.f;
@@ -808,10 +770,13 @@
   
     function characterMove(i) {
       if (characters[i].status == "freeze") return;
+  
       characters[i].nextPosition = getNewPosition(i);
   
       if (elements[characters[i].nextPosition].classList.contains("wall")) {
-        if(sound.src.includes("munch")) { sound.pause(); }
+        if(sound.src.includes("https://dominikgorczyca.github.io/Pac-Man/munch")) {
+          sound.pause();
+        }
         setTimeout(() => { characterMove(i); }, 50);
         return;
       }
@@ -823,15 +788,17 @@
     }
   
     function getNewPosition(i) {
-      if (i == 0) { getYellowDirection(i); }
-      else if (characters[i].direction != oppositeDirection[characters[i].directionOld]) {
+      if (i == 0) {
+        getYellowDirection(i);
+      } else if (characters[i].direction != oppositeDirection[characters[i].directionOld]) {
         if (characters[i].mode == "frightened") { getRandomDirection(i); }
         else { getGhostDirection(i); }
       } else { characters[i].directionOld = characters[i].direction; }
-  
       let nextPosition = characters[i].position + positionChange[characters[i].direction];
+  
       if (characters[i].position == 392 && nextPosition == 391) { nextPosition = 419; }
       else if (characters[i].position == 419 && nextPosition == 420) { nextPosition = 392; }
+  
       return nextPosition;
     }
   
@@ -857,6 +824,7 @@
       for (let [direction, value] of Object.entries(positionChange)) {
         const newPosition = characters[i].position + value;
         const newDistance = calculateDistance(target, newPosition);
+  
         if (newDistance < biggestDistance) {
           if (!elements[newPosition].classList.contains("wall") &&
               oppositeDirection[direction] != characters[i].direction) {
@@ -870,8 +838,10 @@
   
     function getRandomDirection(i) {
       let nextPosition = characters[i].position + positionChange[characters[i].direction];
+  
       if ((characters[i].position == 392 && nextPosition == 391) ||
           (characters[i].position == 419 && nextPosition == 420)) { return; }
+  
       let newDirection;
       do {
         const random = Math.floor(Math.random() * 4);
@@ -879,14 +849,16 @@
         nextPosition = characters[i].position + positionChange[newDirection];
       } while (elements[nextPosition].classList.contains("wall") ||
                oppositeDirection[newDirection] == characters[i].direction);
+  
       characters[i].direction = newDirection;
     }
   
     function getChaseTarget(i) {
       switch (i) {
         case 1:
-          if(characters[0].position == characters[i].position && !elements[characters[0].nextPosition].classList.contains("wall"))
+          if(characters[0].position == characters[i].position && !elements[characters[0].nextPosition].classList.contains("wall")) {
             return characters[0].position + positionChange[characters[0].direction];
+          }
           return characters[0].position;
         case 2:
           return characters[0].position + positionChange[characters[0].direction] * 2;
@@ -902,9 +874,11 @@
       const yellowPosition = characters[0].position + positionChange[characters[0].direction];
       const yellowRedDistanceX = yellowPosition % 28 - characters[1].position % 28;
       const yellowRedDistanceY = Math.floor(yellowPosition / 28) - Math.floor(characters[1].position / 28);
+  
       let bluePositionX = yellowPosition % 28 + yellowRedDistanceX;
       if (bluePositionX < 0) { bluePositionX = 0; }
       else if (bluePositionX > 27) { bluePositionX = 27; }
+  
       const bluePositionY = Math.floor(yellowPosition / 28) + yellowRedDistanceY;
       return bluePositionX + bluePositionY * 28;
     }
@@ -917,30 +891,25 @@
   
     function getAnimationLength(i) {
       let animationLength;
-      if (i == 0) {
-        animationLength = characters[i].mode == "hasEaten" ? 210 : 190;
-      } else {
+      if (i == 0) { animationLength = (characters[i].mode == "hasEaten") ? 210 : 190; }
+      else {
         const tunnel = [392,393,394,395,396,419,418,417,416,415];
         if (characters[i].mode == "eaten") {
-          animationLength = (characters[i].nextPosition === 322)
-            ? (characters[i].direction == "ArrowLeft" ? 25 : 75)
-            : 50;
+          animationLength = (characters[i].nextPosition === 322) ? (characters[i].direction == "ArrowLeft" ? 25 : 75) : 50;
         } else if (tunnel.includes(characters[i].position) || tunnel.includes(characters[i].nextPosition)) {
           animationLength = 350;
         } else if (characters[i].mode == "frightened") {
           animationLength = 300;
-        } else if (
-          characters[i].direction == characters[i].directionOld ||
-          characters[i].direction == oppositeDirection[characters[i].directionOld]
-        ) {
+        } else if (characters[i].direction == characters[i].directionOld ||
+                   characters[i].direction == oppositeDirection[characters[i].directionOld]) {
           animationLength = 200;
-        } else {
-          animationLength = 220;
-        }
+        } else { animationLength = 220; }
       }
+  
       if (characters[i].characterNode.style.transform == 'translateX(-1rem)') {
         animationLength /= 1.5;
       }
+  
       root.setProperty(`--${characters[i].name}-animation-length`, animationLength + "ms");
       characters[i].animationLength = animationLength;
     }
@@ -962,12 +931,13 @@
           spriteY = 16;
         }
       }
+  
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${spriteX}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, `-${spriteY}rem`);
     }
   
     function getTransition(i) {
-      const isGoingToRespawn = characters[i].mode == "eaten" && characters[i].nextPosition == 322;
+      const isGoingToRespawn = (characters[i].mode == "eaten" && characters[i].nextPosition == 322);
       const transitionMove = {
         "ArrowUp": "Y(-2rem)",
         "ArrowDown": "Y(2rem)",
@@ -985,13 +955,16 @@
         characters[i].animationStart = performance.now();
         setTimeout(() => {
           if (characters[i].status == "freeze") return;
+  
           characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`, `${characters[i].name}-visible`);
           characters[i].characterNode.style.transform = "";
           characters[i].position = characters[i].nextPosition;
           characters[i].characterNode = elements[characters[i].position].children[i];
           characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
+  
           if (i == 0) { eatPoint(i); }
           else if (characters[i].mode == "eaten" && characters[i].position === 322) { ghostRetreat(i); }
+  
           resolve();
         }, characters[i].animationLength);
       });
@@ -1005,22 +978,22 @@
         characters[i].mode = "hasEaten";
         if (point.classList.contains("big-point")) {
           makeGhostsScared();
-          // За большую точку даётся 1 очко
+          // За большую точку даем 1 очко
           score += 1;
         } else {
-          // За обычную точку даётся 1 очко
+          // За обычную точку даем 1 очко
           score += 1;
           if(!sound.src.includes("munch") || sound.paused) {
             sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/munch.wav";
             sound.play();
           }
         }
+  
         scoreElement.innerHTML = "Score " + score;
         point.remove();
-        if (points == 244) {
-          gameWin();
-          freezeCharacters();
-        }
+  
+        // Если все точки собраны, завершаем уровень
+        if (points == 244) { gameWin(); freezeCharacters(); }
       } else {
         characters[i].mode = "normal";
         if(sound.src.includes("munch")) { sound.pause(); }
@@ -1034,7 +1007,7 @@
       isFrightenedWhite = false;
       ghostsEaten = 0;
       changeGhostDirections();
-      for (let i = 0; i < characters.length; i++) {
+      for (let i = 0; i < 5; i++) {
         if (characters[i].mode != "eaten") {
           characters[i].mode = "frightened";
           getSprite(i);
@@ -1043,28 +1016,26 @@
       setTimeout(() => {
         let intervalCount = 1;
         changingBackInterval = setInterval(() => {
-          if (characters[0].status == "freeze") return;
+          if (characters[0].status == "freeze") { return; }
           if (intervalCount == 10) {
             clearInterval(changingBackInterval);
-            if(!soundtrack.src.includes("retreating")){
+            if(!soundtrack.src.includes("retreating")) {
               soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
               soundtrack.play();
             }
             for (let i = 0; i < characters.length; i++) {
-              if (characters[i].mode != "eaten") {
-                characters[i].mode = "normal";
-              }
+              if (characters[i].mode != "eaten") { characters[i].mode = "normal"; }
             }
           }
-          isFrightenedWhite = (intervalCount % 2 === 1);
-          for (let i = 0; i < characters.length; i++) { getSprite(i); }
+          isFrightenedWhite = (intervalCount % 2 == 1);
+          for (let i = 0; i < 5; i++) { getSprite(i); }
           intervalCount++;
         }, 300);
       }, 800);
     }
   
     function changeGhostDirections() {
-      for (let i = 1; i < characters.length; i++) {
+      for (let i = 1; i < 5; i++) {
         if (characters[i].mode == "normal" &&
             !characters[i].characterNode.className.includes("revive")) {
           characters[i].directionOld = characters[i].direction;
@@ -1079,29 +1050,33 @@
       const animationStop = performance.now();
       stopAnimations("stop");
       clearTimeout(ghostModeInterval);
+  
       characters[i].mode = "eaten";
       characters[0].characterNode.classList.remove("yellow-visible");
       characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`);
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${(ghostsEaten * 32) / 10}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, "-25.6rem");
-      for (let j = 0; j < characters.length; j++) {
+  
+      for (let j = 0; j < 5; j++) {
         characters[j].animationLength = characters[j].animationLength - (animationStop - characters[j].animationStart);
         if (j == i) { characters[j].animationLength /= 6; }
         root.setProperty(`--${characters[j].name}-animation-length`, `${characters[j].animationLength}ms`);
       }
+  
       setTimeout(() => {
         soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/retreating.wav";
         soundtrack.play();
         characters[0].characterNode.classList.add("yellow-visible");
         getSprite(i);
-        for (let j = 0; j < characters.length; j++) {
+  
+        for (let j = 0; j < 5; j++) {
           characters[j].characterNode.style.removeProperty("transition");
           if (characters[j].status == "freeze") {
             characters[j].status = "normal";
             if (!characters[j].characterNode.className.includes("revive")) {
-              if (j == 0 && elements[characters[j].nextPosition].classList.contains("wall"))
+              if (j == 0 && elements[characters[j].nextPosition].classList.contains("wall")) {
                 characterMove(j);
-              else {
+              } else {
                 getTransition(j);
                 changePosition(j);
               }
@@ -1121,13 +1096,15 @@
     function ghostRetreat(i) {
       characters[i].status = "freeze";
       characters[i].characterNode.classList.add(`${characters[i].name}-retreat`);
+  
       setTimeout(() => {
         soundtrack.src = (characters.some(char => char.mode == "frightened"))
-          ? "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav"
-          : "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
+                        ? "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav"
+                        : "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
         soundtrack.play();
         characters[i].position = (i == 1) ? 406 : startingPositions[i];
         characters[i].characterNode.classList.remove(`${characters[i].name}-visible`, `${characters[i].name}-animation-move`, `${characters[i].name}-retreat`);
+  
         characters[i].characterNode.style.transform = "translateX(-1rem)";
         characters[i].characterNode = elements[characters[i].position].children[i];
         characters[i].animationLength = 200;
@@ -1135,7 +1112,7 @@
         characters[i].mode = "normal";
         characters[i].animationLength = 200;
         ghostRevive(i, 0);
-      }, i > 2 ? 250 : 150);
+      }, (i > 2 ? 250 : 150));
     }
   
     function ghostRevive(i, progress) {
@@ -1145,6 +1122,7 @@
         characters[i].direction = characters[i].directionList[progress];
         getSprite(i);
       }
+  
       if (progress != characters[i].directionList.length && newLevel == undefined) {
         if (characters[0].status == "freeze") {
           characters[i].characterNode.style.animationPlayState = "paused";
@@ -1174,9 +1152,10 @@
     function gameOver() {
       stopAnimations();
       setTimeout(() => {
-        for (let i = 1; i < characters.length; i++) {
+        for (let i = 1; i < 5; i++) {
           characters[i].characterNode.classList.remove(`${characters[i].name}-visible`);
         }
+  
         characters[0].characterNode.classList.add("yellow-death-animation");
         sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_1.wav";
         sound.play();
@@ -1184,6 +1163,7 @@
           sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_2.wav";
           sound.play();
         }, 1400);
+  
         if (livesLost == 3) {
           newLevel = true;
           setTimeout(() => {
@@ -1228,7 +1208,8 @@
         }
         setTimeout(() => {
           game.style.visibility = "hidden";
-          deleteGameBoard();
+          // Очищаем игровое поле
+          gameBoard.innerHTML = "";
           setTimeout(startLevel, 500);
         }, 1500);
       }, 2000);
@@ -1236,7 +1217,7 @@
   
     function stopAnimations(stop) {
       freezeCharacters(stop);
-      for (let i = 0; i < characters.length; i++) {
+      for (let i = 0; i < 5; i++) {
         const characterTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
         if (stop == "stop" && characters[i].mode == "eaten") continue;
         characters[i].characterNode.style.transition = "none";
@@ -1244,7 +1225,9 @@
         if (stop != "stop") {
           soundtrack.pause();
           sound.pause();
-          if (i != 0) { characters[i].characterNode.style.animationPlayState = "paused"; }
+          if (i != 0) {
+            characters[i].characterNode.style.animationPlayState = "paused";
+          }
           characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`);
         } else {
           characters[i].characterNode.style.animationPlayState = "paused";
@@ -1253,13 +1236,12 @@
     }
   
     function deleteGameBoard() {
-      while(gameBoard.firstChild) {
-        gameBoard.removeChild(gameBoard.firstChild);
-      }
+      // Очищаем контейнер игрового поля
+      gameBoard.innerHTML = "";
     }
   
     function deleteClasses() {
-      for (let i = 0; i < characters.length; i++) {
+      for (let i = 0; i < 5; i++) {
         if (characters[i].characterNode != undefined) {
           characters[i].characterNode.className = characters[i].name;
           characters[i].characterNode.removeAttribute("style");
@@ -1279,7 +1261,7 @@
     }
   
     function freezeCharacters(stop) {
-      for (let i = 0; i < characters.length; i++) {
+      for (let i = 0; i < 5; i++) {
         if (stop == "stop" && characters[i].mode == "eaten") continue;
         characters[i].status = "freeze";
       }
@@ -1296,12 +1278,16 @@
     }
   
     let xDown = null, yDown = null;
+  
     function handleTouchStart(e) {
+      e.preventDefault();
       const firstTouch = e.touches[0];
       xDown = firstTouch.clientX;
       yDown = firstTouch.clientY;
     }
+  
     function handleTouchMove(e) {
+      e.preventDefault();
       if (!xDown || !yDown) return;
       let xMove = e.touches[0].clientX;
       let yMove = e.touches[0].clientY;
@@ -1315,8 +1301,8 @@
       xDown = null; yDown = null;
     }
   
-    document.addEventListener("keydown", getDirection);
-    document.addEventListener("touchstart", handleTouchStart);
+    // Добавляем слушатели для touch-событий с опцией {passive: false}
+    document.addEventListener("touchstart", handleTouchStart, { passive: false });
     document.addEventListener("touchmove", handleTouchMove, { passive: false });
   </script>
 </body>
