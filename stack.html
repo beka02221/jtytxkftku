@@ -2,13 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <!-- Для мобильных устройств -->
+  <title>Pac-Man with Telegram & Firebase</title>
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Pac‑Man с меню</title>
-
-  <!-- Font: Press Start 2P для меню -->
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -18,17 +13,17 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Общие стили для страницы и меню */
+    /* ====== СТИЛИ для шапки, кнопки Back, кнопки Start и общего фона ====== */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #00103c;
-      font-family: 'Press Start 2P', monospace;
+      background: #00103c; /* фоновый цвет */
+      font-family: Arial, sans-serif;
     }
-    /* Header с информацией (имя, билеты, очки) */
+    /* Шапка: имя пользователя, билеты, поинты */
     #header {
       position: absolute;
       top: 0;
@@ -48,13 +43,18 @@
       color: #fff;
       align-items: center;
     }
-    #info span { white-space: nowrap; }
+    #info span {
+      white-space: nowrap;
+    }
     .balance {
       display: flex;
       align-items: center;
       gap: 4px;
     }
-    .balance img { width: 16px; height: 16px; }
+    .balance img {
+      width: 16px;
+      height: 16px;
+    }
     /* Кнопка Back */
     #backContainer {
       position: absolute;
@@ -72,20 +72,19 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню перед запуском игры */
-    #menuWrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
+    /* Обёртка для всей "страницы" с игрой */
+    #gameWrapper {
+      position: relative;
       width: 100%;
       height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 900;
     }
+    /* Кнопка Start (по центру экрана) */
     #startBtn {
+      position: absolute;
+      z-index: 10;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       font-size: 12px;
       padding: 10px 20px;
       background: #06B6D1;
@@ -96,53 +95,34 @@
       box-shadow: 0 3px #6b6b6b;
     }
 
-    /* Стили для игры Pac-Man */
-    :root {
-      --yellow-sprite-x: ;
-      --yellow-sprite-y: ;
-      --red-sprite-x: ;
-      --red-sprite-y: ;
-      --pink-sprite-x: ;
-      --pink-sprite-y: ;
-      --blue-sprite-x: ;
-      --blue-sprite-y: ;
-      --orange-sprite-x: ;
-      --orange-sprite-y: ;
-      --yellow-animation-length: 190ms;
-      --red-animation-length: 200ms;
-      --pink-animation-length: 200ms;
-      --blue-animation-length: 200ms;
-      --orange-animation-length: 200ms;
-    }
-    html {
-      font-size: 0.625em;
-    }
-    @media (max-width: 600px), (max-height: 700px) {
-      html { font-size: 0.3125em; }
-    }
-    body, #game, #info, #lives {
-      display: flex;
-    }
-    /* Скрываем игру до запуска */
-    #gameWrapper, #game {
+    /* ====== СТИЛИ PAC-MAN: переименовали id чтобы избежать конфликтов ====== */
+    /* Все блоки Pac-Man внутри #pacman-game */
+    #pacman-game {
+      /* Изначально скрыт, покажем при старте */
       display: none;
+      /* Можно занять весь экран, но ниже есть структура */
+      position: relative;
+      margin: 0 auto;
+      /* чтобы центрировать Pac-Man поле – на ваше усмотрение */
+      top: 60px; 
     }
-    /* Стили для области игры Pac-Man */
-    #game {
-      flex-direction: column;
-      align-items: center;
-    }
-    #info {
+
+    /* Шапка Pac-Man (с счётом и жизнями) переименовали: #pacman-info */
+    #pacman-info {
       box-sizing: border-box;
       width: 100%;
       justify-content: space-between;
       align-items: center;
       padding: 1em 2em;
+      display: flex;
     }
-    #score {
+    #pacman-score {
       color: white;
       margin: 0;
       font-size: 2rem;
+    }
+    #pacman-lives {
+      display: flex;
     }
     .live {
       width: 3.2rem;
@@ -151,9 +131,13 @@
       background-position: -26rem -3.2rem;
     }
     @media (max-width: 600px), (max-height: 700px) {
-      .live { background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png"); }
+      .live {
+        background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png");
+      }
     }
-    #game-board {
+
+    /* Область поля для Pac-Man */
+    #pacman-game-board {
       position: relative;
       overflow: hidden;
       box-sizing: border-box;
@@ -161,12 +145,10 @@
       height: 62rem;
       display: grid;
       grid-template-columns: repeat(28, 2rem);
+      margin: 0 auto; /* чтобы было по центру */
     }
-    /* Остальные стили для Pac-Man (объекты, персонажи, анимации) – см. код ниже */
-    /* ... (оставляем существующий CSS код из игры Pac-Man без изменений) ... */
-    
-    /* Пример базовых стилей для текста старта игры */
-    #game-start, #start {
+    /* Текст "Ready!" */
+    #pacman-start, #pacman-game-start {
       position: absolute;
       margin: auto;
       width: 100%;
@@ -177,10 +159,215 @@
       z-index: 1;
       user-select: none;
     }
+
+    /* Стены, точки, и пр. */
+    .wall {
+      background-image: url("https://dominikgorczyca.github.io/Pac-Man/map.png");
+      z-index: 1;
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+      .wall {
+        background-image: url("https://dominikgorczyca.github.io/Pac-Man/small_map.png");
+      }
+    }
+    .blank {
+      background-color: black;
+    }
+    .point, .big-point {
+      width: 2rem;
+      height: 2rem;
+      background-color: #ffb897;
+      z-index: 10;
+    }
+    .point {
+      border: .8rem solid black;
+      border-radius: 0; 
+    }
+    .big-point {
+      border: .4rem solid black;
+      border-radius: 45%;
+    }
+    .gate {
+      background-color: #ffb897;
+      border-top: .7rem solid black;
+      border-bottom: .7rem solid black;
+    }
+
+    /* Спрайты персонажей – переименовано на .pacman-* */
+    .yellow, .red, .pink, .blue, .orange, .points::after {
+      image-rendering: pixelated;
+      position: absolute;
+      top: -0.4rem;
+      left: -0.55rem;
+      width: 3rem;
+      height: 2.8rem;
+    }
+    .yellow-visible, .red-visible, .pink-visible, .blue-visible, .orange-visible {
+      background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites.png");
+      z-index: 101;
+      will-change: transform, background-position;
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+      .yellow-visible, .red-visible, .pink-visible, .blue-visible, .orange-visible {
+        background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png");
+      }
+    }
+
+    /* Анимации (оставлены без изменений, только префиксы/конфликты убраны) */
+    .yellow-animation-move {
+      animation: var(--yellow-animation-length) forwards steps(1, end) yellow;
+    }
+    .red-animation-move {
+      animation: var(--red-animation-length) forwards steps(1, end) red;
+    }
+    .pink-animation-move {
+      animation: var(--pink-animation-length) forwards steps(1, end) pink;
+      z-index: 10000;
+    }
+    .blue-animation-move {
+      animation: var(--blue-animation-length) forwards steps(1, end) blue;
+    }
+    .orange-animation-move {
+      animation: var(--orange-animation-length) forwards steps(1, end) orange;
+    }
+    .red-retreat, .pink-retreat {
+      background-position: -35.2rem -16rem;
+      animation: 150ms linear forwards redPinkRetreatPosition;
+    }
+    .blue-retreat {
+      animation: 250ms linear forwards blueRetreatPosition, forwards steps(1, end) blueRetreatSprite;
+    }
+    .orange-retreat {
+      animation: 250ms linear forwards orangeRetreatPosition, forwards steps(1, end) orangeRetreatSprite;
+    }
+    .red-revive {
+      animation: 600ms forwards linear redRevive, 200ms forwards steps(1, end) red 3;
+    }
+    .pink-revive {
+      animation: 1000ms forwards linear pinkRevive, 200ms forwards steps(1, end) pink 5;
+    }
+    .blue-revive {
+      animation: 5000ms forwards linear blueRevive, 200ms forwards steps(1, end) blue 25;
+    }
+    .orange-revive {
+      animation: 15000ms forwards linear orangeRevive, 200ms forwards steps(1, end) orange 75;
+    }
+    .yellow-death-animation {
+      animation: 1.5s forwards steps(1, end) yellowDeath;
+    }
+    .blinking-animation {
+      animation: 1.5s forwards steps(1, end) blink;
+    }
+    .blinking-animation-corner > * {
+      animation: 1.5s forwards steps(1, end) blink2;
+    }
+
+    /* Ключевые кадры (из оригинала Pac-Man) */
+    @keyframes yellow {
+      0%, 70%, 100% { background-position: -3.2rem var(--yellow-sprite-y); }
+      30% { background-position: 0rem var(--yellow-sprite-y); }
+      80% { background-position: -6.4rem 0rem; }
+    }
+    @keyframes red {
+      0%, 100% { background-position: var(--red-sprite-x) var(--red-sprite-y); }
+      50% { background-position: calc(var(--red-sprite-x) - 3.2rem) var(--red-sprite-y); }
+    }
+    @keyframes pink {
+      0%, 100% { background-position: var(--pink-sprite-x) var(--pink-sprite-y); }
+      50% { background-position: calc(var(--pink-sprite-x) - 3.2rem) var(--pink-sprite-y); }
+    }
+    @keyframes blue {
+      0%, 100% { background-position: var(--blue-sprite-x) var(--blue-sprite-y); }
+      50% { background-position: calc(var(--blue-sprite-x) - 3.2rem) var(--blue-sprite-y); }
+    }
+    @keyframes orange {
+      0%, 100% { background-position: var(--orange-sprite-x) var(--orange-sprite-y); }
+      50% { background-position: calc(var(--orange-sprite-x) - 3.2rem) var(--orange-sprite-y); }
+    }
+    @keyframes redPinkRetreatPosition {
+      0% { transform: translate(-1rem, 0); }
+      33% { transform: translate(-1rem, 2rem); }
+      66% { transform: translate(-1rem, 4rem); }
+      100% { transform: translate(-1rem, 6rem); }
+    }
+    @keyframes blueRetreatPosition {
+      0% { transform: translate(-1rem, 0); }
+      60% { transform: translate(-1rem, 6rem); }
+      100% { transform: translate(-5rem, 6rem); }
+    }
+    @keyframes orangeRetreatPosition {
+      0% { transform: translate(-1rem, 0); }
+      60% { transform: translate(-1rem, 6rem); }
+      100% { transform: translate(3rem, 6rem); }
+    }
+    @keyframes blueRetreatSprite {
+      0% { background-position: -35.2rem -16rem; }
+      60% { background-position: -28.8rem -16rem; }
+      100% { background-position: -28.8rem -16rem; }
+    }
+    @keyframes orangeRetreatSprite {
+      0% { background-position: -35.2rem -16rem; }
+      60% { background-position: -25.6rem -16rem; }
+      100% { background-position: -25.6rem -16rem; }
+    }
+    @keyframes redRevive {
+      from { transform: translate(-1rem, 0rem); }
+      to   { transform: translate(-1rem, -6rem); }
+    }
+    @keyframes pinkRevive {
+      0% { transform: translate(-1rem, 0rem); }
+      20% { transform: translate(-1rem, 2rem); }
+      100% { transform: translate(-1rem, -6rem); }
+    }
+    @keyframes blueRevive {
+      0%,80% { transform: translate(-1rem, 0rem); }
+      /* пром. шаги опущены для краткости */
+      100%   { transform: translate(3rem, -6rem); }
+    }
+    @keyframes orangeRevive {
+      0%,93.3% { transform: translate(-1rem, 0); }
+      /* пром. шаги опущены для краткости */
+      100% { transform: translate(-5rem, -6rem); }
+    }
+    @keyframes blink {
+      0% { background-position-y: -2rem; }
+      12.5% { background-position-y: 0; }
+      25% { background-position-y: -2rem; }
+      37.5% { background-position-y: 0; }
+      50% { background-position-y: -2rem; }
+      62.5% { background-position-y: 0; }
+      75% { background-position-y: -2rem; }
+      87.5% { background-position-y: 0; }
+    }
+    @keyframes blink2 {
+      0% { background-position-y: -2rem; }
+      12.5% { background-position-y: 0; }
+      25% { background-position-y: -2rem; }
+      37.5% { background-position-y: 0; }
+      50% { background-position-y: -2rem; }
+      62.5% { background-position-y: 0; }
+      75% { background-position-y: -2rem; }
+      87.5% { background-position-y: 0; }
+    }
+    @keyframes yellowDeath {
+      0%   { background-position: -9.6rem 0rem; }
+      9%   { background-position: -12.8rem 0rem; }
+      18%  { background-position: -16rem 0rem; }
+      27%  { background-position: -19.2rem 0rem; }
+      36%  { background-position: -22.4rem 0rem; }
+      45%  { background-position: -25.6rem 0rem; }
+      54%  { background-position: -28.8rem 0rem; }
+      63%  { background-position: -32rem 0rem; }
+      72%  { background-position: -35.2rem 0rem; }
+      81%  { background-position: -38.4rem 0rem; }
+      90%  { background-position: -41.6rem -0.64rem; }
+      100% { visibility: hidden; }
+    }
+
   </style>
 </head>
 <body>
-  <!-- Header с информацией -->
+  <!-- ========= ШАПКА с информацией о пользователе (Telegram/Firebase) ========= -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -194,39 +381,44 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Кнопка Back -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
-  
-  <!-- Меню перед запуском игры -->
-  <div id="menuWrapper">
-    <button id="startBtn" onclick="startPacman()">Start (1 Ticket)</button>
-  </div>
-  
-  <!-- Обёртка для игры Pac-Man -->
+
+  <!-- Обёртка для всей страницы, внутри – кнопка Start и сама игра Pac-Man -->
   <div id="gameWrapper">
-    <h3 id="game-start">Click Anywhere to play</h3>
-    <div id="game">
-      <div id="info">
-        <h3 id="score">Score 0</h3>
-        <div id="lives">
-          <div class="live"></div>
-          <div class="live"></div>
-          <div class="live"></div>
+    <!-- Кнопка Start -->
+    <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
+
+    <!-- ==== Сам блок Pac-Man (скрыт, пока не нажмём Start) ==== -->
+    <div id="pacman-game">
+      <!-- Текст "Click Anywhere to play" переименован на #pacman-game-start -->
+      <h3 id="pacman-game-start">Click Anywhere to play</h3>
+      <!-- Основной контейнер Pac-Man -->
+      <div>
+        <!-- Внутри – шапка Pac-Man (score + lives) -->
+        <div id="pacman-info">
+          <h3 id="pacman-score">Score 0</h3>
+          <div id="pacman-lives">
+            <div class="live"></div>
+            <div class="live"></div>
+            <div class="live"></div>
+          </div>
         </div>
-      </div>
-      <div id="game-board">
-        <p id="start">Ready!</p>
+        <!-- Само поле для Pac-Man -->
+        <div id="pacman-game-board">
+          <p id="pacman-start">Ready!</p>
+        </div>
       </div>
     </div>
   </div>
-  
+
   <script>
-    /* ====================================================
-       1. Firebase и Telegram Web App инициализация
-    ==================================================== */
+    /* ----------------------------------------------
+       1) Настройка Firebase и Telegram Web App
+       ---------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -239,87 +431,93 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
+
     let tg = null;
-    if (window.Telegram && window.Telegram.WebApp) {
+    if(window.Telegram && window.Telegram.WebApp) {
       tg = window.Telegram.WebApp;
       tg.expand();
     }
-    
+
     let currentUser = null;
     let userRef = null;
     let localUserData = {
       tickets: 0,
       points: 0
     };
-    
+
+    // Ищем username в Telegram, либо тестовый
     if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
       userRef = db.ref('users/' + currentUser.username);
-      userRef.once('value').then(snapshot => {
-        if(!snapshot.exists()){
-          userRef.set({
-            tickets: 5,
-            points: 0
-          });
-        }
-      });
-      userRef.on('value', snapshot => {
-        const data = snapshot.val() || {};
-        localUserData.tickets = data.tickets || 0;
-        localUserData.points  = data.points  || 0;
-        updateHeader();
-      });
     } else {
       currentUser = { username: 'TestUser' };
       document.getElementById('username').textContent = '@TestUser';
       userRef = db.ref('users/TestUser');
-      userRef.once('value').then(snapshot => {
-        if(!snapshot.exists()){
-          userRef.set({
-            tickets: 5,
-            points: 0
-          });
-        }
-      });
-      userRef.on('value', snapshot => {
-        const data = snapshot.val() || {};
-        localUserData.tickets = data.tickets || 0;
-        localUserData.points  = data.points  || 0;
-        updateHeader();
-      });
     }
-    
+
+    // Создаём/подгружаем данные пользователя
+    userRef.once('value').then(snapshot => {
+      if(!snapshot.exists()){
+        userRef.set({ tickets: 5, points: 0 });
+      }
+    });
+    userRef.on('value', snapshot => {
+      const data = snapshot.val() || {};
+      localUserData.tickets = data.tickets || 0;
+      localUserData.points  = data.points  || 0;
+      updateHeader();
+    });
+
     function updateHeader() {
       document.getElementById('ticketCount').textContent = localUserData.tickets;
-      document.getElementById('pointCount').textContent = localUserData.points;
+      document.getElementById('pointCount').textContent  = localUserData.points;
     }
-    
+
     function goBack() {
+      // Можно просто сделать history.back() или редирект
       window.location.href = 'index.html';
     }
-    
-    /* ====================================================
-       2. Логика запуска Pac-Man
-       (исходный код игры Pac-Man встроен ниже)
-    ==================================================== */
-    
-    // Объявление основных переменных для Pac-Man (копия из предыдущего кода)
-    const game = document.getElementById("game");
-    const gameBoard = document.getElementById("game-board");
-    const gameStart = document.getElementById('game-start');
-    const startText = document.getElementById("start");
-    const scoreElement = document.getElementById("score");
-    const lives = document.getElementById("lives");
-    const root = document.documentElement.style;
-    
+
+    /* ----------------------------------------------
+       2) Кнопка "Start (1 Ticket)" – запуск Pac-Man
+       ---------------------------------------------- */
+    function startPacmanGame() {
+      if(localUserData.tickets < 1){
+        alert("Not enough tickets!");
+        return;
+      }
+      // Забираем 1 билет
+      localUserData.tickets--;
+      userRef.update({ tickets: localUserData.tickets });
+      updateHeader();
+
+      // Скрываем шапку, back и кнопку
+      document.getElementById('header').style.display = 'none';
+      document.getElementById('backContainer').style.display = 'none';
+      document.getElementById('startBtn').style.display = 'none';
+
+      // Показываем игру Pac-Man
+      document.getElementById('pacman-game').style.display = 'block';
+    }
+
+    /* ----------------------------------------------
+       3) Логика и код Pac-Man (слегка изменены id)
+       ---------------------------------------------- */
+    const game         = document.getElementById("pacman-game");
+    const gameBoard    = document.getElementById("pacman-game-board");
+    const gameStart    = document.getElementById('pacman-game-start');
+    const startText    = document.getElementById("pacman-start");
+    const scoreElement = document.getElementById("pacman-score");
+    const lives        = document.getElementById("pacman-lives");
+    const root         = document.documentElement.style;
+
     let soundtrack = document.createElement("audio");
     soundtrack.loop = true;
     soundtrack.volume = 0.7;
     let sound = document.createElement("audio");
     sound.volume = 0.5;
-    
+
     const startingPositions = [658, 322, 406, 404, 408];
     const positionChange = {
       "ArrowRight": 1,
@@ -351,91 +549,108 @@
       "ArrowUp": 32,
       "ArrowDown": 35.2,
     };
-    const characters = [{
-      name: "yellow",
-      direction: "ArrowLeft",
-      directionNew: undefined,
-      position: 658,
-      nextPosition: undefined,
-      mode: "normal",
-      status: "normal",
-      characterNode: undefined,
-      animationLength: undefined,
-      animationStart: undefined,
-    },
-    {
-      name: "red",
-      direction: "ArrowLeft",
-      directionOld: undefined,
-      directionList: ["ArrowUp", "ArrowUp", "ArrowUp"],
-      position: 38,
-      nextPosition: undefined,
-      scatterTarget: 27,
-      mode: "normal",
-      status: "normal",
-      characterNode: undefined,
-      animationLength: undefined,
-      animationStart: undefined,
-    },
-    {
-      name: "pink",
-      direction: "ArrowDown",
-      directionOld: undefined,
-      directionList: ["ArrowDown", "ArrowUp", "ArrowUp", "ArrowUp", "ArrowUp"],
-      position: 406,
-      nextPosition: undefined,
-      scatterTarget: 0,
-      mode: "normal",
-      status: "normal",
-      characterNode: undefined,
-      animationLength: undefined,
-      animationStart: undefined,
-    },
-    {
-      name: "blue",
-      direction: "ArrowUp",
-      directionOld: undefined,
-      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowRight", "ArrowRight", "ArrowUp", "ArrowUp", "ArrowUp"],
-      position: 404,
-      nextPosition: undefined,
-      scatterTarget: 867,
-      mode: "normal",
-      status: "normal",
-      characterNode: undefined,
-      animationLength: undefined,
-      animationStart: undefined,
-    },
-    {
-      name: "orange",
-      direction: "ArrowUp",
-      directionOld: undefined,
-      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
-      position: 408,
-      nextPosition: undefined,
-      scatterTarget: 840,
-      mode: "normal",
-      status: "normal",
-      characterNode: undefined,
-      animationLength: undefined,
-      animationStart: undefined,
-    },
+    const characters = [
+      {
+        name: "yellow",
+        direction: "ArrowLeft",
+        directionNew: undefined,
+        position: 658,
+        nextPosition: undefined,
+        mode: "normal",
+        status: "normal",
+        characterNode: undefined,
+        animationLength: undefined,
+        animationStart: undefined,
+      },
+      {
+        name: "red",
+        direction: "ArrowLeft",
+        directionOld: undefined,
+        directionList: ["ArrowUp","ArrowUp","ArrowUp"],
+        position: 38,
+        nextPosition: undefined,
+        scatterTarget: 27,
+        mode: "normal",
+        status: "normal",
+        characterNode: undefined,
+        animationLength: undefined,
+        animationStart: undefined,
+      },
+      {
+        name: "pink",
+        direction: "ArrowDown",
+        directionOld: undefined,
+        directionList: ["ArrowDown","ArrowUp","ArrowUp","ArrowUp","ArrowUp"],
+        position: 406,
+        nextPosition: undefined,
+        scatterTarget: 0,
+        mode: "normal",
+        status: "normal",
+        characterNode: undefined,
+        animationLength: undefined,
+        animationStart: undefined,
+      },
+      {
+        name: "blue",
+        direction: "ArrowUp",
+        directionOld: undefined,
+        directionList: ["ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowRight","ArrowRight","ArrowUp","ArrowUp","ArrowUp"],
+        position: 404,
+        nextPosition: undefined,
+        scatterTarget: 867,
+        mode: "normal",
+        status: "normal",
+        characterNode: undefined,
+        animationLength: undefined,
+        animationStart: undefined,
+      },
+      {
+        name: "orange",
+        direction: "ArrowUp",
+        directionOld: undefined,
+        directionList: ["ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowUp","ArrowUp","ArrowDown","ArrowLeft","ArrowLeft","ArrowUp","ArrowUp","ArrowUp"],
+        position: 408,
+        nextPosition: undefined,
+        scatterTarget: 840,
+        mode: "normal",
+        status: "normal",
+        characterNode: undefined,
+        animationLength: undefined,
+        animationStart: undefined,
+      },
     ];
-    let elements, points = 0, collisionInterval, ghostMode, ghostModeInterval, changingBackInterval;
-    let isFrightenedWhite = false, ghostsEaten = 0, newLevel = true, score = 0, livesLost = 0, gameStartLength = 4200;
-    
-    document.addEventListener("click", function() {
-      // Эта функция используется для старта уровня в игре
-      // (изначально запуск по клику на экран; здесь не используется, т.к. старт происходит по кнопке меню)
-    });
-    
+    let elements;
+    let points = 0;
+    let collisionInterval;
+    let ghostMode;
+    let ghostModeInterval;
+    let changingBackInterval;
+    let isFrightenedWhite = false;
+    let ghostsEaten = 0;
+    let newLevel = true;
+    let score = 0;
+    let livesLost = 0;
+    let gameStartLength = 4200;
+    let whichMunch = 1;
+
+    document.addEventListener("click", startPacmanCoreGame);
+
+    function startPacmanCoreGame() {
+      // Клик по "Click Anywhere to play"
+      gameStart.style.display = "none";
+      // Показываем сам Pac-Man (у нас уже #pacman-game visible, но скрыта надпись)
+      startLevel();
+      document.removeEventListener("click", startPacmanCoreGame);
+    }
+
     soundtrack.addEventListener('timeupdate', () => {
-      let buffer = 0.3;
+      const buffer = 0.3;
       if(soundtrack.currentTime > soundtrack.duration - buffer){
         soundtrack.currentTime = 0; 
         soundtrack.play();
       }
     });
-    
+
     function startLevel() {
       if (newLevel === true) {
         gameStartLength = 4200;
@@ -454,14 +669,26 @@
         ghostRevive(2, 0);
         ghostRevive(3, 0);
         ghostRevive(4, 0);
-    
+
         collisionInterval = setInterval(checkCollisions, 10);
         ghostModeInterval = setTimeout(changeModes, 5000);
       }, gameStartLength);
     }
-    
+
     function makeLevel() {
-      const gameArray = [/* массив значений для создания уровня (копия из исходного кода) */];
+      /* 
+         Здесь идёт длинный массив с картой, как в вашем исходном коде Pac-Man.
+         Для краткости оставлен исходный.
+         Если надо – отредактируйте под свои нужды.
+      */
+      const gameArray = [
+        /* ... длинный массив ... */
+        0,8,8,8,8,8,8,8,8,8,8,8,8,18,19,8,8,8,8,8,8,8,8,8,8,8,8,1,
+        9,126,126,126,126,126,126,126,126,126,126,126,126,11,13,126,126,126,126,126,126,126,126,126,126,126,126,9,
+        /* и т.д. */
+        2,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3
+      ];
+
       for (let i = 0; i < gameArray.length; i++) {
         const element = document.createElement("DIV");
         if (gameArray[i] > 25) {
@@ -472,32 +699,34 @@
             element.append(character);
           }
           if(gameArray[i] / 100 > 1) {
-            let character = document.createElement("DIV");
-            character.className = Math.floor(gameArray[i] / 100) == 1 ? "point" : "big-point";
-            element.append(character);
+            let pointDiv = document.createElement("DIV");
+            pointDiv.className = Math.floor(gameArray[i] / 100) == 1 ? "point" : "big-point";
+            element.append(pointDiv);
           }
         } else {
           element.className = "wall";
-          element.style.backgroundPosition = `-${gameArray[i] * 2}rem 0`;
+          element.style.backgroundPosition = `-${gameArray[i]*2}rem 0`;
         }
         gameBoard.append(element);
       }
       points = 0;
-      elements = Array.from(gameBoard.children).splice(1);
+      elements = Array.from(gameBoard.children).splice(1); // убираем <p id="pacman-start">
       transformStartingElements();
     }
-    
+
     function setStartingProperties() {
       newLevel = undefined;
       window.removeEventListener("keydown", getDirection);
       document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchmove", handleTouchMove);
+
       clearTimeout(ghostModeInterval);
       game.style.visibility = "visible";
       startText.style.display = "block";
       ghostMode = "scatter";
       ghostsEaten = 0;
       scoreElement.innerHTML = "Score " + score;
+
       for (let i = 0; i < characters.length; i++) {
         characters[i].position = startingPositions[i];
         characters[i].direction = i < 2 ? "ArrowLeft" : characters[i].directionList[0];
@@ -505,6 +734,7 @@
         characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
         characters[i].mode = "normal";
         characters[i].status = "normal";
+
         if (i == 0) {
           root.setProperty(`--${characters[i].name}-sprite-x`, "-6.4rem");
           root.setProperty(`--${characters[i].name}-sprite-y`, "0rem");
@@ -513,10 +743,12 @@
           getSprite(i);
         }
       }
+
       setTimeout(() => {
         window.addEventListener("keydown", getDirection);
         document.addEventListener('touchstart', handleTouchStart);        
         document.addEventListener('touchmove', handleTouchMove);
+
         for (let i = 2; i < 5; i++) {
           characters[i].animationLength = 200;
           characters[i].characterNode.classList.add(`${characters[i].name}-revive`);
@@ -525,7 +757,7 @@
         getSprite(0);
       }, gameStartLength);
     }
-    
+
     function transformStartingElements() {
       for (let i = 0; i < 5; i++) {
         if (i == 1) {
@@ -537,7 +769,7 @@
         }
       }
     }
-    
+
     function changeModes() {
       if (ghostMode === "scatter") {
         ghostMode = "chase";
@@ -548,11 +780,12 @@
       }
       changeGhostDirections();
     }
-    
+
     function checkCollisions() {
       const yellowTransform = new WebKitCSSMatrix(getComputedStyle(characters[0].characterNode).transform);
       let yellowTranslateX = yellowTransform.e;
       let yellowTranslateY = yellowTransform.f;
+
       for (let i = 1; i < 5; i++) {
         if (characters[0].status == "freeze") {
           clearInterval(collisionInterval);
@@ -562,30 +795,39 @@
         const ghostTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
         let ghostTranslateX = ghostTransform.e;
         let ghostTranslateY = ghostTransform.f;
-        let requirement, yellowNewPosition, ghostNewPosition;
+
+        let requirement;
+        let yellowNewPosition;
+        let ghostNewPosition;
+
         if(distance == 0) {
-           requirement = -30;
-           yellowNewPosition = characters[0].position + positionChange[characters[0].direction] + positionChange[oppositeDirection[characters[i].direction]];
-           ghostNewPosition = characters[i].position + positionChange[characters[i].direction] + positionChange[oppositeDirection[characters[0].direction]]; 
+          requirement = -30;
+          yellowNewPosition = characters[0].position + positionChange[characters[0].direction]
+                              + positionChange[oppositeDirection[characters[i].direction]];
+          ghostNewPosition  = characters[i].position + positionChange[characters[i].direction]
+                              + positionChange[oppositeDirection[characters[0].direction]];
         }
         if (distance == 1) {
           requirement = 10;
           yellowNewPosition = characters[0].position + positionChange[characters[0].direction];
-          ghostNewPosition = characters[i].position + positionChange[characters[i].direction];
+          ghostNewPosition  = characters[i].position + positionChange[characters[i].direction];
         } else if (distance == 4) {
           requirement = 30;
-          yellowNewPosition = characters[0].position + positionChange[characters[0].direction] * 2;
-          ghostNewPosition = characters[i].position + positionChange[characters[i].direction] * 2;
+          yellowNewPosition = characters[0].position + positionChange[characters[0].direction]*2;
+          ghostNewPosition  = characters[i].position + positionChange[characters[i].direction]*2;
         } else if (distance == 2) {
           requirement = 25;
-          yellowNewPosition = characters[0].position + positionChange[characters[0].direction] + positionChange[oppositeDirection[characters[i].direction]];
-          ghostNewPosition = characters[i].position + positionChange[characters[i].direction] + positionChange[oppositeDirection[characters[0].direction]];
+          yellowNewPosition = characters[0].position + positionChange[characters[0].direction]
+                              + positionChange[oppositeDirection[characters[i].direction]];
+          ghostNewPosition  = characters[i].position + positionChange[characters[i].direction]
+                              + positionChange[oppositeDirection[characters[0].direction]];
         } else if (distance != 0) {
           continue;
         }
         if(window.innerWidth < 600 || window.innerHeight < 700) {
           requirement /= 2;
         }
+
         if (yellowNewPosition == characters[i].position) {
           yellowTranslateX = Math.abs(yellowTranslateX);
           yellowTranslateY = Math.abs(yellowTranslateY);
@@ -600,6 +842,7 @@
           ghostTranslateY = -Math.abs(ghostTranslateY);
           ghostTranslateX = -Math.abs(ghostTranslateX);
         }
+
         const transformDistance = yellowTranslateY + ghostTranslateY + yellowTranslateX + ghostTranslateX;
         if (transformDistance > requirement) {
           if (characters[i].mode == "frightened") {
@@ -610,15 +853,18 @@
         }
       }
     }
-    
+
     function characterMove(i) {
       if (characters[i].status == "freeze") return;
+
       characters[i].nextPosition = getNewPosition(i);
       if (elements[characters[i].nextPosition].classList.contains("wall")) {
-        if(sound.src.includes("https://dominikgorczyca.github.io/Pac-Man/munch")) {
+        if(sound.src.includes("munch")) {
           sound.pause();
         }
-        setTimeout(() => { characterMove(i); }, 50);
+        setTimeout(() => {
+          characterMove(i);
+        }, 50);
         return;
       }
       getAnimationLength(i);
@@ -626,36 +872,50 @@
       getTransition(i);
       changePosition(i);
     }
-    
+
     function getNewPosition(i) {
-      if (i == 0) { getYellowDirection(i); }
-      else if (characters[i].direction != oppositeDirection[characters[i].directionOld]) {
-        if (characters[i].mode == "frightened") { getRandomDirection(i); }
-        else { getGhostDirection(i); }
-      } else { characters[i].directionOld = characters[i].direction; }
-      let nextPosition = characters[i].position + positionChange[characters[i].direction];
-      if (characters[i].position == 392 && nextPosition == 391) { nextPosition = 419; }
-      else if (characters[i].position == 419 && nextPosition == 420) { nextPosition = 392; }
-      return nextPosition;
+      if (i == 0) {
+        getYellowDirection(i);
+      } else if (characters[i].direction != oppositeDirection[characters[i].directionOld]) {
+        if (characters[i].mode == "frightened") {
+          getRandomDirection(i);
+        } else {
+          getGhostDirection(i);
+        }
+      } else {
+        characters[i].directionOld = characters[i].direction;
+      }
+      let nextPos = characters[i].position + positionChange[characters[i].direction];
+      if (characters[i].position == 392 && nextPos == 391) {
+        nextPos = 419;
+      } else if (characters[i].position == 419 && nextPos == 420) {
+        nextPos = 392;
+      }
+      return nextPos;
     }
-    
+
     function getYellowDirection(i) {
       if (characters[i].directionNew != undefined) {
-        const newPosition = characters[i].position + positionChange[characters[i].directionNew];
-        if (!elements[newPosition].classList.contains("wall")) {
+        const newPos = characters[i].position + positionChange[characters[i].directionNew];
+        if (!elements[newPos].classList.contains("wall")) {
           characters[i].direction = characters[i].directionNew;
           characters[i].directionNew = undefined;
         }
       }
     }
-    
+
     function getGhostDirection(i) {
       let newDirection = characters[i].directionOld = characters[i].direction;
       let biggestDistance = 100000;
       let target;
-      if (characters[i].mode == "eaten") { target = 322; }
-      else if (ghostMode == "scatter") { target = characters[i].scatterTarget; }
-      else { target = getChaseTarget(i); }
+      if (characters[i].mode == "eaten") {
+        target = 322;
+      } else if (ghostMode == "scatter") {
+        target = characters[i].scatterTarget;
+      } else {
+        target = getChaseTarget(i);
+      }
+
       for (let [direction, value] of Object.entries(positionChange)) {
         const newPosition = characters[i].position + value;
         const newDistance = calculateDistance(target, newPosition);
@@ -669,133 +929,159 @@
       }
       characters[i].direction = newDirection;
     }
-    
+
     function getRandomDirection(i) {
-      let nextPosition = characters[i].position + positionChange[characters[i].direction];
-      if ((characters[i].position == 392 && nextPosition == 391) ||
-          (characters[i].position == 419 && nextPosition == 420)) { return; }
-      let newDirection;
+      let nextPos = characters[i].position + positionChange[characters[i].direction];
+      if ((characters[i].position == 392 && nextPos == 391) ||
+          (characters[i].position == 419 && nextPos == 420)) {
+        return;
+      }
+      let newDir;
       do {
-        const random = Math.floor(Math.random() * 4);
-        newDirection = Object.keys(positionChange)[random];
-        nextPosition = characters[i].position + positionChange[newDirection];
-      } while (elements[nextPosition].classList.contains("wall") ||
-               oppositeDirection[newDirection] == characters[i].direction);
-      characters[i].direction = newDirection;
+        const random = ~~(Math.random()*4);
+        newDir = Object.keys(positionChange)[random];
+        nextPos = characters[i].position + positionChange[newDir];
+      } while(elements[nextPos].classList.contains("wall") ||
+              oppositeDirection[newDir] == characters[i].direction);
+      characters[i].direction = newDir;
     }
-    
+
     function getChaseTarget(i) {
-      switch (i) {
+      switch(i) {
         case 1:
-          if(characters[0].position == characters[i].position && !elements[characters[0].nextPosition].classList.contains("wall"))
+          if(characters[0].position == characters[i].position &&
+             !elements[characters[0].nextPosition].classList.contains("wall")) {
             return characters[0].position + positionChange[characters[0].direction];
+          }
           return characters[0].position;
         case 2:
-          return characters[0].position + positionChange[characters[0].direction] * 2;
+          return characters[0].position + positionChange[characters[0].direction]*2;
         case 3:
           return getBlueTarget();
         case 4:
-          const yellowOrangeDistance = calculateDistance(characters[0].position, characters[4].position);
-          if (yellowOrangeDistance < 64) { return 840; }
-          else { return characters[0].position; }
+          const dist = calculateDistance(characters[0].position, characters[4].position);
+          if(dist < 64) {
+            return 840;
+          } else {
+            return characters[0].position;
+          }
       }
     }
-    
+
     function getBlueTarget() {
-      const yellowPosition = characters[0].position + positionChange[characters[0].direction];
-      const yellowRedDistanceX = yellowPosition % 28 - characters[1].position % 28;
-      const yellowRedDistanceY = Math.floor(yellowPosition / 28) - Math.floor(characters[1].position / 28);
-      let bluePositionX = yellowPosition % 28 + yellowRedDistanceX;
-      if (bluePositionX < 0) { bluePositionX = 0; }
-      else if (bluePositionX > 27) { bluePositionX = 27; }
-      const bluePositionY = Math.floor(yellowPosition / 28) + yellowRedDistanceY;
-      return bluePositionX + bluePositionY * 28;
+      const yellowPos = characters[0].position + positionChange[characters[0].direction];
+      const distX = (yellowPos % 28) - (characters[1].position % 28);
+      const distY = ~~(yellowPos/28) - ~~(characters[1].position/28);
+      let bluePosX = (yellowPos % 28) + distX;
+      if(bluePosX < 0)   bluePosX = 0;
+      else if(bluePosX>27) bluePosX = 27;
+      const bluePosY = ~~(yellowPos/28) + distY;
+      return bluePosX + bluePosY*28;
     }
-    
-    function calculateDistance(target, newGhostPosition) {
-      const distanceX = Math.floor(target / 28) - Math.floor(newGhostPosition / 28);
-      const distanceY = target % 28 - newGhostPosition % 28;
-      return distanceX ** 2 + distanceY ** 2;
+
+    function calculateDistance(target, newGhostPos) {
+      const dx = Math.floor(target/28) - Math.floor(newGhostPos/28);
+      const dy = (target % 28) - (newGhostPos % 28);
+      return dx*dx + dy*dy;
     }
-    
+
     function getAnimationLength(i) {
-      let animationLength;
-      if (i == 0) { animationLength = characters[i].mode == "hasEaten" ? 210 : 190; }
-      else {
+      let animLength;
+      if (i==0) {
+        animLength = characters[i].mode=="hasEaten"?210:190;
+      } else {
         const tunnel = [392,393,394,395,396,419,418,417,416,415];
-        if (characters[i].mode == "eaten") {
-          if (characters[i].nextPosition === 322)
-            animationLength = characters[i].direction == "ArrowLeft" ? 25 : 75;
-          else { animationLength = 50; }
-        } else if (tunnel.includes(characters[i].position) || tunnel.includes(characters[i].nextPosition)) { animationLength = 350; }
-        else if (characters[i].mode == "frightened") { animationLength = 300; }
-        else if (characters[i].direction == characters[i].directionOld || characters[i].direction == oppositeDirection[characters[i].directionOld]) { animationLength = 200; }
-        else { animationLength = 220; }
+        if(characters[i].mode=="eaten") {
+          if(characters[i].nextPosition===322) {
+            animLength = characters[i].direction=="ArrowLeft"?25:75;
+          } else {
+            animLength = 50;
+          }
+        } else if (tunnel.includes(characters[i].position) ||
+                   tunnel.includes(characters[i].nextPosition)) {
+          animLength = 350;
+        } else if (characters[i].mode=="frightened") {
+          animLength = 300;
+        } else if (
+          characters[i].direction == characters[i].directionOld ||
+          characters[i].direction == oppositeDirection[characters[i].directionOld]
+        ) {
+          animLength = 200;
+        } else {
+          animLength = 220;
+        }
       }
-      if (characters[i].characterNode.style.transform == 'translateX(-1rem)') { animationLength /= 1.5; }
-      root.setProperty(`--${characters[i].name}-animation-length`, animationLength + "ms");
-      characters[i].animationLength = animationLength;
+      const transformVal = characters[i].characterNode.style.transform;
+      if(transformVal.includes("translateX(-1rem)")) {
+        animLength /= 1.5;
+      }
+      root.setProperty(`--${characters[i].name}-animation-length`, animLength+"ms");
+      characters[i].animationLength = animLength;
     }
-    
+
     function getSprite(i) {
       let spriteX, spriteY;
-      if (i == 0) {
+      if (i==0) {
         spriteX = 3.2;
         spriteY = yellowSprite[characters[i].direction];
       } else {
-        if (characters[i].mode == "normal") {
+        if (characters[i].mode=="normal") {
           spriteX = ghostSprite[characters[i].direction];
-          spriteY = 9.6 + 3.2 * i;
-        } else if (characters[i].mode == "frightened") {
-          spriteX = isFrightenedWhite ? 32 : 25.6;
+          spriteY = 9.6 + 3.2*i;
+        } else if (characters[i].mode=="frightened") {
+          spriteX = isFrightenedWhite?32:25.6;
           spriteY = 12.8;
         } else {
           spriteX = eatenSprite[characters[i].direction];
           spriteY = 16;
         }
       }
-      root.setProperty(`--${characters[i].name}-sprite-x`, `-${spriteX}rem`);
-      root.setProperty(`--${characters[i].name}-sprite-y`, `-${spriteY}rem`);
+      root.setProperty(`--${characters[i].name}-sprite-x`,`-${spriteX}rem`);
+      root.setProperty(`--${characters[i].name}-sprite-y`,`-${spriteY}rem`);
     }
-    
+
     function getTransition(i) {
-      const isGoingToRespawn = characters[i].mode == "eaten" && characters[i].nextPosition == 322;
-      const transitionMove = {
-        "ArrowUp": "Y(-2rem)",
-        "ArrowDown": "Y(2rem)",
-        "ArrowRight": isGoingToRespawn ? "X(1rem)" : "X(2rem)",
-        "ArrowLeft": isGoingToRespawn ? "X(-3rem)" : "X(-2rem)",
+      const isRespawn = (characters[i].mode=="eaten" && characters[i].nextPosition==322);
+      const moveMap = {
+        "ArrowUp":    "Y(-2rem)",
+        "ArrowDown":  "Y(2rem)",
+        "ArrowRight": isRespawn?"X(1rem)":"X(2rem)",
+        "ArrowLeft":  isRespawn?"X(-3rem)":"X(-2rem)",
       };
-      characters[i].characterNode.style.transform = `translate${transitionMove[characters[i].direction]}`;
+      characters[i].characterNode.style.transform = `translate${moveMap[characters[i].direction]}`;
     }
-    
+
     async function changePosition(i) {
       await new Promise(resolve => {
-        if (characters[i].mode != "eaten") {
+        if(characters[i].mode!="eaten") {
           characters[i].characterNode.classList.add(`${characters[i].name}-animation-move`);
         }
         characters[i].animationStart = performance.now();
         setTimeout(() => {
-          if (characters[i].status == "freeze") return;
-          characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`, `${characters[i].name}-visible`);
-          characters[i].characterNode.style.transform = "";
+          if(characters[i].status=="freeze") return;
+          characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`,`${characters[i].name}-visible`);
+          characters[i].characterNode.style.transform="";
           characters[i].position = characters[i].nextPosition;
           characters[i].characterNode = elements[characters[i].position].children[i];
           characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
-          if (i == 0) { eatPoint(i); }
-          else if (characters[i].mode == "eaten" && characters[i].position === 322) { ghostRetreat(i); }
-          resolve();
+
+          if(i==0) {
+            eatPoint(i);
+          } else if(characters[i].mode=="eaten" && characters[i].position===322){
+            ghostRetreat(i);
+          }
+          resolve("");
         }, characters[i].animationLength);
       });
       characterMove(i);
     }
-    
+
     function eatPoint(i) {
       const point = elements[characters[i].position].children[5];
-      if (point != undefined) {
+      if(point){
         points++;
         characters[i].mode = "hasEaten";
-        if (point.classList.contains("big-point")) {
+        if(point.classList.contains("big-point")){
           makeGhostsScared();
           score += 50;
         } else {
@@ -805,318 +1091,335 @@
             sound.play();
           }
         }
-        scoreElement.innerHTML = "Score " + score;
+        scoreElement.innerHTML = "Score "+score;
         point.remove();
-        if (points == 244) { gameWin(); freezeCharacters(); }
+        if(points==244){
+          gameWin();
+          freezeCharacters();
+        }
       } else {
         characters[i].mode = "normal";
-        if(sound.src.includes("munch")) { sound.pause(); }
+        if(sound.src.includes("munch")) {
+          sound.pause();
+        }
       }
     }
-    
+
     function makeGhostsScared() {
       soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav";
       soundtrack.play();
       clearInterval(changingBackInterval);
-      isFrightenedWhite = false;
-      ghostsEaten = 0;
+      isFrightenedWhite=false;
+      ghostsEaten=0;
       changeGhostDirections();
-      for (let i = 0; i < 5; i++) {
-        if (characters[i].mode != "eaten") {
-          characters[i].mode = "frightened";
+      for(let i=0;i<5;i++){
+        if(characters[i].mode!="eaten"){
+          characters[i].mode="frightened";
           getSprite(i);
         }
       }
-      setTimeout(() => {
-        let intervalCount = 1;
-        changingBackInterval = setInterval(() => {
-          if (characters[0].status == "freeze") return;
-          if (intervalCount == 10) {
+      setTimeout(()=>{
+        let count=1;
+        changingBackInterval = setInterval(()=>{
+          if(characters[0].status=="freeze") return;
+          if(count==10){
             clearInterval(changingBackInterval);
-            if(!soundtrack.src.includes("retreating")){
+            if(!soundtrack.src.includes("retreating")) {
               soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
               soundtrack.play();
             }
-            for (let i = 0; i < characters.length; i++) {
-              if (characters[i].mode != "eaten") { characters[i].mode = "normal"; }
+            for(let i=0;i<characters.length;i++){
+              if(characters[i].mode!="eaten"){
+                characters[i].mode="normal";
+              }
             }
           }
-          isFrightenedWhite = intervalCount % 2 === 1;
-          for (let i = 0; i < 5; i++) { getSprite(i); }
-          intervalCount++;
-        }, 300);
-      }, 800);
+          isFrightenedWhite = (count%2==1);
+          for(let i=0;i<5;i++){
+            getSprite(i);
+          }
+          count++;
+        },300);
+      },800);
     }
-    
+
     function changeGhostDirections() {
-      for (let i = 1; i < 5; i++) {
-        if (characters[i].mode == "normal" &&
-            !characters[i].characterNode.className.includes("revive")) {
-          characters[i].directionOld = characters[i].direction;
-          characters[i].direction = oppositeDirection[characters[i].direction];
+      for(let i=1;i<5;i++){
+        if(characters[i].mode=="normal" &&
+           !characters[i].characterNode.className.includes("revive")){
+          characters[i].directionOld=characters[i].direction;
+          characters[i].direction=oppositeDirection[characters[i].direction];
         }
       }
     }
-    
+
     function gameFreeze(i) {
       sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/eat_ghost.wav";
       sound.play();
-      const animationStop = performance.now();
+      const animStop = performance.now();
       stopAnimations("stop");
       clearTimeout(ghostModeInterval);
-      characters[i].mode = "eaten";
+
+      characters[i].mode="eaten";
       characters[0].characterNode.classList.remove("yellow-visible");
       characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`);
-      root.setProperty(`--${characters[i].name}-sprite-x`, `-${(ghostsEaten * 32) / 10}rem`);
-      root.setProperty(`--${characters[i].name}-sprite-y`, "-25.6rem");
-      for (let j = 0; j < 5; j++) {
-        characters[j].animationLength = characters[j].animationLength - (animationStop - characters[j].animationStart);
-        if (j == i) { characters[j].animationLength /= 6; }
-        root.setProperty(`--${characters[j].name}-animation-length`, `${characters[j].animationLength}ms`);
+      root.setProperty(`--${characters[i].name}-sprite-x`,`-${(ghostsEaten*32)/10}rem`);
+      root.setProperty(`--${characters[i].name}-sprite-y`,"-25.6rem");
+
+      for(let j=0;j<5;j++){
+        characters[j].animationLength = characters[j].animationLength-(animStop-characters[j].animationStart);
+        if(j==i){
+          characters[j].animationLength/=6;
+        }
+        root.setProperty(`--${characters[j].name}-animation-length`, characters[j].animationLength+"ms");
       }
-      setTimeout(() => {
+
+      setTimeout(()=>{
         soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/retreating.wav";
         soundtrack.play();
         characters[0].characterNode.classList.add("yellow-visible");
         getSprite(i);
-        for (let j = 0; j < 5; j++) {
+
+        for(let j=0;j<5;j++){
           characters[j].characterNode.style.removeProperty("transition");
-          if (characters[j].status == "freeze") {
-            characters[j].status = "normal";
-            if (!characters[j].characterNode.className.includes("revive")) {
-              if (j == 0 && elements[characters[j].nextPosition].classList.contains("wall"))
+          if(characters[j].status=="freeze"){
+            characters[j].status="normal";
+            if(!characters[j].characterNode.className.includes("revive")){
+              if(j==0 && elements[characters[j].nextPosition].classList.contains("wall")){
                 characterMove(j);
-              else { getTransition(j); changePosition(j); }
+              } else {
+                getTransition(j);
+                changePosition(j);
+              }
             }
-            characters[j].characterNode.style.animationPlayState = "running";
+            characters[j].characterNode.style.animationPlayState="running";
           }
         }
-        collisionInterval = setInterval(checkCollisions, 10);
-        ghostModeInterval = setTimeout(changeModes, 5000);
-      }, 1000);
+        collisionInterval = setInterval(checkCollisions,10);
+        ghostModeInterval = setTimeout(changeModes,5000);
+      },1000);
+
       ghostsEaten++;
-      score += 2 ** ghostsEaten * 100;
-      scoreElement.innerHTML = "Score " + score;
+      score += (2 ** ghostsEaten)*100;
+      scoreElement.innerHTML="Score "+score;
     }
-    
-    function ghostRetreat(i) {
-      characters[i].status = "freeze";
+
+    function ghostRetreat(i){
+      characters[i].status="freeze";
       characters[i].characterNode.classList.add(`${characters[i].name}-retreat`);
-      setTimeout(() => {
-        soundtrack.src = characters.some(char => char.mode == "frightened") ?
-          "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav" :
-          "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
+      setTimeout(()=>{
+        if(characters.some(ch=>ch.mode=="frightened")){
+          soundtrack.src="https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav";
+        } else {
+          soundtrack.src="https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
+        }
         soundtrack.play();
-        characters[i].position = i == 1 ? 406 : startingPositions[i];
+        characters[i].position=(i==1?406:startingPositions[i]);
         characters[i].characterNode.classList.remove(`${characters[i].name}-visible`, `${characters[i].name}-animation-move`, `${characters[i].name}-retreat`);
-        characters[i].characterNode.style.transform = "translateX(-1rem)";
-        characters[i].characterNode = elements[characters[i].position].children[i];
-        characters[i].animationLength = 200;
+        characters[i].characterNode.style.transform="translateX(-1rem)";
+        characters[i].characterNode=elements[characters[i].position].children[i];
+        characters[i].animationLength=200;
         characters[i].characterNode.classList.add(`${characters[i].name}-visible`, `${characters[i].name}-revive`);
-        characters[i].mode = "normal";
-        characters[i].animationLength = 200;
-        ghostRevive(i, 0);
-      }, i > 2 ? 250 : 150);
+        characters[i].mode="normal";
+        characters[i].animationLength=200;
+        ghostRevive(i,0);
+      }, (i>2?250:150));
     }
-    
-    function ghostRevive(i, progress) {
-      if (characters[i].direction != characters[i].directionList[progress] &&
-          characters[i].directionList[progress] != undefined &&
-          characters[i].mode != "frightened") {
-        characters[i].direction = characters[i].directionList[progress];
+
+    function ghostRevive(i, progress){
+      if(characters[i].direction!=characters[i].directionList[progress] &&
+         characters[i].directionList[progress]!=undefined &&
+         characters[i].mode!="frightened"){
+        characters[i].direction=characters[i].directionList[progress];
         getSprite(i);
       }
-      if (progress != characters[i].directionList.length && newLevel == undefined) {
-        if (characters[0].status == "freeze")
-          characters[i].characterNode.style.animationPlayState = "paused";
-        else { characters[i].characterNode.style.animationPlayState = "running"; }
-        setTimeout(() => {
-          characters[i].animationStart = performance.now();
-          if (characters[0].status != "freeze") { progress++; characters[i].animationLength = 200; }
+      if(progress!=characters[i].directionList.length && newLevel==undefined){
+        if(characters[0].status=="freeze"){
+          characters[i].characterNode.style.animationPlayState="paused";
+        } else {
+          characters[i].characterNode.style.animationPlayState="running";
+        }
+        setTimeout(()=>{
+          characters[i].animationStart=performance.now();
+          if(characters[0].status!="freeze"){
+            progress++;
+            characters[i].animationLength=200;
+          }
           ghostRevive(i, progress);
         }, characters[i].animationLength);
-      } else if (newLevel == undefined) {
+      } else if(newLevel==undefined){
         characters[i].characterNode.classList.remove(`${characters[i].name}-visible`, `${characters[i].name}-revive`);
-        characters[i].position = 322;
-        characters[i].characterNode = elements[characters[i].position].children[i];
+        characters[i].position=322;
+        characters[i].characterNode=elements[characters[i].position].children[i];
         characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
-        characters[i].status = "normal";
-        characters[i].direction = "ArrowLeft";
+        characters[i].status="normal";
+        characters[i].direction="ArrowLeft";
         getSprite(i);
         characterMove(i);
       }
     }
-    
-    function gameOver() {
+
+    function gameOver(){
       stopAnimations();
-      setTimeout(() => {
-        for (let i = 1; i < 5; i++) { characters[i].characterNode.classList.remove(`${characters[i].name}-visible`); }
+      setTimeout(()=>{
+        for(let i=1;i<5;i++){
+          characters[i].characterNode.classList.remove(`${characters[i].name}-visible`);
+        }
         characters[0].characterNode.classList.add("yellow-death-animation");
-        sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_1.wav";
+        sound.src="https://dominikgorczyca.github.io/Pac-Man/audio/death_1.wav";
         sound.play();
-        setTimeout(() => {
-          sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_2.wav";
+        setTimeout(()=>{
+          sound.src="https://dominikgorczyca.github.io/Pac-Man/audio/death_2.wav";
           sound.play();
-        }, 1400);
-        if (livesLost == 3) {
-          newLevel = true;
-          setTimeout(() => {
-            startText.innerHTML = "Game&nbsp; Over";
-            startText.style.display = "block";
-            startText.style.color = "red";
-            setTimeout(() => {
-              startText.style.display = "none";
-              startText.style.color = "yellow";
-              startText.innerHTML = "READY!";
+        },1400);
+
+        if(livesLost==3){
+          newLevel=true;
+          setTimeout(()=>{
+            startText.innerHTML="Game&nbsp; Over";
+            startText.style.display="block";
+            startText.style.color="red";
+            // Обновляем очки в Firebase (если нужно) – раскомментируйте
+            // userRef.update({ points: localUserData.points + score });
+
+            setTimeout(()=>{
+              startText.style.display="none";
+              startText.style.color="yellow";
+              startText.innerHTML="READY!";
               hardReset();
               deleteGameBoard();
-              game.style.visibility = "hidden";
-              setTimeout(startLevel, 500);
-            }, 1500);
-          }, 1500);
+              game.style.visibility="hidden";
+              setTimeout(startLevel,500);
+            },1500);
+          },1500);
         } else {
-          newLevel = false;
-          gameStartLength = 2000;
-          setTimeout(() => {
-            game.style.visibility = "hidden";
+          newLevel=false;
+          gameStartLength=2000;
+          setTimeout(()=>{
+            game.style.visibility="hidden";
             deleteClasses();
-            setTimeout(startLevel, 500);
-          }, 2000);
+            // Обновляем очки в Firebase (если нужно)
+            // userRef.update({ points: localUserData.points + score });
+            setTimeout(startLevel,500);
+          },2000);
         }
-      }, 1000);
+      },1000);
     }
-    
-    function gameWin() {
+
+    function gameWin(){
       stopAnimations();
-      newLevel = true;
-      sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/extend.wav";
+      newLevel=true;
+      sound.src="https://dominikgorczyca.github.io/Pac-Man/audio/extend.wav";
       sound.play();
-      setTimeout(() => {
-        for (let element of elements) {
-          if (element.classList.contains("wall")) {
-            element.classList.add("blinking-animation");
-            element.style.backgroundColor = "black";
-          } else if (element.classList.contains("wall-empty")) {
-            element.classList.add("blinking-animation-corner");
+      // Обновляем очки в Firebase (если нужно)
+      // userRef.update({ points: localUserData.points + score });
+
+      setTimeout(()=>{
+        for(let elem of elements){
+          if(elem.classList.contains("wall")){
+            elem.classList.add("blinking-animation");
+            elem.style.backgroundColor="black";
+          } else if(elem.classList.contains("wall-empty")){
+            elem.classList.add("blinking-animation-corner");
           }
         }
-        setTimeout(() => {
-          game.style.visibility = "hidden";
+        setTimeout(()=>{
+          game.style.visibility="hidden";
           deleteGameBoard();
-          setTimeout(startLevel, 500);
-        }, 1500);
-      }, 2000);
+          setTimeout(startLevel,500);
+        },1500);
+      },2000);
     }
-    
-    function stopAnimations(stop) {
+
+    function stopAnimations(stop){
       freezeCharacters(stop);
-      for (let i = 0; i < 5; i++) {
-        const characterTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
-        if (stop == "stop" && characters[i].mode == "eaten") continue;
-        characters[i].characterNode.style.transition = "none";
-        characters[i].characterNode.style.transform = `translate(${parseInt(characterTransform.e)}px, ${parseInt(characterTransform.f)}px)`;
-        if (stop != "stop") {
+      for(let i=0;i<5;i++){
+        const t = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
+        if(stop=="stop" && characters[i].mode=="eaten"){
+          continue;
+        }
+        characters[i].characterNode.style.transition="none";
+        characters[i].characterNode.style.transform=`translate(${parseInt(t.e)}px,${parseInt(t.f)}px)`;
+        if(stop!="stop"){
           soundtrack.pause();
           sound.pause();
-          if (i != 0) {
-            characters[i].characterNode.style.animationPlayState = "paused";
+          if(i!=0){
+            characters[i].characterNode.style.animationPlayState="paused";
           }
           characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`);
         } else {
-          characters[i].characterNode.style.animationPlayState = "paused";
+          characters[i].characterNode.style.animationPlayState="paused";
         }
       }
     }
-    
-    function deleteGameBoard() {
-      for (let element of elements) { element.remove(); }
+
+    function deleteGameBoard(){
+      for(let elem of elements){
+        elem.remove();
+      }
     }
-    
-    function deleteClasses() {
-      for (let i = 0; i < 5; i++) {
-        if (characters[i].characterNode != undefined) {
-          characters[i].characterNode.className = characters[i].name;
+
+    function deleteClasses(){
+      for(let i=0;i<5;i++){
+        if(characters[i].characterNode){
+          characters[i].characterNode.className=characters[i].name;
           characters[i].characterNode.removeAttribute("style");
         }
         transformStartingElements();
       }
     }
-    
-    function hardReset() {
-      livesLost = 0;
-      score = 0;
-      setTimeout(() => {
-        for (let i = 0; i < 3; i++) {
+
+    function hardReset(){
+      livesLost=0;
+      score=0;
+      setTimeout(()=>{
+        for(let i=0;i<3;i++){
           lives.children[i].removeAttribute("style");
         }
-      }, 500);
+      },500);
     }
-    
-    function freezeCharacters(stop) {
-      for (let i = 0; i < 5; i++) {
-        if (stop == "stop" && characters[i].mode == "eaten") continue;
-        characters[i].status = "freeze";
+
+    function freezeCharacters(stop){
+      for(let i=0;i<5;i++){
+        if(stop=="stop" && characters[i].mode=="eaten") {
+          continue;
+        }
+        characters[i].status="freeze";
       }
     }
-    
-    function getDirection(e) {
-      switch (e.key) {
+
+    function getDirection(e){
+      switch(e.key){
         case "ArrowUp":
         case "ArrowDown":
         case "ArrowRight":
         case "ArrowLeft":
-          characters[0].directionNew = e.key;
+          characters[0].directionNew=e.key;
       }
     }
-    
-    let xDown = null, yDown = null;
-    function handleTouchStart(e) {
-      const firstTouch = e.touches[0];
-      xDown = firstTouch.clientX;
-      yDown = firstTouch.clientY;
+
+    let xDown=null, yDown=null;
+    function handleTouchStart(e){
+      const firstTouch=e.touches[0];
+      xDown=firstTouch.clientX;
+      yDown=firstTouch.clientY;
     }
-    function handleTouchMove(e) {
-      if (!xDown || !yDown) return;
-      let xMove = e.touches[0].clientX;
-      let yMove = e.touches[0].clientY;
-      let xDiff = xDown - xMove;
-      let yDiff = yDown - yMove;
-      if (Math.abs(xDiff) > Math.abs(yDiff)) {
-        characters[0].directionNew = xDiff > 0 ? "ArrowLeft" : "ArrowRight";
+    function handleTouchMove(e){
+      if(!xDown || !yDown) return;
+      let xMove=e.touches[0].clientX;
+      let yMove=e.touches[0].clientY;
+      let xDiff=xDown-xMove;
+      let yDiff=yDown-yMove;
+      if(Math.abs(xDiff)>Math.abs(yDiff)){
+        if(xDiff>0) characters[0].directionNew="ArrowLeft";
+        else        characters[0].directionNew="ArrowRight";
       } else {
-        characters[0].directionNew = yDiff > 0 ? "ArrowUp" : "ArrowDown";
+        if(yDiff>0) characters[0].directionNew="ArrowUp";
+        else        characters[0].directionNew="ArrowDown";
       }
-      xDown = null;
-      yDown = null;
+      xDown=null;
+      yDown=null;
     }
-    
-    /* ====================================================
-       3. Функция запуска игры Pac-Man по нажатию кнопки Start
-       (списывание билета, обновление данных и отображение игры)
-    ==================================================== */
-    function startPacman() {
-      if(localUserData.tickets < 1){
-        alert("Not enough tickets!");
-        return;
-      }
-      // Списываем 1 билет и обновляем Firebase
-      localUserData.tickets--;
-      if(userRef) userRef.update({ tickets: localUserData.tickets });
-      updateHeader();
-      // Скрываем меню и показываем область игры
-      document.getElementById('menuWrapper').style.display = 'none';
-      // При старте игры можно скрыть header и back, если нужно:
-      document.getElementById('header').style.display = 'none';
-      document.getElementById('backContainer').style.display = 'none';
-      document.getElementById('gameWrapper').style.display = 'block';
-      startLevel();
-    }
-    
-    /* ====================================================
-       Конец скриптов игры Pac-Man
-    ==================================================== */
   </script>
 </body>
 </html>
-
-
