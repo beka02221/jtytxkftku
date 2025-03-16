@@ -76,7 +76,7 @@
       box-shadow: 0 3px #6b6b6b;
     }
     /* Wrapper for game (menu + game) */
-    /* При старте (до игры) применяем класс .menu с темно-синим фоном */
+    /* До старта используем класс .menu – темно-синий фон */
     #gameWrapper.menu {
       background: #00103c;
     }
@@ -374,7 +374,7 @@
   </div>
   
   <!-- Wrapper for game (menu + game) -->
-  <!-- По умолчанию класс "menu" для темно-синего фона -->
+  <!-- By default, class "menu" is applied (dark-blue background) -->
   <div id="gameWrapper" class="menu">
     <!-- Start button in menu -->
     <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
@@ -401,6 +401,9 @@
       e.preventDefault();
     }, { passive: false });
     
+    /* ------------------ Global Variables ------------------ */
+    let level = 1;  // Начинаем с уровня 1
+  
     /* ------------------ Firebase & Telegram Initialization ------------------ */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
@@ -620,7 +623,7 @@
       localUserData.tickets--;
       if(userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // При старте игры меняем класс обертки, чтобы фон стал черным
+      // Change gameWrapper class to "game" so background becomes black
       document.getElementById("gameWrapper").className = "game";
       document.getElementById("startBtn").style.display = "none";
       document.getElementById("header").style.display = "none";
@@ -1022,12 +1025,13 @@
       return distanceX ** 2 + distanceY ** 2;
     }
   
+    // Изменяем время анимации для врагов с учетом уровня – чем выше уровень, тем меньше time (то есть враги быстрее)
     function getAnimationLength(i) {
       let animationLength;
       if (i == 0) {
         animationLength = characters[i].mode == "hasEaten" ? 210 : 190;
       } else {
-        const tunnel = [392, 393, 394, 395, 396, 419, 418, 417, 416, 415];
+        const tunnel = [392,393,394,395,396,419,418,417,416,415];
   
         if (characters[i].mode == "eaten") {
           if (characters[i].nextPosition === 322) {
@@ -1047,6 +1051,8 @@
         } else {
           animationLength = 220;
         }
+        // Применяем множитель для врагов (i ≠ 0): чем выше уровень, тем быстрее (уменьшается время анимации)
+        animationLength *= Math.pow(0.9, level - 1);
       }
   
       if (characters[i].characterNode.style.transform == 'translateX(-1rem)') {
@@ -1141,7 +1147,7 @@
         scoreElement.innerHTML = "Score " + score;
         point.remove();
   
-        // If all points are collected, go to next level
+        // When all points are collected, win the level
         if (points >= 244) {
           winLevel();
           freezeCharacters();
@@ -1354,15 +1360,16 @@
       }, 1000);
     }
   
-    // When all points are collected, win the level and start the next one
+    // When all points are collected, win the level and start next level (keeping lives and score)
     function winLevel() {
       stopAnimations();
       newLevel = true;
       sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/extend.wav";
       sound.play();
-      // Do not reset score and lives; just reinitialize the level
+      // Increase level to speed up enemies
+      level++;
+      // Do not reset score and lives, just clear the board and start new level
       setTimeout(() => {
-        // Optionally, add a brief level-clear animation here
         deleteGameBoard();
         setTimeout(startLevel, 500);
       }, 2000);
