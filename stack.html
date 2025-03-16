@@ -76,11 +76,11 @@
       box-shadow: 0 3px #6b6b6b;
     }
     /* Wrapper for game (menu + game) */
-    /* При старте (до игры) применяем класс .menu с темно-синим фоном */
+    /* Before game start – menu with dark blue background */
     #gameWrapper.menu {
       background: #00103c;
     }
-    /* Во время игры фон станет черным */
+    /* During game – background becomes pure black */
     #gameWrapper.game {
       background: black;
     }
@@ -190,15 +190,14 @@
       margin: 0;
       font-size: 2rem;
     }
+    /* Only 2 lives are shown */
     .live {
       width: 3.2rem;
       height: 2.6rem;
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites.png");
       background-position: -26rem -3.2rem;
     }
-    @media (max-width: 600px), (max-height: 700px) {
-      .live { background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png"); }
-    }
+    /* Remove one "live" indicator in HTML markup below */
     
     /* Game board – centered with black background */
     #game-board {
@@ -331,11 +330,11 @@
       30% { background-position: 0rem var(--yellow-sprite-y); }
       80% { background-position: -6.4rem 0rem; }
     }
-    /* Additional keyframes for ghosts etc. can be added as needed */
+    /* Additional keyframes can be added as needed */
   </style>
 </head>
 <body>
-  <!-- Modal for Game Over (after 3 deaths) -->
+  <!-- Modal for Game Over -->
   <div id="endModal" class="modal-backdrop">
     <div class="modal">
       <h2 id="endTitle">Game Over!</h2>
@@ -374,7 +373,7 @@
   </div>
   
   <!-- Wrapper for game (menu + game) -->
-  <!-- По умолчанию класс "menu" для темно-синего фона -->
+  <!-- Initially with class "menu" (dark blue background) -->
   <div id="gameWrapper" class="menu">
     <!-- Start button in menu -->
     <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
@@ -383,8 +382,8 @@
     <div id="game">
       <div id="info">
         <h3 id="score">Score 0</h3>
+        <!-- Only 2 lives -->
         <div id="lives">
-          <div class="live"></div>
           <div class="live"></div>
           <div class="live"></div>
         </div>
@@ -396,7 +395,7 @@
   </div>
   
   <script>
-    // Prevent default touchmove to block native swipe actions
+    // Block default touchmove to prevent native swipe actions (e.g. closing window)
     document.addEventListener("touchmove", function(e) {
       e.preventDefault();
     }, { passive: false });
@@ -607,7 +606,7 @@
     let ghostsEaten = 0;
     let newLevel = true;
     let score = 0;
-    let livesLost = 0;
+    let livesLost = 0; // With 2 lives, gameOver when livesLost == 2
     let gameStartLength = 4200;
     let whichMunch = 1;
   
@@ -620,7 +619,7 @@
       localUserData.tickets--;
       if(userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // При старте игры меняем класс обертки, чтобы фон стал черным
+      // Change wrapper class so that during game background is black
       document.getElementById("gameWrapper").className = "game";
       document.getElementById("startBtn").style.display = "none";
       document.getElementById("header").style.display = "none";
@@ -888,9 +887,10 @@
         if(sound.src.includes("https://dominikgorczyca.github.io/Pac-Man/munch")) {
           sound.pause();
         }
+        // Reduced delay from 50ms to 20ms
         setTimeout(() => {
           characterMove(i);
-        }, 50);
+        }, 20);
         return;
       }
   
@@ -1022,13 +1022,14 @@
       return distanceX ** 2 + distanceY ** 2;
     }
   
+    // Reduce all animation lengths by 20%
     function getAnimationLength(i) {
       let animationLength;
       if (i == 0) {
-        animationLength = characters[i].mode == "hasEaten" ? 210 : 190;
+        // Pac-Man: normal 190ms => 152ms; hasEaten: 210ms => 168ms
+        animationLength = characters[i].mode == "hasEaten" ? 168 : 152;
       } else {
         const tunnel = [392, 393, 394, 395, 396, 419, 418, 417, 416, 415];
-  
         if (characters[i].mode == "eaten") {
           if (characters[i].nextPosition === 322) {
             animationLength = characters[i].direction == "ArrowLeft" ? 25 : 75;
@@ -1036,23 +1037,21 @@
             animationLength = 50;
           }
         } else if (tunnel.includes(characters[i].position) || tunnel.includes(characters[i].nextPosition)) {
-          animationLength = 350;
+          animationLength = 350 * 0.8; // 280ms
         } else if (characters[i].mode == "frightened") {
-          animationLength = 300;
+          animationLength = 300 * 0.8; // 240ms
         } else if (
           characters[i].direction == characters[i].directionOld ||
           characters[i].direction == oppositeDirection[characters[i].directionOld]
         ) {
-          animationLength = 200;
+          animationLength = 200 * 0.8; // 160ms
         } else {
-          animationLength = 220;
+          animationLength = 220 * 0.8; // ~176ms (округлим до 170)
         }
       }
-  
       if (characters[i].characterNode.style.transform == 'translateX(-1rem)') {
         animationLength /= 1.5;
       }
-  
       root.setProperty(`--${characters[i].name}-animation-length`, animationLength + "ms");
       characters[i].animationLength = animationLength;
     }
@@ -1075,7 +1074,6 @@
           spriteY = 16;
         }
       }
-  
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${spriteX}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, `-${spriteY}rem`);
     }
@@ -1088,7 +1086,6 @@
         "ArrowRight": isGoingToRespawn ? "X(1rem)" : "X(2rem)",
         "ArrowLeft": isGoingToRespawn ? "X(-3rem)" : "X(-2rem)",
       };
-  
       characters[i].characterNode.style.transform = `translate${transitionMove[characters[i].direction]}`;
     }
   
@@ -1100,19 +1097,16 @@
         characters[i].animationStart = performance.now();
         setTimeout(() => {
           if (characters[i].status == "freeze") return;
-  
           characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`, `${characters[i].name}-visible`);
           characters[i].characterNode.style.transform = "";
           characters[i].position = characters[i].nextPosition;
           characters[i].characterNode = elements[characters[i].position].children[i];
           characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
-  
           if (i == 0) {
             eatPoint(i);
           } else if (characters[i].mode == "eaten" && characters[i].position === 322) {
             ghostRetreat(i);
           }
-  
           resolve();
         }, characters[i].animationLength);
       });
@@ -1121,7 +1115,6 @@
   
     function eatPoint(i) {
       const point = elements[characters[i].position].children[5];
-  
       if (point != undefined) {
         points++;
         characters[i].mode = "hasEaten";
@@ -1137,11 +1130,9 @@
             sound.play();
           }
         }
-  
         scoreElement.innerHTML = "Score " + score;
         point.remove();
-  
-        // If all points are collected, go to next level
+        // If all points collected, win level
         if (points >= 244) {
           winLevel();
           freezeCharacters();
@@ -1170,12 +1161,10 @@
       setTimeout(() => {
         let intervalCount = 1;
         changingBackInterval = setInterval(() => {
-          if (characters[0].status == "freeze") {
-            return;
-          }
+          if (characters[0].status == "freeze") return;
           if (intervalCount == 10) {
             clearInterval(changingBackInterval);
-            if(!soundtrack.src.includes("retreating")) {
+            if(!soundtrack.src.includes("retreating")){
               soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
               soundtrack.play();
             }
@@ -1185,12 +1174,7 @@
               }
             }
           }
-          if (intervalCount % 2 == 1) {
-            isFrightenedWhite = true;
-          } else {
-            isFrightenedWhite = false;
-          }
-  
+          isFrightenedWhite = (intervalCount % 2 == 1);
           for (let i = 0; i < 5; i++) {
             getSprite(i);
           }
@@ -1215,13 +1199,11 @@
       const animationStop = performance.now();
       stopAnimations("stop");
       clearTimeout(ghostModeInterval);
-  
       characters[i].mode = "eaten";
       characters[0].characterNode.classList.remove("yellow-visible");
       characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`);
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${(ghostsEaten * 32) / 10}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, "-25.6rem");
-  
       for (let j = 0; j < 5; j++) {
         characters[j].animationLength = characters[j].animationLength - (animationStop - characters[j].animationStart);
         if (j == i) {
@@ -1229,18 +1211,15 @@
         }
         root.setProperty(`--${characters[j].name}-animation-length`, `${characters[j].animationLength}ms`);
       }
-  
       setTimeout(() => {
         soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/retreating.wav";
         soundtrack.play();
         characters[0].characterNode.classList.add("yellow-visible");
         getSprite(i);
-  
         for (let j = 0; j < 5; j++) {
           characters[j].characterNode.style.removeProperty("transition");
           if (characters[j].status == "freeze") {
             characters[j].status = "normal";
-  
             if (!characters[j].characterNode.className.includes("revive")) {
               if (j == 0 && elements[characters[j].nextPosition].classList.contains("wall")) {
                 characterMove(j);
@@ -1256,7 +1235,6 @@
         ghostModeInterval = setTimeout(changeModes, 5000);
       }, 1000);
       ghostsEaten++;
-      // Award 10 points for eating a ghost
       score += 10;
       scoreElement.innerHTML = "Score " + score;
     }
@@ -1264,9 +1242,8 @@
     function ghostRetreat(i) {
       characters[i].status = "freeze";
       characters[i].characterNode.classList.add(`${characters[i].name}-retreat`);
-  
       setTimeout(() => {
-        if(characters.some(char => char.mode == "frightened")) {
+        if(characters.some(char => char.mode == "frightened")){
           soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav";
         } else {
           soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
@@ -1274,7 +1251,6 @@
         soundtrack.play();
         characters[i].position = i == 1 ? 406 : startingPositions[i];
         characters[i].characterNode.classList.remove(`${characters[i].name}-visible`, `${characters[i].name}-animation-move`, `${characters[i].name}-retreat`);
-  
         characters[i].characterNode.style.transform = "translateX(-1rem)";
         characters[i].characterNode = elements[characters[i].position].children[i];
         characters[i].animationLength = 200;
@@ -1292,21 +1268,18 @@
         characters[i].direction = characters[i].directionList[progress];
         getSprite(i);
       }
-  
       if (progress != characters[i].directionList.length && newLevel == undefined) {
         if (characters[0].status == "freeze") {
           characters[i].characterNode.style.animationPlayState = "paused";
         } else {
           characters[i].characterNode.style.animationPlayState = "running";
         }
-  
         setTimeout(() => {
           characters[i].animationStart = performance.now();
           if (characters[0].status != "freeze") {
             progress++;
             characters[i].animationLength = 200;
           }
-  
           ghostRevive(i, progress);
         }, characters[i].animationLength);
       } else if (newLevel == undefined) {
@@ -1327,7 +1300,6 @@
         for (let i = 1; i < 5; i++) {
           characters[i].characterNode.classList.remove(`${characters[i].name}-visible`);
         }
-  
         characters[0].characterNode.classList.add("yellow-death-animation");
         sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_1.wav";
         sound.play();
@@ -1335,9 +1307,8 @@
           sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_2.wav";
           sound.play();
         }, 1400);
-  
-        // After 3 deaths, show final modal
-        if (livesLost == 3) {
+        // With 2 lives, game over modal after 2 deaths
+        if (livesLost == 2) {
           newLevel = true;
           setTimeout(() => {
             showEndModal();
@@ -1354,15 +1325,13 @@
       }, 1000);
     }
   
-    // When all points are collected, win the level and start the next one
+    // When all points are collected, win level and proceed to next level (score and lives remain)
     function winLevel() {
       stopAnimations();
       newLevel = true;
       sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/extend.wav";
       sound.play();
-      // Do not reset score and lives; just reinitialize the level
       setTimeout(() => {
-        // Optionally, add a brief level-clear animation here
         deleteGameBoard();
         setTimeout(startLevel, 500);
       }, 2000);
@@ -1372,10 +1341,7 @@
       freezeCharacters(stop);
       for (let i = 0; i < 5; i++) {
         const characterTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
-  
-        if (stop == "stop" && characters[i].mode == "eaten") {
-          continue;
-        }
+        if (stop == "stop" && characters[i].mode == "eaten") continue;
         characters[i].characterNode.style.transition = "none";
         characters[i].characterNode.style.transform = `translate(${parseInt(characterTransform.e)}px, ${parseInt(characterTransform.f)}px)`;
         if (stop != "stop") {
@@ -1411,7 +1377,7 @@
       livesLost = 0;
       score = 0;
       setTimeout(() => {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {  // 2 lives only
           lives.children[i].removeAttribute("style");
         }
       }, 500);
@@ -1419,9 +1385,7 @@
   
     function freezeCharacters(stop) {
       for (let i = 0; i < 5; i++) {
-        if (stop == "stop" && characters[i].mode == "eaten") {
-          continue;
-        }
+        if (stop == "stop" && characters[i].mode == "eaten") continue;
         characters[i].status = "freeze";
       }
     }
@@ -1436,36 +1400,22 @@
       }
     }
   
-    let xDown = null;
-    let yDown = null;
-  
+    let xDown = null, yDown = null;
     function handleTouchStart(e) {
       const firstTouch = e.touches[0];
       xDown = firstTouch.clientX;
       yDown = firstTouch.clientY;
     }
-  
     function handleTouchMove(e) {
-      if (!xDown || !yDown) {
-        return;
-      }
+      if (!xDown || !yDown) return;
       let xMove = e.touches[0].clientX;
       let yMove = e.touches[0].clientY;
       let xDiff = xDown - xMove;
       let yDiff = yDown - yMove;
-  
       if (Math.abs(xDiff) > Math.abs(yDiff)) {
-        if (xDiff > 0) {
-          characters[0].directionNew = "ArrowLeft";
-        } else {
-          characters[0].directionNew = "ArrowRight";
-        }
+        characters[0].directionNew = xDiff > 0 ? "ArrowLeft" : "ArrowRight";
       } else {
-        if (yDiff > 0) {
-          characters[0].directionNew = "ArrowUp";
-        } else {
-          characters[0].directionNew = "ArrowDown";
-        }
+        characters[0].directionNew = yDiff > 0 ? "ArrowUp" : "ArrowDown";
       }
       xDown = null;
       yDown = null;
