@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <!-- For mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pac-Man Game</title>
+  <title>Pac-Man with Menu</title>
   
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -18,14 +18,14 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* ---------- Global & Menu Styles ---------- */
+    /* ------------------ Global & Menu Styles ------------------ */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #00103c;
+      background: black;
       font-family: 'Press Start 2P', monospace;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
@@ -75,7 +75,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Game wrapper: center contents */
+    /* Wrapper for game (menu + game) */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -100,8 +100,45 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-  
-    /* ---------- Pac-Man Game Styles ---------- */
+    
+    /* ------------------ Modal Windows ------------------ */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal {
+      background: #000;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 400px;
+      text-align: center;
+      color: #fff;
+    }
+    .modal button {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    
+    /* ------------------ Pac-Man Game Styles ------------------ */
     :root {
       --yellow-sprite-x: ;
       --yellow-sprite-y: ;
@@ -123,15 +160,16 @@
     @media (max-width: 600px), (max-height: 700px) {
       html { font-size: 0.3125em; }
     }
-  
-    /* The game block – hidden until start */
+    
+    /* Game container – hidden until start; scaled up */
     #game { 
       flex-direction: column; 
       display: none;
       transform: scale(1.3);
       transform-origin: center center;
     }
-    /* In-game info */
+    
+    /* Game info */
     #game #info {
       box-sizing: border-box;
       width: 100%;
@@ -153,7 +191,8 @@
     @media (max-width: 600px), (max-height: 700px) {
       .live { background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png"); }
     }
-    /* Game board (centered, black background) */
+    
+    /* Game board – centered, with black background */
     #game-board {
       position: relative;
       overflow: hidden;
@@ -171,7 +210,10 @@
       width: 2rem;
       height: 2rem;
     }
-    /* Walls and points */
+    
+    /* Remove extra text ("Click Anywhere to play") */
+    
+    /* Game objects */
     .wall {
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/map.png");
       z-index: 1;
@@ -271,8 +313,8 @@
       background-position: var(--orange-sprite-x) var(--orange-sprite-y);
       transition: transform var(--orange-animation-length) linear;
     }
-  
-    /* Animation for Pac-Man mouth (only yellow shown as example) */
+    
+    /* Pac-Man mouth animation */
     .yellow-animation-move {
       animation: var(--yellow-animation-length) forwards steps(1, end) yellow;
     }
@@ -281,49 +323,29 @@
       30% { background-position: 0rem var(--yellow-sprite-y); }
       80% { background-position: -6.4rem 0rem; }
     }
-  
-    /* ---------- Modal Window Styles ---------- */
-    .modal-backdrop {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-    }
-    .modal-backdrop.active {
-      display: flex;
-    }
-    .modal {
-      background: #222;
-      border: 2px solid #0f0;
-      border-radius: 8px;
-      padding: 20px;
-      width: 80%;
-      max-width: 400px;
-      text-align: center;
-      color: #fff;
-      font-size: 14px;
-    }
-    .modal button {
-      margin-top: 10px;
-      font-size: 12px;
-      padding: 6px 12px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-    }
+    /* Additional keyframes can be added as needed */
   </style>
 </head>
 <body>
-  <!-- Menu with user info -->
+  <!-- Modal for Game Over -->
+  <div id="endModal" class="modal-backdrop">
+    <div class="modal">
+      <h2 id="endTitle">Game Over!</h2>
+      <p id="endMessage">Your final score is: 0</p>
+      <button id="endBtn" onclick="redirectToIndex()">OK</button>
+    </div>
+  </div>
+  
+  <!-- Modal for Error (not enough tickets) -->
+  <div id="errorModal" class="modal-backdrop">
+    <div class="modal">
+      <h2 id="errorTitle">Error</h2>
+      <p id="errorMessage">Not enough tickets!</p>
+      <button id="errorBtn" onclick="closeErrorModal()">Back</button>
+    </div>
+  </div>
+  
+  <!-- Header with user info -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -343,12 +365,12 @@
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
   
-  <!-- Game wrapper: contains menu and game -->
+  <!-- Wrapper for game (menu + game) -->
   <div id="gameWrapper">
-    <!-- Start button -->
+    <!-- Start button in menu -->
     <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
     
-    <!-- Pac-Man game markup -->
+    <!-- Pac-Man Game Markup -->
     <div id="game">
       <div id="info">
         <h3 id="score">Score 0</h3>
@@ -364,22 +386,13 @@
     </div>
   </div>
   
-  <!-- Modal window for Game Over / Info -->
-  <div id="resultModal" class="modal-backdrop">
-    <div class="modal">
-      <h2 id="modalTitle">Game Over</h2>
-      <p id="modalMessage"></p>
-      <button onclick="goToIndex()">Return to Index</button>
-    </div>
-  </div>
-  
   <script>
-    // Block default touchmove behavior (so swipe down does not close the WebApp)
+    // Block default touchmove (prevent Telegram WebApp from closing on swipe)
     document.addEventListener("touchmove", function(e) {
       e.preventDefault();
     }, { passive: false });
-  
-    /* 1. Firebase & Telegram Initialization */
+    
+    /* ------------------ Firebase & Telegram Initialization ------------------ */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -401,10 +414,7 @@
   
     let currentUser = null;
     let userRef = null;
-    let localUserData = {
-      tickets: 0,
-      points: 0
-    };
+    let localUserData = { tickets: 0, points: 0 };
   
     if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -447,11 +457,24 @@
       window.location.href = 'index.html';
     }
   
-    function goToIndex() {
-      window.location.href = 'index.html';
+    /* ------------------ Modal Functions ------------------ */
+    function showErrorModal(message) {
+      document.getElementById('errorMessage').textContent = message;
+      document.getElementById('errorModal').classList.add('active');
+    }
+    function closeErrorModal() {
+      document.getElementById('errorModal').classList.remove('active');
     }
   
-    /* 2. Pac-Man Game Code */
+    function showEndModal() {
+      document.getElementById('endMessage').textContent = "Your final score is: " + score;
+      document.getElementById('endModal').classList.add('active');
+    }
+    function redirectToIndex() {
+      window.location.href = "index.html";
+    }
+  
+    /* ------------------ Pac-Man Game Code ------------------ */
     const game = document.getElementById("game");
     const gameBoard = document.getElementById("game-board");
     const start = document.getElementById("start");
@@ -554,7 +577,7 @@
       name: "orange",
       direction: "ArrowUp",
       directionOld: undefined,
-      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
+      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
       position: 408,
       nextPosition: undefined,
       scatterTarget: 840,
@@ -579,12 +602,10 @@
     let gameStartLength = 4200;
     let whichMunch = 1;
   
-    /* Start Pac-Man Game (called from menu) */
+    /* Start Pac-Man game from menu */
     function startPacmanGame() {
       if(localUserData.tickets < 1){
-        document.getElementById('modalTitle').textContent = "Info";
-        document.getElementById('modalMessage').textContent = "Not enough tickets!";
-        document.getElementById('resultModal').classList.add('active');
+        showErrorModal("Not enough tickets!");
         return;
       }
       localUserData.tickets--;
@@ -646,40 +667,42 @@
         12: "wall-empty" 
       };
   
-      const gameArray = [/* (the same array as before) */ 0,8,8,8,8,8,8,8,8,8,8,8,8,18,19,8,8,8,8,8,8,8,8,8,8,8,8,1,
-        9,126,126,126,126,126,126,126,126,126,126,126,126,11,13,126,126,126,126,126,126,126,126,126,126,126,126,9,
-        9,126,4,10,10,5,126,4,10,10,10,5,126,11,13,126,4,10,10,10,5,126,4,10,10,5,126,9,
-        9,262,11,25,25,13,126,11,25,25,25,13,126,11,13,126,11,25,25,25,13,126,11,25,25,13,262,9,
-        9,126,6,12,12,7,126,6,12,12,12,7,126,6,7,126,6,12,12,12,7,126,6,12,12,7,126,9,
-        9,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,9,
-        9,126,4,10,10,5,126,4,5,126,4,10,10,10,10,10,10,5,126,4,5,126,4,10,10,5,126,9,
-        9,126,6,12,12,7,126,11,13,126,6,12,12,15,14,12,12,7,126,11,13,126,6,12,12,7,126,9,
-        9,126,126,126,126,126,126,11,13,126,126,126,126,11,13,126,126,126,126,11,13,126,126,126,126,126,126,9,
-        2,8,8,8,8,1,126,11,16,10,10,5,26,11,13,26,4,10,10,17,13,126,0,8,8,8,8,3,
-        25,25,25,25,25,9,126,11,14,12,12,7,26,6,7,26,6,12,12,15,13,126,9,25,25,25,25,25,
-        25,25,25,25,25,9,126,11,13,26,26,26,26,26,26,26,26,26,26,11,13,126,9,25,25,25,25,25,
-        25,25,25,25,25,9,126,11,13,26,0,8,8,24,24,8,8,1,26,11,13,126,9,25,25,25,25,25,
-        8,8,8,8,8,3,126,6,7,26,9,26,25,25,25,25,25,9,26,6,7,126,2,8,8,8,8,8,
-        26,26,26,26,26,26,126,26,26,26,9,26,26,26,26,26,26,9,26,26,26,126,26,26,26,26,26,26,
-        8,8,8,8,8,1,126,4,5,26,9,25,25,25,25,25,25,9,26,4,5,126,0,8,8,8,8,8,
-        25,25,25,25,25,9,126,11,13,26,2,8,8,8,8,8,8,3,26,11,13,126,9,25,25,25,25,25,
-        25,25,25,25,25,9,126,11,13,26,26,26,26,26,26,26,26,26,26,11,13,126,9,25,25,25,25,25,
-        25,25,25,25,25,9,126,11,13,26,4,10,10,10,10,10,10,5,26,11,13,126,9,25,25,25,25,25,
-        0,8,8,8,8,3,126,6,7,26,6,12,12,15,14,12,12,7,26,6,7,126,2,8,8,8,8,1,
-        9,126,126,126,126,126,126,126,126,126,126,126,126,11,13,126,126,126,126,126,126,126,126,126,126,126,126,9,
-        9,126,4,10,10,5,126,4,10,10,10,5,126,11,13,126,4,10,10,10,5,126,4,10,10,5,126,9,
-        9,126,6,12,15,13,126,6,12,12,12,7,126,6,7,126,6,12,12,12,7,126,11,14,12,7,126,9,
-        9,262,126,126,11,13,126,126,126,126,126,126,126,26,26,126,126,126,126,126,126,126,11,13,126,126,262,9,
-        20,10,5,126,11,13,126,4,5,126,4,10,10,10,10,10,10,5,126,4,5,126,11,13,126,4,10,22,
-        21,12,7,126,6,7,126,11,13,126,6,12,12,15,14,12,12,7,126,11,13,126,6,7,126,6,12,23,
-        9,126,126,126,126,126,126,11,13,126,126,126,126,11,13,126,126,126,126,11,13,126,126,126,126,126,126,9,
-        9,126,4,10,10,10,10,17,16,10,10,5,126,11,13,126,4,10,10,17,16,10,10,10,10,5,126,9,
-        9,126,6,12,12,12,12,12,12,12,12,7,126,6,7,126,6,12,12,12,12,12,12,12,12,7,126,9,
-        9,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,9,
-        2,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3];
+      const gameArray = [0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 18, 19, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1,
+        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
+        9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
+        9, 262, 11, 25, 25, 13, 126, 11, 25, 25, 25, 13, 126, 11, 13, 126, 11, 25, 25, 25, 13, 126, 11, 25, 25, 13, 262, 9,
+        9, 126, 6, 12, 12, 7, 126, 6, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 7, 126, 6, 12, 12, 7, 126, 9,
+        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
+        9, 126, 4, 10, 10, 5, 126, 4, 5, 126, 4, 10, 10, 10, 10, 10, 10, 5, 126, 4, 5, 126, 4, 10, 10, 5, 126, 9,
+        9, 126, 6, 12, 12, 7, 126, 11, 13, 126, 6, 12, 12, 15, 14, 12, 12, 7, 126, 11, 13, 126, 6, 12, 12, 7, 126, 9,
+        9, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 9,
+        2, 8, 8, 8, 8, 1, 126, 11, 16, 10, 10, 5, 26, 11, 13, 26, 4, 10, 10, 17, 13, 126, 0, 8, 8, 8, 8, 3,
+        25, 25, 25, 25, 25, 9, 126, 11, 14, 12, 12, 7, 26, 6, 7, 26, 6, 12, 12, 15, 13, 126, 9, 25, 25, 25, 25, 25,
+        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
+        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 0, 8, 8, 24, 24, 8, 8, 1, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
+        8, 8, 8, 8, 8, 3, 126, 6, 7, 26, 9, 26, 25, 25, 25, 25, 25, 9, 26, 6, 7, 126, 2, 8, 8, 8, 8, 8,
+        26, 26, 26, 26, 26, 26, 126, 26, 26, 26, 9, 26, 26, 26, 26, 26, 26, 9, 26, 26, 26, 126, 26, 26, 26, 26, 26, 26,
+        8, 8, 8, 8, 8, 1, 126, 4, 5, 26, 9, 25, 25, 25, 25, 25, 25, 9, 26, 4, 5, 126, 0, 8, 8, 8, 8, 8,
+        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 2, 8, 8, 8, 8, 8, 8, 3, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
+        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
+        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 4, 10, 10, 10, 10, 10, 10, 5, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
+        0, 8, 8, 8, 8, 3, 126, 6, 7, 26, 6, 12, 12, 15, 14, 12, 12, 7, 26, 6, 7, 126, 2, 8, 8, 8, 8, 1,
+        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
+        9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
+        9, 126, 6, 12, 15, 13, 126, 6, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 7, 126, 11, 14, 12, 7, 126, 9,
+        9, 262, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 26, 26, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 262, 9,
+        20, 10, 5, 126, 11, 13, 126, 4, 5, 126, 4, 10, 10, 10, 10, 10, 10, 5, 126, 4, 5, 126, 11, 13, 126, 4, 10, 22,
+        21, 12, 7, 126, 6, 7, 126, 11, 13, 126, 6, 12, 12, 15, 14, 12, 12, 7, 126, 11, 13, 126, 6, 7, 126, 6, 12, 23,
+        9, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 9,
+        9, 126, 4, 10, 10, 10, 10, 17, 16, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 17, 16, 10, 10, 10, 10, 5, 126, 9,
+        9, 126, 6, 12, 12, 12, 12, 12, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 12, 12, 12, 12, 12, 7, 126, 9,
+        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
+        2, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 3
+      ];
   
       for (let i = 0; i < gameArray.length; i++) {
         const element = document.createElement("DIV");
+  
         if (gameArray[i] > 25) {
           element.className = "blank";
           for (let j = 0; j < characters.length; j++) {
@@ -696,8 +719,10 @@
           element.className = "wall";
           element.style.backgroundPosition = `-${gameArray[i] * 2}rem 0`;
         }
+  
         gameBoard.append(element);
       }
+  
       points = 0;
       elements = Array.from(gameBoard.children).splice(1);
       transformStartingElements();
@@ -708,6 +733,7 @@
       window.removeEventListener("keydown", getDirection);
       document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchmove", handleTouchMove);
+  
       clearTimeout(ghostModeInterval);
       game.style.visibility = "visible";
       start.style.display = "block";
@@ -722,6 +748,7 @@
         characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
         characters[i].mode = "normal";
         characters[i].status = "normal";
+  
         if (i == 0) {
           root.setProperty(`--${characters[i].name}-sprite-x`, "-6.4rem");
           root.setProperty(`--${characters[i].name}-sprite-y`, "0rem");
@@ -741,6 +768,7 @@
           characters[i].characterNode.classList.add(`${characters[i].name}-revive`);
         }
         start.style.display = "none";
+  
         getSprite(0);
       }, gameStartLength);
     }
@@ -772,18 +800,23 @@
       const yellowTransform = new WebKitCSSMatrix(getComputedStyle(characters[0].characterNode).transform);
       let yellowTranslateX = yellowTransform.e;
       let yellowTranslateY = yellowTransform.f;
+  
       for (let i = 1; i < 5; i++) {
         if (characters[0].status == "freeze") {
           clearInterval(collisionInterval);
           return;
         }
+  
         const distance = calculateDistance(characters[0].position, characters[i].position);
+  
         const ghostTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
         let ghostTranslateX = ghostTransform.e;
         let ghostTranslateY = ghostTransform.f;
+  
         let requirement;
         let yellowNewPosition;
         let ghostNewPosition;
+  
         if(distance == 0) {
            requirement = -30;
            yellowNewPosition = characters[0].position + positionChange[characters[0].direction] + positionChange[oppositeDirection[characters[i].direction]];
@@ -807,6 +840,7 @@
         if(window.innerWidth < 600 || window.innerHeight < 700) {
           requirement /= 2;
         }
+  
         if (yellowNewPosition == characters[i].position) {
           yellowTranslateX = Math.abs(yellowTranslateX);
           yellowTranslateY = Math.abs(yellowTranslateY);
@@ -821,7 +855,9 @@
           ghostTranslateY = -Math.abs(ghostTranslateY);
           ghostTranslateX = -Math.abs(ghostTranslateX);
         }
+  
         const transformDistance = yellowTranslateY + ghostTranslateY + yellowTranslateX + ghostTranslateX;
+  
         if (transformDistance > requirement) {
           if (characters[i].mode == "frightened") {
             gameFreeze(i);
@@ -834,14 +870,19 @@
   
     function characterMove(i) {
       if (characters[i].status == "freeze") return;
+  
       characters[i].nextPosition = getNewPosition(i);
+  
       if (elements[characters[i].nextPosition].classList.contains("wall")) {
         if(sound.src.includes("https://dominikgorczyca.github.io/Pac-Man/munch")) {
           sound.pause();
         }
-        setTimeout(() => { characterMove(i); }, 50);
+        setTimeout(() => {
+          characterMove(i);
+        }, 50);
         return;
       }
+  
       getAnimationLength(i);
       getSprite(i);
       getTransition(i);
@@ -861,11 +902,13 @@
         characters[i].directionOld = characters[i].direction;
       }
       let nextPosition = characters[i].position + positionChange[characters[i].direction];
+  
       if (characters[i].position == 392 && nextPosition == 391) {
         nextPosition = 419;
       } else if (characters[i].position == 419 && nextPosition == 420) {
         nextPosition = 392;
       }
+  
       return nextPosition;
     }
   
@@ -883,6 +926,7 @@
       let newDirection = characters[i].directionOld = characters[i].direction;
       let biggestDistance = 100000;
       let target;
+  
       if (characters[i].mode == "eaten") {
         target = 322;
       } else if (ghostMode == "scatter") {
@@ -890,9 +934,11 @@
       } else {
         target = getChaseTarget(i);
       }
+  
       for (let [direction, value] of Object.entries(positionChange)) {
         const newPosition = characters[i].position + value;
         const newDistance = calculateDistance(target, newPosition);
+  
         if (newDistance < biggestDistance) {
           if (!elements[newPosition].classList.contains("wall") &&
               oppositeDirection[direction] != characters[i].direction) {
@@ -906,10 +952,12 @@
   
     function getRandomDirection(i) {
       let nextPosition = characters[i].position + positionChange[characters[i].direction];
+  
       if ((characters[i].position == 392 && nextPosition == 391) ||
           (characters[i].position == 419 && nextPosition == 420)) {
         return;
       }
+  
       let newDirection;
       do {
         const random = Math.floor(Math.random() * 4);
@@ -917,6 +965,7 @@
         nextPosition = characters[i].position + positionChange[newDirection];
       } while (elements[nextPosition].classList.contains("wall") ||
                oppositeDirection[newDirection] == characters[i].direction);
+  
       characters[i].direction = newDirection;
     }
   
@@ -945,10 +994,14 @@
       const yellowPosition = characters[0].position + positionChange[characters[0].direction];
       const yellowRedDistanceX = yellowPosition % 28 - characters[1].position % 28;
       const yellowRedDistanceY = Math.floor(yellowPosition / 28) - Math.floor(characters[1].position / 28);
+  
       let bluePositionX = yellowPosition % 28 + yellowRedDistanceX;
+  
       if (bluePositionX < 0) { bluePositionX = 0; }
       else if (bluePositionX > 27) { bluePositionX = 27; }
+  
       const bluePositionY = Math.floor(yellowPosition / 28) + yellowRedDistanceY;
+  
       return bluePositionX + bluePositionY * 28;
     }
   
@@ -964,6 +1017,7 @@
         animationLength = characters[i].mode == "hasEaten" ? 210 : 190;
       } else {
         const tunnel = [392, 393, 394, 395, 396, 419, 418, 417, 416, 415];
+  
         if (characters[i].mode == "eaten") {
           if (characters[i].nextPosition === 322) {
             animationLength = characters[i].direction == "ArrowLeft" ? 25 : 75;
@@ -983,9 +1037,11 @@
           animationLength = 220;
         }
       }
+  
       if (characters[i].characterNode.style.transform == 'translateX(-1rem)') {
         animationLength /= 1.5;
       }
+  
       root.setProperty(`--${characters[i].name}-animation-length`, animationLength + "ms");
       characters[i].animationLength = animationLength;
     }
@@ -1008,6 +1064,7 @@
           spriteY = 16;
         }
       }
+  
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${spriteX}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, `-${spriteY}rem`);
     }
@@ -1020,6 +1077,7 @@
         "ArrowRight": isGoingToRespawn ? "X(1rem)" : "X(2rem)",
         "ArrowLeft": isGoingToRespawn ? "X(-3rem)" : "X(-2rem)",
       };
+  
       characters[i].characterNode.style.transform = `translate${transitionMove[characters[i].direction]}`;
     }
   
@@ -1031,16 +1089,19 @@
         characters[i].animationStart = performance.now();
         setTimeout(() => {
           if (characters[i].status == "freeze") return;
+  
           characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`, `${characters[i].name}-visible`);
           characters[i].characterNode.style.transform = "";
           characters[i].position = characters[i].nextPosition;
           characters[i].characterNode = elements[characters[i].position].children[i];
           characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
+  
           if (i == 0) {
             eatPoint(i);
           } else if (characters[i].mode == "eaten" && characters[i].position === 322) {
             ghostRetreat(i);
           }
+  
           resolve();
         }, characters[i].animationLength);
       });
@@ -1049,24 +1110,27 @@
   
     function eatPoint(i) {
       const point = elements[characters[i].position].children[5];
+  
       if (point != undefined) {
         points++;
         characters[i].mode = "hasEaten";
         if (point.classList.contains("big-point")) {
           makeGhostsScared();
-          // Big point: award 10 points
+          // Big point gives 10 points
           score += 10;
         } else {
-          // Normal point: award 1 point
+          // Normal point gives 1 point
           score += 1;
           if(!sound.src.includes("munch") || sound.paused) {
             sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/munch.wav";
             sound.play();
           }
         }
+  
         scoreElement.innerHTML = "Score " + score;
         point.remove();
-        // If all points eaten (244 total)
+  
+        // When all points are eaten (244 total)
         if (points >= 244) {
           gameWin();
           freezeCharacters();
@@ -1095,7 +1159,9 @@
       setTimeout(() => {
         let intervalCount = 1;
         changingBackInterval = setInterval(() => {
-          if (characters[0].status == "freeze") return;
+          if (characters[0].status == "freeze") {
+            return;
+          }
           if (intervalCount == 10) {
             clearInterval(changingBackInterval);
             if(!soundtrack.src.includes("retreating")) {
@@ -1108,8 +1174,15 @@
               }
             }
           }
-          isFrightenedWhite = (intervalCount % 2 == 1);
-          for (let i = 0; i < 5; i++) { getSprite(i); }
+          if (intervalCount % 2 == 1) {
+            isFrightenedWhite = true;
+          } else {
+            isFrightenedWhite = false;
+          }
+  
+          for (let i = 0; i < 5; i++) {
+            getSprite(i);
+          }
           intervalCount++;
         }, 300);
       }, 800);
@@ -1131,25 +1204,32 @@
       const animationStop = performance.now();
       stopAnimations("stop");
       clearTimeout(ghostModeInterval);
+  
       characters[i].mode = "eaten";
       characters[0].characterNode.classList.remove("yellow-visible");
       characters[i].characterNode.classList.remove(`${characters[i].name}-animation-move`);
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${(ghostsEaten * 32) / 10}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, "-25.6rem");
+  
       for (let j = 0; j < 5; j++) {
         characters[j].animationLength = characters[j].animationLength - (animationStop - characters[j].animationStart);
-        if (j == i) { characters[j].animationLength /= 6; }
+        if (j == i) {
+          characters[j].animationLength /= 6;
+        }
         root.setProperty(`--${characters[j].name}-animation-length`, `${characters[j].animationLength}ms`);
       }
+  
       setTimeout(() => {
         soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/retreating.wav";
         soundtrack.play();
         characters[0].characterNode.classList.add("yellow-visible");
         getSprite(i);
+  
         for (let j = 0; j < 5; j++) {
           characters[j].characterNode.style.removeProperty("transition");
           if (characters[j].status == "freeze") {
             characters[j].status = "normal";
+  
             if (!characters[j].characterNode.className.includes("revive")) {
               if (j == 0 && elements[characters[j].nextPosition].classList.contains("wall")) {
                 characterMove(j);
@@ -1165,7 +1245,7 @@
         ghostModeInterval = setTimeout(changeModes, 5000);
       }, 1000);
       ghostsEaten++;
-      // Award 10 points for eaten ghost
+      // Award 10 points for eating a ghost
       score += 10;
       scoreElement.innerHTML = "Score " + score;
     }
@@ -1173,6 +1253,7 @@
     function ghostRetreat(i) {
       characters[i].status = "freeze";
       characters[i].characterNode.classList.add(`${characters[i].name}-retreat`);
+  
       setTimeout(() => {
         if(characters.some(char => char.mode == "frightened")) {
           soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav";
@@ -1182,6 +1263,7 @@
         soundtrack.play();
         characters[i].position = i == 1 ? 406 : startingPositions[i];
         characters[i].characterNode.classList.remove(`${characters[i].name}-visible`, `${characters[i].name}-animation-move`, `${characters[i].name}-retreat`);
+  
         characters[i].characterNode.style.transform = "translateX(-1rem)";
         characters[i].characterNode = elements[characters[i].position].children[i];
         characters[i].animationLength = 200;
@@ -1199,18 +1281,21 @@
         characters[i].direction = characters[i].directionList[progress];
         getSprite(i);
       }
+  
       if (progress != characters[i].directionList.length && newLevel == undefined) {
         if (characters[0].status == "freeze") {
           characters[i].characterNode.style.animationPlayState = "paused";
         } else {
           characters[i].characterNode.style.animationPlayState = "running";
         }
+  
         setTimeout(() => {
           characters[i].animationStart = performance.now();
           if (characters[0].status != "freeze") {
             progress++;
             characters[i].animationLength = 200;
           }
+  
           ghostRevive(i, progress);
         }, characters[i].animationLength);
       } else if (newLevel == undefined) {
@@ -1231,6 +1316,7 @@
         for (let i = 1; i < 5; i++) {
           characters[i].characterNode.classList.remove(`${characters[i].name}-visible`);
         }
+  
         characters[0].characterNode.classList.add("yellow-death-animation");
         sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_1.wav";
         sound.play();
@@ -1239,13 +1325,12 @@
           sound.play();
         }, 1400);
   
+        // After 3 deaths, show final modal and record final points
         if (livesLost == 3) {
-          // Final game over: update final points and show modal window
-          let finalPoints = localUserData.points + score;
-          userRef.update({ points: finalPoints });
-          document.getElementById('modalTitle').textContent = "Game Over";
-          document.getElementById('modalMessage').textContent = "Your final score: " + score;
-          document.getElementById('resultModal').classList.add('active');
+          newLevel = true;
+          setTimeout(() => {
+            showEndModal();
+          }, 1500);
         } else {
           newLevel = false;
           gameStartLength = 2000;
@@ -1263,6 +1348,7 @@
       newLevel = true;
       sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/extend.wav";
       sound.play();
+  
       setTimeout(() => {
         for (let element of elements) {
           if (element.classList.contains("wall")) {
@@ -1284,7 +1370,10 @@
       freezeCharacters(stop);
       for (let i = 0; i < 5; i++) {
         const characterTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
-        if (stop == "stop" && characters[i].mode == "eaten") { continue; }
+  
+        if (stop == "stop" && characters[i].mode == "eaten") {
+          continue;
+        }
         characters[i].characterNode.style.transition = "none";
         characters[i].characterNode.style.transform = `translate(${parseInt(characterTransform.e)}px, ${parseInt(characterTransform.f)}px)`;
         if (stop != "stop") {
@@ -1328,7 +1417,9 @@
   
     function freezeCharacters(stop) {
       for (let i = 0; i < 5; i++) {
-        if (stop == "stop" && characters[i].mode == "eaten") { continue; }
+        if (stop == "stop" && characters[i].mode == "eaten") {
+          continue;
+        }
         characters[i].status = "freeze";
       }
     }
@@ -1353,15 +1444,26 @@
     }
   
     function handleTouchMove(e) {
-      if (!xDown || !yDown) { return; }
+      if (!xDown || !yDown) {
+        return;
+      }
       let xMove = e.touches[0].clientX;
       let yMove = e.touches[0].clientY;
       let xDiff = xDown - xMove;
       let yDiff = yDown - yMove;
+  
       if (Math.abs(xDiff) > Math.abs(yDiff)) {
-        characters[0].directionNew = (xDiff > 0) ? "ArrowLeft" : "ArrowRight";
+        if (xDiff > 0) {
+          characters[0].directionNew = "ArrowLeft";
+        } else {
+          characters[0].directionNew = "ArrowRight";
+        }
       } else {
-        characters[0].directionNew = (yDiff > 0) ? "ArrowUp" : "ArrowDown";
+        if (yDiff > 0) {
+          characters[0].directionNew = "ArrowUp";
+        } else {
+          characters[0].directionNew = "ArrowDown";
+        }
       }
       xDown = null;
       yDown = null;
@@ -1369,5 +1471,4 @@
   </script>
 </body>
 </html>
-
 
