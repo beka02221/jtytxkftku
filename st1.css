@@ -618,18 +618,7 @@ table tr.current-user {
   z-index: 5;
 }
 
-.wheel-pointer {
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-bottom: 15px solid #ffd600;
-  z-index: 10;
-}
+
 
 /* Специфические стили для секции Tickets */
 #ticketsSection h2 {
