@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -608,6 +608,9 @@
         currentGame = gameName;
         gameInProgress = true;
         document.getElementById('mainNav').classList.add('hidden');
+        
+        // Добавляем отображение модального окна игры
+        document.getElementById('gameModalBackdrop').classList.add('active');
         
         // Показываем только canvas для Tetris
         document.getElementById('game3Canvas').style.display = 'block';
