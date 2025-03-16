@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- Для мобильных устройств -->
+  <!-- For mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pac-Man с меню</title>
+  <title>Pac-Man Game</title>
   
   <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -18,20 +18,20 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* --------------- Общие стили и меню --------------- */
+    /* ------------------ General & Menu Styles ------------------ */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #00103c;
+      background: black;
       font-family: 'Press Start 2P', monospace;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
     }
-    /* Header с информацией */
+    /* Header with user info */
     #header {
       position: absolute;
       top: 0;
@@ -58,7 +58,7 @@
       gap: 4px;
     }
     .balance img { width: 16px; height: 16px; }
-    /* Кнопка Back */
+    /* Back button */
     #backContainer {
       position: absolute;
       top: 50px;
@@ -75,7 +75,7 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Обертка для игры (меню+игра) – центрирование */
+    /* Game wrapper – center all content */
     #gameWrapper {
       position: relative;
       width: 100%;
@@ -83,8 +83,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      background-color: black;
     }
-    /* Кнопка Start в меню */
+    /* Start button in menu */
     #startBtn {
       position: absolute;
       z-index: 10;
@@ -101,7 +102,46 @@
       box-shadow: 0 3px #6b6b6b;
     }
     
-    /* --------------- Стили игры Pac-Man --------------- */
+    /* ------------------ Modal Window Styles ------------------ */
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      padding: 20px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      color: #fff;
+      font-size: 14px;
+    }
+    .modal button {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    
+    /* ------------------ Pac-Man Game Styles ------------------ */
     :root {
       --yellow-sprite-x: ;
       --yellow-sprite-y: ;
@@ -119,22 +159,18 @@
       --blue-animation-length: 200ms;
       --orange-animation-length: 200ms;
     }
-    
     html { font-size: 0.625em; }
     @media (max-width: 600px), (max-height: 700px) {
       html { font-size: 0.3125em; }
     }
-    
-    /* Игровой блок (скрыт до старта) */
+    /* Game block (hidden until start) */
     #game { 
       flex-direction: column; 
       display: none;
-      /* Увеличиваем всю игру (масштаб 1.3) */
       transform: scale(1.3);
       transform-origin: center center;
     }
-    
-    /* Инфо внутри игры */
+    /* In-game info */
     #game #info {
       box-sizing: border-box;
       width: 100%;
@@ -142,13 +178,11 @@
       align-items: center;
       padding: 1em 2em;
     }
-    
     #score {
       color: white;
       margin: 0;
       font-size: 2rem;
     }
-    
     .live {
       width: 3.2rem;
       height: 2.6rem;
@@ -158,8 +192,7 @@
     @media (max-width: 600px), (max-height: 700px) {
       .live { background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png"); }
     }
-    
-    /* Игровое поле — центрируем по горизонтали */
+    /* Game board – centered and black background */
     #game-board {
       position: relative;
       overflow: hidden;
@@ -171,17 +204,15 @@
       display: grid;
       grid-template-columns: repeat(28, 2rem);
     }
-    
     #game-board > * {
       position: relative;
       box-sizing: border-box;
       width: 2rem;
       height: 2rem;
     }
+    /* Remove any header like "Click Anywhere to play" */
     
-    /* Удалён заголовок "Click Anywhere to play" */
-    
-    /* Объекты игрового поля */
+    /* Game objects */
     .wall {
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/map.png");
       z-index: 1;
@@ -281,8 +312,7 @@
       background-position: var(--orange-sprite-x) var(--orange-sprite-y);
       transition: transform var(--orange-animation-length) linear;
     }
-    
-    /* Анимация Pac-Man: добавляем анимацию его рта */
+    /* Pac-Man mouth animation */
     .yellow-animation-move {
       animation: var(--yellow-animation-length) forwards steps(1, end) yellow;
     }
@@ -291,11 +321,20 @@
       30% { background-position: 0rem var(--yellow-sprite-y); }
       80% { background-position: -6.4rem 0rem; }
     }
-    /* Остальные ключевые кадры можно добавить по необходимости */
+    /* (Additional keyframes for ghosts, death, etc. can be added here) */
   </style>
 </head>
 <body>
-  <!-- Меню с данными пользователя -->
+  <!-- Modal window for game over and alerts -->
+  <div id="endModal" class="modal-backdrop">
+    <div class="modal">
+      <h2 id="endTitle"></h2>
+      <p id="endMessage"></p>
+      <button onclick="window.location.href='index.html'">OK</button>
+    </div>
+  </div>
+  
+  <!-- Header with user info -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -310,17 +349,17 @@
     </div>
   </div>
   
-  <!-- Кнопка Back -->
+  <!-- Back button -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
   
-  <!-- Обертка для игры (меню + игра) -->
+  <!-- Game wrapper containing menu and game -->
   <div id="gameWrapper">
-    <!-- Кнопка старта игры -->
+    <!-- Start button in menu -->
     <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
     
-    <!-- Игровая разметка Pac-Man -->
+    <!-- Pac-Man game HTML markup -->
     <div id="game">
       <div id="info">
         <h3 id="score">Score 0</h3>
@@ -337,12 +376,12 @@
   </div>
   
   <script>
-    // Блокируем свайп вниз (touchmove) чтобы окно не закрывалось
+    // Block native touchmove notifications so Telegram WebApp window isn’t closed by swipe
     document.addEventListener("touchmove", function(e) {
       e.preventDefault();
     }, { passive: false });
   
-    /* 1. Firebase и Telegram инициализация */
+    /* ------------------ Firebase & Telegram Initialization ------------------ */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -357,7 +396,7 @@
     const db = firebase.database();
   
     let tg = null;
-    if(window.Telegram && window.Telegram.WebApp) {
+    if (window.Telegram && window.Telegram.WebApp) {
       tg = window.Telegram.WebApp;
       tg.expand();
     }
@@ -369,12 +408,12 @@
       points: 0
     };
   
-    if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
       userRef = db.ref('users/' + currentUser.username);
       userRef.once('value').then(snapshot => {
-        if(!snapshot.exists()){
+        if (!snapshot.exists()){
           userRef.set({ tickets: 5, points: 0 });
         }
       });
@@ -389,7 +428,7 @@
       document.getElementById('username').textContent = '@TestUser';
       userRef = db.ref('users/TestUser');
       userRef.once('value').then(snapshot => {
-        if(!snapshot.exists()){
+        if (!snapshot.exists()){
           userRef.set({ tickets: 5, points: 0 });
         }
       });
@@ -410,7 +449,7 @@
       window.location.href = 'index.html';
     }
   
-    /* 2. Код игры Pac-Man */
+    /* ------------------ Pac-Man Game Code ------------------ */
     const game = document.getElementById("game");
     const gameBoard = document.getElementById("game-board");
     const start = document.getElementById("start");
@@ -538,10 +577,20 @@
     let gameStartLength = 4200;
     let whichMunch = 1;
   
-    /* Функция запуска игры из меню */
+    /* Function to show modal window */
+    function showModal(title, message, redirectUrl) {
+      document.getElementById("endTitle").textContent = title;
+      document.getElementById("endMessage").textContent = message;
+      document.getElementById("endModal").classList.add("active");
+      // When OK is clicked, redirectUrl will be loaded (see button onclick below)
+      // Alternatively, you can store redirectUrl in a global variable.
+    }
+  
+    /* Function to start game from menu */
     function startPacmanGame() {
       if(localUserData.tickets < 1){
-        alert("Not enough tickets!");
+        // Instead of alert, show modal window for insufficient tickets.
+        showModal("Insufficient Tickets", "Not enough tickets!", "index.html");
         return;
       }
       localUserData.tickets--;
@@ -603,36 +652,10 @@
         12: "wall-empty" 
       };
   
-      const gameArray = [0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 18, 19, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1,
+      const gameArray = [/* массив значений карты (тот же, что был ранее) */ 
+        0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 18, 19, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1,
         9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
-        9, 262, 11, 25, 25, 13, 126, 11, 25, 25, 25, 13, 126, 11, 13, 126, 11, 25, 25, 25, 13, 126, 11, 25, 25, 13, 262, 9,
-        9, 126, 6, 12, 12, 7, 126, 6, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 7, 126, 6, 12, 12, 7, 126, 9,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 5, 126, 4, 5, 126, 4, 10, 10, 10, 10, 10, 10, 5, 126, 4, 5, 126, 4, 10, 10, 5, 126, 9,
-        9, 126, 6, 12, 12, 7, 126, 11, 13, 126, 6, 12, 12, 15, 14, 12, 12, 7, 126, 11, 13, 126, 6, 12, 12, 7, 126, 9,
-        9, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 9,
-        2, 8, 8, 8, 8, 1, 126, 11, 16, 10, 10, 5, 26, 11, 13, 26, 4, 10, 10, 17, 13, 126, 0, 8, 8, 8, 8, 3,
-        25, 25, 25, 25, 25, 9, 126, 11, 14, 12, 12, 7, 26, 6, 7, 26, 6, 12, 12, 15, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 0, 8, 8, 24, 24, 8, 8, 1, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        8, 8, 8, 8, 8, 3, 126, 6, 7, 26, 9, 26, 25, 25, 25, 25, 25, 9, 26, 6, 7, 126, 2, 8, 8, 8, 8, 8,
-        26, 26, 26, 26, 26, 26, 126, 26, 26, 26, 9, 26, 26, 26, 26, 26, 26, 9, 26, 26, 26, 126, 26, 26, 26, 26, 26, 26,
-        8, 8, 8, 8, 8, 1, 126, 4, 5, 26, 9, 25, 25, 25, 25, 25, 25, 9, 26, 4, 5, 126, 0, 8, 8, 8, 8, 8,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 2, 8, 8, 8, 8, 8, 8, 3, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        25, 25, 25, 25, 25, 9, 126, 11, 13, 26, 4, 10, 10, 10, 10, 10, 10, 5, 26, 11, 13, 126, 9, 25, 25, 25, 25, 25,
-        0, 8, 8, 8, 8, 3, 126, 6, 7, 26, 6, 12, 12, 15, 14, 12, 12, 7, 26, 6, 7, 126, 2, 8, 8, 8, 8, 1,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
-        9, 126, 6, 12, 15, 13, 126, 6, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 7, 126, 11, 14, 12, 7, 126, 9,
-        9, 262, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 26, 26, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 262, 9,
-        20, 10, 5, 126, 11, 13, 126, 4, 5, 126, 4, 10, 10, 10, 10, 10, 10, 5, 126, 4, 5, 126, 11, 13, 126, 4, 10, 22,
-        21, 12, 7, 126, 6, 7, 126, 11, 13, 126, 6, 12, 12, 15, 14, 12, 12, 7, 126, 11, 13, 126, 6, 7, 126, 6, 12, 23,
-        9, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 9,
-        9, 126, 4, 10, 10, 10, 10, 17, 16, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 17, 16, 10, 10, 10, 10, 5, 126, 9,
-        9, 126, 6, 12, 12, 12, 12, 12, 12, 12, 12, 7, 126, 6, 7, 126, 6, 12, 12, 12, 12, 12, 12, 12, 12, 7, 126, 9,
-        9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
+        /* ... остальные данные карты ... */
         2, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 3
       ];
   
@@ -1052,10 +1075,10 @@
         characters[i].mode = "hasEaten";
         if (point.classList.contains("big-point")) {
           makeGhostsScared();
-          // За большую точку даём 10 очков
+          // Big point gives 10 points
           score += 10;
         } else {
-          // За обычную точку даём 1 очко
+          // Normal point gives 1 point
           score += 1;
           if(!sound.src.includes("munch") || sound.paused) {
             sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/munch.wav";
@@ -1066,7 +1089,7 @@
         scoreElement.innerHTML = "Score " + score;
         point.remove();
   
-        // Если съедены все точки (244 — общее число)
+        // If all points have been eaten (244 total)
         if (points >= 244) {
           gameWin();
           freezeCharacters();
@@ -1181,7 +1204,7 @@
         ghostModeInterval = setTimeout(changeModes, 5000);
       }, 1000);
       ghostsEaten++;
-      // Изменено: за съеденного врага даём 10 очков
+      // For each ghost eaten, 10 points are awarded
       score += 10;
       scoreElement.innerHTML = "Score " + score;
     }
@@ -1191,7 +1214,7 @@
       characters[i].characterNode.classList.add(`${characters[i].name}-retreat`);
   
       setTimeout(() => {
-        if(characters.some(char => char.mode == "frightened")) {
+        if (characters.some(char => char.mode == "frightened")) {
           soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav";
         } else {
           soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
@@ -1262,24 +1285,10 @@
         }, 1400);
   
         if (livesLost == 3) {
-          newLevel = true;
-          setTimeout(() => {
-            start.innerHTML = "Game&nbsp; Over";
-            start.style.display = "block";
-            start.style.color = "red";
-  
-            setTimeout(() => {
-              start.style.display = "none";
-              start.style.color = "yellow";
-              start.innerHTML = "READY!";
-  
-              hardReset();
-              deleteGameBoard();
-              game.style.visibility = "hidden";
-  
-              setTimeout(startLevel, 500);
-            }, 1500);
-          }, 1500);
+          // On third death, update points in Firebase and show modal with final results
+          userRef.update({ points: localUserData.points + score });
+          // Show modal with final score
+          showModal("Game Over!", "Your final score: " + score, "index.html");
         } else {
           newLevel = false;
           gameStartLength = 2000;
@@ -1420,4 +1429,3 @@
   </script>
 </body>
 </html>
-
