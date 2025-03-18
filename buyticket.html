@@ -51,16 +51,37 @@
       backdrop-filter: blur(8px);
       z-index: 1000;
     }
-    #topBar button {
-      background: none;
+    /* Кнопки Back и Language как action-btn */
+    #topBar button.action-btn {
+      background: linear-gradient(135deg, #bb86fc, #29b6f6);
       border: none;
-      color: #bb86fc;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #ffffff;
       font-family: 'Press Start 2P', monospace;
       font-size: 14px;
       cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    #topBar button:hover {
-      color: #29b6f6;
+    #topBar button.action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    /* Переопределяем стиль кнопки "Connect Wallet", создаваемой TonConnect UI */
+    #connect button {
+      background: linear-gradient(135deg, #bb86fc, #29b6f6) !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 8px 16px !important;
+      color: #ffffff !important;
+      font-family: 'Press Start 2P', monospace !important;
+      font-size: 14px !important;
+      cursor: pointer !important;
+      transition: transform 0.2s, box-shadow 0.2s !important;
+    }
+    #connect button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
 
     /* ======= Main Container ======= */
@@ -164,7 +185,7 @@
       color: #ffffff;
     }
 
-    /* ======= Action Buttons ======= */
+    /* ======= Action Button (для остальных кнопок на странице) ======= */
     button.action-btn {
       font-family: 'Press Start 2P', monospace;
       font-size: 14px;
@@ -242,10 +263,10 @@
 <body>
   <!-- Top Navigation Bar: "Back", "Language Switch" and TonConnect -->
   <div id="topBar">
-    <button id="backButton" onclick="goBack()" aria-label="Back">
+    <button id="backButton" class="action-btn" onclick="goBack()" aria-label="Back">
       &#8592;
     </button>
-    <button id="langSwitchBtn" onclick="toggleLanguage()" aria-label="Switch Language">
+    <button id="langSwitchBtn" class="action-btn" onclick="toggleLanguage()" aria-label="Switch Language">
       RU
     </button>
     <div id="connect"></div>
