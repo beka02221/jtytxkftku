@@ -2,430 +2,511 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Прототип Карточной TD-игры</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TON Deposit</title>
+
+  <!-- Telegram Web App API -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- TonConnect UI -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <!-- Font Awesome для иконок -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-papNXFL4XqT7HuZL5lfpHZcPzs20r5o0iKpF3EL4+qmbRvdT2cx+fPjf4yZjQbjXKoHkZVvV+6Wd3SRy1/9JQw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
   <style>
-    /* Стили общего контейнера */
-    body {
+    /* ======= Сброс стилей и базовые настройки ======= */
+    * {
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
-      background: #f2f2f2;
-      user-select: none; /* чтобы не выделялся текст при кликах */
+      box-sizing: border-box;
     }
-    #game-container {
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      background-color: #0e162e; /* Тёмно-синий фон */
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: sans-serif;
+      color: #e0e0e0;
+    }
+
+    /* ======= Типографика ======= */
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      color: #bb86fc; /* Фиолетовый акцент */
+    }
+    p, span, label, input, div {
+      font-family: sans-serif;
+      color: #e0e0e0;
+    }
+
+    /* ======= Верхняя панель ======= */
+    #topBar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      background: rgba(14,22,46,0.9);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    #backButton, #langSwitchBtn {
+      background: none;
+      border: none;
+      color: #e0e0e0;
+      font-size: 18px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    #backButton:hover, #langSwitchBtn:hover {
+      color: #bb86fc;
+    }
+    #connect {
+      margin-left: auto;
+    }
+
+    /* ======= Основной контейнер ======= */
+    .container {
+      margin-top: 70px;
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 0 auto;
-      width: 800px;
-      border: 1px solid #ccc;
-      background: #fff;
+      padding: 20px;
+      animation: appear 0.5s ease forwards;
     }
-    header {
-      width: 100%;
-      background: #333;
-      color: #fff;
-      text-align: center;
-      padding: 10px;
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .status-bar {
+
+    /* ======= Блок баланса ======= */
+    .balance-block {
       display: flex;
-      justify-content: space-around;
-      background: #eee;
-      width: 100%;
-      padding: 10px 0;
-      box-sizing: border-box;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 50px;
     }
-    .status-item {
+    .balance-block img {
+      width: 18px;
+      height: 18px;
+      margin-top: 5px;
+    }
+    .username {
+      font-family: 'Press Start 2P', monospace;
+      color: #bb86fc;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    .tickets-count {
+      font-size: 28px;
       font-weight: bold;
+      color: #e0e0e0;
     }
-    /* Игровое поле (сетка) */
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(8, 60px);
-      grid-template-rows: repeat(4, 60px);
-      gap: 5px;
-      background: #ccc;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-    .cell {
-      width: 60px;
-      height: 60px;
-      background: #fff;
-      border: 1px solid #999;
-      position: relative; /* чтобы можно было позиционировать юнит */
-      cursor: pointer;
-    }
-    /* Замок справа (условно) */
-    #castle {
-      position: absolute;
-      right: -10px;
-      top: 0;
-      width: 10px;
-      height: 100%;
-      background: #666;
-    }
-    /* Юнит на поле */
-    .unit {
+
+    /* ======= Блок слайдера и ввода ======= */
+    .slider-block {
       width: 100%;
-      height: 100%;
-      background: #4caf50; /* зелёный квадрат */
-      opacity: 0.8;
+      max-width: 400px;
+      margin: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 14px;
+      gap: 15px;
     }
-    /* Враг (простой красный квадрат) */
-    .enemy {
-      width: 30px;
-      height: 30px;
-      background: #f44336; /* красный */
-      position: absolute;
-      top: 15px; /* чтобы примерно центрировать в клетке */
-      left: 0;
+    .slider-title {
+      font-family: 'Press Start 2P', monospace;
+      color: #bb86fc;
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 10px;
     }
-    /* Панель карт внизу */
-    #card-panel {
+    .slider-row {
+      width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #ddd;
-      width: 100%;
-      padding: 10px 0;
-      box-sizing: border-box;
+      gap: 15px;
     }
-    .card {
-      width: 80px;
-      height: 120px;
-      background: #fff;
-      border: 2px solid #333;
-      border-radius: 8px;
-      margin: 0 10px;
-      text-align: center;
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 70%;
+      height: 10px;
+      background: linear-gradient(90deg, #bb86fc, #29b6f6);
+      border-radius: 3px;
+      outline: none;
+      transition: background 0.3s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #bb86fc;
+      border-radius: 50%;
       cursor: pointer;
-      position: relative;
+      border: 2px solid #29b6f6;
     }
-    .card.selected {
-      border-color: #2196f3; /* подсветка выбранной карты */
+    #ticketInput {
+      width: 100px;
+      text-align: center;
+      font-size: 16px;
+      border: 1px solid #29b6f6;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #e0e0e0;
+      background-color: rgba(255,255,255,0.1);
     }
-    .card-cost {
-      position: absolute;
-      bottom: 5px;
-      right: 5px;
-      background: #ffc107;
-      padding: 2px 4px;
+    #ticketInput:focus {
+      outline: none;
+      box-shadow: 0 0 5px #bb86fc;
+    }
+    #priceDisplay {
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+
+    /* ======= Кнопки ======= */
+    button {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #bb86fc, #29b6f6);
+      color: #fff;
+      border: none;
       border-radius: 4px;
+      padding: 10px 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 10px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* ======= Модальное окно ======= */
+    #notificationModal {
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .modal-content {
+      background: rgba(14,22,46,0.9);
+      backdrop-filter: blur(5px);
+      border: 2px solid #3b3b3b;
+      padding: 20px;
+      width: 80%;
+      max-width: 360px;
+      text-align: center;
+      border-radius: 10px;
+    }
+    .modal-content p {
+      margin-bottom: 16px;
+      font-family: sans-serif;
       font-size: 12px;
-      font-weight: bold;
+      color: #e0e0e0;
+    }
+
+    /* ======= Адаптивность ======= */
+    @media (max-width: 480px) {
+      button, input, .tickets-count {
+        font-size: 12px;
+      }
+      .slider-block {
+        gap: 10px;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="game-container">
-    <header>
-      <h1>Прототип: Карточная игра с защитой замка</h1>
-    </header>
-    <!-- Панель со статусами: ресурсы, здоровье замка, волна и т.д. -->
-    <div class="status-bar">
-      <div class="status-item">Ресурс: <span id="resource">5</span></div>
-      <div class="status-item">Здоровье замка: <span id="castle-health">10</span></div>
-      <div class="status-item">Волна: <span id="wave-count">1</span></div>
+  <!-- Верхняя панель: "Назад", "Смена языка" и TonConnect -->
+  <div id="topBar">
+    <button id="backButton" onclick="goBack()" aria-label="Назад">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <button id="langSwitchBtn" onclick="toggleLanguage()" aria-label="Сменить язык">
+      <i class="fa-solid fa-language"></i>
+    </button>
+    <div id="connect"></div>
+  </div>
+
+  <!-- Основной контейнер -->
+  <div class="container">
+    <!-- Блок баланса -->
+    <div class="balance-block">
+      <span class="username" id="username">@User</span>
+      <span class="tickets-count" id="balance">0</span>
+      <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Tickets" />
     </div>
-    
-    <!-- Игровое поле -->
-    <div id="grid-container" style="position: relative;">
-      <div id="grid"></div>
-      <div id="castle"></div>
+
+    <!-- Блок слайдера и ввода -->
+    <div class="slider-block">
+      <div class="slider-title" id="sliderLabel">Сколько билетов?</div>
+      <div class="slider-row">
+        <input
+          type="range"
+          id="ticketRange"
+          min="5"
+          max="30"
+          step="5"
+          value="5"
+          oninput="onTicketRangeInput()"
+          aria-label="Слайдер выбора билетов"
+        />
+        <input
+          type="number"
+          id="ticketInput"
+          min="5"
+          max="30"
+          step="5"
+          value="5"
+          oninput="onTicketInputChange()"
+          aria-label="Количество билетов"
+        />
+      </div>
+      <div id="priceDisplay">Цена: 0.5 TON</div>
+      <!-- Кнопка "Купить билеты" -->
+      <button id="depositBtn" onclick="makeDeposit()" aria-label="Купить билеты">
+        <i class="fa-solid fa-ticket"></i> Купить билеты
+      </button>
     </div>
-    
-    <!-- Панель карт -->
-    <div id="card-panel">
-      <!-- Пример 1 карты -->
-      <div class="card" data-card-id="archer">
-        <div>Лучник</div>
-        <div class="card-cost">2</div>
-      </div>
-      <!-- Можно добавить ещё карты по аналогии -->
-      <div class="card" data-card-id="knight">
-        <div>Рыцарь</div>
-        <div class="card-cost">3</div>
-      </div>
+  </div>
+
+  <!-- Модальное окно уведомлений -->
+  <div id="notificationModal">
+    <div class="modal-content">
+      <p id="modalMessage"></p>
+      <button onclick="closeModal()" aria-label="Закрыть модальное окно">OK</button>
     </div>
   </div>
 
   <script>
-    /********************************************************
-     * ДАННЫЕ ИГРЫ
-     ********************************************************/
-    // Параметры карт (можно расширять)
-    const cardData = {
-      archer: {
-        name: "Лучник",
-        cost: 2,
-        damage: 1,
-        range: 2,
-        attackSpeed: 60, // период атак (кадры)
+    /* --------------------------------------------------
+       1. Переключение языков (RU <-> EN)
+    -------------------------------------------------- */
+    let currentLanguage = 'ru';
+    const translations = {
+      ru: {
+        back: "Назад",
+        langBtn: "EN",
+        sliderTitle: "Сколько билетов?",
+        depositBtn: "Купить билеты",
+        depositSuccess: (tickets, price) => `✅ Отлично! Вы приобрели ${tickets} билетов за ${price} TON!`,
+        depositError: "⚠️ Упс, что-то пошло не так. Попробуйте ещё раз.",
+        userError: "Ошибка: пользователь Telegram не определён!",
+        userNotAuthorized: "Не авторизован в Telegram"
       },
-      knight: {
-        name: "Рыцарь",
-        cost: 3,
-        damage: 2,
-        range: 1,
-        attackSpeed: 90,
+      en: {
+        back: "Back",
+        langBtn: "RU",
+        sliderTitle: "How many tickets?",
+        depositBtn: "Buy Tickets",
+        depositSuccess: (tickets, price) => `✅ Successfully purchased ${tickets} tickets for ${price} TON!`,
+        depositError: "⚠️ Transaction was declined or an error occurred.",
+        userError: "Error: Telegram user is not defined!",
+        userNotAuthorized: "Not authorized in Telegram"
       }
     };
 
-    // Текущее состояние игры
-    let resource = 5;       // Количество «маны»/«энергии»
-    let castleHealth = 10;  // Здоровье замка
-    let waveCount = 1;      // Номер текущей волны
-    let selectedCard = null; // Какая карта выбрана для размещения
-
-    // Хранение юнитов и врагов
-    let units = [];  // [{cellIndex: number, type: 'archer'|..., cooldown: number, ...}, ...]
-    let enemies = []; // [{xPos: number, row: number, health: number, speed: number, ...}, ...]
-
-    // Настройки врагов (упрощённые)
-    let enemySpawnTimer = 0;     // Счётчик до спавна следующего врага
-    const enemySpawnInterval = 120; // Каждые 120 кадров спавн врага
-    const enemyBaseHealth = 3;
-    const enemyBaseSpeed = 0.5;
-
-    // Размеры сетки
-    const rows = 4;
-    const cols = 8;
-
-    /********************************************************
-     * ИНИЦИАЛИЗАЦИЯ
-     ********************************************************/
-    const grid = document.getElementById("grid");
-    const resourceEl = document.getElementById("resource");
-    const castleHealthEl = document.getElementById("castle-health");
-    const waveCountEl = document.getElementById("wave-count");
-
-    // Создаём клетки на поле
-    for (let i = 0; i < rows * cols; i++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.dataset.index = i;
-      grid.appendChild(cell);
+    function updateTexts() {
+      // Обновляем иконки и текст кнопок
+      document.getElementById('backButton').textContent = "";
+      document.getElementById('backButton').appendChild(createIcon('arrow-left'));
+      document.getElementById('langSwitchBtn').textContent = "";
+      document.getElementById('langSwitchBtn').appendChild(createIcon('language'));
+      document.getElementById('sliderLabel').textContent = translations[currentLanguage].sliderTitle;
+      document.getElementById('depositBtn').textContent = "";
+      document.getElementById('depositBtn').appendChild(createIcon('ticket'));
+      const btnText = document.createTextNode(" " + translations[currentLanguage].depositBtn);
+      document.getElementById('depositBtn').appendChild(btnText);
     }
 
-    // Обработка клика на клетке
-    grid.addEventListener("click", (e) => {
-      if (!selectedCard) return; // если карта не выбрана, ничего не делаем
-      if (!e.target.classList.contains("cell")) return;
-      const cellIndex = parseInt(e.target.dataset.index);
-
-      // Проверяем, есть ли уже юнит в этой клетке
-      const existingUnit = units.find(u => u.cellIndex === cellIndex);
-      if (existingUnit) {
-        alert("Здесь уже стоит юнит!");
-        return;
-      }
-
-      // Проверяем, хватает ли ресурсов
-      const cardInfo = cardData[selectedCard];
-      if (resource < cardInfo.cost) {
-        alert("Недостаточно ресурсов!");
-        return;
-      }
-
-      // Ставим юнита
-      placeUnit(cellIndex, selectedCard);
-      // Снимаем выбор карты
-      deselectCards();
-    });
-
-    // Обработка клика по картам
-    const cards = document.querySelectorAll(".card");
-    cards.forEach(card => {
-      card.addEventListener("click", () => {
-        deselectCards();
-        card.classList.add("selected");
-        selectedCard = card.dataset.cardId;
-      });
-    });
-
-    function deselectCards() {
-      cards.forEach(c => c.classList.remove("selected"));
-      selectedCard = null;
+    function createIcon(iconName) {
+      const icon = document.createElement('i');
+      icon.className = `fa-solid fa-${iconName}`;
+      return icon;
     }
 
-    // Функция для размещения юнита
-    function placeUnit(cellIndex, cardId) {
-      const cellElement = grid.children[cellIndex];
-      const unitElement = document.createElement("div");
-      unitElement.className = "unit";
-      cellElement.appendChild(unitElement);
-
-      // Списываем ресурс
-      resource -= cardData[cardId].cost;
-      updateUI();
-
-      // Добавляем в массив
-      units.push({
-        cellIndex: cellIndex,
-        type: cardId,
-        damage: cardData[cardId].damage,
-        range: cardData[cardId].range,
-        attackSpeed: cardData[cardId].attackSpeed,
-        attackCooldown: 0 // счётчик до следующей атаки
-      });
+    function toggleLanguage() {
+      currentLanguage = (currentLanguage === 'ru') ? 'en' : 'ru';
+      updateTexts();
     }
+    updateTexts(); // Инициализация текстов
 
-    // Обновление UI
-    function updateUI() {
-      resourceEl.textContent = resource;
-      castleHealthEl.textContent = castleHealth;
-      waveCountEl.textContent = waveCount;
-    }
+    /* --------------------------------------------------
+       2. Telegram WebApp
+    -------------------------------------------------- */
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-    /********************************************************
-     * ГЛАВНЫЙ ЦИКЛ (GAME LOOP)
-     ********************************************************/
-    let frame = 0;
-    function gameLoop() {
-      frame++;
+    let currentUsername = null;
+    let userRef = null;
+    let localTickets = 0;
 
-      // Спавн врагов
-      spawnEnemies();
+    /* --------------------------------------------------
+       3. Инициализация Firebase
+    -------------------------------------------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+      authDomain: "test-with-likes.firebaseapp.com",
+      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+      projectId: "test-with-likes",
+      storageBucket: "test-with-likes",
+      messagingSenderId: "764738820142",
+      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+      measurementId: "G-WJNF0HSN9P"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-      // Движение врагов
-      moveEnemies();
-
-      // Атаки юнитов
-      handleUnitsAttack();
-
-      // Проверка конца игры
-      checkGameOver();
-
-      // Продолжаем цикл
-      requestAnimationFrame(gameLoop);
-    }
-
-    // Запуск
-    updateUI();
-    gameLoop();
-
-    /********************************************************
-     * СПАВН ВРАГОВ
-     ********************************************************/
-    function spawnEnemies() {
-      if (enemySpawnTimer <= 0) {
-        // Создаём врага в одной из строк
-        const row = Math.floor(Math.random() * rows);
-        enemies.push({
-          row: row,
-          xPos: -30, // начальная позиция слева (отрицательная, чтобы зашёл на поле)
-          health: enemyBaseHealth + waveCount * 0.5, 
-          speed: enemyBaseSpeed + waveCount * 0.05,
-          element: createEnemyElement(row)
-        });
-        enemySpawnTimer = enemySpawnInterval;
-      } else {
-        enemySpawnTimer--;
-      }
-    }
-
-    // Создаём DOM-элемент для врага
-    function createEnemyElement(row) {
-      const enemyEl = document.createElement("div");
-      enemyEl.className = "enemy";
-      // Ищем соответствующую строку на сетке
-      const cellElement = grid.children[row * cols]; 
-      cellElement.appendChild(enemyEl);
-      return enemyEl;
-    }
-
-    /********************************************************
-     * ДВИЖЕНИЕ ВРАГОВ
-     ********************************************************/
-    function moveEnemies() {
-      enemies.forEach((enemy, index) => {
-        // Двигаем врага вправо
-        enemy.xPos += enemy.speed;
-        if (enemy.element) {
-          enemy.element.style.left = enemy.xPos + "px";
-        }
-
-        // Если враг достиг правого края (замка)
-        if (enemy.xPos >= (cols * 60)) {
-          // Наносит урон замку
-          castleHealth -= 1;
-          updateUI();
-
-          // Удаляем врага
-          removeEnemy(index);
-        } else {
-          // Обновляем DOM-позицию, перемещая в нужную клетку
-          // Найдём индекс клетки, где он примерно находится
-          // Приблизительно: (enemy.xPos / ширина клетки) даёт сдвиг по колонкам
-          // Но для упрощения пока оставляем только left-стиль
-        }
-      });
-      // Убираем "дыры" после удаления
-      enemies = enemies.filter(e => e.health > 0 && e.xPos < cols * 60);
-    }
-
-    function removeEnemy(i) {
-      if (enemies[i].element && enemies[i].element.parentNode) {
-        enemies[i].element.parentNode.removeChild(enemies[i].element);
-      }
-      enemies.splice(i, 1);
-    }
-
-    /********************************************************
-     * АТАКА ЮНИТОВ
-     ********************************************************/
-    function handleUnitsAttack() {
-      units.forEach(unit => {
-        // Счётчик перезарядки
-        if (unit.attackCooldown > 0) {
-          unit.attackCooldown--;
-          return;
-        }
-
-        // Координаты юнита
-        const unitRow = Math.floor(unit.cellIndex / cols);
-        const unitCol = unit.cellIndex % cols;
-
-        // Ищем врагов в радиусе атаки (по колоннам)
-        // Радиус = unit.range (в клетках вправо, для упрощения)
-        // Для точности можно переводить xPos во «внутренние» координаты
-        // но сделаем просто: враг в той же строке, и разница в колоннах <= range
-        let targetFound = false;
-        enemies.forEach(enemy => {
-          if (enemy.row === unitRow) {
-            // Примерное определение колонки врага
-            // enemy.xPos ~ сколько px прошёл, делим на 60 px, получим колонку
-            const enemyCol = enemy.xPos / 60;
-            if ((enemyCol - unitCol) <= unit.range && (enemyCol - unitCol) >= 0) {
-              // Атакуем этого врага
-              enemy.health -= unit.damage;
-              // Устанавливаем перезарядку
-              unit.attackCooldown = unit.attackSpeed;
-              targetFound = true;
-            }
+    /* --------------------------------------------------
+       4. Проверка пользователя Telegram
+    -------------------------------------------------- */
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      currentUsername = tg.initDataUnsafe.user.username || '';
+      document.getElementById('username').textContent = '@' + currentUsername;
+      if (currentUsername) {
+        userRef = db.ref('users/' + currentUsername);
+        userRef.once('value', snapshot => {
+          if (!snapshot.exists()) {
+            userRef.set({
+              tickets: 0,
+              points: 0,
+              lastSpinTime: 0
+            });
           }
         });
-        // Удаляем врагов с 0 или меньше здоровья
-        enemies = enemies.filter((enemy, index) => {
-          if (enemy.health <= 0) {
-            removeEnemy(index);
-            return false;
-          }
-          return true;
+        userRef.on('value', snapshot => {
+          const data = snapshot.val() || {};
+          localTickets = data.tickets || 0;
+          updateTicketsDisplay(localTickets);
         });
-      });
+      }
+    } else {
+      document.getElementById('username').textContent =
+        translations[currentLanguage].userNotAuthorized;
     }
 
-    /********************************************************
-     * ПРОВЕРКА КОНЦА ИГРЫ
-     ********************************************************/
-    function checkGameOver() {
-      if (castleHealth <= 0) {
-        alert("Замок разрушен! Игра окончена.");
-        // Перезагрузка страницы для рестарта (простейший вариант)
-        window.location.reload();
+    /* --------------------------------------------------
+       5. Обновление отображения билетов
+    -------------------------------------------------- */
+    function updateTicketsDisplay(tickets) {
+      document.getElementById('balance').innerHTML = `<b>${tickets}</b>`;
+    }
+
+    /* --------------------------------------------------
+       6. Кнопка "Назад"
+    -------------------------------------------------- */
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+
+    /* --------------------------------------------------
+       7. Инициализация TonConnect UI
+    -------------------------------------------------- */
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
+      buttonRootId: 'connect'
+    });
+
+    /* --------------------------------------------------
+       8. Синхронизация слайдера и инпута (от 5 до 30, шаг 5)
+    -------------------------------------------------- */
+    function updatePriceDisplay(ticketCount) {
+      // Цена: каждые 5 билетов стоят 0.5 TON → цена = ticketCount * 0.1
+      const price = (ticketCount * 0.1).toFixed(1);
+      document.getElementById('priceDisplay').textContent = `Цена: ${price} TON`;
+    }
+
+    function onTicketRangeInput() {
+      const val = document.getElementById('ticketRange').value;
+      document.getElementById('ticketInput').value = val;
+      updatePriceDisplay(val);
+    }
+    function onTicketInputChange() {
+      let val = parseInt(document.getElementById('ticketInput').value, 10);
+      if (isNaN(val)) val = 5;
+      if (val < 5) val = 5;
+      if (val > 30) val = 30;
+      // Округляем до ближайшего кратного 5
+      val = Math.round(val / 5) * 5;
+      document.getElementById('ticketInput').value = val;
+      document.getElementById('ticketRange').value = val;
+      updatePriceDisplay(val);
+    }
+
+    /* --------------------------------------------------
+       9. Модальное окно уведомлений
+    -------------------------------------------------- */
+    function showModal(message) {
+      document.getElementById('modalMessage').textContent = message;
+      document.getElementById('notificationModal').style.display = 'flex';
+    }
+    function closeModal() {
+      document.getElementById('notificationModal').style.display = 'none';
+    }
+
+    /* --------------------------------------------------
+       10. Функция покупки билетов (makeDeposit)
+    -------------------------------------------------- */
+    async function makeDeposit() {
+      if (!currentUsername || !userRef) {
+        showModal(translations[currentLanguage].userError);
+        return;
+      }
+      const val = parseInt(document.getElementById('ticketInput').value, 10);
+      const ticketCount = isNaN(val) ? 5 : val;
+      // Цена в TON: ticketCount * 0.1, переводим в нано (1 TON = 1e9 nano)
+      const nanoAmount = (ticketCount * 0.1 * 1e9).toString();
+
+      const transaction = {
+        validUntil: Math.round(Date.now() / 1000) + 60,
+        messages: [
+          {
+            address: 'UQCMdlOY7M1SrKRM58Cf13XkZTBe0ul0uI4Mz4hMrrzwGP78',
+            amount: nanoAmount
+          }
+        ]
+      };
+
+      try {
+        await tonConnectUI.sendTransaction(transaction);
+        localTickets += ticketCount;
+        updateTicketsDisplay(localTickets);
+        userRef.update({ tickets: localTickets });
+        const price = (ticketCount * 0.1).toFixed(1);
+        showModal(translations[currentLanguage].depositSuccess(ticketCount, price));
+      } catch (err) {
+        showModal(translations[currentLanguage].depositError);
       }
     }
   </script>
