@@ -482,7 +482,8 @@
       points: 0,
       lastSpinTime: 0,
       dataChip: false,
-      cyberCase: 0
+      cyberCase: 0,
+      nfts: [] // добавлено поле для NFT
     };
     let gameInProgress = false;
     let isSpinning = false;
@@ -503,7 +504,8 @@
             points: 0,
             lastSpinTime: 0,
             dataChip: false,
-            cyberCase: 0
+            cyberCase: 0,
+            nfts: []  // инициализация поля NFT
           });
         }
       });
@@ -516,7 +518,8 @@
           points: data.points || 0,
           lastSpinTime: data.lastSpinTime || 0,
           dataChip: data.dataChip || false,
-          cyberCase: data.cyberCase || 0
+          cyberCase: data.cyberCase || 0,
+          nfts: data.nfts || []
         };
         updateTopBar();
         updateSpinButton();
@@ -797,9 +800,9 @@
       { name: 'One case', image: 'https://raw.githubusercontent.com/qnexst/404token/main/case.png', chance: 5 },
       { name: '1000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
       { name: '5000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
-      { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 1 },
-      { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 0.1 },
-      { name: 'NFT Red', image: 'https://via.placeholder.com/60?text=NFT', chance: 50 },
+      { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
+      { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
+      { name: 'NFT Red', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
       { name: 'NFT Yellow', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
       { name: 'NFT Green', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 }
     ];
@@ -851,6 +854,7 @@
       }
     }
 
+    // Исправленная функция обработки приза с отдельной веткой для NFT
     function addPrizeToUser(prize) {
       if (prize.name.toLowerCase().includes("token")) {
          let amount = parsePrizeAmount(prize.name);
@@ -866,6 +870,13 @@
          localUserData.points += amount;
          userRef.update({ points: localUserData.points });
          updateTopBar();
+      } else if (prize.name.toLowerCase().includes("nft")) {
+         // Обработка NFT: сохраняем приз в массиве nfts
+         if (!localUserData.nfts) {
+           localUserData.nfts = [];
+         }
+         localUserData.nfts.push(prize.name);
+         userRef.update({ nfts: localUserData.nfts });
       } else {
          let amount = parsePrizeAmount(prize.name);
          localUserData.tickets += amount;
