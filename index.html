@@ -294,13 +294,14 @@
       <div class="lootbox-container" id="lootboxContainer" style="display: none;">
         <div class="lootbox-indicator"></div>
         <div class="lootbox-roulette" id="lootboxRoulette">
-          <!-- Призы будут добавлены динамически -->
+          <!-- Prizes will be added dynamically -->
         </div>
       </div>
       <div class="lootbox-buttons">
         <button id="openBtn" onclick="openLootBox()">open (0)</button>
         <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
-          <span>Open for 5m tokens</span>
+          <span>Open</span><br>
+          <span>for 5m tokens</span>
         </button>
       </div>
     </section>
@@ -347,20 +348,15 @@
       <p id="lootBoxInfoDesc">
         Prizes and Chances:<br>
         - 3 tickets (10%)<br>
-        - 5 tickets (10%)<br>
-        - One case (30%)<br>
+        - 5 tickets (5%)<br>
+        - One case (5%)<br>
         - 1000 points (20%)<br>
-        - 5000 points (10%)<br>
-        - 1M tokens (1%)<br>
-        - 5M tokens (0.01%)<br>
+        - 5000 points (20%)<br>
+        - 1M tokens (20%)<br>
+        - 5M tokens (20%)<br>
         - NFT Red (1%) – Rare<br>
         - NFT Yellow (1%) – Medium<br>
-        - NFT Green (1%) – Common<br>
-        - 10 tickets (5%)<br>
-        - 3000 points (5%)<br>
-        - 500k tokens (3%)<br>
-        - 3x case (2%)<br>
-        - 2x case (15%)
+        - NFT Green (1%) – Common
       </p>
       <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
@@ -452,7 +448,9 @@
   <!-- Подключение нового файла breakout.js -->
   <script src="breakout.js"></script>
   <script>
-    /* 1. Firebase Initialization */
+    /* ----------------------------------------------
+       1. Firebase Initialization
+    ---------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -466,11 +464,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    /* 2. Telegram Web App */
+    /* ----------------------------------------------
+       2. Telegram Web App
+    ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    /* 3. Global Variables & User Data */
+    /* ----------------------------------------------
+       3. Global Variables & User Data
+    ---------------------------------------------- */
     let currentUser = null;
     let userRef = null;
     let localUserData = {
@@ -480,11 +482,11 @@
       points: 0,
       lastSpinTime: 0,
       dataChip: false,
-      cyberCase: 0,
-      nfts: []
+      cyberCase: 0
     };
     let gameInProgress = false;
     let isSpinning = false;
+
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
@@ -501,8 +503,7 @@
             points: 0,
             lastSpinTime: 0,
             dataChip: false,
-            cyberCase: 0,
-            nfts: []
+            cyberCase: 0
           });
         }
       });
@@ -515,8 +516,7 @@
           points: data.points || 0,
           lastSpinTime: data.lastSpinTime || 0,
           dataChip: data.dataChip || false,
-          cyberCase: data.cyberCase || 0,
-          nfts: data.nfts || []
+          cyberCase: data.cyberCase || 0
         };
         updateTopBar();
         updateSpinButton();
@@ -524,17 +524,23 @@
       });
     }
 
-    /* 4. Update Top Bar & Case Count */
+    /* ----------------------------------------------
+       4. Update Top Bar & Case Count
+    ---------------------------------------------- */
     function updateTopBar() {
       document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
       document.getElementById('coinCount').textContent   = localUserData.coins || 0;
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
+
+    // Изменён текст кнопки: теперь "open (0)"
     function updateCaseCount() {
       document.getElementById('openBtn').textContent = `open (${localUserData.cyberCase})`;
     }
 
-    /* 5. Section Switching */
+    /* ----------------------------------------------
+       5. Section Switching
+    ---------------------------------------------- */
     function showSection(sectionId) {
       document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
       document.querySelectorAll('.modal-backdrop').forEach(modal => modal.classList.remove('active'));
@@ -543,7 +549,9 @@
       document.getElementById(sectionId).classList.add('active');
     }
 
-    /* 6. Global Modal */
+    /* ----------------------------------------------
+       6. Global Modal
+    ---------------------------------------------- */
     function showGlobalModal(title, message) {
       document.getElementById('globalModalTitle').textContent = title;
       document.getElementById('globalModalMessage').textContent = message;
@@ -553,7 +561,9 @@
       document.getElementById('globalModalBackdrop').classList.remove('active');
     }
 
-    /* 7. Game Info Modal */
+    /* ----------------------------------------------
+       7. Game Info Modal
+    ---------------------------------------------- */
     function openGameInfoModal(gameData) {
       document.getElementById('gameInfoImg').src = gameData.img;
       document.getElementById('gameInfoTitle').textContent = gameData.title;
@@ -570,7 +580,9 @@
       document.getElementById('gameInfoModal').classList.remove('active');
     }
 
-    /* 8. Start Game */
+    /* ----------------------------------------------
+       8. Start Game
+    ---------------------------------------------- */
     let currentGame = null;
     function handleStartGame(gameName, ticketCost) {
       document.querySelector('.user-info').style.display = 'none';
@@ -578,10 +590,13 @@
         showGlobalModal("Error", "No user data available!");
         return;
       }
+      
+      // Если игра STACK – открываем stack.html без списания билетов
       if (gameName === 'game2') {
         window.location.href = 'stack.html';
         return;
       }
+      // Если игра партнерская, Breakout или Crossy Road – выполняем редирект
       if (gameName === 'partnergame1') {
         window.location.href = 'partnergame.html';
         return;
@@ -592,6 +607,8 @@
         window.location.href = 'space.html';
         return;
       }
+      
+      // Для Tetris (game3) проверяем наличие билетов и списываем их
       if (gameName === 'game3') {
         if ((localUserData.tickets || 0) < ticketCost) {
           showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
@@ -600,16 +617,23 @@
         localUserData.tickets -= ticketCost;
         updateTopBar();
         userRef.update({ tickets: localUserData.tickets });
+        
         currentGame = gameName;
         gameInProgress = true;
         document.getElementById('mainNav').classList.add('hidden');
+        
+        // Добавляем отображение модального окна игры
         document.getElementById('gameModalBackdrop').classList.add('active');
+        
+        // Показываем только canvas для Tetris
         document.getElementById('game3Canvas').style.display = 'block';
         initGame3();
       }
     }
 
-    /* 9. End Game Modal */
+    /* ----------------------------------------------
+       9. End Game Modal
+    ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = "Result";
       document.getElementById('endgameMessage').textContent = message;
@@ -633,7 +657,9 @@
       gameInProgress = false;
     }
 
-    /* 10. Wheel of Fortune / Tickets */
+    /* ----------------------------------------------
+       10. Wheel of Fortune / Tickets
+    ---------------------------------------------- */
     let spinDuration = 4000;
     function spinWheel() {
       if (!currentUser) return;
@@ -697,7 +723,9 @@
     }
     setInterval(updateSpinButton, 1000);
 
-    /* 11. Leaderboard */
+    /* ----------------------------------------------
+       11. Leaderboard
+    ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
       const usersData = snapshot.val() || {};
@@ -710,13 +738,23 @@
       const restBody = document.getElementById('leaderboardRest');
       top10Body.innerHTML = '';
       restBody.innerHTML = '';
+      
       usersArray.forEach((user, i) => {
         const tr = document.createElement('tr');
         if (currentUser && user.username === currentUser.username) {
           tr.classList.add('current-user');
         }
         if (i < 10) {
-          let multiplier = (i === 0) ? "5x" : (i === 1) ? "3x" : (i === 2) ? "2x" : "1x";
+          let multiplier;
+          if (i === 0) {
+            multiplier = "5x";
+          } else if (i === 1) {
+            multiplier = "3x";
+          } else if (i === 2) {
+            multiplier = "2x";
+          } else {
+            multiplier = "1x";
+          }
           tr.innerHTML = `<td>${i + 1}</td>
                           <td>@${user.username}</td>
                           <td>${user.points}</td>
@@ -734,35 +772,36 @@
         }
       });
     });
+
     function openSeasonInfoModal() {
       document.getElementById('seasonModalBackdrop').classList.add('active');
     }
     function closeSeasonModal() {
       document.getElementById('seasonModalBackdrop').classList.remove('active');
     }
-    /* 12. Buy Tickets */
+
+    /* ----------------------------------------------
+       12. Buy Tickets
+    ---------------------------------------------- */
     function buyTickets() {
       window.location.href = 'buyticket.html';
     }
 
-    /* 13. Lootbox in Cyber Case Section */
-    // Новый массив призов с обновлёнными шансами
+    /* ----------------------------------------------
+       13. Lootbox in Cyber Case Section
+    ---------------------------------------------- */
+    // Обновлённый массив призов (итого 10 предметов)
     const lootboxPrizes = [
       { name: '3 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
-      { name: '5 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
-      { name: 'One case', image: 'https://raw.githubusercontent.com/qnexst/404token/main/case.png', chance: 30 },
+      { name: '5 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 5 },
+      { name: 'One case', image: 'https://raw.githubusercontent.com/qnexst/404token/main/case.png', chance: 5 },
       { name: '1000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
-      { name: '5000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 10 },
-      { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 1 },
-      { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 0.01 },
-      { name: 'NFT Red', image: 'https://img.icons8.com/ios/50/nft.png', chance: 1 },
-      { name: 'NFT Yellow', image: 'https://img.icons8.com/ios/50/nft.png', chance: 1 },
-      { name: 'NFT Green', image: 'https://img.icons8.com/ios/50/nft.png', chance: 1 },
-      { name: '10 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 5 },
-      { name: '3000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 5 },
-      { name: '500k tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 3 },
-      { name: '3x case', image: 'https://raw.githubusercontent.com/qnexst/404token/main/case.png', chance: 2 },
-      { name: '2x case', image: 'https://raw.githubusercontent.com/qnexst/404token/main/case.png', chance: 15 }
+      { name: '5000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
+      { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
+      { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
+      { name: 'NFT Red', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
+      { name: 'NFT Yellow', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
+      { name: 'NFT Green', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 }
     ];
 
     let referralInitialized = false;
@@ -771,13 +810,14 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Для каждого цикла перемешиваем порядок призов
+      // Для нескольких циклов – для каждого цикла перемешиваем порядок призов
       for (let cycle = 0; cycle < 6; cycle++) {
+        // Клонируем массив и перемешиваем
         let prizesCycle = lootboxPrizes.slice().sort(() => Math.random() - 0.5);
         prizesCycle.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
-          // Задаём градиенты для NFT
+          // Градиент для NFT-призов
           if (item.name === 'NFT Red') {
             prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
           } else if (item.name === 'NFT Yellow') {
@@ -792,13 +832,15 @@
       }
     }
 
-    // Переработанный алгоритм выбора с учётом дробных значений
     function getWeightedRandomIndex(prizes) {
-      const total = prizes.reduce((sum, prize) => sum + prize.chance, 0);
+      let total = 0;
+      prizes.forEach(prize => total += prize.chance);
       let randomNum = Math.random() * total;
       for (let i = 0; i < prizes.length; i++) {
+        if (randomNum < prizes[i].chance) {
+          return i;
+        }
         randomNum -= prizes[i].chance;
-        if (randomNum < 0) return i;
       }
       return prizes.length - 1;
     }
@@ -812,43 +854,26 @@
       }
     }
 
-    // Функция выдачи награды
     function addPrizeToUser(prize) {
-      if (prize.name.toLowerCase().includes("nft")) {
-        // Извлекаем редкость из названия, например, "NFT Red" -> "Red"
-        const rarity = prize.name.split(" ")[1] || "";
-        const nftData = {
-          rarity: rarity,
-          image: prize.image,
-          awardedAt: Date.now()
-        };
-        localUserData.nfts.push(nftData);
-        userRef.update({ nfts: localUserData.nfts });
-        showGlobalModal('Congratulations!', `You received an NFT ${rarity}!`);
-      } else if (prize.name.toLowerCase().includes("token")) {
-        let amount = parsePrizeAmount(prize.name);
-        localUserData.coins += amount;
-        userRef.update({ coins: localUserData.coins });
-        updateTopBar();
-        showGlobalModal('Congratulations!', `You received ${prize.name}!`);
+      if (prize.name.toLowerCase().includes("token")) {
+         let amount = parsePrizeAmount(prize.name);
+         localUserData.coins += amount;
+         userRef.update({ coins: localUserData.coins });
+         updateTopBar();
       } else if (prize.name.toLowerCase().includes("case")) {
-        localUserData.cyberCase += 1;
-        userRef.update({ cyberCase: localUserData.cyberCase });
-        updateCaseCount();
-        showGlobalModal('Congratulations!', `You received a case!`);
+         localUserData.cyberCase += 1;
+         userRef.update({ cyberCase: localUserData.cyberCase });
+         updateCaseCount();
       } else if (prize.name.toLowerCase().includes("point")) {
-        let amount = parsePrizeAmount(prize.name);
-        localUserData.points += amount;
-        userRef.update({ points: localUserData.points });
-        updateTopBar();
-        showGlobalModal('Congratulations!', `You received ${prize.name}!`);
+         let amount = parsePrizeAmount(prize.name);
+         localUserData.points += amount;
+         userRef.update({ points: localUserData.points });
+         updateTopBar();
       } else {
-        // Остальные считаем билетами
-        let amount = parsePrizeAmount(prize.name);
-        localUserData.tickets += amount;
-        userRef.update({ tickets: localUserData.tickets });
-        updateTopBar();
-        showGlobalModal('Congratulations!', `You received ${prize.name}!`);
+         let amount = parsePrizeAmount(prize.name);
+         localUserData.tickets += amount;
+         userRef.update({ tickets: localUserData.tickets });
+         updateTopBar();
       }
     }
 
@@ -863,8 +888,10 @@
       localUserData.coins -= 5000000;
       updateTopBar();
       userRef.update({ coins: localUserData.coins });
+
       const caseImage = document.getElementById('caseImage');
       caseImage.classList.add('explode');
+
       caseImage.addEventListener('animationend', () => {
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
@@ -883,8 +910,10 @@
       localUserData.cyberCase -= 1;
       updateCaseCount();
       userRef.update({ cyberCase: localUserData.cyberCase });
+
       const caseImage = document.getElementById('caseImage');
       caseImage.classList.add('explode');
+
       caseImage.addEventListener('animationend', () => {
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
@@ -892,7 +921,6 @@
       }, { once: true });
     }
 
-    // Функция вращения рулетки с гибким позиционированием
     function spinRoulette() {
       initReferralLootbox();
       const roulette = document.getElementById('lootboxRoulette');
@@ -902,11 +930,11 @@
       const fullCycles = 5;
       const randomIndex = getWeightedRandomIndex(lootboxPrizes);
       const finalIndex = randomIndex + fullCycles * count;
-      // Добавляем случайный сдвиг (±половина ширины приза)
-      const randomOffset = (Math.random() - 0.5) * prizeWidth;
-      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2) + randomOffset;
+      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
+
       roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
       roulette.style.transform = `translateX(${finalOffset}px)`;
+
       setTimeout(() => {
         const remainder = finalIndex % count;
         const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
@@ -915,6 +943,8 @@
         isSpinning = false;
         const prize = lootboxPrizes[randomIndex];
         addPrizeToUser(prize);
+        showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
+
         document.getElementById('lootboxContainer').style.display = 'none';
         const caseContainer = document.querySelector('.case-container');
         caseContainer.style.display = 'block';
@@ -924,13 +954,16 @@
       }, 10200);
     }
 
-    /* Modal windows for Loot Box and others */
+    /* ----------------------------------------------
+       Modal windows for Loot Box
+    ---------------------------------------------- */
     function openLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.add('active');
     }
     function closeLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.remove('active');
     }
+
     function openMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.add('active');
     }
@@ -954,12 +987,12 @@
     }
   </script>
   <script>
-    // Hidden key combination for admin panel access: Ctrl+Shift+A
-    document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        window.location.href = 'admin.html';
-      }
-    });
+  // Hidden key combination for admin panel access: Ctrl+Shift+A
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      window.location.href = 'admin.html';
+    }
+  });
   </script>
 </body>
 </html>
