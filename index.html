@@ -345,7 +345,19 @@
   <div class="modal-backdrop" id="lootBoxInfoModal">
     <div class="modal">
       <h2 id="lootBoxInfoTitle">Loot Box Info</h2>
-      <p id="lootBoxInfoDesc">You can spin the loot box using coins or data chip.</p>
+      <p id="lootBoxInfoDesc">
+        Prizes and Chances:<br>
+        - 3 tickets (10%)<br>
+        - 5 tickets (5%)<br>
+        - One case (5%)<br>
+        - 1000 points (20%)<br>
+        - 5000 points (20%)<br>
+        - 1M tokens (20%)<br>
+        - 5M tokens (20%)<br>
+        - NFT Red (1%) – Rare (red background)<br>
+        - NFT Yellow (1%) – Medium (yellow background)<br>
+        - NFT Green (1%) – Common (green background)
+      </p>
       <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
   </div>
@@ -777,14 +789,18 @@
     /* ----------------------------------------------
        13. Lootbox in Cyber Case Section
     ---------------------------------------------- */
+    // Обновлённый массив призов (итого 10 предметов)
     const lootboxPrizes = [
       { name: '3 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
       { name: '5 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 5 },
       { name: 'One case', image: 'https://raw.githubusercontent.com/qnexst/404token/main/case.png', chance: 5 },
       { name: '1000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
       { name: '5000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
-      { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20},
-      { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 }
+      { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
+      { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
+      { name: 'NFT Red', image: 'https://via.placeholder.com/60/FF0000/FFFFFF?text=NFT', chance: 1 },
+      { name: 'NFT Yellow', image: 'https://via.placeholder.com/60/FFFF00/000000?text=NFT', chance: 1 },
+      { name: 'NFT Green', image: 'https://via.placeholder.com/60/00FF00/000000?text=NFT', chance: 1 }
     ];
 
     let referralInitialized = false;
@@ -793,10 +809,21 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
+      // Для нескольких циклов (чтобы визуально заполнить рулетку)
       for (let cycle = 0; cycle < 6; cycle++) {
         lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
+          // Если это NFT‑предметы – задаём индивидуальный фон
+          if (item.name === 'NFT Red') {
+            prizeEl.style.backgroundColor = 'red';
+          } else if (item.name === 'NFT Yellow') {
+            prizeEl.style.backgroundColor = 'yellow';
+          } else if (item.name === 'NFT Green') {
+            prizeEl.style.backgroundColor = 'green';
+          } else if (item.chance < 1) {
+            prizeEl.style.backgroundColor = 'red';
+          }
           prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
                                <span>${item.name}</span>`;
           rouletteContainer.appendChild(prizeEl);
