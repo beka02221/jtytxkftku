@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,26 +13,39 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-  <!-- Шрифты -->
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
-    /* ======= Базовые стили ======= */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* ======= Basic resets and styles ======= */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     html, body {
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       background-color: #0e162e;
       color: #e0e0e0;
       font-family: sans-serif;
       overflow-x: hidden;
     }
-    body { display: flex; flex-direction: column; }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
 
-    /* ======= Верхняя панель навигации ======= */
+    /* ======= Top Navigation Bar ======= */
     #topBar {
-      position: fixed; top: 0; left: 0; right: 0;
-      height: 50px; display: flex;
-      align-items: center; justify-content: space-between;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 0 15px;
       background: rgba(14,22,46,0.85);
       backdrop-filter: blur(8px);
@@ -46,9 +59,11 @@
       font-size: 14px;
       cursor: pointer;
     }
-    #topBar button:hover { color: #29b6f6; }
+    #topBar button:hover {
+      color: #29b6f6;
+    }
 
-    /* ======= Основной контейнер ======= */
+    /* ======= Main Container ======= */
     .container {
       margin-top: 60px;
       padding: 20px;
@@ -63,7 +78,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ======= Блок "Баланс" ======= */
+    /* ======= Balance Block ======= */
     .balance-block {
       display: flex;
       flex-direction: column;
@@ -87,7 +102,7 @@
       height: 24px;
     }
 
-    /* ======= Блок со слайдером и вводом ======= */
+    /* ======= Slider and Input Block ======= */
     .slider-block {
       width: 100%;
       max-width: 400px;
@@ -144,9 +159,12 @@
       outline: none;
       box-shadow: 0 0 5px #bb86fc;
     }
-    #priceDisplay { font-size: 14px; color: #ffffff; }
+    #priceDisplay {
+      font-size: 14px;
+      color: #ffffff;
+    }
 
-    /* ======= Кнопки ======= */
+    /* ======= Action Buttons ======= */
     button.action-btn {
       font-family: 'Press Start 2P', monospace;
       font-size: 14px;
@@ -171,15 +189,18 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
 
-    /* ======= Модальное окно ======= */
+    /* ======= Modal Window ======= */
     #notificationModal {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 2000;
-      display: none; /* При показе будем задавать display: flex */
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
       align-items: center;
       justify-content: center;
       background: rgba(0,0,0,0.5);
+      z-index: 2000;
     }
     .modal-content {
       background: rgba(14,22,46,0.95);
@@ -189,11 +210,6 @@
       width: 80%;
       max-width: 360px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-      animation: fadeIn 0.3s ease forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.8); }
-      to { opacity: 1; transform: scale(1); }
     }
     .modal-content p {
       font-size: 14px;
@@ -201,46 +217,64 @@
       margin-bottom: 16px;
     }
 
-    /* ======= Медиазапросы для мобильных устройств ======= */
+    /* ======= Responsive Styles for Mobile ======= */
     @media (max-width: 480px) {
-      .slider-block { padding: 15px; }
-      .slider-title { font-size: 14px; }
-      .tickets-count { font-size: 24px; }
-      button.action-btn { padding: 8px 16px; font-size: 12px; }
-      #ticketInput { width: 60px; font-size: 14px; }
+      .slider-block {
+        padding: 15px;
+      }
+      .slider-title {
+        font-size: 14px;
+      }
+      .tickets-count {
+        font-size: 24px;
+      }
+      button.action-btn {
+        padding: 8px 16px;
+        font-size: 12px;
+      }
+      #ticketInput {
+        width: 60px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Верхняя панель: "Назад", "Смена языка" и TonConnect -->
+  <!-- Top Navigation Bar: "Back", "Language Switch" and TonConnect -->
   <div id="topBar">
-    <button id="backButton" onclick="goBack()" aria-label="Назад">&#8592;</button>
-    <button id="langSwitchBtn" onclick="toggleLanguage()" aria-label="Сменить язык">EN</button>
+    <button id="backButton" onclick="goBack()" aria-label="Back">
+      &#8592;
+    </button>
+    <button id="langSwitchBtn" onclick="toggleLanguage()" aria-label="Switch Language">
+      RU
+    </button>
     <div id="connect"></div>
   </div>
 
-  <!-- Основной контейнер -->
+  <!-- Main Container -->
   <div class="container">
-    <!-- Блок "Баланс" -->
+    <!-- Balance Block -->
     <div class="balance-block">
       <span class="username" id="username">@User</span>
       <span class="tickets-count" id="balance">0</span>
       <img src="https://img.icons8.com/ios-filled/50/coins.png" alt="Tickets" />
     </div>
 
-    <!-- Блок со слайдером и вводом -->
+    <!-- Slider and Input Block -->
     <div class="slider-block">
-      <div class="slider-title" id="sliderLabel">Сколько билетов?</div>
+      <div class="slider-title" id="sliderLabel">How many tickets?</div>
       <div class="slider-row">
         <input type="range" id="ticketRange" min="5" max="30" step="5" value="5" oninput="onTicketRangeInput()" />
-        <input type="number" id="ticketInput" min="5" max="30" step="5" value="5" oninput="onTicketInputChange()" aria-label="Количество билетов" />
+        <input type="number" id="ticketInput" min="5" max="30" step="5" value="5" oninput="onTicketInputChange()" aria-label="Number of tickets" />
       </div>
-      <div id="priceDisplay">Цена: 0.5 TON</div>
-      <button class="action-btn" id="depositBtn" onclick="makeDeposit()" aria-label="Купить билеты">Купить билеты</button>
+      <div id="priceDisplay">Price: 0.5 TON</div>
+      <button class="action-btn" id="depositBtn" onclick="makeDeposit()" aria-label="Buy Tickets">
+        Buy Tickets
+      </button>
     </div>
   </div>
 
-  <!-- Модальное окно уведомлений -->
+  <!-- Modal Window for Notifications -->
   <div id="notificationModal">
     <div class="modal-content">
       <p id="modalMessage"></p>
@@ -250,9 +284,9 @@
 
   <script>
     /* --------------------------------------------------
-       1. Переключение языков
+       1. Language Switching (Initial language: English)
     -------------------------------------------------- */
-    let currentLanguage = 'ru';
+    let currentLanguage = 'en';
     const translations = {
       ru: {
         back: "Назад",
@@ -282,9 +316,8 @@
       document.getElementById('sliderLabel').textContent = translations[currentLanguage].sliderTitle;
       document.getElementById('depositBtn').textContent = translations[currentLanguage].depositBtn;
     }
-
     function toggleLanguage() {
-      currentLanguage = (currentLanguage === 'ru') ? 'en' : 'ru';
+      currentLanguage = (currentLanguage === 'en') ? 'ru' : 'en';
       updateTexts();
     }
     updateTexts();
@@ -300,7 +333,7 @@
     let localTickets = 0;
 
     /* --------------------------------------------------
-       3. Firebase инициализация
+       3. Firebase Initialization
     -------------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
@@ -316,7 +349,7 @@
     const db = firebase.database();
 
     /* --------------------------------------------------
-       4. Проверяем пользователя Telegram
+       4. Check Telegram User
     -------------------------------------------------- */
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUsername = tg.initDataUnsafe.user.username || '';
@@ -343,14 +376,14 @@
     }
 
     /* --------------------------------------------------
-       5. Обновление отображения билетов
+       5. Update Ticket Display
     -------------------------------------------------- */
     function updateTicketsDisplay(tickets) {
       document.getElementById('balance').innerHTML = `<b>${tickets}</b>`;
     }
 
     /* --------------------------------------------------
-       6. Кнопка "Назад"
+       6. Back Button
     -------------------------------------------------- */
     function goBack() {
       window.location.href = 'index.html';
@@ -365,11 +398,11 @@
     });
 
     /* --------------------------------------------------
-       8. Синхронизация слайдера и инпута
+       8. Synchronize Slider and Input
     -------------------------------------------------- */
     function updatePriceDisplay(ticketCount) {
       const price = (ticketCount * 0.1).toFixed(1);
-      document.getElementById('priceDisplay').textContent = `Цена: ${price} TON`;
+      document.getElementById('priceDisplay').textContent = `Price: ${price} TON`;
     }
     function onTicketRangeInput() {
       const val = document.getElementById('ticketRange').value;
@@ -388,7 +421,7 @@
     }
 
     /* --------------------------------------------------
-       9. Модальное окно уведомлений
+       9. Modal Window for Notifications
     -------------------------------------------------- */
     function showModal(message) {
       document.getElementById('modalMessage').textContent = message;
@@ -399,7 +432,7 @@
     }
 
     /* --------------------------------------------------
-       10. Отправка транзакции (makeDeposit)
+       10. Send Transaction (makeDeposit)
     -------------------------------------------------- */
     async function makeDeposit() {
       if (!currentUsername || !userRef) {
