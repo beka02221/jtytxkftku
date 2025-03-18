@@ -17,35 +17,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
-    /* ======= Базовые сбросы и базовые стили ======= */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* ======= Базовые стили ======= */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       background-color: #0e162e;
       color: #e0e0e0;
       font-family: sans-serif;
       overflow-x: hidden;
     }
-    body {
-      display: flex;
-      flex-direction: column;
-    }
+    body { display: flex; flex-direction: column; }
 
     /* ======= Верхняя панель навигации ======= */
     #topBar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 50px; display: flex;
+      align-items: center; justify-content: space-between;
       padding: 0 15px;
       background: rgba(14,22,46,0.85);
       backdrop-filter: blur(8px);
@@ -59,9 +46,7 @@
       font-size: 14px;
       cursor: pointer;
     }
-    #topBar button:hover {
-      color: #29b6f6;
-    }
+    #topBar button:hover { color: #29b6f6; }
 
     /* ======= Основной контейнер ======= */
     .container {
@@ -159,10 +144,7 @@
       outline: none;
       box-shadow: 0 0 5px #bb86fc;
     }
-    #priceDisplay {
-      font-size: 14px;
-      color: #ffffff;
-    }
+    #priceDisplay { font-size: 14px; color: #ffffff; }
 
     /* ======= Кнопки ======= */
     button.action-btn {
@@ -192,20 +174,12 @@
     /* ======= Модальное окно ======= */
     #notificationModal {
       position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
       z-index: 2000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      display: none;
+      display: none; /* При показе будем задавать display: flex */
       align-items: center;
       justify-content: center;
       background: rgba(0,0,0,0.5);
-      animation: fadeIn 0.3s ease forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
     .modal-content {
       background: rgba(14,22,46,0.95);
@@ -215,6 +189,11 @@
       width: 80%;
       max-width: 360px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      animation: fadeIn 0.3s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
     .modal-content p {
       font-size: 14px;
@@ -224,35 +203,19 @@
 
     /* ======= Медиазапросы для мобильных устройств ======= */
     @media (max-width: 480px) {
-      .slider-block {
-        padding: 15px;
-      }
-      .slider-title {
-        font-size: 14px;
-      }
-      .tickets-count {
-        font-size: 24px;
-      }
-      button.action-btn {
-        padding: 8px 16px;
-        font-size: 12px;
-      }
-      #ticketInput {
-        width: 60px;
-        font-size: 14px;
-      }
+      .slider-block { padding: 15px; }
+      .slider-title { font-size: 14px; }
+      .tickets-count { font-size: 24px; }
+      button.action-btn { padding: 8px 16px; font-size: 12px; }
+      #ticketInput { width: 60px; font-size: 14px; }
     }
   </style>
 </head>
 <body>
   <!-- Верхняя панель: "Назад", "Смена языка" и TonConnect -->
   <div id="topBar">
-    <button id="backButton" onclick="goBack()" aria-label="Назад">
-      &#8592;
-    </button>
-    <button id="langSwitchBtn" onclick="toggleLanguage()" aria-label="Сменить язык">
-      EN
-    </button>
+    <button id="backButton" onclick="goBack()" aria-label="Назад">&#8592;</button>
+    <button id="langSwitchBtn" onclick="toggleLanguage()" aria-label="Сменить язык">EN</button>
     <div id="connect"></div>
   </div>
 
@@ -273,9 +236,7 @@
         <input type="number" id="ticketInput" min="5" max="30" step="5" value="5" oninput="onTicketInputChange()" aria-label="Количество билетов" />
       </div>
       <div id="priceDisplay">Цена: 0.5 TON</div>
-      <button class="action-btn" id="depositBtn" onclick="makeDeposit()" aria-label="Купить билеты">
-        Купить билеты
-      </button>
+      <button class="action-btn" id="depositBtn" onclick="makeDeposit()" aria-label="Купить билеты">Купить билеты</button>
     </div>
   </div>
 
@@ -471,4 +432,3 @@
   </script>
 </body>
 </html>
-
