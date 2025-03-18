@@ -91,25 +91,6 @@
      pointer-events: none;
    }
    /* Стили для элементов рулетки */
-   .lootbox-prize {
-     width: 136px;
-     display: inline-block;
-     text-align: center;
-     padding: 8px;
-     box-sizing: border-box;
-   }
-   .lootbox-prize img {
-     width: 60px;
-     height: 60px;
-     display: block;
-     margin: 0 auto;
-   }
-   .lootbox-prize span {
-     display: block;
-     margin-top: 5px;
-     font-size: 12px;
-     color: #fff;
-   }
    .lootbox-container {
      overflow: hidden;
      width: 400px;
@@ -129,6 +110,25 @@
    .lootbox-roulette {
      white-space: nowrap;
      transition: transform 0.5s ease;
+   }
+   .lootbox-prize {
+     width: 136px;
+     display: inline-block;
+     text-align: center;
+     padding: 8px;
+     box-sizing: border-box;
+   }
+   .lootbox-prize img {
+     width: 60px;
+     height: 60px;
+     display: block;
+     margin: 0 auto;
+   }
+   .lootbox-prize span {
+     display: block;
+     margin-top: 5px;
+     font-size: 12px;
+     color: #fff;
    }
   </style>
 
@@ -190,7 +190,7 @@
           <button id="miniGamesInfoBtn" class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
-          <!-- Игра STACK (game2) – переходит на stack.html без списания билетов -->
+          <!-- Игра STACK (game2) – переход на stack.html без списания билетов -->
           <div class="game-card">
             <img src="https://i.pinimg.com/736x/ed/0d/12/ed0d1214bfce57bc73d3207f47ac1d9e.jpg" alt="Match-3">
             <p id="gameCard2Title">PAC-MAN</p>
@@ -202,7 +202,7 @@
               cost: 1
             })">Play</button>
           </div>
-          <!-- Игра TETRIS (game3) – списываются билеты и запускается игра -->
+          <!-- Игра TETRIS (game3) – списываются билеты -->
           <div class="game-card">
             <img src="https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg" alt="Game 3">
             <p id="gameCard3Title">TETRIS</p>
@@ -513,7 +513,7 @@
       lastSpinTime: 0,
       dataChip: false,
       cyberCase: 0,
-      nfts: { // для NFT
+      nfts: {
         rare: 0,
         medium: 0,
         common: 0
@@ -529,7 +529,6 @@
         document.getElementById('userPhoto').src = currentUser.photo_url;
       }
       userRef = db.ref('users/' + currentUser.username);
-      // Если пользователь новый, создаём запись с начальными данными
       userRef.once('value', snapshot => {
         if (!snapshot.exists()) {
           userRef.set({
@@ -544,8 +543,6 @@
           });
         }
       });
-
-      // Подписываемся на обновления пользователя
       userRef.on('value', snapshot => {
         const data = snapshot.val() || {};
         localUserData.photo        = data.photo || '';
@@ -821,8 +818,7 @@
 
     /* ----------------------------------------------
        13. Lootbox in Cyber Case Section
-       Новые призы с откорректированными шансами:
-       - Токены и NFT имеют крайне низкие шансы (менее 2% суммарно)
+       Новые призы, где токены и NFT крайне редкие.
     ---------------------------------------------- */
     const lootboxPrizes = [
       { name: '3 tickets',     image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
@@ -834,26 +830,25 @@
       { name: '3000 points',   image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png',   chance: 5 },
       { name: '1000 points',   image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png',   chance: 20 },
       { name: '5000 points',   image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png',   chance: 10 },
-      // Токены – редкие
+      // Токены (очень редкие)
       { name: '500k tokens',   image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png',  chance: 0.4 },
       { name: '1M tokens',     image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png',  chance: 0.8 },
       { name: '5M tokens',     image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png',  chance: 0.1 },
-      // NFT – очень редкие
+      // NFT (очень редкие)
       { name: 'NFT Red',       image: 'https://img.icons8.com/ios/50/nft.png', chance: 0.3 },
       { name: 'NFT Yellow',    image: 'https://img.icons8.com/ios/50/nft.png', chance: 0.3 },
       { name: 'NFT Green',     image: 'https://img.icons8.com/ios/50/nft.png', chance: 0.3 }
     ];
 
-    // Убираем флаг referralInitialized, чтобы каждый раз пересоздавать рулетку
+    // Функция инициализации рулетки – теперь вызывается перед каждым спином,
+    // чтобы гарантировать, что порядок элементов соответствует массиву lootboxPrizes.
     function initReferralLootbox() {
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Формируем 6 циклов в исходном порядке массива lootboxPrizes
       for (let cycle = 0; cycle < 6; cycle++) {
         lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
-          // Градиент для NFT
           if (item.name === 'NFT Red') {
             prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
           } else if (item.name === 'NFT Yellow') {
@@ -942,6 +937,7 @@
 
       const caseImage = document.getElementById('caseImage');
       caseImage.classList.add('explode');
+
       caseImage.addEventListener('animationend', () => {
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
@@ -963,6 +959,7 @@
 
       const caseImage = document.getElementById('caseImage');
       caseImage.classList.add('explode');
+
       caseImage.addEventListener('animationend', () => {
         document.querySelector('.case-container').style.display = 'none';
         document.getElementById('lootboxContainer').style.display = 'block';
@@ -971,7 +968,7 @@
     }
 
     function spinRoulette() {
-      // Пересоздаём визуальную часть рулетки каждый раз, чтобы гарантировать соответствие
+      // Перестраиваем рулетку для актуального отображения призов
       initReferralLootbox();
       const roulette = document.getElementById('lootboxRoulette');
       const prizeWidth = 136;
@@ -1013,6 +1010,7 @@
     function closeLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.remove('active');
     }
+
     function openMainOnlineInfoModal() {
       document.getElementById('mainOnlineInfoModal').classList.add('active');
     }
@@ -1036,7 +1034,7 @@
     }
   </script>
   <script>
-  // Скрытая комбинация клавиш для доступа к админ-панели: Ctrl+Shift+A
+  // Скрытая комбинация клавиш для доступа к админке: Ctrl+Shift+A
   document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.shiftKey && e.key === 'A') {
       window.location.href = 'admin.html';
@@ -1045,4 +1043,3 @@
   </script>
 </body>
 </html>
-
