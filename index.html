@@ -810,14 +810,11 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Для нескольких циклов – для каждого цикла перемешиваем порядок призов
+      // Используем исходный порядок для каждого цикла, чтобы позиция в рулетке соответствовала порядку в lootboxPrizes
       for (let cycle = 0; cycle < 6; cycle++) {
-        // Клонируем массив и перемешиваем
-        let prizesCycle = lootboxPrizes.slice().sort(() => Math.random() - 0.5);
-        prizesCycle.forEach(item => {
+        lootboxPrizes.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
-          // Градиент для NFT-призов
           if (item.name === 'NFT Red') {
             prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
           } else if (item.name === 'NFT Yellow') {
@@ -996,3 +993,4 @@
   </script>
 </body>
 </html>
+
