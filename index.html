@@ -298,7 +298,7 @@
         </div>
       </div>
       <div class="lootbox-buttons">
-        <button id="openBtn" onclick="openLootBox()">Open (0)</button>
+        <button id="openBtn" onclick="openLootBox()">open (0)</button>
         <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
           <span>Open</span><br>
           <span>for 5m tokens</span>
@@ -354,9 +354,9 @@
         - 5000 points (20%)<br>
         - 1M tokens (20%)<br>
         - 5M tokens (20%)<br>
-        - NFT Red (1%) – Rare (red background)<br>
-        - NFT Yellow (1%) – Medium (yellow background)<br>
-        - NFT Green (1%) – Common (green background)
+        - NFT Red (1%) – Rare<br>
+        - NFT Yellow (1%) – Medium<br>
+        - NFT Green (1%) – Common
       </p>
       <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
@@ -533,8 +533,9 @@
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
 
+    // Изменён текст кнопки: теперь "open (0)"
     function updateCaseCount() {
-      document.getElementById('openBtn').textContent = `Decrypt data (${localUserData.cyberCase})`;
+      document.getElementById('openBtn').textContent = `open (${localUserData.cyberCase})`;
     }
 
     /* ----------------------------------------------
@@ -798,9 +799,9 @@
       { name: '5000 points', image: 'https://raw.githubusercontent.com/qnexst/404token/main/star.png', chance: 20 },
       { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
       { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
-      { name: 'NFT Red', image: 'https://via.placeholder.com/60/FF0000/FFFFFF?text=NFT', chance: 1 },
-      { name: 'NFT Yellow', image: 'https://via.placeholder.com/60/FFFF00/000000?text=NFT', chance: 1 },
-      { name: 'NFT Green', image: 'https://via.placeholder.com/60/00FF00/000000?text=NFT', chance: 1 }
+      { name: 'NFT Red', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
+      { name: 'NFT Yellow', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
+      { name: 'NFT Green', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 }
     ];
 
     let referralInitialized = false;
@@ -809,20 +810,20 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Для нескольких циклов (чтобы визуально заполнить рулетку)
+      // Для нескольких циклов – для каждого цикла перемешиваем порядок призов
       for (let cycle = 0; cycle < 6; cycle++) {
-        lootboxPrizes.forEach(item => {
+        // Клонируем массив и перемешиваем
+        let prizesCycle = lootboxPrizes.slice().sort(() => Math.random() - 0.5);
+        prizesCycle.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
-          // Если это NFT‑предметы – задаём индивидуальный фон
+          // Градиент для NFT-призов
           if (item.name === 'NFT Red') {
-            prizeEl.style.backgroundColor = 'red';
+            prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
           } else if (item.name === 'NFT Yellow') {
-            prizeEl.style.backgroundColor = 'yellow';
+            prizeEl.style.background = 'linear-gradient(45deg, #FFD700, #FFFFE0)';
           } else if (item.name === 'NFT Green') {
-            prizeEl.style.backgroundColor = 'green';
-          } else if (item.chance < 1) {
-            prizeEl.style.backgroundColor = 'red';
+            prizeEl.style.background = 'linear-gradient(45deg, #006400, #32CD32)';
           }
           prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
                                <span>${item.name}</span>`;
