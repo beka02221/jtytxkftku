@@ -354,15 +354,15 @@
         - 5000 points (20%)<br>
         - 1M tokens (20%)<br>
         - 5M tokens (20%)<br>
-        - NFT Red (1%) – Rare<br>
-        - NFT Yellow (1%) – Medium<br>
-        - NFT Green (1%) – Common
+        - NFT Red (1%) – Эксклюзивный<br>
+        - NFT Yellow (1%) – Легендарный<br>
+        - NFT Green (1%) – Редкий
       </p>
       <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
     </div>
   </div>
 
-  <!-- Game Info Modal -->
+  <!-- Modal for Game Info -->
   <div class="modal-backdrop" id="gameInfoModal">
     <div class="modal">
       <img id="gameInfoImg" src="" alt="Game Image" style="max-width:100px; display:block; margin:0 auto 10px;" />
@@ -536,7 +536,6 @@
       document.getElementById('pointCount').textContent  = localUserData.points || 0;
     }
 
-    // Изменён текст кнопки: теперь "open (0)"
     function updateCaseCount() {
       document.getElementById('openBtn').textContent = `open (${localUserData.cyberCase})`;
     }
@@ -594,12 +593,10 @@
         return;
       }
       
-      // Если игра STACK – открываем stack.html без списания билетов
       if (gameName === 'game2') {
         window.location.href = 'stack.html';
         return;
       }
-      // Если игра партнерская, Breakout или Crossy Road – выполняем редирект
       if (gameName === 'partnergame1') {
         window.location.href = 'partnergame.html';
         return;
@@ -611,7 +608,6 @@
         return;
       }
       
-      // Для Tetris (game3) проверяем наличие билетов и списываем их
       if (gameName === 'game3') {
         if ((localUserData.tickets || 0) < ticketCost) {
           showGlobalModal("Not enough tickets", "You do not have enough tickets to play!");
@@ -625,10 +621,7 @@
         gameInProgress = true;
         document.getElementById('mainNav').classList.add('hidden');
         
-        // Добавляем отображение модального окна игры
         document.getElementById('gameModalBackdrop').classList.add('active');
-        
-        // Показываем только canvas для Tetris
         document.getElementById('game3Canvas').style.display = 'block';
         initGame3();
       }
@@ -803,33 +796,18 @@
       { name: '1M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
       { name: '5M tokens', image: 'https://raw.githubusercontent.com/qnexst/404token/main/token.png', chance: 20 },
       { name: 'NFT Red', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
-      { name: 'NFT Yellow', image: 'https://via.placeholder.com/60?text=NFT', chance: 20 },
+      { name: 'NFT Yellow', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 },
       { name: 'NFT Green', image: 'https://via.placeholder.com/60?text=NFT', chance: 1 }
     ];
 
-    let referralInitialized = false;
-    function initReferralLootbox() {
-      if (referralInitialized) return;
-      referralInitialized = true;
-      const rouletteContainer = document.getElementById('lootboxRoulette');
-      rouletteContainer.innerHTML = '';
-      // Используем исходный порядок для каждого цикла, чтобы позиция в рулетке соответствовала порядку в lootboxPrizes
-      for (let cycle = 0; cycle < 6; cycle++) {
-        lootboxPrizes.forEach(item => {
-          const prizeEl = document.createElement('div');
-          prizeEl.className = 'lootbox-prize';
-          if (item.name === 'NFT Red') {
-            prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
-          } else if (item.name === 'NFT Yellow') {
-            prizeEl.style.background = 'linear-gradient(45deg, #FFD700, #FFFFE0)';
-          } else if (item.name === 'NFT Green') {
-            prizeEl.style.background = 'linear-gradient(45deg, #006400, #32CD32)';
-          }
-          prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
-                               <span>${item.name}</span>`;
-          rouletteContainer.appendChild(prizeEl);
-        });
+    // Helper function для перемешивания массива
+    function shuffleArray(array) {
+      let arr = array.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+         const j = Math.floor(Math.random() * (i + 1));
+         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
+      return arr;
     }
 
     function getWeightedRandomIndex(prizes) {
@@ -854,7 +832,7 @@
       }
     }
 
-    // Исправленная функция обработки приза с отдельной веткой для NFT
+    // Обработка приза с учетом NFT
     function addPrizeToUser(prize) {
       if (prize.name.toLowerCase().includes("token")) {
          let amount = parsePrizeAmount(prize.name);
@@ -871,11 +849,19 @@
          userRef.update({ points: localUserData.points });
          updateTopBar();
       } else if (prize.name.toLowerCase().includes("nft")) {
-         // Обработка NFT: сохраняем приз в массиве nfts
+         let nftRarity = "";
+         if(prize.name.includes("Green")) {
+             nftRarity = "Редкий";
+         } else if(prize.name.includes("Yellow")) {
+             nftRarity = "Легендарный";
+         } else if(prize.name.includes("Red")) {
+             nftRarity = "Эксклюзивный";
+         }
+         let nftData = { name: prize.name, rarity: nftRarity };
          if (!localUserData.nfts) {
            localUserData.nfts = [];
          }
-         localUserData.nfts.push(prize.name);
+         localUserData.nfts.push(nftData);
          userRef.update({ nfts: localUserData.nfts });
       } else {
          let amount = parsePrizeAmount(prize.name);
@@ -883,6 +869,71 @@
          userRef.update({ tickets: localUserData.tickets });
          updateTopBar();
       }
+    }
+
+    // Функция анимации рулетки с рандомным расположением призов
+    function spinRoulette() {
+      const roulette = document.getElementById('lootboxRoulette');
+      roulette.innerHTML = '';
+      const prizeWidth = 136;
+      const count = lootboxPrizes.length;
+      const visibleCenter = roulette.parentElement.offsetWidth / 2;
+
+      // Определяем выигрышный приз по весовой выборке
+      const winningIndex = getWeightedRandomIndex(lootboxPrizes);
+      const winningPrize = lootboxPrizes[winningIndex];
+
+      const fullCycles = 5;
+      let rouletteItems = [];
+
+      // Генерируем 5 полных циклов с перемешанными призами
+      for (let cycle = 0; cycle < fullCycles; cycle++) {
+        let shuffled = shuffleArray(lootboxPrizes);
+        rouletteItems = rouletteItems.concat(shuffled);
+      }
+
+      // В 6‑м цикле перемешиваем и гарантируем появление выигрышного приза
+      let lastCycle = shuffleArray(lootboxPrizes);
+      const targetIndex = Math.floor(Math.random() * count);
+      lastCycle[targetIndex] = winningPrize;
+      rouletteItems = rouletteItems.concat(lastCycle);
+
+      // Заполняем контейнер рулетки
+      rouletteItems.forEach(item => {
+        const prizeEl = document.createElement('div');
+        prizeEl.className = 'lootbox-prize';
+        if (item.name === 'NFT Red') {
+          prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
+        } else if (item.name === 'NFT Yellow') {
+          prizeEl.style.background = 'linear-gradient(45deg, #FFD700, #FFFFE0)';
+        } else if (item.name === 'NFT Green') {
+          prizeEl.style.background = 'linear-gradient(45deg, #006400, #32CD32)';
+        }
+        prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}"><span>${item.name}</span>`;
+        roulette.appendChild(prizeEl);
+      });
+
+      const finalIndex = fullCycles * count + targetIndex;
+      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
+
+      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      roulette.style.transform = `translateX(${finalOffset}px)`;
+
+      setTimeout(() => {
+        const remainder = finalIndex % count;
+        const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
+        roulette.style.transition = 'none';
+        roulette.style.transform = `translateX(${newOffset}px)`;
+        isSpinning = false;
+        addPrizeToUser(winningPrize);
+        showGlobalModal('Congratulations!', `Your prize: ${winningPrize.name}`);
+        document.getElementById('lootboxContainer').style.display = 'none';
+        const caseContainer = document.querySelector('.case-container');
+        caseContainer.style.display = 'block';
+        const caseImage = document.getElementById('caseImage');
+        caseImage.classList.remove('explode');
+        caseImage.style.opacity = 1;
+      }, 10200);
     }
 
     function spinLootBoxForTokens() {
@@ -929,39 +980,6 @@
       }, { once: true });
     }
 
-    function spinRoulette() {
-      initReferralLootbox();
-      const roulette = document.getElementById('lootboxRoulette');
-      const prizeWidth = 136;
-      const count = lootboxPrizes.length;
-      const visibleCenter = roulette.parentElement.offsetWidth / 2;
-      const fullCycles = 5;
-      const randomIndex = getWeightedRandomIndex(lootboxPrizes);
-      const finalIndex = randomIndex + fullCycles * count;
-      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
-
-      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
-      roulette.style.transform = `translateX(${finalOffset}px)`;
-
-      setTimeout(() => {
-        const remainder = finalIndex % count;
-        const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
-        roulette.style.transition = 'none';
-        roulette.style.transform = `translateX(${newOffset}px)`;
-        isSpinning = false;
-        const prize = lootboxPrizes[randomIndex];
-        addPrizeToUser(prize);
-        showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
-
-        document.getElementById('lootboxContainer').style.display = 'none';
-        const caseContainer = document.querySelector('.case-container');
-        caseContainer.style.display = 'block';
-        const caseImage = document.getElementById('caseImage');
-        caseImage.classList.remove('explode');
-        caseImage.style.opacity = 1;
-      }, 10200);
-    }
-
     /* ----------------------------------------------
        Modal windows for Loot Box
     ---------------------------------------------- */
@@ -995,7 +1013,7 @@
     }
   </script>
   <script>
-  // Hidden key combination for admin panel access: Ctrl+Shift+A
+  // Скрытая комбинация клавиш для доступа к админ-панели: Ctrl+Shift+A
   document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.shiftKey && e.key === 'A') {
       window.location.href = 'admin.html';
