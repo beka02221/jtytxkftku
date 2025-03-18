@@ -158,7 +158,7 @@
               gameId: 'game2',
               title: 'PAC-MAN',
               img: 'https://i.pinimg.com/736x/ed/0d/12/ed0d1214bfce57bc73d3207f47ac1d9e.jpg',
-              desc: 'Pac-Man is a classic arcade game where players guide the iconic yellow character through a maze, consuming dots while avoiding colorful ghosts. Its simple yet addictive gameplay has made it a timeless favorite in the world of video games.',
+              desc: 'Pac-Man is a classic arcade game where players guide the iconic yellow character through a maze, consuming dots while avoiding colorful ghosts. Its simple yet addictive gameplay has made it a timeless favorite.',
               cost: 1
             })">Play</button>
           </div>
@@ -487,7 +487,8 @@
       points: 0,
       lastSpinTime: 0,
       dataChip: false,
-      cyberCase: 0
+      cyberCase: 0,
+      nfts: []
     };
     let gameInProgress = false;
     let isSpinning = false;
@@ -508,7 +509,8 @@
             points: 0,
             lastSpinTime: 0,
             dataChip: false,
-            cyberCase: 0
+            cyberCase: 0,
+            nfts: []
           });
         }
       });
@@ -521,7 +523,8 @@
           points: data.points || 0,
           lastSpinTime: data.lastSpinTime || 0,
           dataChip: data.dataChip || false,
-          cyberCase: data.cyberCase || 0
+          cyberCase: data.cyberCase || 0,
+          nfts: data.nfts || []
         };
         updateTopBar();
         updateSpinButton();
@@ -795,7 +798,7 @@
     /* ----------------------------------------------
        13. Lootbox in Cyber Case Section
     ---------------------------------------------- */
-    // Обновлённый массив призов (с дополнительными призами)
+    // Массив призов с указанными шансами
     const lootboxPrizes = [
       { name: '3 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
       { name: '5 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
@@ -820,20 +823,21 @@
       referralInitialized = true;
       const rouletteContainer = document.getElementById('lootboxRoulette');
       rouletteContainer.innerHTML = '';
-      // Для нескольких циклов – для каждого цикла перемешиваем порядок призов
+      // Для нескольких циклов – перемешиваем порядок призов
       for (let cycle = 0; cycle < 6; cycle++) {
-        // Клонируем массив и перемешиваем
         let prizesCycle = lootboxPrizes.slice().sort(() => Math.random() - 0.5);
         prizesCycle.forEach(item => {
           const prizeEl = document.createElement('div');
           prizeEl.className = 'lootbox-prize';
           // Градиент для NFT-призов
-          if (item.name === 'NFT Red') {
-            prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
-          } else if (item.name === 'NFT Yellow') {
-            prizeEl.style.background = 'linear-gradient(45deg, #FFD700, #FFFFE0)';
-          } else if (item.name === 'NFT Green') {
-            prizeEl.style.background = 'linear-gradient(45deg, #006400, #32CD32)';
+          if (item.name.toUpperCase().startsWith('NFT')) {
+            if(item.name === 'NFT Red'){
+              prizeEl.style.background = 'linear-gradient(45deg, #8B0000, #FF6347)';
+            } else if(item.name === 'NFT Yellow'){
+              prizeEl.style.background = 'linear-gradient(45deg, #FFD700, #FFFFE0)';
+            } else if(item.name === 'NFT Green'){
+              prizeEl.style.background = 'linear-gradient(45deg, #006400, #32CD32)';
+            }
           }
           prizeEl.innerHTML = `<img src="${item.image}" alt="${item.name}">
                                <span>${item.name}</span>`;
@@ -865,26 +869,74 @@
     }
 
     function addPrizeToUser(prize) {
+      // Если приз содержит "token" или "points", обрабатываем как раньше
       if (prize.name.toLowerCase().includes("token")) {
          let amount = parsePrizeAmount(prize.name);
          localUserData.coins += amount;
          userRef.update({ coins: localUserData.coins });
          updateTopBar();
-      } else if (prize.name.toLowerCase().includes("case")) {
-         localUserData.cyberCase += 1;
-         userRef.update({ cyberCase: localUserData.cyberCase });
-         updateCaseCount();
       } else if (prize.name.toLowerCase().includes("point")) {
          let amount = parsePrizeAmount(prize.name);
          localUserData.points += amount;
          userRef.update({ points: localUserData.points });
          updateTopBar();
-      } else {
+      }
+      // Если приз связан с кейсом (но не NFT)
+      else if (prize.name.toLowerCase().includes("case") && !prize.name.toUpperCase().startsWith("NFT")) {
+         localUserData.cyberCase += 1;
+         userRef.update({ cyberCase: localUserData.cyberCase });
+         updateCaseCount();
+      }
+      // Если приз – NFT (название начинается с "NFT")
+      else if (prize.name.toUpperCase().startsWith("NFT")) {
+         if (!localUserData.nfts) {
+             localUserData.nfts = [];
+         }
+         localUserData.nfts.push(prize.name);
+         userRef.update({ nfts: localUserData.nfts });
+         showGlobalModal("Congratulations!", `You won an NFT: ${prize.name}`);
+         return;
+      }
+      // Все остальные обрабатываем как билеты
+      else {
          let amount = parsePrizeAmount(prize.name);
          localUserData.tickets += amount;
          userRef.update({ tickets: localUserData.tickets });
          updateTopBar();
       }
+    }
+
+    // Функция анимации рулетки с нелинейным эффектом и случайным смещением
+    function spinRoulette() {
+      initReferralLootbox();
+      const roulette = document.getElementById('lootboxRoulette');
+      const prizeWidth = 136;
+      const count = lootboxPrizes.length;
+      const visibleCenter = roulette.parentElement.offsetWidth / 2;
+      const fullCycles = 5;
+      const randomIndex = getWeightedRandomIndex(lootboxPrizes);
+      // Случайное смещение (не обязательно центрировать точно)
+      const randomOffset = Math.random() * prizeWidth - (prizeWidth / 2);
+      const finalIndex = randomIndex + fullCycles * count;
+      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter + randomOffset;
+      // Применяем переход с кривой, имитирующей медленный старт, ускорение и замедление в конце
+      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      roulette.style.transform = `translateX(${finalOffset}px)`;
+
+      setTimeout(() => {
+        // Не выравниваем точно – оставляем конечное смещение случайным
+        isSpinning = false;
+        const prize = lootboxPrizes[randomIndex];
+        addPrizeToUser(prize);
+        showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
+
+        document.getElementById('lootboxContainer').style.display = 'none';
+        const caseContainer = document.querySelector('.case-container');
+        caseContainer.style.display = 'block';
+        const caseImage = document.getElementById('caseImage');
+        caseImage.classList.remove('explode');
+        caseImage.style.opacity = 1;
+      }, 10200);
     }
 
     function spinLootBoxForTokens() {
@@ -931,39 +983,6 @@
       }, { once: true });
     }
 
-    function spinRoulette() {
-      initReferralLootbox();
-      const roulette = document.getElementById('lootboxRoulette');
-      const prizeWidth = 136;
-      const count = lootboxPrizes.length;
-      const visibleCenter = roulette.parentElement.offsetWidth / 2;
-      const fullCycles = 5;
-      const randomIndex = getWeightedRandomIndex(lootboxPrizes);
-      const finalIndex = randomIndex + fullCycles * count;
-      const finalOffset = -(finalIndex * prizeWidth) + visibleCenter - (prizeWidth / 2);
-
-      roulette.style.transition = 'transform 10s cubic-bezier(0.25, 0.1, 0.25, 1)';
-      roulette.style.transform = `translateX(${finalOffset}px)`;
-
-      setTimeout(() => {
-        const remainder = finalIndex % count;
-        const newOffset = -(remainder * prizeWidth) + visibleCenter - (prizeWidth / 2);
-        roulette.style.transition = 'none';
-        roulette.style.transform = `translateX(${newOffset}px)`;
-        isSpinning = false;
-        const prize = lootboxPrizes[randomIndex];
-        addPrizeToUser(prize);
-        showGlobalModal('Congratulations!', `Your prize: ${prize.name}`);
-
-        document.getElementById('lootboxContainer').style.display = 'none';
-        const caseContainer = document.querySelector('.case-container');
-        caseContainer.style.display = 'block';
-        const caseImage = document.getElementById('caseImage');
-        caseImage.classList.remove('explode');
-        caseImage.style.opacity = 1;
-      }, 10200);
-    }
-
     /* ----------------------------------------------
        Modal windows for Loot Box
     ---------------------------------------------- */
@@ -997,12 +1016,12 @@
     }
   </script>
   <script>
-  // Hidden key combination for admin panel access: Ctrl+Shift+A
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-      window.location.href = 'admin.html';
-    }
-  });
+    // Hidden key combination for admin panel access: Ctrl+Shift+A
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        window.location.href = 'admin.html';
+      }
+    });
   </script>
 </body>
 </html>
