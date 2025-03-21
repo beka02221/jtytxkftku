@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
 
-  <!-- Шрифт: Press Start 2P -->
+  <!-- Font: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
@@ -17,7 +17,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* ========= Сброс стилей ========= */
+    /* ========= Базовые сбросы ========= */
     * {
       margin: 0;
       padding: 0;
@@ -28,31 +28,32 @@
       height: 100%;
       overflow-x: hidden;
     }
-
+    
     /* ========= Основной стиль страницы ========= */
     body {
-      font-family: 'Press Start 2P', sans-serif;
       background-color: #0e162e;
       color: #e0e0e0;
+      font-family: 'Press Start 2P', monospace;
       overflow: hidden;
     }
     
-    /* ========= Верхняя панель (header) ========= */
-    header#topBar {
+    /* ========= Верхняя панель (Header) с эффектом блюра ========= */
+    header {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       padding: 12px 20px;
-      background: rgba(14,22,46,0.8);
+      background: rgba(14,22,46,0.6);
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-bottom: 2px solid #fff;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 2100;
     }
-    header#topBar button {
+    header button {
       font-size: 12px;
       padding: 8px 16px;
       background: linear-gradient(135deg, #bb86fc, #29b6f6);
@@ -63,36 +64,29 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    header#topBar button:hover {
+    header button:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 12px rgba(0,0,0,0.4);
     }
-    header#topBar button:active {
-      animation: press 0.15s forwards;
+    header button:active {
+      transform: translateY(2px);
     }
-    @keyframes press {
-      0%   { transform: translateY(0) scale(1); }
-      50%  { transform: translateY(2px) scale(0.97); }
-      100% { transform: translateY(0) scale(1); }
-    }
-
-    /* ========= Игровой Canvas ========= */
+    
+    /* ========= Canvas для игры ========= */
     #specialGameCanvas {
       display: block;
-      margin: 80px auto 0 auto; /* отступ сверху учитывает header */
-      background: #00103c;
-      border: 2px solid #FF00FF;
-      box-shadow: 0 0 10px #FF00FF;
+      margin: 70px auto 0; /* отступ сверху для размещения header */
+      background: url('1.jpg') center/cover no-repeat;
     }
-
-    /* ========= Landing Screen ========= */
+    
+    /* ========= Экран приветствия (Landing Screen) ========= */
     #landingScreen {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, #0e162e, #1f1c2c);
+      background: linear-gradient(135deg, #0e162e, #1a1a40);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -103,170 +97,109 @@
     }
     .landingContent {
       max-width: 600px;
+      overflow-y: auto;
     }
     .landingContent img {
       max-width: 300px;
       height: auto;
       margin-bottom: 20px;
-      border: 2px solid #FF00FF;
+      border: 2px solid #bb86fc;
       border-radius: 8px;
     }
     .landingContent h1 {
       margin: 10px 0;
       font-size: 28px;
       color: #bb86fc;
+      text-transform: uppercase;
     }
     .landingContent p {
       font-size: 14px;
       line-height: 1.4;
       margin-bottom: 10px;
       text-align: left;
+    }
+    .collapsed {
       max-height: 100px;
       overflow: hidden;
       transition: max-height 0.3s ease;
     }
-    .landingContent p.expanded {
-      max-height: none;
-    }
     .landingContent button {
-      font-size: 14px;
-      padding: 10px 20px;
       margin: 10px;
-      background: linear-gradient(135deg, #bb86fc, #29b6f6);
-      color: #000;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      transition: transform 0.2s;
-    }
-    .landingContent button:hover {
-      transform: translateY(-2px);
-    }
-    .landingContent button:active {
-      animation: press 0.15s forwards;
     }
     
-    /* ========= Модальные окна (общие) ========= */
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.3);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .modal-backdrop.active {
-      display: flex;
-    }
-    .modal {
-      background: #0e162e;
-      border: 2px solid #3b3b3b;
-      border-radius: 8px;
-      padding: 20px;
-      width: 90%;
-      max-width: 360px;
-      color: #e0e0e0;
-      box-shadow: 0 0 15px #29b6f6;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .modal-header h2 {
-      font-size: 16px;
-      color: #bb86fc;
-    }
-    .modal-close {
-      background: transparent;
-      border: none;
-      font-size: 20px;
-      line-height: 1;
-      cursor: pointer;
-      color: #FF00FF;
-    }
-    .modal-body {
-      margin-bottom: 10px;
-    }
-    .modal-actions {
-      text-align: center;
-    }
-    .modal-actions button {
-      margin: 0 5px;
-    }
-    
-    /* ========= Модальное окно создания комнаты ========= */
-    .create-modal {
-      max-width: 360px;
-    }
-    
-    /* ========= Модальное окно поиска комнат ========= */
-    .search-modal {
-      width: 95%;
-      max-width: 500px;
-      height: 90%;
-      display: flex;
-      flex-direction: column;
-    }
-    .search-modal .modal-header {
-      border-bottom: 1px solid #FF00FF;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
-    }
-    .search-modal .modal-body {
-      flex: 1;
-      overflow-y: auto;
-    }
-    .room-list .room-card {
-      border: 1px solid #FF00FF;
+    /* ========= Карточка комнаты ========= */
+    .room-card {
+      border: 1px solid #bb86fc;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(255,255,255,0.1);
-    }
-    .room-list .room-card p {
-      margin: 0;
-      font-size: 12px;
-      color: #FF00FF;
-    }
-    .room-list .room-card button {
-      font-size: 12px;
-      padding: 5px 10px;
+      background: rgba(187, 134, 252, 0.1);
     }
     
-    /* ========= Джойстик ========= */
-    #joystick {
+    /* ========= Модальные окна ========= */
+    .modal-backdrop {
       position: fixed;
-      width: 100px;
-      height: 100px;
-      margin: -50px 0 0 -50px;
-      background: rgba(100, 100, 100, 0.3);
-      border: 2px solid rgba(200,200,200,0.7);
-      border-radius: 50%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(14,22,46,0.95);
       display: none;
-      z-index: 1000;
-      touch-action: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
     }
-    #joystick-stick {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      margin: -25px 0 0 -25px;
-      background: rgba(200,200,200,0.5);
-      border: 2px solid rgba(255,255,255,0.8);
-      border-radius: 50%;
-      left: 50%;
-      top: 50%;
-      touch-action: none;
+    .modal {
+      background: #0e162e;
+      border: 2px solid #3b3b3b;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      border-radius: 8px;
+    }
+    /* Модальное окно для недостатка монет */
+    #insufficientModal .modal {
+      background-color: #6d4fba;
+      border: 2px solid #3b3b3b;
+    }
+    
+    /* ========= Модальное окно поиска комнат (полноэкранное) ========= */
+    #searchRoomModal {
+      display: none;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding-top: 60px;
+    }
+    #searchRoomModal.active {
+      display: flex;
+    }
+    #searchRoomModal h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #bb86fc;
+    }
+    #roomList {
+      max-height: 60vh;
+      overflow-y: auto;
+      margin: 20px 0;
+    }
+    #refreshSearchBtn,
+    #cancelSearchRoomBtn {
+      margin: 10px;
+      padding: 8px 16px;
+    }
+    
+    /* ========= Модальное окно создания комнаты ========= */
+    #createRoomModal {
+      display: none;
+      flex-direction: column;
+    }
+    #createRoomModal.active {
+      display: flex;
     }
     
     /* ========= Кнопка копирования ссылки ========= */
@@ -284,24 +217,133 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       cursor: pointer;
       display: none;
-      transition: transform 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
     #copyButton:hover {
       transform: translateX(-50%) translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
     }
     
-    /* ========= Endgame Modal ========= */
+    /* ========= Модальное окно итогов игры ========= */
+    .endgame-backdrop {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+    }
+    .endgame-backdrop.active {
+      display: flex;
+    }
     .endgame-modal {
+      background: #0e162e;
+      border: 2px solid #3b3b3b;
+      border-radius: 4px;
+      padding: 16px;
+      width: 80%;
       max-width: 360px;
       text-align: center;
+      box-shadow: 0 0 15px #0ff;
+    }
+    .endgame-modal h2 {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #bb86fc;
+    }
+    .endgame-modal p {
+      margin-bottom: 16px;
+      font-size: 12px;
     }
     
-    /* ========= Firebase/Insufficient Modal ========= */
-    /* Оставляем минимальные стили, схожие с общими модальными окнами */
+    /* ========= Панель управления и джойстик ========= */
+    #controlPanel {
+      width: 150px;
+      height: 150px;
+      margin: 20px auto;
+      position: relative;
+    }
+    #controlPanel .control-button {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, #bb86fc, #29b6f6);
+      border: none;
+      border-radius: 10px;
+      color: #000;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: transform 0.1s;
+    }
+    #btn-up {
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .control-button:hover {
+      transform: scale(1.2);
+    }
+    .control-button:active {
+      transform: translateY(2px) scale(1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    #joystick {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      margin: -50px 0 0 -50px;
+      background: rgba(100, 100, 100, 0.3);
+      border: 2px solid rgba(200, 200, 200, 0.7);
+      border-radius: 50%;
+      display: none;
+      z-index: 1000;
+    }
+    #joystick-stick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px;
+      background: rgba(200, 200, 200, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+    }
+    
+    /* ========= Дополнительные настройки дизайна (гамбургер) ========= */
+    #design-settings {
+      position: fixed;
+      top: 20px;
+      left: 10px;
+      z-index: 1100;
+    }
+    #design-settings button {
+      width: 30px;
+      height: 20px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0;
+    }
+    #design-settings .hamburger-line {
+      width: 80%;
+      height: 3px;
+      background: #bb86fc;
+      border-radius: 2px;
+    }
+    #design-settings button:hover .hamburger-line {
+      background: #ff0037;
+    }
+    #design-settings button:active {
+      transform: translateY(2px);
+    }
   </style>
 </head>
 <body>
-  <!-- Верхняя панель (header) -->
+  <!-- Верхняя панель (Header) -->
   <header id="topBar">
     <button id="homeBackBtn">Back</button>
     <button id="coinButton" onclick="window.location.href='buy.html'">0 Coins</button>
@@ -311,7 +353,7 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
 
-  <!-- Обучающая страница / Landing Screen -->
+  <!-- Экран приветствия (Landing Screen) -->
   <div id="landingScreen">
     <div class="landingContent">
       <img src="game_preview.jpg" alt="Game Preview">
@@ -328,57 +370,44 @@
 
   <!-- Модальное окно создания комнаты -->
   <div id="createRoomModal" class="modal-backdrop">
-    <div class="modal create-modal">
-      <div class="modal-header">
-        <h2>Создать комнату</h2>
-        <button id="cancelCreateRoomBtn" class="modal-close">×</button>
-      </div>
-      <div class="modal-body">
-        <p>Выберите ставку (в миллионах): <span id="betValueDisplay">1 млн</span></p>
-        <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
-        <div class="modal-actions">
-          <button id="confirmCreateRoomBtn">Создать</button>
-        </div>
+    <div class="modal">
+      <h2>Создать комнату</h2>
+      <p>Выберите ставку (в миллионах): <span id="betValueDisplay">1 млн</span></p>
+      <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
+      <div style="margin-top: 20px;">
+        <button id="confirmCreateRoomBtn">Создать</button>
+        <button id="cancelCreateRoomBtn">Отмена</button>
       </div>
     </div>
   </div>
 
   <!-- Модальное окно поиска комнат (полноэкранное) -->
   <div id="searchRoomModal" class="modal-backdrop">
-    <div class="modal search-modal">
-      <div class="modal-header">
-        <h2>Доступные комнаты</h2>
-        <div class="modal-actions">
-          <button id="refreshSearchBtn">Обновить</button>
-          <button id="cancelSearchRoomBtn" class="modal-close">Закрыть</button>
-        </div>
+    <div class="modal" style="max-width: none; width: 90%; height: 90vh; overflow-y: auto;">
+      <h2>Доступные комнаты</h2>
+      <div id="roomList">
+        <!-- Здесь будут карточки с комнатами -->
       </div>
-      <div class="modal-body">
-        <div id="roomList" class="room-list">
-          <!-- Здесь будут карточки с комнатами -->
-        </div>
+      <div>
+        <button id="refreshSearchBtn">Обновить</button>
+        <button id="cancelSearchRoomBtn">Закрыть</button>
       </div>
     </div>
-  </div>
-
-  <!-- Джойстик (для мобильных устройств) -->
-  <div id="joystick">
-    <div id="joystick-stick"></div>
   </div>
 
   <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
 
   <!-- Модальное окно итогов игры -->
-  <div id="endgameBackdrop" class="modal-backdrop">
-    <div class="modal endgame-modal">
+  <div id="endgameBackdrop" class="endgame-backdrop">
+    <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
       <p id="endgameMessage"></p>
       <button onclick="finishGame()">Continue</button>
     </div>
   </div>
 
-  <!-- Модальное окно недостатка монет -->
+  <!-- Модальное окно для недостатка монет -->
   <div id="insufficientModal" class="modal-backdrop">
     <div class="modal">
       <h2>Недостаточно монет</h2>
@@ -387,14 +416,18 @@
     </div>
   </div>
 
-  <script>
-    /* 
-    ============================================================
-      Special Snake PvP – JS код (обновлённый для нового интерфейса)
-    ============================================================
-    */
+  <!-- Джойстик (для мобильных устройств) -->
+  <div id="joystick">
+    <div id="joystick-stick"></div>
+  </div>
 
-    // Глобальные переменные и настройки canvas
+  <script>
+    /* ================================================
+       Special Snake PvP – Основной JavaScript код
+       (Создание/поиск комнаты, логика игры, управление, смена языка, обновление баланса и т.д.)
+    ================================================ */
+
+    // Глобальные переменные и настройки игры
     let specialGameCanvas;
     let specialCtx;
 
@@ -402,29 +435,56 @@
     const GAME_AREA_Y = 50;
     const GAME_AREA_WIDTH = 300;
     const GAME_AREA_HEIGHT = 500;
-    const gridSize = 20;
-    const tileCountX = GAME_AREA_WIDTH / gridSize;  
-    const tileCountY = GAME_AREA_HEIGHT / gridSize; 
 
-    let roomId = null, playerId = null, opponentId = null, gameStateRef = null;
-    let localSnake = [], localDirection = 'right', score = 0;
-    let previousSnake = [], lastLogicUpdateTime = 0;
-    let opponentSnake = [], opponentScore = 0, opponentName = '';
-    let previousOpponentSnake = [], lastOpponentUpdateTime = performance.now();
+    const gridSize = 20;
+    const tileCountX = GAME_AREA_WIDTH / gridSize;
+    const tileCountY = GAME_AREA_HEIGHT / gridSize;
+
+    let roomId = null;
+    let playerId = null;
+    let opponentId = null;
+    let gameStateRef = null;
+
+    let localSnake = [];
+    let localDirection = 'right';
+    let score = 0;
+
+    let previousSnake = [];
+    let lastLogicUpdateTime = 0;
+
+    let opponentSnake = [];
+    let opponentScore = 0;
+    let opponentName = '';
+
+    let previousOpponentSnake = [];
+    let lastOpponentUpdateTime = performance.now();
+
     let applePos = { x: 0, y: 0 };
-    let isGameRunning = false, isGameOver = false, countdownValue = 5;
+
+    let isGameRunning = false;
+    let isGameOver = false;
+    let countdownValue = 5;
     let showOpponentNameTimeout = null;
-    let timerTotal = 60, timerCurrent = 60;
-    let logicTimer = null, countdownInterval = null;
-    let waitingListener = null, oppListener = null;
-    const snakeColors = { player1: '#FFFF00', player2: '#FF0000' };
+
+    let timerTotal = 60;
+    let timerCurrent = 60;
+
+    let logicTimer = null;
+    let countdownInterval = null;
+
+    let waitingListener = null;
+    let oppListener = null;
+
+    const snakeColors = {
+      player1: '#FFFF00',
+      player2: '#FF0000'
+    };
+
     const LOGIC_INTERVAL = 150;
+
     let inviteLink = "";
     let opponentDisconnected = false;
 
-    /* ======================================
-       Вспомогательная функция для интерполяции
-    ===================================== */
     function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
       let diff = currVal - prevVal;
       if (Math.abs(diff) > maxVal / 2) {
@@ -437,14 +497,13 @@
       return interp;
     }
 
-    /* ======================================
-       1. ИНИЦИАЛИЗАЦИЯ И СБРОС
-    ===================================== */
     function initSpecialGame1() {
       specialGameCanvas = document.getElementById('specialGameCanvas');
       specialCtx = specialGameCanvas.getContext('2d');
+
       resetSpecialGame1();
       drawWaitingScreen();
+
       setupControlButtons();
     }
 
@@ -472,6 +531,7 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
+
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -483,9 +543,6 @@
       removeSwipeListeners();
     }
 
-    /* ======================================
-       2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
-    ===================================== */
     function autoJoinFreeGame() {
       const queueRef = firebase.database().ref('snakeQueue');
       queueRef.orderByChild('bet').equalTo(0).once('value')
@@ -525,7 +582,7 @@
     }
 
     function showInsufficientModal() {
-      document.getElementById('insufficientModal').classList.add('active');
+      document.getElementById('insufficientModal').style.display = 'flex';
     }
 
     function createRoom(bet) {
@@ -560,7 +617,7 @@
       queueRef.child(roomId).onDisconnect().remove();
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
-      document.getElementById('createRoomModal').classList.remove('active');
+      document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
       waitForOpponent();
@@ -592,22 +649,28 @@
               const infoDiv = document.createElement('div');
               const usernameP = document.createElement('p');
               usernameP.textContent = "@" + room.creator;
+              usernameP.style.margin = '0';
+              usernameP.style.color = '#bb86fc';
               const betP = document.createElement('p');
               betP.textContent = room.bet + " млн";
+              betP.style.margin = '0';
+              betP.style.color = '#bb86fc';
               infoDiv.appendChild(usernameP);
               infoDiv.appendChild(betP);
               detailsDiv.appendChild(infoDiv);
               card.appendChild(detailsDiv);
               const joinBtn = document.createElement('button');
               joinBtn.textContent = 'Присоединиться';
+              joinBtn.style.fontSize = '12px';
+              joinBtn.style.padding = '5px 10px';
               joinBtn.addEventListener('click', function() {
-                joinRoom(roomKey);
+                 joinRoom(roomKey);
               });
               card.appendChild(joinBtn);
               roomListDiv.appendChild(card);
             });
           } else {
-            roomListDiv.innerHTML = '<p style="color: #FF00FF;">Нет доступных комнат</p>';
+             roomListDiv.innerHTML = '<p style="color: #bb86fc;">Нет доступных комнат</p>';
           }
         })
         .catch(err => console.error('Error searching rooms:', err));
@@ -641,16 +704,14 @@
       setupGameReferences();
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
-      document.getElementById('searchRoomModal').classList.remove('active');
+      document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
       waitForOpponent();
     }
 
-    /* ======================================
-       3. ОЖИДАНИЕ ПРОТИВНИКА
-    ===================================== */
     function waitForOpponent() {
       drawSearchScreen();
+
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       waitingListener = statusRef.on('value', async (snapshot) => {
         const currentStatus = snapshot.val();
@@ -695,12 +756,10 @@
       });
     }
 
-    /* ======================================
-       4. НАСТРОЙКА gameStateRef + СЛУШАТЕЛИ
-    ===================================== */
     function setupGameReferences() {
       gameStateRef = firebase.database().ref('snakeGames/' + roomId);
       const playerRef = gameStateRef.child('players').child(playerId);
+
       playerRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
           let startX, startY;
@@ -722,11 +781,13 @@
             score: 0,
             username: (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'Player'
           }).catch((err) => console.error('Error initializing player data:', err));
+
           playerRef.onDisconnect().remove()
             .then(() => console.log("onDisconnect set for player:", playerId))
             .catch((err) => console.error("Error setting onDisconnect:", err));
         }
       });
+
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -734,6 +795,7 @@
           applePos.y = aData.y;
         }
       });
+
       gameStateRef.child('gameOver').on('value', (snapshot) => {
         if (snapshot.val() === true && !isGameOver) {
           isGameOver = true;
@@ -742,9 +804,6 @@
       });
     }
 
-    /* ======================================
-       5. ОБРАТНЫЙ ОТСЧЁТ И СТАРТ ИГРЫ
-    ===================================== */
     function startCountdown() {
       countdownValue = 5;
       countdownInterval = setInterval(() => {
@@ -761,6 +820,7 @@
       document.getElementById('topBar').style.display = 'none';
       isGameRunning = true;
       isGameOver = false;
+
       gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
         const data = snapshot.val();
         if (data && data.snake) {
@@ -768,13 +828,16 @@
         }
         localDirection = (data && data.direction) ? data.direction : 'right';
         score = (data && data.score) ? data.score : 0;
+        
         previousSnake = localSnake.map(seg => ({...seg}));
         lastLogicUpdateTime = performance.now();
+
         gameStateRef.child('apple').once('value').then((appleSnap) => {
           if (!appleSnap.exists()) {
             spawnApple();
           }
         });
+
         addSwipeListeners();
         startLogicLoop();
         startTimer();
@@ -782,27 +845,29 @@
       });
     }
 
-    /* ======================================
-       6. ЛОГИКА И РЕНДЕР ИГРЫ
-    ===================================== */
     function startLogicLoop() {
       logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
     }
+
     function stopLogicLoop() {
       if (logicTimer) {
         clearInterval(logicTimer);
         logicTimer = null;
       }
     }
+
     function gameLogicUpdate() {
       if (!isGameRunning || isGameOver) return;
+
       previousSnake = localSnake.map(seg => ({...seg}));
       moveLocalSnake();
       lastLogicUpdateTime = performance.now();
+
       if (checkSelfCollision()) {
         setGameOver();
         return;
       }
+
       const head = localSnake[0];
       if (head.x === applePos.x && head.y === applePos.y) {
         score++;
@@ -812,6 +877,7 @@
         updatePlayerState(false);
       }
     }
+
     function renderLoop() {
       renderGame();
       if (!isGameOver) {
@@ -819,9 +885,6 @@
       }
     }
 
-    /* ======================================
-       7. ДВИЖЕНИЕ ЗМЕЙКИ
-    ===================================== */
     function moveLocalSnake() {
       const head = { ...localSnake[0] };
       switch (localDirection) {
@@ -837,13 +900,11 @@
       localSnake.unshift(head);
       localSnake.pop();
     }
+
     function checkSelfCollision() {
       return false;
     }
 
-    /* ======================================
-       8. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
-    ===================================== */
     function updatePlayerState(ateApple) {
       if (ateApple) {
         const lastSegment = localSnake[localSnake.length - 1];
@@ -855,6 +916,7 @@
         score: score
       }).catch((err) => console.error('Error updating player state:', err));
     }
+
     function spawnApple() {
       const newApple = {
         x: Math.floor(Math.random() * tileCountX),
@@ -864,15 +926,13 @@
         .catch((err) => console.error('Error setting apple:', err));
     }
 
-    /* ======================================
-       9. КОНЕЦ ИГРЫ
-    ===================================== */
     function setGameOver() {
       isGameOver = true;
       gameStateRef.update({ gameOver: true })
         .catch((err) => console.error('Error setting gameOver:', err));
       endGame();
     }
+
     function endGame() {
       stopLogicLoop();
       clearInterval(countdownInterval);
@@ -893,9 +953,6 @@
       cleanupRoom();
     }
 
-    /* ======================================
-       10. ТАЙМЕР (1 минута)
-    ===================================== */
     function startTimer() {
       timerCurrent = timerTotal;
       const timerInterval = setInterval(() => {
@@ -911,17 +968,16 @@
       }, 1000);
     }
 
-    /* ======================================
-       11. РЕНДЕР ИГРЫ (с интерполяцией)
-    ===================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
       drawMatrixGrid();
+
       let now = performance.now();
       let factor = Math.min((now - lastLogicUpdateTime) / LOGIC_INTERVAL, 1);
-      // Рисуем яблоко
+
       let appleImg = new Image();
       appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
       if (appleImg.complete) {
@@ -933,7 +989,7 @@
           gridSize
         );
       }
-      // Рисуем локальную змейку
+
       for (let i = 0; i < localSnake.length; i++) {
         let curr = localSnake[i];
         let prev = previousSnake[i] || curr;
@@ -947,7 +1003,7 @@
         specialCtx.lineWidth = 2;
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
-      // Рисуем змейку противника
+
       let opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
       for (let i = 0; i < opponentSnake.length; i++) {
         let curr = opponentSnake[i];
@@ -962,18 +1018,21 @@
         specialCtx.lineWidth = 2;
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
-      // Отрисовка счёта и таймера
+
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
       specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
     }
+
     function drawMatrixGrid() {
       specialCtx.fillStyle = '#433171';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
+
       specialCtx.strokeStyle = '#00103c';
       for (let i = 0; i <= tileCountX; i++) {
         let x = GAME_AREA_X + i * gridSize;
@@ -994,47 +1053,51 @@
       specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
     }
 
-    /* ======================================
-       12. ЭКРАНЫ "SEARCHING / WAITING..."
-    ===================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.fillText(
+        'Searching for opponent...',
+        specialGameCanvas.width / 2,
+        specialGameCanvas.height / 2
+      );
       specialCtx.font = '10px "Press Start 2P", sans-serif';
       specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
     }
+
     function drawWaitingScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
     }
+
     function drawOpponentFoundScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText('Opponent found!', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
     }
+
     function drawCountdownScreen(value) {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '60px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText(value.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 2);
     }
 
-    /* ======================================
-       13. ОБРАБОТКА ВВОДА (джойстик + клавиатура)
-    ===================================== */
     function addSwipeListeners() {
       function onKeyDown(e) {
         switch (e.key) {
@@ -1061,6 +1124,7 @@
       let joystickActive = false;
       let joystickCenter = { x: 0, y: 0 };
       const maxDistance = 40;
+
       function handleTouchStart(e) {
         if (e.touches.length > 0) {
           const touch = e.touches[0];
@@ -1074,6 +1138,7 @@
           e.preventDefault();
         }
       }
+
       function handleTouchMove(e) {
         if (!joystickActive) return;
         if (e.touches.length > 0) {
@@ -1088,27 +1153,37 @@
           }
           joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
           if (Math.abs(dx) > Math.abs(dy)) {
-            if (dx > 0 && localDirection !== 'left') localDirection = 'right';
-            else if (dx < 0 && localDirection !== 'right') localDirection = 'left';
+            if (dx > 0 && localDirection !== 'left') {
+              localDirection = 'right';
+            } else if (dx < 0 && localDirection !== 'right') {
+              localDirection = 'left';
+            }
           } else {
-            if (dy > 0 && localDirection !== 'up') localDirection = 'down';
-            else if (dy < 0 && localDirection !== 'down') localDirection = 'up';
+            if (dy > 0 && localDirection !== 'up') {
+              localDirection = 'down';
+            } else if (dy < 0 && localDirection !== 'down') {
+              localDirection = 'up';
+            }
           }
           e.preventDefault();
         }
       }
+
       function handleTouchEnd(e) {
         joystickActive = false;
         joystick.style.display = 'none';
         e.preventDefault();
       }
+
       canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
       canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
       canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
       window.__joystick_touchstart = handleTouchStart;
       window.__joystick_touchmove = handleTouchMove;
       window.__joystick_touchend = handleTouchEnd;
     }
+
     function removeSwipeListeners() {
       if (!specialGameCanvas) return;
       specialGameCanvas.removeEventListener('touchstart', window.__joystick_touchstart);
@@ -1121,9 +1196,6 @@
       window.__joystick_keydown = null;
     }
 
-    /* ======================================
-       14. КОПИРОВАНИЕ ССЫЛКИ
-    ===================================== */
     function copyInviteLink() {
       if (!inviteLink) return;
       navigator.clipboard.writeText(inviteLink)
@@ -1131,18 +1203,15 @@
         .catch(err => console.error("Error copying invite link:", err));
     }
 
-    /* ======================================
-       15. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
-    ===================================== */
     function showEndGameModal(title, message) {
-      document.getElementById('endgameBackdrop').classList.add('active');
-      document.getElementById('endgameTitle').textContent = title;
-      document.getElementById('endgameMessage').textContent = message;
+      const modal = document.getElementById('endgameBackdrop');
+      const titleEl = document.getElementById('endgameTitle');
+      const msgEl = document.getElementById('endgameMessage');
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      modal.classList.add('active');
     }
 
-    /* ======================================
-       16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
-    ===================================== */
     function setupControlButtons() {
       const buttons = document.querySelectorAll('.control-button');
       buttons.forEach(button => {
@@ -1159,28 +1228,24 @@
       });
     }
 
-    /* ======================================
-       17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
-    ===================================== */
     function cleanupRoom() {
       if (roomId) {
         firebase.database().ref('snakeGames/' + roomId).remove()
           .then(() => console.log("Game room removed from snakeGames."))
           .catch((err) => console.error("Error removing game room:", err));
+
         firebase.database().ref('snakeQueue/' + roomId).remove()
           .then(() => console.log("Game room removed from snakeQueue."))
           .catch((err) => console.error("Error removing room from snakeQueue:", err));
       }
     }
+
     window.addEventListener('beforeunload', function() {
       if (roomId && gameStateRef) {
         gameStateRef.child('players').child(playerId).remove();
       }
     });
 
-    /* ======================================
-       18. ФИНИШ ИГРЫ
-    ===================================== */
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       window.location.href = 'index.html';
@@ -1189,28 +1254,27 @@
       window.location.href = 'index.html';
     }
 
-    /* ======================================
-       19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
-    ===================================== */
     document.getElementById('createRoomBtn').addEventListener('click', function(){
       document.getElementById('landingScreen').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      document.getElementById('createRoomModal').classList.add('active');
+      document.getElementById('createRoomModal').style.display = 'flex';
     });
+
     document.getElementById('searchRoomBtn').addEventListener('click', function(){
       document.getElementById('landingScreen').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      document.getElementById('searchRoomModal').classList.add('active');
+      document.getElementById('searchRoomModal').style.display = 'flex';
       searchRooms();
     });
+
     document.getElementById('playFreeBtn').addEventListener('click', function(){
       document.getElementById('landingScreen').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
       autoJoinFreeGame();
     });
-    // Кнопка закрытия модального окна создания комнаты
+
     document.getElementById('cancelCreateRoomBtn').addEventListener('click', function(){
-      document.getElementById('createRoomModal').classList.remove('active');
+      document.getElementById('createRoomModal').style.display = 'none';
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
     });
@@ -1222,20 +1286,16 @@
       let value = document.getElementById('betSlider').value;
       document.getElementById('betValueDisplay').textContent = value + " млн";
     });
-    // Кнопка закрытия модального окна поиска комнат
+
     document.getElementById('cancelSearchRoomBtn').addEventListener('click', function(){
-      document.getElementById('searchRoomModal').classList.remove('active');
+      document.getElementById('searchRoomModal').style.display = 'none';
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
     });
-    // Кнопка обновления списка комнат
     document.getElementById('refreshSearchBtn').addEventListener('click', function(){
       searchRooms();
     });
 
-    /* ======================================
-       20. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
-    ===================================== */
     window.addEventListener('load', () => {
       const firebaseConfig = {
         apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
@@ -1250,6 +1310,7 @@
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
       }
+
       if (!window.currentUser) {
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
           const tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -1264,7 +1325,7 @@
           };
         }
       }
-      // Инициализация данных пользователя в Firebase
+      
       if (window.currentUser && window.currentUser.username) {
         const userRef = firebase.database().ref('users/' + window.currentUser.username);
         userRef.once('value').then(snapshot => {
@@ -1283,24 +1344,23 @@
           updateCoinDisplay(coins);
         });
       }
+      
       initSpecialGame1();
       updateLanguageTexts();
+
       const toggleDescBtn = document.getElementById('toggleDescBtn');
       toggleDescBtn.addEventListener('click', function(){
         const landingText = document.getElementById('landingText');
         if (landingText.classList.contains('collapsed')) {
           landingText.classList.remove('collapsed');
-          landingText.classList.add('expanded');
           toggleDescBtn.textContent = "▲";
         } else {
-          landingText.classList.remove('expanded');
           landingText.classList.add('collapsed');
           toggleDescBtn.textContent = "▼";
         }
       });
     });
 
-    /* Функция смены направления */
     function changeDirection(newDir) {
       if (
         (newDir === 'up'    && localDirection === 'down') ||
@@ -1313,9 +1373,6 @@
       localDirection = newDir;
     }
 
-    /* ======================================
-       21. СМЕНА ЯЗЫКА
-    ===================================== */
     let currentLanguage = "en";
     const languageStrings = {
       en: {
@@ -1345,6 +1402,7 @@
         opponentDisconnected: "Противник отключился. ты выиграл"
       }
     };
+
     function updateLanguageTexts() {
       document.getElementById('landingTitle').textContent = languageStrings[currentLanguage].landingTitle;
       document.getElementById('landingText').textContent = languageStrings[currentLanguage].landingText;
@@ -1354,16 +1412,16 @@
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
     }
+
     document.getElementById('langToggleBtn').addEventListener('click', function() {
       currentLanguage = currentLanguage === "en" ? "ru" : "en";
       updateLanguageTexts();
     });
+
     document.getElementById('homeBackBtn').addEventListener('click', function() {
       window.location.href = 'index.html';
     });
-    /* ======================================
-       22. ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ БАЛАНСА
-    ===================================== */
+
     function updateCoinDisplay(coins) {
       document.getElementById('coinButton').textContent = coins + " Coins";
     }
