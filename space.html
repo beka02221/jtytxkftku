@@ -16,12 +16,14 @@
   <!-- Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Three.js и постобработка -->
+  <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Дополнительные скрипты для постобработки -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 
   <style>
     /* Общие стили */
@@ -82,10 +84,7 @@
       border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
-      transition: transform 0.2s, background-color 0.2s;
     }
-    #backBtn:hover { transform: scale(1.05); }
-    #backBtn:active { transform: scale(0.95); }
     /* Меню игры – изначально видимо */
     #gameWrapper {
       position: relative;
@@ -107,11 +106,8 @@
       border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
-      transition: transform 0.2s, background-color 0.2s;
     }
-    #startBtn:hover { transform: scale(1.05); }
-    #startBtn:active { transform: scale(0.95); }
-    /* Временной индикатор - изначально скрыт */
+    /* Временной индикатор - изначально скрыт, появляется после старта игры */
     #timeBarContainer {
       position: absolute;
       top: 20px;
@@ -167,14 +163,11 @@
       border: 1px solid white;
       box-shadow: 3px 5px 0 rgba(0, 0, 0, 0.75);
       cursor: pointer;
-      transition: transform 0.2s, background-color 0.2s;
     }
-    #controlls button:hover { transform: scale(1.05); }
-    #controlls button:active { transform: scale(0.95); }
     #controlls button svg path {
       fill: white;
     }
-    /* Модальное окно */
+    /* Модальное окно для окончания игры/уведомлений */
     #end {
       position: absolute;
       top: 0;
@@ -209,10 +202,7 @@
       border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
-      transition: transform 0.2s, background-color 0.2s;
     }
-    #end .modal button:hover { transform: scale(1.05); }
-    #end .modal button:active { transform: scale(0.95); }
     /* Canvas занимает весь экран, ниже контролов */
     canvas {
       position: absolute;
@@ -249,10 +239,10 @@
   <!-- Меню игры -->
   <div id="gameWrapper">
     <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Canvas Three.js будет добавлен сюда -->
+    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
   </div>
 
-  <!-- Игровой счётчик и контролы -->
+  <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
   <div id="counter">0</div>
   <div id="controlls">
     <div>
@@ -287,7 +277,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно -->
+  <!-- Модальное окно для окончания игры/уведомлений -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -296,10 +286,15 @@
     </div>
   </div>
 
+  <!-- Звуки -->
+  <audio id="bgSound" src="background.mp3" loop></audio>
+  <audio id="moveSound" src="move.mp3"></audio>
+  <audio id="deathSound" src="death.mp3"></audio>
+
   <script>
-    /* -------------------------------
+    /* ----------------------------------------
        1. Firebase и Telegram инициализация
-    ------------------------------- */
+    ---------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -322,7 +317,9 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
+    // Флаг, что данные загружены
     let dataLoaded = false;
+    // Если данные не загрузились в течение 3 секунд, dataLoaded станет true
     setTimeout(() => { dataLoaded = true; }, 3000);
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -358,13 +355,16 @@
         dataLoaded = true;
       });
     }
+
     function updateHeader() {
       document.getElementById('ticketCount').textContent = localUserData.tickets;
       document.getElementById('pointCount').textContent = localUserData.points;
     }
+
     function goBack() {
       window.location.href = 'index.html';
     }
+    // Для случая Game Over, OK отправляет на index.html; для noTickets просто скрывает модал
     let modalType = "gameOver";
     document.getElementById('endBtn').addEventListener('click', function() {
       if (modalType === "gameOver") {
@@ -377,9 +377,10 @@
       window.location.href = 'index.html';
     }
 
-    /* -------------------------------
+    /* ----------------------------------------
        2. Игровой код (3D Crossy Road)
-    ------------------------------- */
+       Улучшены эффекты теней, материалы, а также добавлена постобработка и эффекты столкновений
+    ---------------------------------------- */
     let scene, camera, renderer, composer;
     let cameraOffset = { x: 0, y: -400, z: 600 };
     let zoom = 2;
@@ -395,79 +396,44 @@
     const vechicleColors = [0xa52523, 0xbdb638, 0x78b14b];
     const threeHeights = [20, 45, 60];
     let gameEnded = false;
+
+    // Таймер игры (5 минут = 300000 мс)
     let gameStartTime = null;
     const gameDuration = 300000; // 5 минут
 
-    // Звуковые переменные (пространственные звуки)
-    let bgSound3D, moveSound3D, deathSound3D;
+    // Для эффекта тряски камеры при столкновении
+    let cameraShakeTime = 0;
+    const cameraShakeDuration = 300; // мс
 
-    // Easing функция для плавного перемещения
-    function easeInOutSine(t) {
-      return -(Math.cos(Math.PI * t) - 1) / 2;
-    }
-    // Эффект дрожания камеры при столкновении
-    function shakeCamera(duration, magnitude) {
-      const start = performance.now();
-      const originalPosition = camera.position.clone();
-      function shake() {
-        const elapsed = performance.now() - start;
-        if (elapsed < duration) {
-          camera.position.x = originalPosition.x + (Math.random()-0.5)*magnitude;
-          camera.position.y = originalPosition.y + (Math.random()-0.5)*magnitude;
-          requestAnimationFrame(shake);
-        } else {
-          camera.position.copy(originalPosition);
-        }
-      }
-      shake();
-    }
+    // Массив частиц для эффекта столкновения
+    let particles = [];
 
     function initGame() {
       gameEnded = false;
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 10000);
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
       camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
       camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-      // Добавляем слушатель звука к камере (пространственный звук)
-      const listener = new THREE.AudioListener();
-      camera.add(listener);
-      const audioLoader = new THREE.AudioLoader();
-      bgSound3D = new THREE.Audio(listener);
-      audioLoader.load('background.mp3', function(buffer) {
-          bgSound3D.setBuffer(buffer);
-          bgSound3D.setLoop(true);
-          bgSound3D.setVolume(0.5);
-      });
-      moveSound3D = new THREE.Audio(listener);
-      audioLoader.load('move.mp3', function(buffer) {
-          moveSound3D.setBuffer(buffer);
-          moveSound3D.setVolume(0.7);
-      });
-      deathSound3D = new THREE.Audio(listener);
-      audioLoader.load('death.mp3', function(buffer) {
-          deathSound3D.setBuffer(buffer);
-          deathSound3D.setVolume(0.7);
-      });
-
-      // Освещение
       const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
       hemiLight.position.set(0, 0, 1000);
       scene.add(hemiLight);
 
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      // Расположение направленного света привязано к позиции курицы
       dirLight.position.set(chicken ? chicken.position.x + cameraOffset.x : cameraOffset.x,
                               chicken ? chicken.position.y + cameraOffset.y : cameraOffset.y,
                               cameraOffset.z);
-      // Улучшаем тени: увеличенное разрешение, небольшой bias и radius для мягкости
       dirLight.castShadow = true;
+      // Улучшаем качество теней: увеличенное разрешение, смещение и радиус для смягчения краёв
+      const d = 500;
       dirLight.shadow.mapSize.width = 2048;
       dirLight.shadow.mapSize.height = 2048;
-      dirLight.shadow.camera.left = -500;
-      dirLight.shadow.camera.right = 500;
-      dirLight.shadow.camera.top = 500;
-      dirLight.shadow.camera.bottom = -500;
-      dirLight.shadow.bias = -0.001;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      dirLight.shadow.bias = -0.005;
       dirLight.shadow.radius = 4;
       scene.add(dirLight);
 
@@ -491,34 +457,22 @@
 
     function initRenderer() {
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.setClearColor(0x000000, 1);
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-      // Инициализация постобработки
+      // Инициализация композитора для постобработки
       composer = new THREE.EffectComposer(renderer);
       const renderPass = new THREE.RenderPass(scene, camera);
       composer.addPass(renderPass);
-      const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-      bloomPass.threshold = 0.21;
-      bloomPass.strength = 0.55;
-      bloomPass.radius = 0.55;
+      const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.4, 0.85);
       composer.addPass(bloomPass);
       const ssaoPass = new THREE.SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
       ssaoPass.kernelRadius = 16;
       composer.addPass(ssaoPass);
     }
-
-    // Обработчик изменения размера окна
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      if (composer) composer.setSize(window.innerWidth, window.innerHeight);
-    });
 
     function Texture(width, height, rects) {
       const canvas = document.createElement("canvas");
@@ -559,7 +513,7 @@
     function Wheel() {
       const wheel = new THREE.Mesh(
         new THREE.BoxBufferGeometry(12 * zoom, 33 * zoom, 12 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0x333333, flatShading: false })
+        new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true, metalness: 0.2, roughness: 0.8 })
       );
       wheel.position.z = 6 * zoom;
       wheel.castShadow = true;
@@ -570,22 +524,23 @@
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
       const main = new THREE.Mesh(
         new THREE.BoxBufferGeometry(60 * zoom, 30 * zoom, 15 * zoom),
-        new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x333333, shininess: 50 })
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.6, roughness: 0.4 })
       );
       main.position.z = 12 * zoom;
       main.castShadow = true;
       main.receiveShadow = true;
       car.add(main);
+      const cabinMaterials = [
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carBackTexture }),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carFrontTexture }),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carRightSideTexture }),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carLeftSideTexture }),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3 }),
+        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3 })
+      ];
       const cabin = new THREE.Mesh(
         new THREE.BoxBufferGeometry(33 * zoom, 24 * zoom, 12 * zoom),
-        [
-          new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: false, specular: 0x333333, shininess: 50, map: carBackTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: false, specular: 0x333333, shininess: 50, map: carFrontTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: false, specular: 0x333333, shininess: 50, map: carRightSideTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: false, specular: 0x333333, shininess: 50, map: carLeftSideTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: false, specular: 0x333333, shininess: 50 }),
-          new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: false, specular: 0x333333, shininess: 50 })
-        ]
+        cabinMaterials
       );
       cabin.position.x = 6 * zoom;
       cabin.position.z = 25.5 * zoom;
@@ -606,30 +561,31 @@
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
       const base = new THREE.Mesh(
         new THREE.BoxBufferGeometry(100 * zoom, 25 * zoom, 5 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: false })
+        new THREE.MeshStandardMaterial({ color: 0xb4c6fc, flatShading: true, metalness: 0.3, roughness: 0.7 })
       );
       base.position.z = 10 * zoom;
       base.castShadow = true;
       truck.add(base);
       const cargo = new THREE.Mesh(
         new THREE.BoxBufferGeometry(75 * zoom, 35 * zoom, 40 * zoom),
-        new THREE.MeshPhongMaterial({ color: 0xb4c6fc, flatShading: false, specular: 0x555555, shininess: 30 })
+        new THREE.MeshStandardMaterial({ color: 0xb4c6fc, flatShading: true, metalness: 0.3, roughness: 0.7 })
       );
       cargo.position.x = 15 * zoom;
       cargo.position.z = 30 * zoom;
       cargo.castShadow = true;
       cargo.receiveShadow = true;
       truck.add(cargo);
+      const cabinMaterials = [
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckFrontTexture }),
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckRightSideTexture }),
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckLeftSideTexture }),
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 })
+      ];
       const cabin = new THREE.Mesh(
         new THREE.BoxBufferGeometry(25 * zoom, 30 * zoom, 30 * zoom),
-        [
-          new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x444444, shininess: 40 }),
-          new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x444444, shininess: 40, map: truckFrontTexture }),
-          new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x444444, shininess: 40, map: truckRightSideTexture }),
-          new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x444444, shininess: 40, map: truckLeftSideTexture }),
-          new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x444444, shininess: 40 }),
-          new THREE.MeshPhongMaterial({ color, flatShading: false, specular: 0x444444, shininess: 40 })
-        ]
+        cabinMaterials
       );
       cabin.position.x = -40 * zoom;
       cabin.position.z = 20 * zoom;
@@ -645,14 +601,13 @@
       const backWheel = new Wheel();
       backWheel.position.x = 30 * zoom;
       truck.add(backWheel);
-      truck.castShadow = true;
       return truck;
     }
     function ThreeTree() {
       const tree = new THREE.Group();
       const trunk = new THREE.Mesh(
         new THREE.BoxBufferGeometry(15 * zoom, 15 * zoom, 20 * zoom),
-        new THREE.MeshPhongMaterial({ color: 0x4d2926, flatShading: false })
+        new THREE.MeshStandardMaterial({ color: 0x4d2926, flatShading: true, metalness: 0.2, roughness: 0.8 })
       );
       trunk.position.z = 10 * zoom;
       trunk.castShadow = true;
@@ -661,7 +616,7 @@
       const height = threeHeights[Math.floor(Math.random() * threeHeights.length)];
       const crown = new THREE.Mesh(
         new THREE.BoxBufferGeometry(30 * zoom, 30 * zoom, height * zoom),
-        new THREE.MeshLambertMaterial({ color: 0x7aa21d, flatShading: false })
+        new THREE.MeshStandardMaterial({ color: 0x7aa21d, flatShading: true, metalness: 0.2, roughness: 0.9 })
       );
       crown.position.z = (height / 2 + 20) * zoom;
       crown.castShadow = true;
@@ -672,7 +627,7 @@
       const chicken = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.BoxBufferGeometry(chickenSize * zoom, chickenSize * zoom, 20 * zoom),
-        new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: false, specular: 0x222222, shininess: 30 })
+        new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, metalness: 0.4, roughness: 0.3 })
       );
       body.position.z = 10 * zoom;
       body.castShadow = true;
@@ -680,7 +635,7 @@
       chicken.add(body);
       const rowel = new THREE.Mesh(
         new THREE.BoxBufferGeometry(2 * zoom, 4 * zoom, 2 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0xF0619A, flatShading: false })
+        new THREE.MeshStandardMaterial({ color: 0xF0619A, flatShading: true, metalness: 0.4, roughness: 0.3 })
       );
       rowel.position.z = 21 * zoom;
       rowel.castShadow = true;
@@ -691,7 +646,7 @@
       const road = new THREE.Group();
       const createSection = color => new THREE.Mesh(
         new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom),
-        new THREE.MeshPhongMaterial({ color, flatShading: false })
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.2, roughness: 0.8 })
       );
       const middle = createSection(0x454A59);
       middle.receiveShadow = true;
@@ -708,7 +663,7 @@
       const grass = new THREE.Group();
       const createSection = color => new THREE.Mesh(
         new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom),
-        new THREE.MeshPhongMaterial({ color, flatShading: false })
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.2, roughness: 0.8 })
       );
       const middle = createSection(0xbaf455);
       middle.receiveShadow = true;
@@ -788,6 +743,9 @@
       }
     }
 
+    // Звук движения
+    const moveSoundEffect = new Audio("move.mp3");
+
     // Обработчики кнопок управления
     document.getElementById('forward').addEventListener("click", () => move('forward'));
     document.getElementById('backward').addEventListener("click", () => move('backward'));
@@ -795,10 +753,8 @@
     document.getElementById('right').addEventListener("click", () => move('right'));
 
     function move(direction) {
-      if (moveSound3D) {
-        moveSound3D.currentTime = 0;
-        moveSound3D.play().catch(err => console.log(err));
-      }
+      moveSoundEffect.currentTime = 0;
+      moveSoundEffect.play().catch(err => console.log(err));
       const finalPositions = moves.reduce((position, move) => {
         if (move === 'forward') return { lane: position.lane + 1, column: position.column };
         if (move === 'backward') return { lane: position.lane - 1, column: position.column };
@@ -830,15 +786,28 @@
       moves.push(direction);
     }
 
-    // Завершение игры
+    // Функция для создания эффекта частиц при столкновении
+    function spawnParticles(x, y, z) {
+      for (let i = 0; i < 50; i++) {
+        const particleGeometry = new THREE.SphereGeometry(1 * zoom, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+        particle.position.set(x, y, z);
+        const velocity = new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, Math.random()*2);
+        const lifetime = 1000 + Math.random()*500; // в мс
+        particles.push({ mesh: particle, velocity: velocity, lifetime: lifetime, born: performance.now() });
+        scene.add(particle);
+      }
+    }
+
+    // Функция завершения игры – воспроизводит звук смерти, записывает очки и показывает модальное окно
     function endGame() {
       if (gameEnded) return;
+      // Запускаем эффект частиц и тряску камеры
+      spawnParticles(chicken.position.x, chicken.position.y, chicken.position.z);
+      cameraShakeTime = cameraShakeDuration;
       gameEnded = true;
-      if (deathSound3D) {
-        deathSound3D.play().catch(err => console.log(err));
-      }
-      // Запускаем эффект дрожания камеры
-      shakeCamera(500, 5);
+      document.getElementById('deathSound').play().catch(err => console.log(err));
       localUserData.points += currentLane;
       if (userRef) userRef.update({ points: localUserData.points });
       document.getElementById('controlls').style.display = 'none';
@@ -847,6 +816,8 @@
       document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
       document.getElementById('end').style.visibility = 'visible';
     }
+
+    // Если билетов нет или данные не загружены – показываем модальное окно
     function showNoTicketsModal() {
       modalType = "noTickets";
       document.getElementById('endTitle').textContent = 'Not enough tickets!';
@@ -854,15 +825,16 @@
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    /* -------------------------------
+    /* ----------------------------------------
        3. Главный игровой цикл и таймер
-    ------------------------------- */
+    ---------------------------------------- */
     function animate(timestamp) {
       requestAnimationFrame(animate);
       if (!previousTimestamp) previousTimestamp = timestamp;
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
 
+      // Обновление таймера (если игра запущена)
       if (gameStartTime) {
         let elapsed = timestamp - gameStartTime;
         let remaining = gameDuration - elapsed;
@@ -899,8 +871,7 @@
       if (stepStartTimestamp) {
         const moveDeltaTime = timestamp - stepStartTimestamp;
         const progress = Math.min(moveDeltaTime / stepTime, 1);
-        const easedProgress = easeInOutSine(progress);
-        const moveDeltaDistance = easedProgress * positionWidth * zoom;
+        const moveDeltaDistance = progress * positionWidth * zoom;
         const jumpDeltaDistance = Math.sin(progress * Math.PI) * 8 * zoom;
         switch (moves[0]) {
           case 'forward': {
@@ -962,7 +933,7 @@
         }
       }
 
-      // Проверка столкновения
+      // Проверка столкновения в текущем ряду
       if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
         const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
@@ -976,26 +947,57 @@
         });
       }
 
+      // Обновление эффекта частиц
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const particle = particles[i];
+        const lifeTime = timestamp - particle.born;
+        if (lifeTime > particle.lifetime) {
+          scene.remove(particle.mesh);
+          particles.splice(i, 1);
+        } else {
+          particle.mesh.position.add(particle.velocity.clone().multiplyScalar(delta / 1000));
+          let opacity = 1 - (lifeTime / particle.lifetime);
+          if(particle.mesh.material) {
+            particle.mesh.material.opacity = opacity;
+            particle.mesh.material.transparent = true;
+          }
+        }
+      }
+
+      // Сохраняем базовую позицию камеры и добавляем тряску, если она активна
+      const originalCameraPosition = camera.position.clone();
+      if (cameraShakeTime > 0) {
+        const shakeMagnitude = 10 * zoom;
+        camera.position.x += (Math.random() - 0.5) * shakeMagnitude;
+        camera.position.y += (Math.random() - 0.5) * shakeMagnitude;
+        cameraShakeTime -= delta;
+        if(cameraShakeTime < 0) cameraShakeTime = 0;
+      }
       camera.lookAt(chicken.position);
-      // Рендерим с постобработкой
+
+      // Рендер с использованием постобработки (если композитор инициализирован)
       if (composer) {
-        composer.render();
+        composer.render(delta);
       } else {
         renderer.render(scene, camera);
       }
+      // Восстанавливаем позицию камеры после рендера
+      camera.position.copy(originalCameraPosition);
     }
     requestAnimationFrame(animate);
 
-    /* -------------------------------
-       4. Обработчики звука и старта игры
-    ------------------------------- */
+    /* ----------------------------------------
+       4. Функция старта игры
+    ---------------------------------------- */
     document.body.addEventListener('click', () => {
-      if (bgSound3D && !bgSound3D.isPlaying) {
-        bgSound3D.play().catch(err => console.log(err));
+      const bgSound = document.getElementById('bgSound');
+      if (bgSound.paused) {
+        bgSound.play().catch(err => console.log(err));
       }
     }, { once: true });
 
     function startGame() {
+      // Если данные не загружены или билетов недостаточно, показываем модальное окно
       if (!dataLoaded || localUserData.tickets < 1) {
         showNoTicketsModal();
         return;
@@ -1003,13 +1005,18 @@
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
+      // Скрываем меню: header, back и кнопку Start
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
+      // Показываем область игры и контролы
       document.getElementById('gameWrapper').style.display = 'block';
       document.getElementById('controlls').style.display = 'flex';
+      // Показываем time bar
       document.getElementById('timeBarContainer').style.display = 'block';
+      // Устанавливаем время старта игры для таймера
       gameStartTime = performance.now();
+
       initGame();
       if (!renderer) {
         initRenderer();
