@@ -18,12 +18,11 @@
 
   <!-- Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Дополнительные скрипты для постобработки -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <!-- Постобработка: EffectComposer, RenderPass, UnrealBloomPass -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <!-- Можно добавить SSAOPass или другие эффекты при необходимости -->
 
   <style>
     /* Общие стили */
@@ -110,7 +109,7 @@
     /* Временной индикатор - изначально скрыт, появляется после старта игры */
     #timeBarContainer {
       position: absolute;
-      top: 20px;
+      top: 20px; /* поднят выше */
       left: 50%;
       transform: translateX(-50%);
       width: 80%;
@@ -127,7 +126,7 @@
     /* Игровой счётчик */
     #counter {
       position: absolute;
-      top: 40px;
+      top: 40px; /* сдвинут ниже time bar */
       right: 20px;
       z-index: 1000;
     }
@@ -379,7 +378,6 @@
 
     /* ----------------------------------------
        2. Игровой код (3D Crossy Road)
-       Улучшены эффекты теней, материалы, а также добавлена постобработка и эффекты столкновений
     ---------------------------------------- */
     let scene, camera, renderer, composer;
     let cameraOffset = { x: 0, y: -400, z: 600 };
@@ -401,13 +399,6 @@
     let gameStartTime = null;
     const gameDuration = 300000; // 5 минут
 
-    // Для эффекта тряски камеры при столкновении
-    let cameraShakeTime = 0;
-    const cameraShakeDuration = 300; // мс
-
-    // Массив частиц для эффекта столкновения
-    let particles = [];
-
     function initGame() {
       gameEnded = false;
       scene = new THREE.Scene();
@@ -420,21 +411,20 @@
       scene.add(hemiLight);
 
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      // Расположение направленного света привязано к позиции курицы
-      dirLight.position.set(chicken ? chicken.position.x + cameraOffset.x : cameraOffset.x,
-                              chicken ? chicken.position.y + cameraOffset.y : cameraOffset.y,
-                              cameraOffset.z);
+      dirLight.position.set(
+        chicken ? chicken.position.x + cameraOffset.x : cameraOffset.x,
+        chicken ? chicken.position.y + cameraOffset.y : cameraOffset.y,
+        cameraOffset.z
+      );
       dirLight.castShadow = true;
-      // Улучшаем качество теней: увеличенное разрешение, смещение и радиус для смягчения краёв
+      dirLight.shadow.mapSize.width = 4096;
+      dirLight.shadow.mapSize.height = 4096;
+      dirLight.shadow.bias = -0.0005;
       const d = 500;
-      dirLight.shadow.mapSize.width = 2048;
-      dirLight.shadow.mapSize.height = 2048;
       dirLight.shadow.camera.left = -d;
       dirLight.shadow.camera.right = d;
       dirLight.shadow.camera.top = d;
       dirLight.shadow.camera.bottom = -d;
-      dirLight.shadow.bias = -0.005;
-      dirLight.shadow.radius = 4;
       scene.add(dirLight);
 
       const backLight = new THREE.DirectionalLight(0x000000, 0.4);
@@ -463,15 +453,15 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.getElementById('gameWrapper').appendChild(renderer.domElement);
 
-      // Инициализация композитора для постобработки
+      // Постобработка: настройка EffectComposer с RenderPass и Bloom эффектом
       composer = new THREE.EffectComposer(renderer);
       const renderPass = new THREE.RenderPass(scene, camera);
       composer.addPass(renderPass);
-      const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.4, 0.85);
+      const bloomPass = new THREE.UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        1.2, 0.4, 0.85
+      );
       composer.addPass(bloomPass);
-      const ssaoPass = new THREE.SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
-      ssaoPass.kernelRadius = 16;
-      composer.addPass(ssaoPass);
     }
 
     function Texture(width, height, rects) {
@@ -513,7 +503,7 @@
     function Wheel() {
       const wheel = new THREE.Mesh(
         new THREE.BoxBufferGeometry(12 * zoom, 33 * zoom, 12 * zoom),
-        new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true, metalness: 0.2, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color: 0x333333, flatShading: true })
       );
       wheel.position.z = 6 * zoom;
       wheel.castShadow = true;
@@ -524,23 +514,22 @@
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
       const main = new THREE.Mesh(
         new THREE.BoxBufferGeometry(60 * zoom, 30 * zoom, 15 * zoom),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.6, roughness: 0.4 })
+        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 })
       );
       main.position.z = 12 * zoom;
       main.castShadow = true;
       main.receiveShadow = true;
       car.add(main);
-      const cabinMaterials = [
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carBackTexture }),
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carFrontTexture }),
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carRightSideTexture }),
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3, map: carLeftSideTexture }),
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3 }),
-        new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.5, roughness: 0.3 })
-      ];
       const cabin = new THREE.Mesh(
         new THREE.BoxBufferGeometry(33 * zoom, 24 * zoom, 12 * zoom),
-        cabinMaterials
+        [
+          new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.3, roughness: 0.5, map: carBackTexture }),
+          new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.3, roughness: 0.5, map: carFrontTexture }),
+          new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.3, roughness: 0.5, map: carRightSideTexture }),
+          new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.3, roughness: 0.5, map: carLeftSideTexture }),
+          new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.3, roughness: 0.5 }),
+          new THREE.MeshStandardMaterial({ color: 0xcccccc, flatShading: true, metalness: 0.3, roughness: 0.5 })
+        ]
       );
       cabin.position.x = 6 * zoom;
       cabin.position.z = 25.5 * zoom;
@@ -561,31 +550,30 @@
       const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
       const base = new THREE.Mesh(
         new THREE.BoxBufferGeometry(100 * zoom, 25 * zoom, 5 * zoom),
-        new THREE.MeshStandardMaterial({ color: 0xb4c6fc, flatShading: true, metalness: 0.3, roughness: 0.7 })
+        new THREE.MeshStandardMaterial({ color: 0xb4c6fc, flatShading: true, metalness: 0.4, roughness: 0.6 })
       );
       base.position.z = 10 * zoom;
       base.castShadow = true;
       truck.add(base);
       const cargo = new THREE.Mesh(
         new THREE.BoxBufferGeometry(75 * zoom, 35 * zoom, 40 * zoom),
-        new THREE.MeshStandardMaterial({ color: 0xb4c6fc, flatShading: true, metalness: 0.3, roughness: 0.7 })
+        new THREE.MeshStandardMaterial({ color: 0xb4c6fc, flatShading: true, metalness: 0.4, roughness: 0.6 })
       );
       cargo.position.x = 15 * zoom;
       cargo.position.z = 30 * zoom;
       cargo.castShadow = true;
       cargo.receiveShadow = true;
       truck.add(cargo);
-      const cabinMaterials = [
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 }),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckFrontTexture }),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckRightSideTexture }),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckLeftSideTexture }),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 }),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 })
-      ];
       const cabin = new THREE.Mesh(
         new THREE.BoxBufferGeometry(25 * zoom, 30 * zoom, 30 * zoom),
-        cabinMaterials
+        [
+          new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 }),
+          new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckFrontTexture }),
+          new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckRightSideTexture }),
+          new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4, map: truckLeftSideTexture }),
+          new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 }),
+          new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.5, roughness: 0.4 })
+        ]
       );
       cabin.position.x = -40 * zoom;
       cabin.position.z = 20 * zoom;
@@ -607,7 +595,7 @@
       const tree = new THREE.Group();
       const trunk = new THREE.Mesh(
         new THREE.BoxBufferGeometry(15 * zoom, 15 * zoom, 20 * zoom),
-        new THREE.MeshStandardMaterial({ color: 0x4d2926, flatShading: true, metalness: 0.2, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color: 0x4d2926, flatShading: true })
       );
       trunk.position.z = 10 * zoom;
       trunk.castShadow = true;
@@ -616,7 +604,7 @@
       const height = threeHeights[Math.floor(Math.random() * threeHeights.length)];
       const crown = new THREE.Mesh(
         new THREE.BoxBufferGeometry(30 * zoom, 30 * zoom, height * zoom),
-        new THREE.MeshStandardMaterial({ color: 0x7aa21d, flatShading: true, metalness: 0.2, roughness: 0.9 })
+        new THREE.MeshStandardMaterial({ color: 0x7aa21d, flatShading: true })
       );
       crown.position.z = (height / 2 + 20) * zoom;
       crown.castShadow = true;
@@ -627,7 +615,7 @@
       const chicken = new THREE.Group();
       const body = new THREE.Mesh(
         new THREE.BoxBufferGeometry(chickenSize * zoom, chickenSize * zoom, 20 * zoom),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, metalness: 0.4, roughness: 0.3 })
+        new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true })
       );
       body.position.z = 10 * zoom;
       body.castShadow = true;
@@ -635,7 +623,7 @@
       chicken.add(body);
       const rowel = new THREE.Mesh(
         new THREE.BoxBufferGeometry(2 * zoom, 4 * zoom, 2 * zoom),
-        new THREE.MeshStandardMaterial({ color: 0xF0619A, flatShading: true, metalness: 0.4, roughness: 0.3 })
+        new THREE.MeshStandardMaterial({ color: 0xF0619A, flatShading: true })
       );
       rowel.position.z = 21 * zoom;
       rowel.castShadow = true;
@@ -646,7 +634,7 @@
       const road = new THREE.Group();
       const createSection = color => new THREE.Mesh(
         new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.2, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color })
       );
       const middle = createSection(0x454A59);
       middle.receiveShadow = true;
@@ -663,7 +651,7 @@
       const grass = new THREE.Group();
       const createSection = color => new THREE.Mesh(
         new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom),
-        new THREE.MeshStandardMaterial({ color, flatShading: true, metalness: 0.2, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color })
       );
       const middle = createSection(0xbaf455);
       middle.receiveShadow = true;
@@ -744,7 +732,7 @@
     }
 
     // Звук движения
-    const moveSoundEffect = new Audio("move.mp3");
+    const moveSound = new Audio("move.mp3");
 
     // Обработчики кнопок управления
     document.getElementById('forward').addEventListener("click", () => move('forward'));
@@ -753,8 +741,8 @@
     document.getElementById('right').addEventListener("click", () => move('right'));
 
     function move(direction) {
-      moveSoundEffect.currentTime = 0;
-      moveSoundEffect.play().catch(err => console.log(err));
+      moveSound.currentTime = 0;
+      moveSound.play().catch(err => console.log(err));
       const finalPositions = moves.reduce((position, move) => {
         if (move === 'forward') return { lane: position.lane + 1, column: position.column };
         if (move === 'backward') return { lane: position.lane - 1, column: position.column };
@@ -786,35 +774,73 @@
       moves.push(direction);
     }
 
-    // Функция для создания эффекта частиц при столкновении
-    function spawnParticles(x, y, z) {
-      for (let i = 0; i < 50; i++) {
-        const particleGeometry = new THREE.SphereGeometry(1 * zoom, 8, 8);
-        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-        particle.position.set(x, y, z);
-        const velocity = new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, Math.random()*2);
-        const lifetime = 1000 + Math.random()*500; // в мс
-        particles.push({ mesh: particle, velocity: velocity, lifetime: lifetime, born: performance.now() });
-        scene.add(particle);
+    // Функция для эффекта тряски камеры
+    function cameraShake(duration = 500, intensity = 5) {
+      const startTime = performance.now();
+      const originalPosition = camera.position.clone();
+      function shake() {
+        const elapsed = performance.now() - startTime;
+        if (elapsed < duration) {
+          camera.position.x = originalPosition.x + (Math.random() - 0.5) * intensity;
+          camera.position.y = originalPosition.y + (Math.random() - 0.5) * intensity;
+          requestAnimationFrame(shake);
+        } else {
+          camera.position.copy(originalPosition);
+        }
       }
+      shake();
     }
 
-    // Функция завершения игры – воспроизводит звук смерти, записывает очки и показывает модальное окно
+    // Функция для эффекта частиц при столкновении
+    function spawnCollisionParticles() {
+      const particleCount = 50;
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
+      for (let i = 0; i < particleCount; i++) {
+        positions.push(chicken.position.x, chicken.position.y, chicken.position.z);
+      }
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({ color: 0xff66cc, size: 2, transparent: true });
+      const particles = new THREE.Points(geometry, material);
+      scene.add(particles);
+      const startTime = performance.now();
+      function animateParticles() {
+        const elapsed = performance.now() - startTime;
+        if (elapsed < 1000) {
+          const positions = particles.geometry.attributes.position.array;
+          for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] += (Math.random() - 0.5) * 2;
+            positions[i * 3 + 1] += (Math.random() - 0.5) * 2;
+            positions[i * 3 + 2] += (Math.random() - 0.5) * 2;
+          }
+          particles.geometry.attributes.position.needsUpdate = true;
+          requestAnimationFrame(animateParticles);
+        } else {
+          scene.remove(particles);
+          particles.geometry.dispose();
+          particles.material.dispose();
+        }
+      }
+      animateParticles();
+    }
+
+    // Функция завершения игры – запускает эффекты столкновения, записывает очки и показывает модальное окно
     function endGame() {
       if (gameEnded) return;
-      // Запускаем эффект частиц и тряску камеры
-      spawnParticles(chicken.position.x, chicken.position.y, chicken.position.z);
-      cameraShakeTime = cameraShakeDuration;
       gameEnded = true;
       document.getElementById('deathSound').play().catch(err => console.log(err));
-      localUserData.points += currentLane;
-      if (userRef) userRef.update({ points: localUserData.points });
-      document.getElementById('controlls').style.display = 'none';
-      modalType = "gameOver";
-      document.getElementById('endTitle').textContent = 'Game Over!';
-      document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
-      document.getElementById('end').style.visibility = 'visible';
+      // Запуск эффектов столкновения: тряска камеры и частицы
+      cameraShake();
+      spawnCollisionParticles();
+      setTimeout(() => {
+          localUserData.points += currentLane;
+          if (userRef) userRef.update({ points: localUserData.points });
+          document.getElementById('controlls').style.display = 'none';
+          modalType = "gameOver";
+          document.getElementById('endTitle').textContent = 'Game Over!';
+          document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
+          document.getElementById('end').style.visibility = 'visible';
+      }, 600);
     }
 
     // Если билетов нет или данные не загружены – показываем модальное окно
@@ -933,7 +959,6 @@
         }
       }
 
-      // Проверка столкновения в текущем ряду
       if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
         const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
         const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
@@ -947,42 +972,9 @@
         });
       }
 
-      // Обновление эффекта частиц
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const particle = particles[i];
-        const lifeTime = timestamp - particle.born;
-        if (lifeTime > particle.lifetime) {
-          scene.remove(particle.mesh);
-          particles.splice(i, 1);
-        } else {
-          particle.mesh.position.add(particle.velocity.clone().multiplyScalar(delta / 1000));
-          let opacity = 1 - (lifeTime / particle.lifetime);
-          if(particle.mesh.material) {
-            particle.mesh.material.opacity = opacity;
-            particle.mesh.material.transparent = true;
-          }
-        }
-      }
-
-      // Сохраняем базовую позицию камеры и добавляем тряску, если она активна
-      const originalCameraPosition = camera.position.clone();
-      if (cameraShakeTime > 0) {
-        const shakeMagnitude = 10 * zoom;
-        camera.position.x += (Math.random() - 0.5) * shakeMagnitude;
-        camera.position.y += (Math.random() - 0.5) * shakeMagnitude;
-        cameraShakeTime -= delta;
-        if(cameraShakeTime < 0) cameraShakeTime = 0;
-      }
       camera.lookAt(chicken.position);
-
-      // Рендер с использованием постобработки (если композитор инициализирован)
-      if (composer) {
-        composer.render(delta);
-      } else {
-        renderer.render(scene, camera);
-      }
-      // Восстанавливаем позицию камеры после рендера
-      camera.position.copy(originalCameraPosition);
+      // Используем композер для постобработки (эффект bloom)
+      composer.render();
     }
     requestAnimationFrame(animate);
 
