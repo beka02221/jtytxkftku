@@ -402,31 +402,33 @@
       camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
       camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-      // Верхний (окружающий) свет
-      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+      // Уменьшаем освещение от неба, чтобы тени были контрастнее
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.25);
       hemiLight.position.set(0, 0, 1000);
       scene.add(hemiLight);
 
-      // Основной направленный свет для чётких теней
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      // Основной направленный свет для чётких, сильных теней
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
       dirLight.position.set(
         cameraOffset.x,
         cameraOffset.y,
         cameraOffset.z + 200
       );
       dirLight.castShadow = true;
-      dirLight.shadow.mapSize.width = 2048;
-      dirLight.shadow.mapSize.height = 2048;
-      dirLight.shadow.bias = -0.0005;
-      const d = 500;
-      dirLight.shadow.camera.left = -d;
-      dirLight.shadow.camera.right = d;
-      dirLight.shadow.camera.top = d;
-      dirLight.shadow.camera.bottom = -d;
+      // Увеличиваем размер карты теней
+      dirLight.shadow.mapSize.width = 4096;
+      dirLight.shadow.mapSize.height = 4096;
+      // Немного подбираем bias, чтобы избежать артефактов
+      dirLight.shadow.bias = -0.0003;
+      // Сужаем камеру для теней, чтобы получить ещё более детальные тени
+      dirLight.shadow.camera.left = -300;
+      dirLight.shadow.camera.right = 300;
+      dirLight.shadow.camera.top = 300;
+      dirLight.shadow.camera.bottom = -300;
       scene.add(dirLight);
 
-      // Можно добавить дополнительный заполняющий свет
-      const backLight = new THREE.DirectionalLight(0xffffff, 0.2);
+      // Можно слегка ослабить или убрать этот свет, чтобы не «засвечивать» тени
+      const backLight = new THREE.DirectionalLight(0xffffff, 0.15);
       backLight.position.set(200, 200, 300);
       backLight.castShadow = false;
       scene.add(backLight);
@@ -446,6 +448,7 @@
 
     function initRenderer() {
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      // Включаем тени
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.setClearColor(0x000000, 1);
@@ -454,7 +457,7 @@
     }
 
     function Texture(width, height, rects) {
-      // Оставляем упрощённую генерацию «окошек» текстуры
+      // Генерация «окон» для текстур
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
@@ -513,7 +516,7 @@
       main.receiveShadow = true;
       car.add(main);
 
-      // Кабина с текстурами
+      // Кабина
       const cabin = new THREE.Mesh(
         new THREE.BoxBufferGeometry(33 * zoom, 24 * zoom, 12 * zoom),
         [
