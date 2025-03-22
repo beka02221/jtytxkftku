@@ -63,8 +63,8 @@
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
-      /* Пунктирная рамка – будет удалена при старте игры */
-      border: 4px dashed #007fff;
+      /* Убрана пунктирная рамка */
+      border: none;
       border-radius: 8px;
     }
     /* Кнопка для копирования ссылки */
@@ -245,7 +245,6 @@
   <!-- Обучающая страница -->
   <div id="landingScreen">
     <div class="landingContent">
-      <!-- Превью игры и кнопка раскрытия инфы удалены -->
       <h1 id="landingTitle">Special Snake PvP</h1>
       <p id="landingText">
         Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
@@ -259,12 +258,12 @@
   <!-- Модальное окно создания комнаты -->
   <div id="createRoomModal" class="modal-backdrop">
     <div class="modal">
-      <h2>Создать комнату</h2>
-      <p>Выберите ставку (в миллионах): <span id="betValueDisplay">1 млн</span></p>
+      <h2>Create Room</h2>
+      <p>Choose bet (in millions): 1 m</p>
       <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
       <div style="margin-top: 20px;">
-        <button id="confirmCreateRoomBtn">Создать</button>
-        <button id="cancelCreateRoomBtn">Отмена</button>
+        <button id="confirmCreateRoomBtn">Create</button>
+        <button id="cancelCreateRoomBtn">Cancel</button>
       </div>
     </div>
   </div>
@@ -272,11 +271,11 @@
   <!-- Модальное окно поиска комнат -->
   <div id="searchRoomModal" class="modal-backdrop">
     <div class="modal">
-      <h2>Поиск комнат</h2>
+      <h2>Search Rooms</h2>
       <div id="roomList" style="max-height: 60vh; overflow-y: auto; margin: 20px 0;">
         <!-- Здесь будут карточки с комнатами -->
       </div>
-      <button id="cancelSearchRoomBtn">Назад</button>
+      <button id="cancelSearchRoomBtn">Back</button>
     </div>
   </div>
 
@@ -303,30 +302,35 @@
   <!-- Модальное окно недостатка монет -->
   <div id="insufficientModal" class="modal-backdrop">
     <div class="modal">
-      <h2>Недостаточно монет</h2>
-      <p>У вас недостаточно монет для участия в игре.</p>
-      <button onclick="window.location.href='buy.html'">Пополнить</button>
+      <h2>Not enough coins</h2>
+      <p>You don't have enough coins to join the game.</p>
+      <button onclick="window.location.href='buy.html'">Top Up</button>
     </div>
   </div>
 
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Полностью исправленный код с изменениями:
-       • Убраны превью игры и кнопка раскрытия инфы.
-       • Кнопка монет заменена на формат с иконкой и отображением в миллионах.
-       • Счет (а также монеты) отображаются в сокращённом виде (например, 3m, 30m, 1b).
-       • Убраны пунктирные рамки canvas при старте игры.
+     Special Snake PvP – Изменённый код:
+       • Счёт в игре выводится точным числом (без суффиксов).
+       • Баланс в меню (монеты) остаётся в формате с "m"/"b".
+       • Убраны пунктирные границы.
+       • Все текстовые надписи задаются через объект локализации и переключаются между English и Russian.
     ============================================================
     */
 
-    // Функция форматирования чисел в миллионы/миллиарды
+    // Функция форматирования чисел для монет (в меню)
     function formatNumber(num) {
       if(num >= 1e9) {
         return (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'b';
       } else {
         return (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'm';
       }
+    }
+
+    // Функция для точного отображения очков в игре (без суффиксов)
+    function formatScore(num) {
+      return num.toString();
     }
 
     // Глобальные переменные для canvas и контекста
@@ -573,7 +577,7 @@
               usernameP.style.margin = '0';
               usernameP.style.color = '#FF00FF';
               const betP = document.createElement('p');
-              betP.textContent = room.bet + " млн";
+              betP.textContent = room.bet + " m";
               betP.style.margin = '0';
               betP.style.color = '#FF00FF';
               infoDiv.appendChild(usernameP);
@@ -581,7 +585,7 @@
               detailsDiv.appendChild(infoDiv);
               card.appendChild(detailsDiv);
               const joinBtn = document.createElement('button');
-              joinBtn.textContent = 'Присоединиться';
+              joinBtn.textContent = languageStrings[currentLanguage].join; // Используем локализованный текст
               joinBtn.style.fontFamily = 'Press Start 2P, sans-serif';
               joinBtn.style.fontSize = '12px';
               joinBtn.style.padding = '5px 10px';
@@ -598,7 +602,7 @@
               roomListDiv.appendChild(card);
             });
           } else {
-            roomListDiv.innerHTML = '<p style="color: #FF00FF;">Нет доступных комнат</p>';
+            roomListDiv.innerHTML = '<p style="color: #FF00FF;">No available rooms</p>';
           }
         })
         .catch(err => console.error('Error searching rooms:', err));
@@ -794,8 +798,7 @@
     ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
-      // Убираем пунктирную рамку canvas при старте игры
-      specialGameCanvas.style.border = 'none';
+      // Граница canvas уже убрана в CSS
       isGameRunning = true;
       isGameOver = false;
       gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
@@ -920,17 +923,17 @@
       stopLogicLoop();
       let resultTitle = '';
       if (opponentDisconnected) {
-        resultTitle = (currentLanguage === 'ru') ? 'Противник отключился. ты выиграл' : 'Opponent Disconnected. You Win!';
+        resultTitle = languageStrings[currentLanguage].opponentDisconnected;
       } else {
         if (score > opponentScore) {
-          resultTitle = (currentLanguage === 'ru') ? 'ты выиграл' : 'You Win!';
+          resultTitle = languageStrings[currentLanguage].win;
         } else if (score < opponentScore) {
-          resultTitle = (currentLanguage === 'ru') ? 'ты проиграл' : 'You Lose...';
+          resultTitle = languageStrings[currentLanguage].lose;
         } else {
-          resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
+          resultTitle = languageStrings[currentLanguage].draw;
         }
       }
-      const msg = `Your score: ${formatNumber(score)} | Opponent: ${formatNumber(opponentScore)}`;
+      const msg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
       showEndGameModal(resultTitle, msg);
       cleanupRoom();
     }
@@ -1007,8 +1010,8 @@
       
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.fillText(`Score: ${formatNumber(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
-      specialCtx.fillText(`Opp: ${formatNumber(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+      specialCtx.fillText(`Score: ${formatScore(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
+      specialCtx.fillText(`Opp: ${formatScore(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1271,7 +1274,9 @@
 
     document.getElementById('betSlider').addEventListener('input', function() {
       const value = document.getElementById('betSlider').value;
-      document.getElementById('betValueDisplay').textContent = value + " млн";
+      document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
+      // Также обновляем текст в модальном окне создания комнаты:
+      document.querySelector('#createRoomModal .modal p').textContent = languageStrings[currentLanguage].chooseBet + value + languageStrings[currentLanguage].betUnit;
     });
 
     document.getElementById('cancelSearchRoomBtn').addEventListener('click', function() {
@@ -1345,7 +1350,7 @@
     });
 
     /* ======================================
-       23. ФУНКЦИИ СМЕНЫ ЯЗЫКА
+       23. ЛОКАЛИЗАЦИЯ
     ====================================== */
     let currentLanguage = "en";
     const languageStrings = {
@@ -1360,7 +1365,18 @@
         win: "You Win!",
         lose: "You Lose...",
         draw: "Draw",
-        opponentDisconnected: "Opponent Disconnected. You Win!"
+        opponentDisconnected: "Opponent Disconnected. You Win!",
+        createRoomTitle: "Create Room",
+        chooseBet: "Choose bet (in millions): ",
+        betUnit: " m",
+        confirmCreateRoom: "Create",
+        cancel: "Cancel",
+        searchRoomTitle: "Search Rooms",
+        back: "Back",
+        insufficientTitle: "Not enough coins",
+        insufficientText: "You don't have enough coins to join the game.",
+        topUp: "Top Up",
+        join: "Join"
       },
       ru: {
         landingTitle: "Спешл Снейк PvP",
@@ -1373,7 +1389,18 @@
         win: "ты выиграл",
         lose: "ты проиграл",
         draw: "Ничья",
-        opponentDisconnected: "Противник отключился. ты выиграл"
+        opponentDisconnected: "Противник отключился. ты выиграл",
+        createRoomTitle: "Создать комнату",
+        chooseBet: "Выберите ставку (в миллионах): ",
+        betUnit: " млн",
+        confirmCreateRoom: "Создать",
+        cancel: "Отмена",
+        searchRoomTitle: "Поиск комнат",
+        back: "Назад",
+        insufficientTitle: "Недостаточно монет",
+        insufficientText: "У вас недостаточно монет для участия в игре.",
+        topUp: "Пополнить",
+        join: "Присоединиться"
       }
     };
 
@@ -1385,6 +1412,31 @@
       document.getElementById('createRoomBtn').textContent = languageStrings[currentLanguage].createRoomBtn;
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
+      
+      if(document.querySelector('#createRoomModal .modal h2')) {
+        document.querySelector('#createRoomModal .modal h2').textContent = languageStrings[currentLanguage].createRoomTitle;
+      }
+      if(document.querySelector('#createRoomModal .modal p')) {
+        const betVal = document.getElementById('betSlider').value;
+        document.querySelector('#createRoomModal .modal p').textContent = languageStrings[currentLanguage].chooseBet + betVal + languageStrings[currentLanguage].betUnit;
+      }
+      document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].confirmCreateRoom;
+      document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].cancel;
+      
+      if(document.querySelector('#searchRoomModal .modal h2')) {
+        document.querySelector('#searchRoomModal .modal h2').textContent = languageStrings[currentLanguage].searchRoomTitle;
+      }
+      document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].back;
+      
+      if(document.querySelector('#insufficientModal .modal h2')) {
+        document.querySelector('#insufficientModal .modal h2').textContent = languageStrings[currentLanguage].insufficientTitle;
+      }
+      if(document.querySelector('#insufficientModal .modal p')) {
+        document.querySelector('#insufficientModal .modal p').textContent = languageStrings[currentLanguage].insufficientText;
+      }
+      if(document.querySelector('#insufficientModal .modal button')) {
+        document.querySelector('#insufficientModal .modal button').textContent = languageStrings[currentLanguage].topUp;
+      }
     }
 
     document.getElementById('langToggleBtn').addEventListener('click', function() {
