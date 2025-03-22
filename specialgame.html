@@ -1078,7 +1078,7 @@
           resultTitle = languageStrings[currentLanguage].draw;
         }
       }
-      const msg = Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)};
+      const msg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
       showEndGameModal(resultTitle, msg);
       cleanupRoom();
     }
@@ -1155,8 +1155,8 @@
       
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.fillText(Score: ${formatScore(score)}, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
-      specialCtx.fillText(Opp: ${formatScore(opponentScore)}, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+      specialCtx.fillText(`Score: ${formatScore(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
+      specialCtx.fillText(`Opp: ${formatScore(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1270,7 +1270,7 @@
             dx = Math.cos(angle) * maxDistance;
             dy = Math.sin(angle) * maxDistance;
           }
-          joystickStick.style.transform = translate(${dx}px, ${dy}px);
+          joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
           let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
           if (angleDeg < 0) angleDeg += 360;
           if (angleDeg >= 45 && angleDeg < 135) {
