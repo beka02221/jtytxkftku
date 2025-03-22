@@ -29,7 +29,7 @@
       font-family: 'Press Start 2P', sans-serif;
       overflow: hidden;
     }
-    /* Верхняя панель – обычный поток, flex-контейнер с тремя элементами */
+    /* Верхняя панель – flex-контейнер с тремя элементами */
     #topBar {
       display: flex;
       justify-content: space-between;
@@ -83,7 +83,7 @@
       margin: 0 auto;
       background-image: url('1.jpg');
     }
-    /* Элемент для отображения ников под игровым полем – теперь не используется */
+    /* Элемент для отображения ников под игровым полем */
     #usernamesDisplay {
       display: none;
     }
@@ -103,7 +103,6 @@
       cursor: pointer;
       display: none;
     }
-    /* При hover и active добавляем сохранение translateX(-50%) */
     #copyButton:hover {
       transform: translateX(-50%) scale(1.05);
     }
@@ -279,9 +278,22 @@
       align-items: center;
       justify-content: space-between;
     }
-    #toggleDescBtn {
-      display: block;
-      margin: 0 auto;
+    /* Кнопка "Back" во время поиска */
+    #searchBackBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 14px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+      display: none;
+      z-index: 2100;
     }
   </style>
 </head>
@@ -329,21 +341,21 @@
     <div class="modal">
       <h2>Поиск комнат</h2>
       <div id="roomList" style="max-height: 60vh; overflow-y: auto; margin: 20px 0;">
-        <!-- Карточки комнат -->
+        <!-- Здесь будут карточки с комнатами -->
       </div>
       <button id="cancelSearchRoomBtn">Назад</button>
     </div>
   </div>
 
-  <!-- Кнопка "Back" для поиска -->
-  <button id="searchBackBtn" style="display: none;">Back</button>
+  <!-- Кнопка "Back" во время поиска -->
+  <button id="searchBackBtn">Back</button>
 
-  <!-- Джойстик (для мобильных) -->
+  <!-- Джойстик (для мобильных устройств) -->
   <div id="joystick">
     <div id="joystick-stick"></div>
   </div>
 
-  <!-- Кнопка копирования ссылки -->
+  <!-- Кнопка для копирования ссылки -->
   <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
 
   <!-- Модальное окно итогов -->
@@ -370,8 +382,8 @@
   Special Snake PvP – Полностью исправленный код с:
     • автоматическим соединением бесплатных игроков,
     • сворачиваемым описанием и переключением языка,
-    • 15-секундным обратным отсчётом перед стартом игры,
-       во время которого отображается надпись "Your snake is" и анимированная змейка.
+    • 15-секундным обратным отсчётом с анимацией змейки,
+    • и добавленной кнопкой "Back" во время поиска.
 ============================================================
 */
 
@@ -583,7 +595,7 @@ function actuallyCreateRoom(bet) {
     createdAt: firebase.database.ServerValue.TIMESTAMP,
     creator: window.currentUser.username,
     bet: bet
-  }).catch((err) => console.error('Error creating room:', err));
+  }).catch(err => console.error('Error creating room:', err));
   queueRef.child(roomId).onDisconnect().remove();
   inviteLink = "https://mygame.example.com/invite?room=" + roomId;
   document.getElementById('copyButton').style.display = 'block';
@@ -685,6 +697,8 @@ function proceedJoin(roomKey) {
   inviteLink = "https://mygame.example.com/invite?room=" + roomId;
   document.getElementById('copyButton').style.display = 'block';
   document.getElementById('searchRoomModal').style.display = 'none';
+  // Скрываем кнопку "Back" для поиска, если она отображалась ранее
+  document.getElementById('searchBackBtn').style.display = 'none';
   drawWaitingScreen();
   waitForOpponent();
 }
@@ -695,7 +709,7 @@ function proceedJoin(roomKey) {
 function waitForOpponent() {
   drawSearchScreen();
   const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
-  waitingListener = statusRef.on('value', async (snapshot) => {
+  waitingListener = statusRef.on('value', async snapshot => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
       statusRef.off('value', waitingListener);
@@ -714,7 +728,7 @@ function waitForOpponent() {
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      // Запускаем 15-секундный обратный отсчёт через 2 секунды
+      // Запуск 15-секундного обратного отсчёта через 2 секунды
       showOpponentNameTimeout = setTimeout(() => {
         startPreGameCountdown();
       }, 2000);
@@ -722,7 +736,7 @@ function waitForOpponent() {
   });
   
   const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
-  oppListener = oppRef.on('value', (snapshot) => {
+  oppListener = oppRef.on('value', snapshot => {
     const oppData = snapshot.val();
     if (oppData) {
       previousOpponentSnake = opponentSnake.length ? opponentSnake.map(seg => ({ ...seg })) : (oppData.snake || []);
@@ -745,7 +759,7 @@ function waitForOpponent() {
 function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
   const playerRef = gameStateRef.child('players').child(playerId);
-  playerRef.once('value').then((snapshot) => {
+  playerRef.once('value').then(snapshot => {
     if (!snapshot.exists()) {
       let startX, startY;
       if (playerId === 'player1') {
@@ -771,14 +785,14 @@ function setupGameReferences() {
         .catch(err => console.error("Error setting onDisconnect:", err));
     }
   });
-  gameStateRef.child('apple').on('value', (snapshot) => {
+  gameStateRef.child('apple').on('value', snapshot => {
     const aData = snapshot.val() || {};
     if (typeof aData.x === 'number' && typeof aData.y === 'number') {
       applePos.x = aData.x;
       applePos.y = aData.y;
     }
   });
-  gameStateRef.child('gameOver').on('value', (snapshot) => {
+  gameStateRef.child('gameOver').on('value', snapshot => {
     if (snapshot.val() === true && !isGameOver) {
       isGameOver = true;
       endGame();
@@ -790,11 +804,11 @@ function setupGameReferences() {
    5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
 ====================================== */
 function startPreGameCountdown() {
-  const totalTime = 15; // 15 секунд
+  const totalTime = 15;
   const startTime = performance.now();
   function countdownLoop() {
     const now = performance.now();
-    const elapsed = (now - startTime) / 1000; // в секундах
+    const elapsed = (now - startTime) / 1000;
     const remaining = Math.max(totalTime - elapsed, 0);
     drawPreGameCountdownScreen(remaining);
     if (remaining > 0) {
@@ -807,22 +821,17 @@ function startPreGameCountdown() {
 }
 
 function drawPreGameCountdownScreen(remaining) {
-  // Очистка canvas
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-  // Фон
   specialCtx.fillStyle = '#1f1c2c';
   specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-  // Отрисовка обратного отсчёта (число)
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '60px "Press Start 2P", sans-serif';
   specialCtx.textAlign = 'center';
   const displayTime = Math.ceil(remaining);
   specialCtx.fillText(displayTime.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 3);
-  // Отрисовка надписи "Your snake is"
   specialCtx.fillStyle = '#FF00FF';
   specialCtx.font = '20px "Press Start 2P", sans-serif';
   specialCtx.fillText("Your snake is", specialGameCanvas.width / 2, specialGameCanvas.height / 3 + 60);
-  // Анимация змейки: 3 сегмента, движущихся слева направо с периодом 3 секунды
   const segmentSize = 20;
   const numSegments = 3;
   const snakeLength = numSegments * segmentSize;
@@ -847,7 +856,7 @@ function launchGame() {
   document.getElementById('topBar').style.display = 'none';
   isGameRunning = true;
   isGameOver = false;
-  gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
+  gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
     const data = snapshot.val();
     if (data && data.snake) {
       localSnake = data.snake;
@@ -856,7 +865,7 @@ function launchGame() {
     score = (data && data.score) ? data.score : 0;
     previousSnake = localSnake.map(seg => ({ ...seg }));
     lastLogicUpdateTime = performance.now();
-    gameStateRef.child('apple').once('value').then((appleSnap) => {
+    gameStateRef.child('apple').once('value').then(appleSnap => {
       if (!appleSnap.exists()) {
         spawnApple();
       }
@@ -1013,7 +1022,6 @@ function renderGame() {
   const now = performance.now();
   const factor = Math.min((now - lastLogicUpdateTime) / LOGIC_INTERVAL, 1);
   
-  // Рисуем яблоко
   let appleImg = new Image();
   appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
   if (appleImg.complete) {
@@ -1026,7 +1034,6 @@ function renderGame() {
     );
   }
   
-  // Рисуем локальную змейку с интерполяцией
   for (let i = 0; i < localSnake.length; i++) {
     const curr = localSnake[i];
     const prev = previousSnake[i] || curr;
@@ -1041,7 +1048,6 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
   
-  // Рисуем змейку противника с интерполяцией
   const opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
   for (let i = 0; i < opponentSnake.length; i++) {
     const curr = opponentSnake[i];
@@ -1057,7 +1063,6 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
   
-  // Отрисовка счёта и таймера
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '12px "Press Start 2P", sans-serif';
   specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
@@ -1122,7 +1127,7 @@ function drawOpponentFoundScreen() {
 }
 
 /* ======================================
-   14. ОБРАБОТКА ВВОДА (ДЖОЙСТИК + КЛАВИАТУРА)
+   14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
 ====================================== */
 function addSwipeListeners() {
   function onKeyDown(e) {
@@ -1305,6 +1310,8 @@ document.getElementById('searchRoomBtn').addEventListener('click', function() {
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('topBar').style.display = 'none';
   document.getElementById('searchRoomModal').style.display = 'flex';
+  // Показываем кнопку "Back" во время поиска
+  document.getElementById('searchBackBtn').style.display = 'block';
   searchRooms();
 });
 
@@ -1334,6 +1341,16 @@ document.getElementById('cancelSearchRoomBtn').addEventListener('click', functio
   document.getElementById('searchRoomModal').style.display = 'none';
   document.getElementById('landingScreen').style.display = 'flex';
   document.getElementById('topBar').style.display = 'flex';
+  // Скрываем кнопку "Back"
+  document.getElementById('searchBackBtn').style.display = 'none';
+});
+
+// Добавляем обработчик для кнопки "Back" во время поиска
+document.getElementById('searchBackBtn').addEventListener('click', function() {
+  document.getElementById('searchRoomModal').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+  document.getElementById('topBar').style.display = 'flex';
+  document.getElementById('searchBackBtn').style.display = 'none';
 });
 
 /* ======================================
@@ -1353,7 +1370,7 @@ window.addEventListener('load', () => {
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
-
+  
   if (!window.currentUser) {
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
       const tgUser = Telegram.WebApp.initDataUnsafe.user;
