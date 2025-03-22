@@ -185,30 +185,26 @@
     .refresh-button:hover, .back-button:hover {
       transform: scale(1.05);
     }
-    /* Джойстик для мобильных устройств */
-    #joystick {
-      position: fixed;
-      width: 100px;
-      height: 100px;
-      margin: -50px 0 0 -50px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(0, 191, 255, 0.7);
-      border-radius: 50%;
-      display: none;
-      z-index: 1000;
-      touch-action: none;
-    }
-    #joystick-stick {
+    /* Кнопка Back во время ожидания */
+    #searchBackBtn {
       position: absolute;
-      width: 50px;
-      height: 50px;
-      margin: -25px 0 0 -25px;
-      background: rgba(0, 191, 255, 0.5);
-      border: 2px solid rgba(255, 255, 255, 0.8);
-      border-radius: 50%;
-      left: 50%;
-      top: 50%;
-      touch-action: none;
+      top: 10px;
+      left: 10px;
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 14px;
+      padding: 5px 10px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #ff007f;
+      z-index: 3000;
+      display: none;
+      transition: transform 0.1s ease;
+    }
+    #searchBackBtn:hover {
+      transform: scale(1.05);
     }
     /* Обучающая страница (landing) */
     #landingScreen {
@@ -280,27 +276,6 @@
       justify-content: space-between;
       background: #111;
       box-shadow: 0 0 10px #007fff;
-    }
-    /* Кнопка Back во время ожидания */
-    #searchBackBtn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 14px;
-      padding: 5px 10px;
-      background: #111;
-      color: #ff007f;
-      border: 2px solid #ff007f;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 0 10px #ff007f;
-      z-index: 3000;
-      display: none;
-      transition: transform 0.1s ease;
-    }
-    #searchBackBtn:hover {
-      transform: scale(1.05);
     }
     /* Адаптивные стили */
     @media (max-width: 480px) {
@@ -385,7 +360,7 @@
             </tr>
           </thead>
           <tbody id="roomList">
-            <!-- Динамически заполняется -->
+            <!-- Список комнат будет динамически заполняться -->
           </tbody>
         </table>
       </div>
@@ -422,9 +397,10 @@
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Код с улучшенной областью ожидания противника:
-       • В режиме "Searching for opponent" текст теперь мигает, располагается внизу по центру.
-       • Под текстом отображается горизонтальный GIF (замените YOUR_GIF_LINK_HERE на нужную ссылку).
+     Special Snake PvP – Код с доработками зоны ожидания противника:
+       • В окне ожидания противника (drawSearchScreen) текст «Searching for opponent...»
+         мигает и расположен внизу по центру.
+       • Под текстом выводится горизонтальная гифка, адаптированная для вертикального отображения.
        • Кнопка копирования инвайт-ссылки удалена.
     ============================================================
     */
@@ -510,7 +486,7 @@
     // Логический интервал
     const LOGIC_INTERVAL = 150;
 
-    // Пригласительная ссылка
+    // Пригласительная ссылка (больше не используется для копирования)
     let inviteLink = "";
 
     // Флаг отключения противника
@@ -624,7 +600,6 @@
     }
 
     function createRoom(bet) {
-      // Если ставка > 0, сначала пробуем списать монеты
       if (bet > 0) {
         deductUserCoins(bet).then(function(result) {
           if (!result.committed) {
@@ -663,8 +638,7 @@
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
       queueRef.child(roomId).onDisconnect().remove();
-      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-      // Убрана отсылка к кнопке копирования инвайт-ссылки
+      // Скрываем модальное окно создания комнаты и переходим в режим ожидания
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -755,8 +729,7 @@
       firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' })
         .catch(err => console.error('Error updating room status:', err));
       setupGameReferences();
-      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-      // Убрана отсылка к кнопке копирования инвайт-ссылки
+      // Переходим в режим ожидания
       document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
       waitForOpponent();
@@ -789,8 +762,7 @@
             console.error("Error reading opponent data: ", e);
           }
           drawOpponentFoundScreen();
-          // Скрываем верхнюю панель при старте игры
-          document.getElementById('topBar').style.display = 'none';
+          // Через 2 секунды запускается игра
           showOpponentNameTimeout = setTimeout(() => {
             startPreGameCountdown();
           }, 2000);
@@ -1158,40 +1130,45 @@
     }
 
     /* ======================================
-       13. ЭКРАН "SEARCHING FOR OPPONENT..."
+       13. ЭКРАНЫ "SEARCHING / WAITING..."
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Заливаем фон
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       
-      // Мигающий текст "Searching for opponent..." внизу по центру
-      const currentTime = performance.now();
-      const blink = Math.floor(currentTime / 500) % 2 === 0 ? 1 : 0;
+      // Рисуем горизонтальную линию для разделения зоны загрузки
+      specialCtx.strokeStyle = '#FF00FF';
+      specialCtx.lineWidth = 2;
+      specialCtx.beginPath();
+      specialCtx.moveTo(20, specialGameCanvas.height - 200);
+      specialCtx.lineTo(specialGameCanvas.width - 20, specialGameCanvas.height - 200);
+      specialCtx.stroke();
+      
+      // Мигающий текст "Searching for opponent..."
+      let blinkAlpha = Math.abs(Math.sin(performance.now() / 500));
       specialCtx.save();
-      specialCtx.globalAlpha = blink;
+      specialCtx.globalAlpha = blinkAlpha;
       specialCtx.fillStyle = '#FF00FF';
-      specialCtx.font = '15px "Press Start 2P", sans-serif';
+      specialCtx.font = '18px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      const textX = specialGameCanvas.width / 2;
-      const textY = specialGameCanvas.height - 60;
-      specialCtx.fillText('Searching for opponent...', textX, textY);
+      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height - 170);
       specialCtx.restore();
       
-      // Отрисовка горизонтального GIF внизу по центру (замените ссылку ниже на нужную)
-      const gifImg = new Image();
-      gifImg.src = 'YOUR_GIF_LINK_HERE';
-      const gifWidth = Math.min(specialGameCanvas.width * 0.8, 300);
-      const gifHeight = gifWidth * 0.3;
-      const gifX = (specialGameCanvas.width - gifWidth) / 2;
-      const gifY = specialGameCanvas.height - 60 - gifHeight - 10;
-      if (gifImg.complete) {
-        specialCtx.drawImage(gifImg, gifX, gifY, gifWidth, gifHeight);
+      // Рисуем горизонтальную гифку внизу (адаптирована для вертикального экрана)
+      let loadImg = new Image();
+      loadImg.src = 'https://raw.githubusercontent.com/qnexst/404token/main/load.png';
+      if (loadImg.complete) {
+        let desiredWidth = specialGameCanvas.width * 0.6;
+        let scale = desiredWidth / loadImg.width;
+        let desiredHeight = loadImg.height * scale;
+        let x = (specialGameCanvas.width - desiredWidth) / 2;
+        let y = specialGameCanvas.height - desiredHeight - 30;
+        specialCtx.drawImage(loadImg, x, y, desiredWidth, desiredHeight);
       } else {
-        gifImg.onload = function() {
-          specialCtx.drawImage(gifImg, gifX, gifY, gifWidth, gifHeight);
-        }
+        loadImg.onload = function() {
+          drawSearchScreen();
+        };
       }
     }
 
@@ -1501,6 +1478,30 @@
         searchRoomBtn: "Search Room",
         playFreeBtn: "Play for Free",
         win: "You Win!",
+        lose: "You Lose...",
+        draw: "Draw",
+        opponentDisconnected: "Opponent Disconnected. You Win!",
+        createRoomTitle: "Create Room",
+        createRoomHint: "Choose bet (in millions):",
+        betUnit: " m",
+        confirmCreateRoom: "Create",
+        cancel: "Cancel",
+        betError: "Not enough coins",
+        searchRoomTitle: "Search Rooms",
+        refresh: "Refresh",
+        back: "Back",
+        searchRoomNoRooms: "No available rooms. Check back later.",
+        join: "Join"
+      },
+      ru: {
+        landingTitle: "Спешл Снейк PvP",
+        landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
+        homeBack: "Назад",
+        languageToggle: "EN",
+        createRoomBtn: "Создать рум",
+        searchRoomBtn: "Поиск рум",
+        playFreeBtn: "Играть бесплатно",
+        win: "ты выиграл",
         lose: "You Lose...",
         draw: "Draw",
         opponentDisconnected: "Opponent Disconnected. You Win!",
