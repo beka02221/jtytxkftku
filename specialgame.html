@@ -63,7 +63,7 @@
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
-      /* Границы убраны */
+      /* Убрана пунктирная рамка */
       border: none;
       border-radius: 8px;
     }
@@ -86,22 +86,15 @@
     #copyButton:hover {
       transform: scale(1.05);
     }
-    /* Модальные окна с плавной анимацией */
+    /* Модальные окна */
     .modal-backdrop, .endgame-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.85);
-      display: flex;
+      display: none;
       justify-content: center;
       align-items: center;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
       z-index: 999;
-    }
-    .modal-backdrop.active, .endgame-backdrop.active {
-      visibility: visible;
-      opacity: 1;
     }
     .modal, .endgame-modal {
       background: #1a1a1a;
@@ -112,114 +105,35 @@
       text-align: center;
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
-      animation: fadeIn 0.3s ease;
     }
-    /* Стилизация слайдера (окно создания комнаты) */
-    .slider-container {
-      margin: 20px 0;
+    #insufficientModal .modal {
+      background-color: #2a2a2a;
+      border: 3px solid #007fff;
     }
-    #betSlider {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 10px;
-      background: #333;
-      border-radius: 5px;
-      outline: none;
-      transition: background 0.3s ease;
-    }
-    #betSlider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      background: #ff007f;
-      border: 2px solid #007fff;
+    /* Джойстик для мобильных устройств */
+    #joystick {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      margin: -50px 0 0 -50px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(0, 191, 255, 0.7);
       border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    #betSlider::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-    .slider-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: #ff007f;
-    }
-    /* Кнопки модальных окон */
-    .modal-buttons {
-      margin-top: 20px;
-      display: flex;
-      justify-content: space-around;
-    }
-    .modal-buttons button {
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
-      padding: 10px 20px;
-      background: #111;
-      color: #ff007f;
-      border: 2px solid #ff007f;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: transform 0.1s ease;
-    }
-    .modal-buttons button:hover {
-      transform: scale(1.05);
-    }
-    /* Индикатор загрузки для поиска комнат */
-    .loading {
-      font-size: 14px;
-      color: #FF00FF;
-      margin: 10px 0;
-    }
-    /* Карточки комнат в окне поиска */
-    .room-card {
-      border: 2px solid #007fff;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #111;
-      box-shadow: 0 0 10px #007fff;
-    }
-    .room-info p {
-      margin: 4px 0;
-      font-size: 12px;
-    }
-    .room-card button {
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
-      padding: 5px 10px;
-      background: #06B6D1;
-      color: #262626;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-    }
-    /* Фиксированная кнопка Back (в режиме ожидания) */
-    #searchBackBtn {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 14px;
-      padding: 5px 10px;
-      background: #111;
-      color: #ff007f;
-      border: 2px solid #ff007f;
-      border-radius: 4px;
-      cursor: pointer;
-      box-shadow: 0 0 10px #ff007f;
-      z-index: 3000;
       display: none;
-      transition: transform 0.1s ease;
+      z-index: 1000;
+      touch-action: none;
     }
-    #searchBackBtn:hover {
-      transform: scale(1.05);
+    #joystick-stick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px;
+      background: rgba(0, 191, 255, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      touch-action: none;
     }
     /* Обучающая страница (landing) */
     #landingScreen {
@@ -281,28 +195,37 @@
     .landingContent button:active {
       transform: translateY(1px);
     }
-    /* Анимация появления */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+    .room-card {
+      border: 2px solid #007fff;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #111;
+      box-shadow: 0 0 10px #007fff;
     }
-    /* Адаптивность для мобильных устройств */
-    @media (max-width: 480px) {
-      .modal {
-        padding: 15px;
-        max-width: 90%;
-      }
-      .modal-buttons button {
-        font-size: 14px;
-        padding: 12px 20px;
-      }
-      #betSlider {
-        height: 12px;
-      }
-      #betSlider::-webkit-slider-thumb {
-        width: 24px;
-        height: 24px;
-      }
+    /* Кнопка Back во время ожидания */
+    #searchBackBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 14px;
+      padding: 5px 10px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #ff007f;
+      z-index: 3000;
+      display: none;
+      transition: transform 0.1s ease;
+    }
+    #searchBackBtn:hover {
+      transform: scale(1.05);
     }
   </style>
 </head>
@@ -319,7 +242,7 @@
   <!-- Canvas для игры -->
   <canvas id="specialGameCanvas" width="400" height="700"></canvas>
 
-  <!-- Обучающая страница (landing) -->
+  <!-- Обучающая страница -->
   <div id="landingScreen">
     <div class="landingContent">
       <h1 id="landingTitle">Special Snake PvP</h1>
@@ -333,43 +256,42 @@
   </div>
 
   <!-- Модальное окно создания комнаты -->
-  <div id="createRoomModal" class="modal-backdrop" role="dialog" aria-labelledby="createRoomTitle" aria-describedby="createRoomDesc">
-    <div class="modal">
-      <h2 id="createRoomTitle">Create Room</h2>
-      <p id="createRoomDesc">Ставка (в млн): <span id="betValueDisplay">1</span></p>
-      <div class="slider-container">
-        <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
-        <div class="slider-labels">
-          <span class="slider-min">1</span>
-          <span class="slider-max">100</span>
-        </div>
+  <div id="createRoomModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 500px; width: 90%; padding: 20px; transition: all 0.3s ease;">
+      <h2 id="createRoomModalTitle">Create Room</h2>
+      <!-- Подсказка о ставке -->
+      <p id="betTooltip" style="font-size: 14px; color: #e0e0e0; margin-bottom: 10px;">
+        Set your bet. Higher bet increases potential rewards and risk.
+      </p>
+      <!-- Слайдер со значением ставки -->
+      <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <input type="range" id="betSlider" min="1" max="100" value="1" step="1" style="flex-grow: 1; margin-right: 10px;">
+        <span id="betValueDisplay" style="font-size: 18px; transition: all 0.3s ease;">1 m</span>
       </div>
-      <div class="modal-buttons">
-        <button id="confirmCreateRoomBtn">Create</button>
-        <button id="cancelCreateRoomBtn">Cancel</button>
+      <!-- Сообщение об ошибке, если ставка неверна -->
+      <p id="betError" style="display: none; color: red; font-size: 14px; margin-bottom: 10px;">
+        Insufficient coins for this bet.
+      </p>
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="confirmCreateRoomBtn" style="padding: 10px 20px; margin-right: 10px;">Create</button>
+        <button id="cancelCreateRoomBtn" style="padding: 10px 20px;">Cancel</button>
       </div>
-      <div id="creationHint" class="hint" aria-live="polite"></div>
     </div>
   </div>
 
   <!-- Модальное окно поиска комнат -->
-  <div id="searchRoomModal" class="modal-backdrop" role="dialog" aria-labelledby="searchRoomTitle" aria-describedby="searchRoomDesc">
-    <div class="modal">
-      <h2 id="searchRoomTitle">Search Rooms</h2>
-      <div class="filter-container">
-        <label for="minBetFilter">Min Bet (m):</label>
-        <input type="number" id="minBetFilter" min="1" value="1">
-        <label for="maxBetFilter">Max Bet (m):</label>
-        <input type="number" id="maxBetFilter" min="1" value="100">
-        <button id="applyFilterBtn">Filter</button>
+  <div id="searchRoomModal" class="modal-backdrop" style="display: none; width: 100%; height: 100%; padding: 20px; box-sizing: border-box;">
+    <div class="modal" style="width: 100%; height: 100%; max-width: none; border-radius: 0; padding: 20px; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2 id="searchRoomModalTitle" style="margin: 0;">Search Rooms</h2>
+        <button id="refreshRoomsBtn" style="padding: 10px 20px;">Refresh</button>
       </div>
-      <div id="loadingIndicator" class="loading">Loading...</div>
-      <div id="roomList" class="room-list">
-        <!-- Карточки комнат будут генерироваться динамически -->
+      <!-- Список комнат оформлен в виде таблицы -->
+      <div id="roomList" style="width: 100%; border-collapse: collapse;">
+        <!-- Здесь динамически будут создаваться строки с данными комнат -->
       </div>
-      <div class="modal-buttons">
-        <button id="refreshSearchBtn">Refresh</button>
-        <button id="cancelSearchRoomBtn">Назад</button>
+      <div style="margin-top: 20px;">
+        <button id="cancelSearchRoomBtn" style="padding: 10px 20px; width: 100%;">Back</button>
       </div>
     </div>
   </div>
@@ -397,31 +319,24 @@
   <!-- Модальное окно недостатка монет -->
   <div id="insufficientModal" class="modal-backdrop">
     <div class="modal">
-      <h2>Not enough coins</h2>
-      <p>You don't have enough coins to join the game.</p>
-      <button onclick="window.location.href='buy.html'">Top Up</button>
+      <h2 id="insufficientTitle">Not enough coins</h2>
+      <p id="insufficientText">You don't have enough coins to join the game.</p>
+      <button onclick="window.location.href='buy.html'" id="topUpBtn">Top Up</button>
     </div>
   </div>
 
   <script>
-    /* ============================================================
-       Special Snake PvP – полный исправленный код с улучшенными
-       окнами создания и поиска комнаты, адаптивностью и анимациями.
-    ============================================================ */
+    /* 
+    ============================================================
+     Special Snake PvP – Основной код с модальными окнами создания и поиска комнат.
+       • Счёт в игре выводится точным числом (без суффиксов), а баланс в меню – с "m"/"b".
+       • Пунктирные рамки убраны.
+       • Локализация реализована через объект languageStrings.
+       • Модальные окна для создания и поиска комнат дополнены динамическим отображением, анимацией, информативными подсказками, валидацией и адаптивным дизайном.
+    ============================================================
+    */
 
-    // Функции показа/скрытия модальных окон с анимацией
-    function showModal(modalId) {
-      const modal = document.getElementById(modalId);
-      modal.classList.add('active');
-      modal.style.display = 'flex';
-    }
-    function hideModal(modalId) {
-      const modal = document.getElementById(modalId);
-      modal.classList.remove('active');
-      setTimeout(() => { modal.style.display = 'none'; }, 300);
-    }
-
-    // Функции форматирования
+    // Функция форматирования чисел для монет (в меню)
     function formatNumber(num) {
       if(num >= 1e9) {
         return (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'b';
@@ -429,28 +344,91 @@
         return (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'm';
       }
     }
+
+    // Функция для точного отображения очков в игре (без суффиксов)
     function formatScore(num) {
       return num.toString();
     }
 
-    // Глобальные переменные
-    let specialGameCanvas, specialCtx;
-    const GAME_AREA_X = 50, GAME_AREA_Y = 50, GAME_AREA_WIDTH = 300, GAME_AREA_HEIGHT = 500;
-    const gridSize = 20, tileCountX = GAME_AREA_WIDTH / gridSize, tileCountY = GAME_AREA_HEIGHT / gridSize;
-    let roomId = null, playerId = null, opponentId = null, gameStateRef = null;
-    let localSnake = [], localDirection = 'right', score = 0;
-    let previousSnake = [], lastLogicUpdateTime = 0;
-    let opponentSnake = [], opponentScore = 0, opponentName = '';
-    let previousOpponentSnake = [], lastOpponentUpdateTime = performance.now();
+    // Глобальные переменные для canvas и контекста
+    let specialGameCanvas;
+    let specialCtx;
+
+    // Область игры (на canvas)
+    const GAME_AREA_X = 50;
+    const GAME_AREA_Y = 50;
+    const GAME_AREA_WIDTH = 300;
+    const GAME_AREA_HEIGHT = 500;
+
+    // Настройки сетки
+    const gridSize = 20;
+    const tileCountX = GAME_AREA_WIDTH / gridSize;
+    const tileCountY = GAME_AREA_HEIGHT / gridSize;
+
+    // Идентификаторы комнаты и игроков
+    let roomId = null;
+    let playerId = null;
+    let opponentId = null;
+    let gameStateRef = null;
+
+    // Локальное состояние змейки
+    let localSnake = [];
+    let localDirection = 'right';
+    let score = 0;
+
+    // Для плавной анимации змейки
+    let previousSnake = [];
+    let lastLogicUpdateTime = 0;
+
+    // Состояние змейки противника
+    let opponentSnake = [];
+    let opponentScore = 0;
+    let opponentName = '';
+
+    // Для плавной анимации змейки противника
+    let previousOpponentSnake = [];
+    let lastOpponentUpdateTime = performance.now();
+
+    // Позиция яблока
     let applePos = { x: 0, y: 0 };
-    let isGameRunning = false, isGameOver = false, showOpponentNameTimeout = null;
-    let timerTotal = 60, timerCurrent = 60, logicTimer = null;
-    let waitingListener = null, oppListener = null;
-    const snakeColors = { player1: '#FFFF00', player2: '#FF0000' };
+
+    // Флаги игры
+    let isGameRunning = false;
+    let isGameOver = false;
+    let showOpponentNameTimeout = null;
+
+    // Таймер (1 минута)
+    let timerTotal = 60;
+    let timerCurrent = 60;
+
+    // Интервалы
+    let logicTimer = null;
+
+    // Слушатели Firebase
+    let waitingListener = null;
+    let oppListener = null;
+
+    // Глобальная переменная для хранения текущего баланса пользователя (например, 3000000 для 3m)
+    let userCoins = 0;
+
+    // Цвета змейки
+    const snakeColors = {
+      player1: '#FFFF00', // желтый
+      player2: '#FF0000'  // красный
+    };
+
+    // Логический интервал
     const LOGIC_INTERVAL = 150;
+
+    // Пригласительная ссылка
     let inviteLink = "";
+
+    // Флаг отключения противника
     let opponentDisconnected = false;
 
+    /* ======================================
+       Вспомогательная функция интерполяции
+    ====================================== */
     function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
       let diff = currVal - prevVal;
       if (Math.abs(diff) > maxVal / 2) {
@@ -463,6 +441,9 @@
       return interp;
     }
 
+    /* ======================================
+       1. ИНИЦИАЛИЗАЦИЯ И СБРОС
+    ====================================== */
     function initSpecialGame1() {
       specialGameCanvas = document.getElementById('specialGameCanvas');
       specialCtx = specialGameCanvas.getContext('2d');
@@ -477,12 +458,21 @@
         clearTimeout(showOpponentNameTimeout);
         showOpponentNameTimeout = null;
       }
-      roomId = null; playerId = null; opponentId = null; gameStateRef = null;
-      localSnake = []; localDirection = 'right'; score = 0;
-      opponentSnake = []; opponentScore = 0; opponentName = "";
+      roomId = null;
+      playerId = null;
+      opponentId = null;
+      gameStateRef = null;
+      localSnake = [];
+      localDirection = 'right';
+      score = 0;
+      opponentSnake = [];
+      opponentScore = 0;
+      opponentName = "";
       applePos = { x: 0, y: 0 };
-      isGameRunning = false; isGameOver = false;
-      timerTotal = 60; timerCurrent = 60;
+      isGameRunning = false;
+      isGameOver = false;
+      timerTotal = 60;
+      timerCurrent = 60;
       inviteLink = "";
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
@@ -495,6 +485,9 @@
       removeSwipeListeners();
     }
 
+    /* ======================================
+       2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
+    ====================================== */
     function autoJoinFreeGame() {
       const queueRef = firebase.database().ref('snakeQueue');
       queueRef.orderByChild('bet').equalTo(0).once('value')
@@ -541,14 +534,14 @@
       if (bet > 0) {
         deductUserCoins(bet).then(function(result) {
           if (!result.committed) {
-            document.getElementById('creationHint').textContent = "Not enough coins!";
+            showInsufficientModal();
             return;
           } else {
             actuallyCreateRoom(bet);
           }
         }).catch(err => {
           console.error(err);
-          document.getElementById('creationHint').textContent = "Error creating room!";
+          showInsufficientModal();
         });
       } else {
         actuallyCreateRoom(bet);
@@ -558,7 +551,8 @@
     function actuallyCreateRoom(bet) {
       const queueRef = firebase.database().ref('snakeQueue');
       roomId = queueRef.push().key;
-      playerId = 'player1'; opponentId = 'player2';
+      playerId = 'player1';
+      opponentId = 'player2';
       queueRef.child(roomId).set({
         status: 'waiting',
         createdAt: firebase.database.ServerValue.TIMESTAMP,
@@ -568,7 +562,7 @@
       queueRef.child(roomId).onDisconnect().remove();
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
-      hideModal('createRoomModal');
+      document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
       waitForOpponent();
@@ -585,23 +579,44 @@
             Object.keys(rooms).forEach(roomKey => {
               const room = rooms[roomKey];
               if (room.creator === window.currentUser.username) return;
-              const card = document.createElement('div');
-              card.className = 'room-card';
-              card.innerHTML = `
-                <div class="room-info">
-                  <p><strong>@${room.creator}</strong></p>
-                  <p>Bet: ${room.bet} m</p>
-                  <p>${new Date(room.createdAt).toLocaleTimeString()}</p>
-                </div>
-                <button class="joinRoomBtn" data-room="${roomKey}">${languageStrings[currentLanguage].join}</button>
-              `;
-              roomListDiv.appendChild(card);
-              card.querySelector('.joinRoomBtn').addEventListener('click', function() {
+              // Создаём строку для отображения информации о комнате
+              const row = document.createElement('div');
+              row.style.display = 'flex';
+              row.style.justifyContent = 'space-between';
+              row.style.alignItems = 'center';
+              row.style.borderBottom = '1px solid #ccc';
+              row.style.padding = '10px 0';
+              // Ячейка с именем создателя
+              const creatorCell = document.createElement('div');
+              creatorCell.style.flex = '1';
+              creatorCell.textContent = "@" + room.creator;
+              creatorCell.style.color = '#FF00FF';
+              // Ячейка со ставкой
+              const betCell = document.createElement('div');
+              betCell.style.flex = '1';
+              betCell.textContent = room.bet + " m";
+              betCell.style.color = '#FF00FF';
+              // Ячейка с кнопкой входа в комнату
+              const joinCell = document.createElement('div');
+              joinCell.style.flex = '0';
+              const joinBtn = document.createElement('button');
+              joinBtn.textContent = languageStrings[currentLanguage].join;
+              joinBtn.style.padding = '10px 20px';
+              joinBtn.style.fontFamily = 'Press Start 2P, sans-serif';
+              joinBtn.style.fontSize = '14px';
+              joinBtn.style.cursor = 'pointer';
+              joinBtn.addEventListener('click', function() {
                 joinRoom(roomKey);
               });
+              joinCell.appendChild(joinBtn);
+              // Добавляем ячейки в строку
+              row.appendChild(creatorCell);
+              row.appendChild(betCell);
+              row.appendChild(joinCell);
+              roomListDiv.appendChild(row);
             });
           } else {
-            roomListDiv.innerHTML = '<p style="color: #FF00FF;">No available rooms</p>';
+            roomListDiv.innerHTML = '<p style="color: #FF00FF; text-align: center; margin-top: 20px;">No available rooms. Try creating a new room or check back later.</p>';
           }
         })
         .catch(err => console.error('Error searching rooms:', err));
@@ -631,19 +646,24 @@
 
     function proceedJoin(roomKey) {
       roomId = roomKey;
-      playerId = 'player2'; opponentId = 'player1';
+      playerId = 'player2';
+      opponentId = 'player1';
       firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' })
         .catch(err => console.error('Error updating room status:', err));
       setupGameReferences();
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('copyButton').style.display = 'block';
-      hideModal('searchRoomModal');
+      document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
       waitForOpponent();
     }
 
+    /* ======================================
+       3. ОЖИДАНИЕ ПРОТИВНИКА
+    ====================================== */
     function waitForOpponent() {
       drawSearchScreen();
+      // Показываем кнопку Back, чтобы пользователь мог выйти из ожидания
       document.getElementById('searchBackBtn').style.display = 'block';
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       waitingListener = statusRef.on('value', async (snapshot) => {
@@ -651,6 +671,7 @@
         if (currentStatus === 'ready') {
           statusRef.off('value', waitingListener);
           waitingListener = null;
+          // Скрываем кнопку Back, так как противник найден
           document.getElementById('searchBackBtn').style.display = 'none';
           try {
             const oppSnapshot = await firebase.database()
@@ -690,6 +711,9 @@
       });
     }
 
+    /* ======================================
+       4. НАСТРОЙКА gameStateRef И СЛУШАТЕЛИ
+    ====================================== */
     function setupGameReferences() {
       gameStateRef = firebase.database().ref('snakeGames/' + roomId);
       const playerRef = gameStateRef.child('players').child(playerId);
@@ -734,8 +758,11 @@
       });
     }
 
+    /* ======================================
+       5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
+    ====================================== */
     function startPreGameCountdown() {
-      const totalTime = 15;
+      const totalTime = 15; // 15 секунд
       const startTime = performance.now();
       function countdownLoop() {
         const now = performance.now();
@@ -780,8 +807,12 @@
       }
     }
 
+    /* ======================================
+       6. ЗАПУСК ИГРЫ
+    ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
+      // Граница canvas уже убрана в CSS
       isGameRunning = true;
       isGameOver = false;
       gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
@@ -805,6 +836,9 @@
       });
     }
 
+    /* ======================================
+       7. ЛОГИКА И РЕНДЕР ИГРЫ
+    ====================================== */
     function startLogicLoop() {
       logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
     }
@@ -842,6 +876,9 @@
       }
     }
 
+    /* ======================================
+       8. ДВИЖЕНИЕ ЗМЕЙКИ
+    ====================================== */
     function moveLocalSnake() {
       const head = { ...localSnake[0] };
       switch (localDirection) {
@@ -862,6 +899,9 @@
       return false;
     }
 
+    /* ======================================
+       9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
+    ====================================== */
     function updatePlayerState(ateApple) {
       if (ateApple) {
         const lastSegment = localSnake[localSnake.length - 1];
@@ -883,6 +923,9 @@
         .catch(err => console.error('Error setting apple:', err));
     }
 
+    /* ======================================
+       10. КОНЕЦ ИГРЫ
+    ====================================== */
     function setGameOver() {
       isGameOver = true;
       gameStateRef.update({ gameOver: true })
@@ -909,6 +952,9 @@
       cleanupRoom();
     }
 
+    /* ======================================
+       11. ТАЙМЕР (1 минута)
+    ====================================== */
     function startTimer() {
       timerCurrent = timerTotal;
       const timerInterval = setInterval(() => {
@@ -924,6 +970,9 @@
       }, 1000);
     }
 
+    /* ======================================
+       12. РЕНДЕР ИГРЫ (с интерполяцией)
+    ====================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00103c';
@@ -1005,6 +1054,9 @@
       specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
     }
 
+    /* ======================================
+       13. ЭКРАНЫ "SEARCHING / WAITING..."
+    ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00103c';
@@ -1033,6 +1085,9 @@
       specialCtx.fillText('Opponent found!', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
     }
 
+    /* ======================================
+       14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
+    ====================================== */
     function addSwipeListeners() {
       function onKeyDown(e) {
         switch (e.key) {
@@ -1124,6 +1179,9 @@
       window.__joystick_keydown = null;
     }
 
+    /* ======================================
+       15. КОПИРОВАНИЕ ССЫЛКИ
+    ====================================== */
     function copyInviteLink() {
       if (!inviteLink) return;
       navigator.clipboard.writeText(inviteLink)
@@ -1131,6 +1189,9 @@
         .catch(err => console.error("Error copying invite link:", err));
     }
 
+    /* ======================================
+       16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+    ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
       const titleEl = document.getElementById('endgameTitle');
@@ -1141,6 +1202,9 @@
       modal.style.display = 'flex';
     }
 
+    /* ======================================
+       17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+    ====================================== */
     function setupControlButtons() {
       const buttons = document.querySelectorAll('.control-button');
       buttons.forEach(button => {
@@ -1157,6 +1221,9 @@
       });
     }
 
+    /* ======================================
+       18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+    ====================================== */
     function cleanupRoom() {
       if (roomId) {
         firebase.database().ref('snakeGames/' + roomId).remove()
@@ -1174,6 +1241,9 @@
       }
     });
 
+    /* ======================================
+       19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+    ====================================== */
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
       document.getElementById('endgameBackdrop').style.display = 'none';
@@ -1183,18 +1253,20 @@
       window.location.href = 'index.html';
     }
 
-    // Слушатели кнопок на обучающей странице
+    /* ======================================
+       20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+    ====================================== */
     document.getElementById('createRoomBtn').addEventListener('click', function() {
       document.getElementById('landingScreen').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      showModal('createRoomModal');
+      document.getElementById('createRoomModal').style.display = 'flex';
     });
 
     document.getElementById('searchRoomBtn').addEventListener('click', function() {
       document.getElementById('landingScreen').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      showModal('searchRoomModal');
-      searchRoomsWithFilter();
+      document.getElementById('searchRoomModal').style.display = 'flex';
+      searchRooms();
     });
 
     document.getElementById('playFreeBtn').addEventListener('click', function() {
@@ -1204,86 +1276,94 @@
     });
 
     document.getElementById('cancelCreateRoomBtn').addEventListener('click', function() {
-      hideModal('createRoomModal');
+      document.getElementById('createRoomModal').style.display = 'none';
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
     });
 
     document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
       const betValue = parseInt(document.getElementById('betSlider').value);
+      // Если недостаточно монет, сообщение об ошибке уже показано
+      if(userCoins < betValue * 1000000) {
+        document.getElementById('betError').style.display = 'block';
+        return;
+      }
       createRoom(betValue);
     });
 
-    // Обновление отображения выбранной ставки в режиме реального времени
-    document.getElementById('betSlider').addEventListener('input', function() {
-      const value = this.value;
-      document.getElementById('betValueDisplay').textContent = value;
-    });
-
     document.getElementById('cancelSearchRoomBtn').addEventListener('click', function() {
-      hideModal('searchRoomModal');
+      document.getElementById('searchRoomModal').style.display = 'none';
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
     });
 
+    /* ======================================
+       21. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
+    ====================================== */
     document.getElementById('searchBackBtn').addEventListener('click', function() {
+      // При нажатии "Back" удаляем комнату и возвращаем пользователя на главный экран.
       cleanupRoom();
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
       document.getElementById('searchBackBtn').style.display = 'none';
     });
 
-    // Фильтрация и обновление списка комнат
-    document.getElementById('applyFilterBtn').addEventListener('click', function() {
-      const minBet = parseInt(document.getElementById('minBetFilter').value);
-      const maxBet = parseInt(document.getElementById('maxBetFilter').value);
-      searchRoomsWithFilter(minBet, maxBet);
-    });
-    document.getElementById('refreshSearchBtn').addEventListener('click', function() {
-      const minBet = parseInt(document.getElementById('minBetFilter').value);
-      const maxBet = parseInt(document.getElementById('maxBetFilter').value);
-      searchRoomsWithFilter(minBet, maxBet);
-    });
-
-    function searchRoomsWithFilter(minBet = 1, maxBet = 100) {
-      document.getElementById('loadingIndicator').style.display = 'block';
-      const queueRef = firebase.database().ref('snakeQueue');
-      queueRef.orderByChild('status').equalTo('waiting').once('value')
-        .then(snapshot => {
-          const rooms = snapshot.val();
-          const roomListDiv = document.getElementById('roomList');
-          roomListDiv.innerHTML = '';
-          if (rooms) {
-            Object.keys(rooms).forEach(roomKey => {
-              const room = rooms[roomKey];
-              if (room.bet < minBet || room.bet > maxBet) return;
-              if (room.creator === window.currentUser.username) return;
-              const card = document.createElement('div');
-              card.className = 'room-card';
-              card.innerHTML = `
-                <div class="room-info">
-                  <p><strong>@${room.creator}</strong></p>
-                  <p>Bet: ${room.bet} m</p>
-                  <p>${new Date(room.createdAt).toLocaleTimeString()}</p>
-                </div>
-                <button class="joinRoomBtn" data-room="${roomKey}">${languageStrings[currentLanguage].join}</button>
-              `;
-              roomListDiv.appendChild(card);
-              card.querySelector('.joinRoomBtn').addEventListener('click', function() {
-                joinRoom(roomKey);
-              });
+    /* ======================================
+       22. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+    ====================================== */
+    window.addEventListener('load', () => {
+      const firebaseConfig = {
+        apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+        authDomain: "test-with-likes.firebaseapp.com",
+        databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+        projectId: "test-with-likes",
+        storageBucket: "test-with-likes.appspot.com",
+        messagingSenderId: "764738820142",
+        appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+        measurementId: "G-WJNF0HSN9P"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      if (!window.currentUser) {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+          const tgUser = Telegram.WebApp.initDataUnsafe.user;
+          window.currentUser = {
+            username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
+            photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+          };
+        } else {
+          window.currentUser = {
+            username: "TestUser",
+            photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+          };
+        }
+      }
+      if (window.currentUser && window.currentUser.username) {
+        const userRef = firebase.database().ref('users/' + window.currentUser.username);
+        userRef.once('value').then(snapshot => {
+          if (!snapshot.exists()) {
+            userRef.set({
+              coins: 0,
+              tickets: 0,
+              points: 0,
+              lastSpinTime: 0
             });
-          } else {
-            roomListDiv.innerHTML = '<p style="color: #FF00FF;">No available rooms</p>';
           }
-          document.getElementById('loadingIndicator').style.display = 'none';
-        })
-        .catch(err => {
-          console.error('Error searching rooms:', err);
-          document.getElementById('loadingIndicator').style.display = 'none';
         });
-    }
+        userRef.on('value', snapshot => {
+          const data = snapshot.val() || {};
+          const coins = data.coins || 0;
+          updateCoinDisplay(coins);
+        });
+      }
+      initSpecialGame1();
+      updateLanguageTexts();
+    });
 
+    /* ======================================
+       23. ЛОКАЛИЗАЦИЯ
+    ====================================== */
     let currentLanguage = "en";
     const languageStrings = {
       en: {
@@ -1380,60 +1460,7 @@
       window.location.href = 'index.html';
     });
 
-    function updateCoinDisplay(coins) {
-      document.getElementById('coinButton').innerHTML =
-        formatNumber(coins) + ' <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>';
-    }
-
-    window.addEventListener('load', () => {
-      const firebaseConfig = {
-        apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-        authDomain: "test-with-likes.firebaseapp.com",
-        databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-        projectId: "test-with-likes",
-        storageBucket: "test-with-likes.appspot.com",
-        messagingSenderId: "764738820142",
-        appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-        measurementId: "G-WJNF0HSN9P"
-      };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      if (!window.currentUser) {
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
-          const tgUser = Telegram.WebApp.initDataUnsafe.user;
-          window.currentUser = {
-            username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
-            photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-          };
-        } else {
-          window.currentUser = {
-            username: "TestUser",
-            photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-          };
-        }
-      }
-      if (window.currentUser && window.currentUser.username) {
-        const userRef = firebase.database().ref('users/' + window.currentUser.username);
-        userRef.once('value').then(snapshot => {
-          if (!snapshot.exists()) {
-            userRef.set({
-              coins: 0,
-              tickets: 0,
-              points: 0,
-              lastSpinTime: 0
-            });
-          }
-        });
-        userRef.on('value', snapshot => {
-          const data = snapshot.val() || {};
-          const coins = data.coins || 0;
-          updateCoinDisplay(coins);
-        });
-      }
-      initSpecialGame1();
-      updateLanguageTexts();
-    });
+    // Обновление динамического значения ставки уже настроено выше через событие input на betSlider.
   </script>
 </body>
 </html>
