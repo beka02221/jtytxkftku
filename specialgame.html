@@ -57,16 +57,16 @@
       transform: scale(1.05);
       box-shadow: 0 0 10px #ff007f;
     }
-
     /* Canvas для игры */
     #specialGameCanvas {
       display: block;
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
-      border: none; /* Убрана рамка */
+      border: none; /* Пунктирная рамка убрана */
       border-radius: 8px;
     }
+    /* Убрана кнопка для копирования ссылки */
 
     /* Модальные окна */
     .modal-backdrop, .endgame-backdrop {
@@ -78,6 +78,7 @@
       align-items: center;
       z-index: 999;
     }
+    /* Дополнительный класс для полноэкранного модального окна (для поиска комнат) */
     .full-screen {
       width: 100%;
       height: 100%;
@@ -93,7 +94,6 @@
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
     }
-
     /* Стили для модального окна создания комнаты */
     .create-room-modal {
       max-width: 350px;
@@ -140,8 +140,7 @@
     .modal-buttons button:hover {
       transform: scale(1.05);
     }
-
-    /* Модальное окно поиска комнат */
+    /* Стили для модального окна поиска комнат */
     .search-room-modal {
       width: 95%;
       max-width: none;
@@ -187,7 +186,6 @@
     .refresh-button:hover, .back-button:hover {
       transform: scale(1.05);
     }
-
     /* Джойстик для мобильных устройств */
     #joystick {
       position: fixed;
@@ -213,7 +211,6 @@
       top: 50%;
       touch-action: none;
     }
-
     /* Обучающая страница (landing) */
     #landingScreen {
       position: absolute;
@@ -285,7 +282,6 @@
       background: #111;
       box-shadow: 0 0 10px #007fff;
     }
-
     /* Кнопка Back во время ожидания */
     #searchBackBtn {
       position: absolute;
@@ -307,57 +303,6 @@
     #searchBackBtn:hover {
       transform: scale(1.05);
     }
-
-    /* Экран итогов */
-    .endgame-modal {
-      background: #1a1a1a;
-      border: 3px solid #ff007f;
-      padding: 20px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
-    }
-
-    /* Экран поиска оппонента – оверлей */
-    #searchingOverlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 3000;
-      display: none; /* изначально скрыт */
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      /* Фон с неоновыми линиями */
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          #111 0px,
-          #111 40px,
-          #222 40px,
-          #222 80px
-        );
-    }
-    /* Центрируем GIF, ниже будет мигающий текст */
-    #loadingGif {
-      width: 260px;
-      height: auto;
-      margin-bottom: 30px;
-    }
-    /* Мигающий текст */
-    #searchingText {
-      font-family: 'Press Start 2P', sans-serif;
-      font-size: 14px;
-      color: #ff00ff;
-      animation: blinking 1.2s infinite;
-    }
-    @keyframes blinking {
-      0%   { opacity: 1; }
-      50%  { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
-
     /* Адаптивные стили */
     @media (max-width: 480px) {
       .modal, .create-room-modal, .search-room-modal {
@@ -380,13 +325,6 @@
         font-size: 10px;
         padding: 6px 10px;
       }
-      #searchingText {
-        font-size: 12px;
-      }
-      #loadingGif {
-        width: 100px;
-        margin-bottom: 20px;
-      }
     }
   </style>
 </head>
@@ -394,7 +332,7 @@
   <!-- Верхняя панель -->
   <div id="topBar">
     <button id="homeBackBtn">Back</button>
-    <button id="coinButton" onclick="window.location.href='soon.html'">
+    <button id="coinButton" onclick="window.location.href='buy.html'">
       0m <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>
     </button>
     <button id="langToggleBtn">RU</button>
@@ -464,12 +402,6 @@
     <div id="joystick-stick"></div>
   </div>
 
-  <!-- Оверлей поиска оппонента -->
-  <div id="searchingOverlay">
-    <img src="https://raw.githubusercontent.com/qnexst/404token/main/load.gif" id="loadingGif" alt="Loading...">
-    <div id="searchingText">searching for opponent...</div>
-  </div>
-
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
@@ -484,19 +416,19 @@
     <div class="modal">
       <h2>Not enough coins</h2>
       <p>You don't have enough coins to join the game.</p>
-      <button onclick="window.location.href='soon.html'">Top Up</button>
+      <button onclick="window.location.href='buy.html'">Top Up</button>
     </div>
   </div>
 
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Код с обновлённым экраном поиска:
-       - Удалена кнопка "Copy Invite Link".
-       - Добавлен overlay #searchingOverlay с мигающим текстом
-         "searching for opponent..." и GIF загрузки посередине.
-       - Линии в оверлее (неоновые полосы) оформлены через
-         repeating-linear-gradient в CSS.
+     Special Snake PvP – Код с доработками:
+       • Удалена кнопка "Copy Invite Link".
+       • Анимация экрана поиска:
+         - Мигающий текст "Searching for opponent..." внизу.
+         - По центру горизонтальная гифка загрузки.
+         - Линии на фоне стилизованы в синих тонах.
     ============================================================
     */
 
@@ -581,33 +513,86 @@
     // Логический интервал
     const LOGIC_INTERVAL = 150;
 
-    // Переменная для хранения текущего баланса монет
+    // Пригласительная ссылка (кнопка отключена, но ссылка может храниться)
+    let inviteLink = "";
+
+    // Флаг отключения противника
+    let opponentDisconnected = false;
+
+    // Текущий баланс монет
     let currentCoins = 0;
 
-    // Показать оверлей поиска
-    function showSearchingOverlay() {
-      const overlay = document.getElementById('searchingOverlay');
-      overlay.style.display = 'flex';
-    }
-    // Скрыть оверлей поиска
-    function hideSearchingOverlay() {
-      const overlay = document.getElementById('searchingOverlay');
-      overlay.style.display = 'none';
-    }
+    // Для анимации экрана поиска
+    let searchingActive = false;   // Флаг, идёт ли анимация «поиск противника»
+    let loadImg = new Image();     // Гифка загрузки
+    loadImg.src = 'https://raw.githubusercontent.com/qnexst/404token/main/load.png';
 
     /* ======================================
-       Вспомогательная функция интерполяции
+       АНИМАЦИЯ ОКНА ПОИСКА ПРОТИВНИКА
     ====================================== */
-    function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
-      let diff = currVal - prevVal;
-      if (Math.abs(diff) > maxVal / 2) {
-        if (diff > 0) diff -= maxVal;
-        else diff += maxVal;
+    function startSearchAnimation() {
+      searchingActive = true;
+      animateSearchingScreen();
+    }
+
+    function stopSearchAnimation() {
+      searchingActive = false;
+    }
+
+    function animateSearchingScreen() {
+      if (!searchingActive) return;
+      requestAnimationFrame(animateSearchingScreen);
+      drawSearchingScreenFrame();
+    }
+
+    function drawSearchingScreenFrame() {
+      const w = specialGameCanvas.width;
+      const h = specialGameCanvas.height;
+
+      // Фон
+      specialCtx.clearRect(0, 0, w, h);
+      const grad = specialCtx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, '#00103c');
+      grad.addColorStop(1, '#002060');
+      specialCtx.fillStyle = grad;
+      specialCtx.fillRect(0, 0, w, h);
+
+      // Синие полупрозрачные линии (сеточка)
+      specialCtx.strokeStyle = 'rgba(0, 127, 255, 0.3)';
+      specialCtx.lineWidth = 1;
+      const step = 20;
+      for (let x = 0; x < w; x += step) {
+        specialCtx.beginPath();
+        specialCtx.moveTo(x, 0);
+        specialCtx.lineTo(x, h);
+        specialCtx.stroke();
       }
-      let interp = prevVal + diff * factor;
-      if (interp < 0) interp += maxVal;
-      if (interp >= maxVal) interp -= maxVal;
-      return interp;
+      for (let y = 0; y < h; y += step) {
+        specialCtx.beginPath();
+        specialCtx.moveTo(0, y);
+        specialCtx.lineTo(w, y);
+        specialCtx.stroke();
+      }
+
+      // Рисуем гифку загрузки по центру
+      const imgW = 200;  // ширина гифки
+      const imgH = 20;   // высота гифки
+      const centerX = w / 2 - imgW / 2;
+      const centerY = h / 2 - imgH / 2 - 30; 
+      if (loadImg.complete) {
+        specialCtx.drawImage(loadImg, centerX, centerY, imgW, imgH);
+      }
+
+      // Мигающий текст "Searching for opponent..." внизу
+      const time = performance.now();
+      const blink = Math.floor(time / 500) % 2; // 500мс период мигания
+      if (blink === 0) {
+        // Рисуем текст
+        specialCtx.fillStyle = '#FF00FF';
+        specialCtx.font = '14px "Press Start 2P", sans-serif';
+        specialCtx.textAlign = 'center';
+        specialCtx.fillText('Searching for opponent...', w / 2, h - 40);
+      }
     }
 
     /* ======================================
@@ -623,7 +608,6 @@
 
     function resetSpecialGame1() {
       stopLogicLoop();
-      hideSearchingOverlay();
       if (showOpponentNameTimeout) {
         clearTimeout(showOpponentNameTimeout);
         showOpponentNameTimeout = null;
@@ -643,6 +627,7 @@
       isGameOver = false;
       timerTotal = 60;
       timerCurrent = 60;
+      inviteLink = "";
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -652,6 +637,8 @@
         oppListener = null;
       }
       removeSwipeListeners();
+      // Останавливаем анимацию поиска, если была
+      stopSearchAnimation();
     }
 
     /* ======================================
@@ -700,11 +687,10 @@
     }
 
     function createRoom(bet) {
-      // Если ставка > 0, сначала пробуем списать монеты
       if (bet > 0) {
         deductUserCoins(bet).then(function(result) {
           if (!result.committed) {
-            // Если недостаточно монет, выводим ошибку (внутри модалки)
+            // Если недостаточно монет, показываем ошибку
             showBetError();
             return;
           } else {
@@ -740,6 +726,7 @@
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
       queueRef.child(roomId).onDisconnect().remove();
+      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -788,7 +775,6 @@
               roomListBody.appendChild(tr);
             });
           }
-          // Если после обхода комнат ничего не добавили
           if (!roomListBody.hasChildNodes()) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
@@ -831,6 +817,7 @@
       firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' })
         .catch(err => console.error('Error updating room status:', err));
       setupGameReferences();
+      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
       document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
       waitForOpponent();
@@ -840,20 +827,21 @@
        3. ОЖИДАНИЕ ПРОТИВНИКА
     ====================================== */
     function waitForOpponent() {
-      // Вместо перерисовки на canvas показываем оверлей
-      showSearchingOverlay();
+      // Вместо статичного экрана – запускаем анимацию
+      startSearchAnimation();
+
       // Показываем кнопку Back, чтобы пользователь мог выйти из ожидания
       document.getElementById('searchBackBtn').style.display = 'block';
-
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       waitingListener = statusRef.on('value', async (snapshot) => {
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
+          // Противник найден, останавливаем анимацию
+          stopSearchAnimation();
           statusRef.off('value', waitingListener);
           waitingListener = null;
           // Скрываем кнопку Back, так как противник найден
           document.getElementById('searchBackBtn').style.display = 'none';
-          hideSearchingOverlay();
           try {
             const oppSnapshot = await firebase.database()
               .ref('snakeGames/' + roomId + '/players/' + opponentId)
@@ -1075,7 +1063,7 @@
     }
 
     function checkSelfCollision() {
-      return false; // Можно доработать
+      return false; 
     }
 
     /* ======================================
@@ -1172,7 +1160,6 @@
         );
       }
       
-      // Отрисовка змейки игрока
       for (let i = 0; i < localSnake.length; i++) {
         const curr = localSnake[i];
         const prev = previousSnake[i] || curr;
@@ -1187,7 +1174,6 @@
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
       
-      // Отрисовка змейки противника
       const opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
       for (let i = 0; i < opponentSnake.length; i++) {
         const curr = opponentSnake[i];
@@ -1203,11 +1189,12 @@
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
       
-      // Счёт и таймер
+      // Вывод счёта и таймера
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${formatScore(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
       specialCtx.fillText(`Opp: ${formatScore(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1216,8 +1203,7 @@
     function drawMatrixGrid() {
       specialCtx.fillStyle = '#433171';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
-      // Неоновые линии
-      specialCtx.strokeStyle = '#00ffff';
+      specialCtx.strokeStyle = '#00103c';
       for (let i = 0; i <= tileCountX; i++) {
         const x = GAME_AREA_X + i * gridSize;
         specialCtx.beginPath();
@@ -1232,15 +1218,15 @@
         specialCtx.lineTo(GAME_AREA_X + GAME_AREA_WIDTH, y);
         specialCtx.stroke();
       }
-      // Рамка вокруг поля
       specialCtx.strokeStyle = '#8F509D';
       specialCtx.lineWidth = 2;
       specialCtx.strokeRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
     }
 
     /* ======================================
-       13. ЭКРАН "WAITING..."
+       13. ЭКРАНЫ "WAITING..."
     ====================================== */
+    // Просто тёмная заливка, используем при переходных состояниях
     function drawWaitingScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#000';
@@ -1445,7 +1431,6 @@
 
     document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
       const betValue = parseInt(document.getElementById('betSlider').value);
-      // Проверяем, достаточно ли монет (betValue – в миллионах)
       if (currentCoins < betValue * 1e6) {
         showBetError();
         return;
@@ -1453,7 +1438,6 @@
       createRoom(betValue);
     });
 
-    // При изменении слайдера обновляем значение
     document.getElementById('betSlider').addEventListener('input', function() {
       const value = document.getElementById('betSlider').value;
       document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
@@ -1466,7 +1450,6 @@
       document.getElementById('topBar').style.display = 'flex';
     });
 
-    // Обработчик кнопки обновления списка комнат
     document.getElementById('refreshRoomsBtn').addEventListener('click', function() {
       searchRooms();
     });
@@ -1475,12 +1458,11 @@
        21. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
     ====================================== */
     document.getElementById('searchBackBtn').addEventListener('click', function() {
-      // При нажатии "Back" удаляем комнату и возвращаем пользователя на главный экран.
       cleanupRoom();
+      stopSearchAnimation(); 
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
       document.getElementById('searchBackBtn').style.display = 'none';
-      hideSearchingOverlay();
     });
 
     /* ======================================
@@ -1529,7 +1511,7 @@
         userRef.on('value', snapshot => {
           const data = snapshot.val() || {};
           const coins = data.coins || 0;
-          currentCoins = coins;
+          currentCoins = coins; // сохраняем текущий баланс
           updateCoinDisplay(coins);
         });
       }
@@ -1601,6 +1583,7 @@
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
       
+      // Обновление текста в модальных окнах
       if(document.getElementById('createRoomTitle'))
         document.getElementById('createRoomTitle').textContent = languageStrings[currentLanguage].createRoomTitle;
       if(document.getElementById('createRoomHint'))
@@ -1616,6 +1599,7 @@
         document.getElementById('refreshRoomsBtn').textContent = languageStrings[currentLanguage].refresh;
       if(document.getElementById('cancelSearchRoomBtn'))
         document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].back;
+      
       if(document.getElementById('betError'))
         document.getElementById('betError').textContent = languageStrings[currentLanguage].betError;
     }
