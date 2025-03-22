@@ -20,252 +20,215 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-/* ========= Сброс стилей ========= */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  font-family: 'Press Start 2P', monospace;
-}
-
-/* ========= Основной стиль страницы ========= */
-body {
-  background-color: #0e162e; /* тёмный фон */
-  color: #e0e0e0;          /* светлый текст */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ========= Верхняя панель ========= */
-#topBar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background: rgba(14, 22, 46, 0.8);
-  backdrop-filter: blur(5px);
-  border-bottom: 2px solid #FF00FF;
-  position: relative;
-  z-index: 1100;
-}
-
-#topBar button {
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-#topBar button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-
-#topBar button:active {
-  transform: translateY(0);
-}
-
-/* ========= Игровой canvas ========= */
-#specialGameCanvas {
-  display: block;
-  margin: 20px auto;
-  background: url('1.jpg') no-repeat center center;
-  background-size: cover;
-  border: 3px solid #FF00FF;
-  box-shadow: 0 0 15px #FF00FF;
-}
-
-/* ========= Кнопка копирования ссылки ========= */
-#copyButton {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-/* ========= Экран приветствия (Landing Screen) ========= */
-#landingScreen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0e162e, #1a1a2e);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 20px;
-  text-align: center;
-  color: #FF00FF;
-}
-
-.landingContent {
-  max-width: 600px;
-  margin: auto;
-}
-
-.landingContent img {
-  max-width: 300px;
-  border: 2px solid #FF00FF;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.landingContent h1 {
-  font-size: 28px;
-  margin-bottom: 10px;
-}
-
-.landingContent p {
-  font-size: 14px;
-  line-height: 1.4;
-  margin-bottom: 10px;
-  text-align: left;
-}
-
-.landingContent button {
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 14px;
-  text-transform: uppercase;
-  margin: 10px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  transition: transform 0.2s;
-}
-
-.landingContent button:hover {
-  transform: translateY(-2px);
-}
-
-/* ========= Модальные окна ========= */
-.modal-backdrop,
-.endgame-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.8);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.modal-backdrop.active,
-.endgame-backdrop.active {
-  display: flex;
-}
-
-.modal {
-  background: #0e162e;
-  border: 2px solid #FF00FF;
-  padding: 20px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  border-radius: 8px;
-  color: #e0e0e0;
-}
-
-.modal h2 {
-  margin-bottom: 10px;
-  font-size: 16px;
-}
-
-.modal p {
-  margin-bottom: 16px;
-  font-size: 14px;
-}
-
-/* ========= Карточки комнат (Search Room) ========= */
-.room-card {
-  background: rgba(255, 0, 255, 0.1);
-  border: 2px solid #FF00FF;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.room-card img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  margin-right: 10px;
-}
-
-/* ========= Кнопка "Back" в режиме ожидания ========= */
-#searchBackBtn {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  z-index: 3000;
-}
-
-/* ========= Джойстик для мобильных ========= */
-#joystick {
-  width: 100px;
-  height: 100px;
-  position: fixed;
-  background: rgba(100, 100, 100, 0.3);
-  border: 2px solid rgba(200, 200, 200, 0.7);
-  border-radius: 50%;
-  display: none;
-  z-index: 1000;
-  touch-action: none;
-}
-
-#joystick-stick {
-  width: 50px;
-  height: 50px;
-  position: absolute;
-  background: rgba(200, 200, 200, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  touch-action: none;
-}
-
+    /* Основные стили страницы */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #00103c;
+      color: #FF00FF;
+      font-family: 'Press Start 2P', sans-serif;
+      overflow: hidden;
+    }
+    /* Верхняя панель */
+    #topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      height: 50px;
+      padding: 0 10px;
+      margin-top: 5px;
+      box-sizing: border-box;
+      z-index: 2100;
+    }
+    /* Кнопки в topBar */
+    #homeBackBtn, #coinButton, #langToggleBtn {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
+    /* Canvas для игры */
+    #specialGameCanvas {
+      display: block;
+      margin: 0 auto;
+      background-image: url('1.jpg');
+    }
+    /* Кнопка для копирования ссылки */
+    #copyButton {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      padding: 8px 16px;
+      background: #06B6D1;
+      color: #262626;
+      border: 1px solid #4b4b4b;
+      border-radius: 4px;
+      box-shadow: 0 3px #6b6b6b;
+      cursor: pointer;
+      display: none;
+    }
+    /* Модальные окна */
+    .endgame-backdrop, .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    .endgame-modal, .modal {
+      background: #222;
+      border: 2px solid #0f0;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      border-radius: 8px;
+    }
+    /* Модальное окно для недостатка монет */
+    #insufficientModal {
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    #insufficientModal .modal {
+      background-color: #6d4fba;
+      border: 2px solid #3b3b3b;
+      padding: 20px;
+      width: 80%;
+      max-width: 360px;
+      text-align: center;
+      border-radius: 4px;
+    }
+    /* Остальные стили: панели, джойстик, landingScreen и карточки комнат */
+    #joystick {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      margin: -50px 0 0 -50px;
+      background: rgba(100, 100, 100, 0.3);
+      border: 2px solid rgba(200, 200, 200, 0.7);
+      border-radius: 50%;
+      display: none;
+      z-index: 1000;
+      touch-action: none;
+    }
+    #joystick-stick {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px;
+      background: rgba(200, 200, 200, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      touch-action: none;
+    }
+    #landingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #00103c, #0a0a23);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 2000;
+      color: #FF00FF;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .landingContent {
+      max-width: 600px;
+      overflow-y: auto;
+    }
+    .landingContent img {
+      max-width: 300px;
+      height: auto;
+      margin-bottom: 20px;
+      border: 2px solid #FF00FF;
+      border-radius: 8px;
+    }
+    .landingContent h1 {
+      margin: 10px 0;
+      font-size: 28px;
+    }
+    .landingContent p {
+      font-size: 14px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .collapsed {
+      max-height: 100px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .landingContent button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 14px;
+      padding: 10px 20px;
+      margin: 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+      transition: transform 0.1s ease;
+    }
+    .landingContent button:hover {
+      transform: scale(1.05);
+    }
+    .landingContent button:active {
+      transform: translateY(1px);
+    }
+    .room-card {
+      border: 1px solid #FF00FF;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    /* Кнопка Back во время ожидания (появляется поверх canvas) */
+    #searchBackBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 14px;
+      padding: 5px 10px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+      z-index: 3000;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -957,7 +920,7 @@ function endGame() {
       resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
     }
   }
-  const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
+  const msg = Your score: ${score} | Opponent: ${opponentScore};
   showEndGameModal(resultTitle, msg);
   cleanupRoom();
 }
@@ -1034,8 +997,8 @@ function renderGame() {
   
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '12px "Press Start 2P", sans-serif';
-  specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
-  specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+  specialCtx.fillText(Score: ${score}, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
+  specialCtx.fillText(Opp: ${opponentScore}, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
   const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
   specialCtx.fillStyle = '#FF00FF';
   specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1149,7 +1112,7 @@ function addSwipeListeners() {
         dx = Math.cos(angle) * maxDistance;
         dy = Math.sin(angle) * maxDistance;
       }
-      joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+      joystickStick.style.transform = translate(${dx}px, ${dy}px);
       let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
       if (angleDeg < 0) angleDeg += 360;
       if (angleDeg >= 45 && angleDeg < 135) {
@@ -1437,5 +1400,4 @@ function updateCoinDisplay(coins) {
 }
   </script>
 </body>
-</html>
-
+</html> 
