@@ -20,78 +20,73 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Общие стили страницы */
+    /* Общие стили */
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #000010, #2a004d);
-      color: #e0e0ff;
-      font-family: 'Press Start 2P', sans-serif;
+      background: radial-gradient(circle, #0d0d0d, #1a1a1a);
+      color: #e0e0e0;
+      font-family: 'Roboto', sans-serif;
       overflow: hidden;
-      background-attachment: fixed;
     }
-    /* Верхняя панель с неоновым свечением */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Press Start 2P', cursive;
+    }
+    /* Верхняя панель */
     #topBar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      width: 100%;
-      height: 60px;
-      padding: 0 20px;
-      box-sizing: border-box;
-      background: rgba(0, 0, 0, 0.6);
-      box-shadow: 0 0 10px #00e6ff;
-      position: relative;
+      background: linear-gradient(90deg, #ff007f, #007fff);
+      padding: 10px 20px;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.5), 0 0 15px rgba(0, 127, 255, 0.5);
       z-index: 2100;
     }
-    /* Кнопки в верхней панели */
-    #homeBackBtn, #coinButton, #langToggleBtn {
+    #topBar button {
+      font-family: 'Press Start 2P', sans-serif;
       font-size: 12px;
-      padding: 8px 14px;
-      background: linear-gradient(45deg, #0ff, #ff0);
-      color: #1a1a1a;
-      border: 2px solid #00e6ff;
-      border-radius: 6px;
+      padding: 5px 10px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
       cursor: pointer;
-      text-shadow: 1px 1px 0 #000;
       transition: transform 0.1s ease, box-shadow 0.2s ease;
     }
-    #homeBackBtn:hover, #coinButton:hover, #langToggleBtn:hover {
+    #topBar button:hover {
       transform: scale(1.05);
-      box-shadow: 0 0 10px #ff0;
+      box-shadow: 0 0 10px #ff007f;
     }
-    /* Canvas для игры с рамкой в стиле ретро */
+    /* Canvas для игры */
     #specialGameCanvas {
       display: block;
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
-      border: 4px solid #00e6ff;
-      box-shadow: 0 0 20px #ff00ff;
+      border: 4px dashed #007fff;
       border-radius: 8px;
     }
-    /* Кнопка копирования ссылки с современным эффектом */
+    /* Кнопка для копирования ссылки */
     #copyButton {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 16px;
-      padding: 10px 20px;
-      background: linear-gradient(45deg, #ff00ff, #0ff);
-      color: #1a1a1a;
-      border: 2px solid #ff00ff;
-      border-radius: 6px;
-      box-shadow: 0 0 10px #ff00ff;
+      padding: 8px 16px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
       cursor: pointer;
       display: none;
-      transition: background 0.3s ease;
+      transition: transform 0.1s ease;
     }
     #copyButton:hover {
-      background: linear-gradient(45deg, #0ff, #ff00ff);
+      transform: scale(1.05);
     }
-    /* Модальные окна с прозрачным фоном и неоновыми рамками */
-    .endgame-backdrop, .modal-backdrop {
+    /* Модальные окна */
+    .modal-backdrop, .endgame-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.85);
@@ -100,38 +95,19 @@
       align-items: center;
       z-index: 999;
     }
-    .endgame-modal, .modal {
-      background: rgba(10, 10, 30, 0.95);
-      border: 3px solid #00e6ff;
+    .modal, .endgame-modal {
+      background: #1a1a1a;
+      border: 3px solid #ff007f;
       padding: 20px;
       width: 90%;
-      max-width: 420px;
+      max-width: 400px;
       text-align: center;
       border-radius: 8px;
-      box-shadow: 0 0 15px #ff00ff;
-    }
-    /* Модальное окно недостатка монет */
-    #insufficientModal {
-      position: fixed;
-      z-index: 9999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
     }
     #insufficientModal .modal {
-      background-color: #4a0072;
-      border: 3px solid #3b3b3b;
-      padding: 20px;
-      width: 80%;
-      max-width: 360px;
-      text-align: center;
-      border-radius: 6px;
-      box-shadow: 0 0 15px #ff00ff;
+      background-color: #2a2a2a;
+      border: 3px solid #007fff;
     }
     /* Джойстик для мобильных устройств */
     #joystick {
@@ -139,8 +115,8 @@
       width: 100px;
       height: 100px;
       margin: -50px 0 0 -50px;
-      background: rgba(50, 50, 50, 0.4);
-      border: 2px solid rgba(200, 200, 200, 0.8);
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(0, 191, 255, 0.7);
       border-radius: 50%;
       display: none;
       z-index: 1000;
@@ -151,27 +127,27 @@
       width: 50px;
       height: 50px;
       margin: -25px 0 0 -25px;
-      background: rgba(200, 200, 200, 0.6);
-      border: 2px solid rgba(255, 255, 255, 0.9);
+      background: rgba(0, 191, 255, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.8);
       border-radius: 50%;
       left: 50%;
       top: 50%;
       touch-action: none;
     }
-    /* Экран приветствия с ретро-анимацией и прозрачным слоем */
+    /* Обучающая страница (landing) */
     #landingScreen {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(135deg, rgba(0,0,50,0.8), rgba(10,10,80,0.9));
+      background: linear-gradient(135deg, #000, #1a1a1a);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
       z-index: 2000;
-      color: #ff00ff;
+      color: #e0e0e0;
       text-align: center;
       padding: 20px;
       box-sizing: border-box;
@@ -184,20 +160,21 @@
       max-width: 300px;
       height: auto;
       margin-bottom: 20px;
-      border: 3px solid #ff00ff;
+      border: 3px solid #007fff;
       border-radius: 8px;
-      box-shadow: 0 0 10px #00e6ff;
+      box-shadow: 0 0 10px #007fff;
     }
     .landingContent h1 {
       margin: 10px 0;
       font-size: 28px;
-      text-shadow: 2px 2px 0 #000;
+      color: #ff007f;
     }
     .landingContent p {
       font-size: 14px;
       line-height: 1.4;
       margin-bottom: 10px;
       text-align: left;
+      color: #e0e0e0;
     }
     .collapsed {
       max-height: 100px;
@@ -205,49 +182,48 @@
       transition: max-height 0.3s ease;
     }
     .landingContent button {
+      font-family: 'Press Start 2P', sans-serif;
       font-size: 14px;
       padding: 10px 20px;
       margin: 10px;
-      background: linear-gradient(45deg, #0ff, #ff00ff);
-      color: #1a1a1a;
-      border: 2px solid #00e6ff;
-      border-radius: 6px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
       cursor: pointer;
-      box-shadow: 0 0 10px #ff00ff;
-      transition: transform 0.1s ease, box-shadow 0.2s ease;
+      transition: transform 0.1s ease;
     }
     .landingContent button:hover {
       transform: scale(1.05);
-      box-shadow: 0 0 15px #ff00ff;
     }
     .landingContent button:active {
       transform: translateY(1px);
     }
-    /* Карточки комнат */
     .room-card {
-      border: 2px solid #ff00ff;
+      border: 2px solid #007fff;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(0,0,30,0.8);
-      box-shadow: 0 0 10px #00e6ff;
+      background: #111;
+      box-shadow: 0 0 10px #007fff;
     }
     /* Кнопка Back во время ожидания */
     #searchBackBtn {
       position: absolute;
       top: 10px;
       left: 10px;
+      font-family: 'Press Start 2P', sans-serif;
       font-size: 14px;
       padding: 5px 10px;
-      background: linear-gradient(45deg, #0ff, #ff00ff);
-      color: #1a1a1a;
-      border: 2px solid #00e6ff;
-      border-radius: 6px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
       cursor: pointer;
-      box-shadow: 0 0 10px #ff00ff;
+      box-shadow: 0 0 10px #ff007f;
       z-index: 3000;
       display: none;
       transition: transform 0.1s ease;
