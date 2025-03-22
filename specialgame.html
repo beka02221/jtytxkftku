@@ -372,10 +372,8 @@
   <script>
 /* 
 ============================================================
-  Special Snake PvP – Исправленный код с доработками управления джойстиком:
-  - Мёртвая зона (dead zone)
-  - Плавная интерполяция направления с использованием Math.atan2
-  - Настраиваемая чувствительность и улучшенная визуальная обратная связь
+  Special Snake PvP – Исправленный код с автоматическим соединением бесплатных игроков,
+  сворачиваемым описанием, переключением языка и улучшенным управлением джойстиком.
 ============================================================
 */
 
@@ -425,6 +423,7 @@ let applePos = { x: 0, y: 0 };
 let isGameRunning = false;
 let isGameOver = false;
 let countdownValue = 5;
+let showOpponentNameTimeout = null;
 
 // Таймер (1 минута)
 let timerTotal = 60;
@@ -486,6 +485,10 @@ function initSpecialGame1() {
 function resetSpecialGame1() {
   stopLogicLoop();
   clearInterval(countdownInterval);
+  if (showOpponentNameTimeout) {
+    clearTimeout(showOpponentNameTimeout);
+    showOpponentNameTimeout = null;
+  }
   roomId = null;
   playerId = null;
   opponentId = null;
@@ -517,6 +520,7 @@ function resetSpecialGame1() {
 
 /* ======================================
    2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
+   (Функция для бесплатной игры с авто-поиском свободной комнаты)
 ====================================== */
 function autoJoinFreeGame() {
   const queueRef = firebase.database().ref('snakeQueue');
@@ -528,7 +532,7 @@ function autoJoinFreeGame() {
         if (room.status === 'waiting' && room.creator !== window.currentUser.username) {
           joinRoom(child.key);
           found = true;
-          return true;
+          return true; // прерываем перебор
         }
       });
       if (!found) {
@@ -717,7 +721,7 @@ function waitForOpponent() {
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      setTimeout(() => {
+      showOpponentNameTimeout = setTimeout(() => {
         startCountdown();
       }, 2000);
     }
@@ -856,6 +860,11 @@ function gameLogicUpdate() {
   previousSnake = localSnake.map(seg => ({...seg}));
   moveLocalSnake();
   lastLogicUpdateTime = performance.now();
+
+  if (checkSelfCollision()) {
+    setGameOver();
+    return;
+  }
 
   const head = localSnake[0];
   if (head.x === applePos.x && head.y === applePos.y) {
@@ -1137,18 +1146,7 @@ function addSwipeListeners() {
   const joystickStick = document.getElementById('joystick-stick');
   let joystickActive = false;
   let joystickCenter = { x: 0, y: 0 };
-  const maxDistance = 40; // максимальное расстояние, можно сделать настраиваемым
-  const deadZone = 10;    // мёртвая зона: движение менее 10 пикселей не учитывается
-  const smoothingFactor = 0.2; // коэффициент интерполяции
-  let currentJoystickAngle = null;
-
-  // Функция для плавной интерполяции углов
-  function lerpAngle(a, b, t) {
-      let diff = b - a;
-      while (diff < -Math.PI) diff += 2 * Math.PI;
-      while (diff > Math.PI) diff -= 2 * Math.PI;
-      return a + diff * t;
-  }
+  const maxDistance = 40;
 
   function handleTouchStart(e) {
     if (e.touches.length > 0) {
@@ -1160,7 +1158,6 @@ function addSwipeListeners() {
       joystick.style.display = 'block';
       joystickStick.style.transform = 'translate(0px, 0px)';
       joystickActive = true;
-      currentJoystickAngle = null; // сброс интерполированного угла
       e.preventDefault();
     }
   }
@@ -1172,45 +1169,30 @@ function addSwipeListeners() {
       let dx = touch.clientX - joystickCenter.x;
       let dy = touch.clientY - joystickCenter.y;
       let distance = Math.sqrt(dx * dx + dy * dy);
-      
-      // Если расстояние меньше мёртвой зоны – не изменяем направление
-      if (distance < deadZone) {
-         joystickStick.style.transform = `translate(0px, 0px)`;
-         return;
+      // Минимальный порог для изменения направления (например, 10px)
+      if (distance < 10) {
+        return;
       }
-      
-      // Ограничение движения джойстика
       if (distance > maxDistance) {
-         const angleClamp = Math.atan2(dy, dx);
-         dx = Math.cos(angleClamp) * maxDistance;
-         dy = Math.sin(angleClamp) * maxDistance;
-         distance = maxDistance;
+        const angle = Math.atan2(dy, dx);
+        dx = Math.cos(angle) * maxDistance;
+        dy = Math.sin(angle) * maxDistance;
       }
-      
-      // Вычисляем целевой угол движения
-      let targetAngle = Math.atan2(dy, dx);
-      if (currentJoystickAngle === null) {
-         currentJoystickAngle = targetAngle;
-      } else {
-         // Плавно интерполируем угол
-         currentJoystickAngle = lerpAngle(currentJoystickAngle, targetAngle, smoothingFactor);
-      }
-      
-      // Преобразуем угол в градусы для определения сектора направления
-      let deg = currentJoystickAngle * (180 / Math.PI);
-      if (deg < 0) deg += 360;
-      if (deg >= 315 || deg < 45) {
-          localDirection = 'right';
-      } else if (deg >= 45 && deg < 135) {
-          localDirection = 'down';
-      } else if (deg >= 135 && deg < 225) {
-          localDirection = 'left';
-      } else if (deg >= 225 && deg < 315) {
-          localDirection = 'up';
-      }
-      
-      // Обновляем визуальное положение "стика"
       joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+      
+      // Вычисляем угол в градусах
+      let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+      if (angleDeg < 0) angleDeg += 360;
+      // Определяем направление по углу
+      if (angleDeg >= 45 && angleDeg < 135) {
+         if (localDirection !== 'up') localDirection = 'down';
+      } else if (angleDeg >= 135 && angleDeg < 225) {
+         if (localDirection !== 'right') localDirection = 'left';
+      } else if (angleDeg >= 225 && angleDeg < 315) {
+         if (localDirection !== 'down') localDirection = 'up';
+      } else {
+         if (localDirection !== 'left') localDirection = 'right';
+      }
       e.preventDefault();
     }
   }
@@ -1317,6 +1299,7 @@ function returnToMain() {
 
 /* ======================================
    19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   (Скрытие/отображение topBar)
 ====================================== */
 document.getElementById('createRoomBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
@@ -1334,6 +1317,7 @@ document.getElementById('searchRoomBtn').addEventListener('click', function(){
 document.getElementById('playFreeBtn').addEventListener('click', function(){
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('topBar').style.display = 'none';
+  // Вместо прямого createRoom вызываем авто-поиск свободной комнаты
   autoJoinFreeGame();
 });
 
@@ -1413,6 +1397,7 @@ window.addEventListener('load', () => {
   initSpecialGame1();
   updateLanguageTexts();
 
+  // Настройка кнопки для сворачиваемого описания
   const toggleDescBtn = document.getElementById('toggleDescBtn');
   toggleDescBtn.addEventListener('click', function(){
     const landingText = document.getElementById('landingText');
@@ -1500,5 +1485,6 @@ function updateCoinDisplay(coins) {
   </script>
 </body>
 </html>
+
 
 
