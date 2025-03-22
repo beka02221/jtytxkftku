@@ -29,7 +29,7 @@
       font-family: 'Press Start 2P', sans-serif;
       overflow: hidden;
     }
-    /* Верхняя панель – flex-контейнер */
+    /* Верхняя панель */
     #topBar {
       display: flex;
       justify-content: space-between;
@@ -41,7 +41,7 @@
       box-sizing: border-box;
       z-index: 2100;
     }
-    /* Кнопки верхней панели */
+    /* Кнопки в topBar */
     #homeBackBtn, #coinButton, #langToggleBtn {
       font-family: 'Press Start 2P', sans-serif;
       font-size: 12px;
@@ -59,10 +59,6 @@
       margin: 0 auto;
       background-image: url('1.jpg');
     }
-    /* Элементы, которые сейчас не используются */
-    #usernamesDisplay {
-      display: none;
-    }
     /* Кнопка для копирования ссылки */
     #copyButton {
       position: absolute;
@@ -79,8 +75,6 @@
       cursor: pointer;
       display: none;
     }
-    #copyButton:hover { transform: translateX(-50%) scale(1.05); }
-    #copyButton:active { transform: translate(-50%, 1px) scale(1.0); }
     /* Модальные окна */
     .endgame-backdrop, .modal-backdrop {
       position: fixed;
@@ -122,34 +116,7 @@
       text-align: center;
       border-radius: 4px;
     }
-    /* Панель управления, джойстик, landingScreen, карточки комнат */
-    #controlPanel {
-      width: 150px;
-      height: 150px;
-      margin: 20px auto;
-      position: relative;
-    }
-    #controlPanel .control-button {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      background: #06B6D1;
-      border: none;
-      border-radius: 10px;
-      color: #262626;
-      font-size: 24px;
-      font-family: 'Press Start 2P', sans-serif;
-      cursor: pointer;
-      box-shadow: 0 3px #6b6b6b;
-      transition: transform 0.1s ease;
-    }
-    #btn-up {
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .control-button:hover { transform: scale(1.2); }
-    .control-button:active { transform: translateY(1px) scale(1); box-shadow: 0 1px #6b6b6b; }
+    /* Остальные стили: панели, джойстик, landingScreen и карточки комнат */
     #joystick {
       position: fixed;
       width: 100px;
@@ -202,7 +169,10 @@
       border: 2px solid #FF00FF;
       border-radius: 8px;
     }
-    .landingContent h1 { margin: 10px 0; font-size: 28px; }
+    .landingContent h1 {
+      margin: 10px 0;
+      font-size: 28px;
+    }
     .landingContent p {
       font-size: 14px;
       line-height: 1.4;
@@ -227,8 +197,12 @@
       box-shadow: 0 3px #6b6b6b;
       transition: transform 0.1s ease;
     }
-    .landingContent button:hover { transform: scale(1.05); }
-    .landingContent button:active { transform: translateY(1px); }
+    .landingContent button:hover {
+      transform: scale(1.05);
+    }
+    .landingContent button:active {
+      transform: translateY(1px);
+    }
     .room-card {
       border: 1px solid #FF00FF;
       border-radius: 8px;
@@ -238,14 +212,13 @@
       align-items: center;
       justify-content: space-between;
     }
-    #toggleDescBtn { display: block; margin: 0 auto; }
-    /* Кнопка Back во время ожидания (добавлена новая кнопка) */
+    /* Кнопка Back во время ожидания (появляется поверх canvas) */
     #searchBackBtn {
       position: absolute;
-      top: 60px;
+      top: 10px;
       left: 10px;
       font-family: 'Press Start 2P', sans-serif;
-      font-size: 12px;
+      font-size: 14px;
       padding: 5px 10px;
       background: #06B6D1;
       color: #262626;
@@ -253,8 +226,8 @@
       border-radius: 4px;
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
+      z-index: 3000;
       display: none;
-      z-index: 2100;
     }
   </style>
 </head>
@@ -302,16 +275,16 @@
     <div class="modal">
       <h2>Поиск комнат</h2>
       <div id="roomList" style="max-height: 60vh; overflow-y: auto; margin: 20px 0;">
-        <!-- Карточки комнат -->
+        <!-- Здесь будут карточки с комнатами -->
       </div>
       <button id="cancelSearchRoomBtn">Назад</button>
     </div>
   </div>
 
-  <!-- Кнопка Back во время ожидания (доступна в режиме ожидания) -->
+  <!-- Кнопка Back для ожидания (при создании комнаты и в бесплатном режиме) -->
   <button id="searchBackBtn">Back</button>
 
-  <!-- Джойстик (для мобильных) -->
+  <!-- Джойстик (для мобильных устройств) -->
   <div id="joystick">
     <div id="joystick-stick"></div>
   </div>
@@ -340,11 +313,11 @@
   <script>
 /* 
 ============================================================
- Special Snake PvP – Полностью исправленный код с:
-   • автоматическим соединением бесплатных игроков,
-   • сворачиваемым описанием и переключением языка,
-   • 15-секундным обратным отсчётом с анимацией змейки перед стартом игры,
-   • кнопкой "Back" во время ожидания противника (как при создании комнаты, так и в бесплатном бою).
+  Special Snake PvP – Полностью исправленный код с:
+    • автоматическим соединением бесплатных игроков,
+    • сворачиваемым описанием и переключением языка,
+    • 15-секундным обратным отсчётом с анимацией змейки,
+    • кнопкой "Back" в режиме ожидания, которая исчезает после нахождения противника.
 ============================================================
 */
 
@@ -352,7 +325,7 @@
 let specialGameCanvas;
 let specialCtx;
 
-// Область игры
+// Область игры (на canvas)
 const GAME_AREA_X = 50;
 const GAME_AREA_Y = 50;
 const GAME_AREA_WIDTH = 300;
@@ -374,7 +347,7 @@ let localSnake = [];
 let localDirection = 'right';
 let score = 0;
 
-// Для плавной анимации
+// Для плавной анимации змейки
 let previousSnake = [];
 let lastLogicUpdateTime = 0;
 
@@ -383,7 +356,7 @@ let opponentSnake = [];
 let opponentScore = 0;
 let opponentName = '';
 
-// Для плавной анимации противника
+// Для плавной анимации змейки противника
 let previousOpponentSnake = [];
 let lastOpponentUpdateTime = performance.now();
 
@@ -422,7 +395,7 @@ let inviteLink = "";
 let opponentDisconnected = false;
 
 /* ======================================
- Вспомогательная функция интерполяции
+   Вспомогательная функция интерполяции
 ====================================== */
 function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
   let diff = currVal - prevVal;
@@ -437,7 +410,7 @@ function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
 }
 
 /* ======================================
- 1. ИНИЦИАЛИЗАЦИЯ И СБРОС
+   1. ИНИЦИАЛИЗАЦИЯ И СБРОС
 ====================================== */
 function initSpecialGame1() {
   specialGameCanvas = document.getElementById('specialGameCanvas');
@@ -481,7 +454,7 @@ function resetSpecialGame1() {
 }
 
 /* ======================================
- 2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
+   2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
 ====================================== */
 function autoJoinFreeGame() {
   const queueRef = firebase.database().ref('snakeQueue');
@@ -496,9 +469,14 @@ function autoJoinFreeGame() {
           return true;
         }
       });
-      if (!found) { createRoom(0); }
+      if (!found) {
+        createRoom(0);
+      }
     })
-    .catch(err => { console.error(err); createRoom(0); });
+    .catch(err => {
+      console.error(err);
+      createRoom(0);
+    });
 }
 
 function deductUserCoins(amount) {
@@ -508,7 +486,9 @@ function deductUserCoins(amount) {
       if (currentData.coins >= amount) {
         currentData.coins -= amount;
         return currentData;
-      } else { return; }
+      } else {
+        return;
+      }
     }
     return;
   });
@@ -521,10 +501,19 @@ function showInsufficientModal() {
 function createRoom(bet) {
   if (bet > 0) {
     deductUserCoins(bet).then(function(result) {
-      if (!result.committed) { showInsufficientModal(); return; }
-      else { actuallyCreateRoom(bet); }
-    }).catch(err => { console.error(err); showInsufficientModal(); });
-  } else { actuallyCreateRoom(bet); }
+      if (!result.committed) {
+        showInsufficientModal();
+        return;
+      } else {
+        actuallyCreateRoom(bet);
+      }
+    }).catch(err => {
+      console.error(err);
+      showInsufficientModal();
+    });
+  } else {
+    actuallyCreateRoom(bet);
+  }
 }
 
 function actuallyCreateRoom(bet) {
@@ -594,11 +583,15 @@ function searchRooms() {
           joinBtn.style.borderRadius = '4px';
           joinBtn.style.cursor = 'pointer';
           joinBtn.style.boxShadow = '0 3px #6b6b6b';
-          joinBtn.addEventListener('click', function() { joinRoom(roomKey); });
+          joinBtn.addEventListener('click', function() {
+            joinRoom(roomKey);
+          });
           card.appendChild(joinBtn);
           roomListDiv.appendChild(card);
         });
-      } else { roomListDiv.innerHTML = '<p style="color: #FF00FF;">Нет доступных комнат</p>'; }
+      } else {
+        roomListDiv.innerHTML = '<p style="color: #FF00FF;">Нет доступных комнат</p>';
+      }
     })
     .catch(err => console.error('Error searching rooms:', err));
 }
@@ -609,10 +602,19 @@ function joinRoom(roomKey) {
     const bet = room.bet || 0;
     if (bet > 0) {
       deductUserCoins(bet).then(result => {
-        if (!result.committed) { showInsufficientModal(); return; }
-        else { proceedJoin(roomKey); }
-      }).catch(err => { console.error(err); showInsufficientModal(); });
-    } else { proceedJoin(roomKey); }
+        if (!result.committed) {
+          showInsufficientModal();
+          return;
+        } else {
+          proceedJoin(roomKey);
+        }
+      }).catch(err => {
+        console.error(err);
+        showInsufficientModal();
+      });
+    } else {
+      proceedJoin(roomKey);
+    }
   });
 }
 
@@ -631,31 +633,37 @@ function proceedJoin(roomKey) {
 }
 
 /* ======================================
- 3. ОЖИДАНИЕ ПРОТИВНИКА + отображение кнопки Back
+   3. ОЖИДАНИЕ ПРОТИВНИКА
 ====================================== */
 function waitForOpponent() {
   drawSearchScreen();
-  // Показываем кнопку "Back" во время ожидания
+  // Показываем кнопку Back, чтобы пользователь мог выйти из ожидания
   document.getElementById('searchBackBtn').style.display = 'block';
-  
   const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
   waitingListener = statusRef.on('value', async (snapshot) => {
     const currentStatus = snapshot.val();
     if (currentStatus === 'ready') {
       statusRef.off('value', waitingListener);
       waitingListener = null;
+      // Скрываем кнопку Back, так как противник найден
+      document.getElementById('searchBackBtn').style.display = 'none';
       try {
         const oppSnapshot = await firebase.database()
           .ref('snakeGames/' + roomId + '/players/' + opponentId)
           .once('value');
         const oppData = oppSnapshot.val();
-        if (oppData && oppData.username) { opponentName = oppData.username; }
-      } catch (e) { console.error("Error reading opponent data: ", e); }
+        if (oppData && oppData.username) {
+          opponentName = oppData.username;
+        }
+      } catch (e) {
+        console.error("Error reading opponent data: ", e);
+      }
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      // Запускаем 15-секундный обратный отсчёт через 2 секунды
-      showOpponentNameTimeout = setTimeout(() => { startPreGameCountdown(); }, 2000);
+      showOpponentNameTimeout = setTimeout(() => {
+        startPreGameCountdown();
+      }, 2000);
     }
   });
   
@@ -669,22 +677,30 @@ function waitForOpponent() {
       opponentName = (oppData.username && oppData.username.trim() !== "") ? oppData.username : 'Player';
       lastOpponentUpdateTime = performance.now();
     } else {
-      if (isGameRunning) { opponentDisconnected = true; setGameOver(); }
+      if (isGameRunning) {
+        opponentDisconnected = true;
+        setGameOver();
+      }
     }
   });
 }
 
 /* ======================================
- 4. НАСТРОЙКА gameStateRef И СЛУШАТЕЛИ
+   4. НАСТРОЙКА gameStateRef И СЛУШАТЕЛИ
 ====================================== */
 function setupGameReferences() {
   gameStateRef = firebase.database().ref('snakeGames/' + roomId);
   const playerRef = gameStateRef.child('players').child(playerId);
-  playerRef.once('value').then(snapshot => {
+  playerRef.once('value').then((snapshot) => {
     if (!snapshot.exists()) {
       let startX, startY;
-      if (playerId === 'player1') { startX = 3; startY = Math.floor(tileCountY / 2); }
-      else { startX = tileCountX - 4; startY = Math.floor(tileCountY / 2); }
+      if (playerId === 'player1') {
+        startX = 3;
+        startY = Math.floor(tileCountY / 2);
+      } else {
+        startX = tileCountX - 4;
+        startY = Math.floor(tileCountY / 2);
+      }
       const initialSnake = [
         { x: startX, y: startY },
         { x: startX - 1, y: startY },
@@ -701,31 +717,37 @@ function setupGameReferences() {
         .catch(err => console.error("Error setting onDisconnect:", err));
     }
   });
-  gameStateRef.child('apple').on('value', snapshot => {
+  gameStateRef.child('apple').on('value', (snapshot) => {
     const aData = snapshot.val() || {};
     if (typeof aData.x === 'number' && typeof aData.y === 'number') {
       applePos.x = aData.x;
       applePos.y = aData.y;
     }
   });
-  gameStateRef.child('gameOver').on('value', snapshot => {
-    if (snapshot.val() === true && !isGameOver) { isGameOver = true; endGame(); }
+  gameStateRef.child('gameOver').on('value', (snapshot) => {
+    if (snapshot.val() === true && !isGameOver) {
+      isGameOver = true;
+      endGame();
+    }
   });
 }
 
 /* ======================================
- 5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
+   5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
 ====================================== */
 function startPreGameCountdown() {
-  const totalTime = 15;
+  const totalTime = 15; // 15 секунд
   const startTime = performance.now();
   function countdownLoop() {
     const now = performance.now();
     const elapsed = (now - startTime) / 1000;
     const remaining = Math.max(totalTime - elapsed, 0);
     drawPreGameCountdownScreen(remaining);
-    if (remaining > 0) { requestAnimationFrame(countdownLoop); }
-    else { launchGame(); }
+    if (remaining > 0) {
+      requestAnimationFrame(countdownLoop);
+    } else {
+      launchGame();
+    }
   }
   countdownLoop();
 }
@@ -760,22 +782,25 @@ function drawPreGameCountdownScreen(remaining) {
 }
 
 /* ======================================
- 6. ЗАПУСК ИГРЫ
+   6. ЗАПУСК ИГРЫ
 ====================================== */
 function launchGame() {
   document.getElementById('topBar').style.display = 'none';
-  document.getElementById('searchBackBtn').style.display = 'none'; // скрываем кнопку Back
   isGameRunning = true;
   isGameOver = false;
   gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
     const data = snapshot.val();
-    if (data && data.snake) { localSnake = data.snake; }
+    if (data && data.snake) {
+      localSnake = data.snake;
+    }
     localDirection = (data && data.direction) ? data.direction : 'right';
     score = (data && data.score) ? data.score : 0;
     previousSnake = localSnake.map(seg => ({ ...seg }));
     lastLogicUpdateTime = performance.now();
     gameStateRef.child('apple').once('value').then(appleSnap => {
-      if (!appleSnap.exists()) { spawnApple(); }
+      if (!appleSnap.exists()) {
+        spawnApple();
+      }
     });
     addSwipeListeners();
     startLogicLoop();
@@ -785,7 +810,7 @@ function launchGame() {
 }
 
 /* ======================================
- 7. ЛОГИКА И РЕНДЕР ИГРЫ
+   7. ЛОГИКА И РЕНДЕР ИГРЫ
 ====================================== */
 function startLogicLoop() {
   logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -803,22 +828,29 @@ function gameLogicUpdate() {
   previousSnake = localSnake.map(seg => ({ ...seg }));
   moveLocalSnake();
   lastLogicUpdateTime = performance.now();
-  if (checkSelfCollision()) { setGameOver(); return; }
+  if (checkSelfCollision()) {
+    setGameOver();
+    return;
+  }
   const head = localSnake[0];
   if (head.x === applePos.x && head.y === applePos.y) {
     score++;
     updatePlayerState(true);
     spawnApple();
-  } else { updatePlayerState(false); }
+  } else {
+    updatePlayerState(false);
+  }
 }
 
 function renderLoop() {
   renderGame();
-  if (!isGameOver) { requestAnimationFrame(renderLoop); }
+  if (!isGameOver) {
+    requestAnimationFrame(renderLoop);
+  }
 }
 
 /* ======================================
- 8. ДВИЖЕНИЕ ЗМЕЙКИ
+   8. ДВИЖЕНИЕ ЗМЕЙКИ
 ====================================== */
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
@@ -836,10 +868,12 @@ function moveLocalSnake() {
   localSnake.pop();
 }
 
-function checkSelfCollision() { return false; }
+function checkSelfCollision() {
+  return false;
+}
 
 /* ======================================
- 9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
+   9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
 ====================================== */
 function updatePlayerState(ateApple) {
   if (ateApple) {
@@ -863,7 +897,7 @@ function spawnApple() {
 }
 
 /* ======================================
-10. КОНЕЦ ИГРЫ
+   10. КОНЕЦ ИГРЫ
 ====================================== */
 function setGameOver() {
   isGameOver = true;
@@ -882,7 +916,9 @@ function endGame() {
       resultTitle = (currentLanguage === 'ru') ? 'ты выиграл' : 'You Win!';
     } else if (score < opponentScore) {
       resultTitle = (currentLanguage === 'ru') ? 'ты проиграл' : 'You Lose...';
-    } else { resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw'; }
+    } else {
+      resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
+    }
   }
   const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
   showEndGameModal(resultTitle, msg);
@@ -890,19 +926,25 @@ function endGame() {
 }
 
 /* ======================================
-11. ТАЙМЕР (1 минута)
+   11. ТАЙМЕР (1 минута)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
   const timerInterval = setInterval(() => {
-    if (!isGameRunning || isGameOver) { clearInterval(timerInterval); return; }
+    if (!isGameRunning || isGameOver) {
+      clearInterval(timerInterval);
+      return;
+    }
     timerCurrent--;
-    if (timerCurrent <= 0) { setGameOver(); clearInterval(timerInterval); }
+    if (timerCurrent <= 0) {
+      setGameOver();
+      clearInterval(timerInterval);
+    }
   }, 1000);
 }
 
 /* ======================================
-12. РЕНДЕР ИГРЫ (с интерполяцией)
+   12. РЕНДЕР ИГРЫ (с интерполяцией)
 ====================================== */
 function renderGame() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -912,7 +954,6 @@ function renderGame() {
   const now = performance.now();
   const factor = Math.min((now - lastLogicUpdateTime) / LOGIC_INTERVAL, 1);
   
-  // Яблоко
   let appleImg = new Image();
   appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
   if (appleImg.complete) {
@@ -925,7 +966,6 @@ function renderGame() {
     );
   }
   
-  // Локальная змейка
   for (let i = 0; i < localSnake.length; i++) {
     const curr = localSnake[i];
     const prev = previousSnake[i] || curr;
@@ -940,7 +980,6 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
   
-  // Змейка противника
   const opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
   for (let i = 0; i < opponentSnake.length; i++) {
     const curr = opponentSnake[i];
@@ -956,7 +995,6 @@ function renderGame() {
     specialCtx.strokeRect(x, y, gridSize, gridSize);
   }
   
-  // Счёт и таймер
   specialCtx.fillStyle = '#00FF00';
   specialCtx.font = '12px "Press Start 2P", sans-serif';
   specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
@@ -990,7 +1028,7 @@ function drawMatrixGrid() {
 }
 
 /* ======================================
-13. ЭКРАНЫ "SEARCHING / WAITING..."
+   13. ЭКРАНЫ "SEARCHING / WAITING..."
 ====================================== */
 function drawSearchScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1021,15 +1059,23 @@ function drawOpponentFoundScreen() {
 }
 
 /* ======================================
-14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
+   14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
 ====================================== */
 function addSwipeListeners() {
   function onKeyDown(e) {
     switch (e.key) {
-      case 'ArrowLeft': if (localDirection !== 'right') localDirection = 'left'; break;
-      case 'ArrowRight': if (localDirection !== 'left') localDirection = 'right'; break;
-      case 'ArrowUp': if (localDirection !== 'down') localDirection = 'up'; break;
-      case 'ArrowDown': if (localDirection !== 'up') localDirection = 'down'; break;
+      case 'ArrowLeft':
+        if (localDirection !== 'right') localDirection = 'left';
+        break;
+      case 'ArrowRight':
+        if (localDirection !== 'left') localDirection = 'right';
+        break;
+      case 'ArrowUp':
+        if (localDirection !== 'down') localDirection = 'up';
+        break;
+      case 'ArrowDown':
+        if (localDirection !== 'up') localDirection = 'down';
+        break;
     }
   }
   window.addEventListener('keydown', onKeyDown);
@@ -1069,10 +1115,15 @@ function addSwipeListeners() {
       joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
       let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
       if (angleDeg < 0) angleDeg += 360;
-      if (angleDeg >= 45 && angleDeg < 135) { if (localDirection !== 'up') localDirection = 'down'; }
-      else if (angleDeg >= 135 && angleDeg < 225) { if (localDirection !== 'right') localDirection = 'left'; }
-      else if (angleDeg >= 225 && angleDeg < 315) { if (localDirection !== 'down') localDirection = 'up'; }
-      else { if (localDirection !== 'left') localDirection = 'right'; }
+      if (angleDeg >= 45 && angleDeg < 135) {
+        if (localDirection !== 'up') localDirection = 'down';
+      } else if (angleDeg >= 135 && angleDeg < 225) {
+        if (localDirection !== 'right') localDirection = 'left';
+      } else if (angleDeg >= 225 && angleDeg < 315) {
+        if (localDirection !== 'down') localDirection = 'up';
+      } else {
+        if (localDirection !== 'left') localDirection = 'right';
+      }
       e.preventDefault();
     }
   }
@@ -1102,7 +1153,7 @@ function removeSwipeListeners() {
 }
 
 /* ======================================
-15. КОПИРОВАНИЕ ССЫЛКИ
+   15. КОПИРОВАНИЕ ССЫЛКИ
 ====================================== */
 function copyInviteLink() {
   if (!inviteLink) return;
@@ -1112,7 +1163,7 @@ function copyInviteLink() {
 }
 
 /* ======================================
-16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+   16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
 ====================================== */
 function showEndGameModal(title, message) {
   const modal = document.getElementById('endgameBackdrop');
@@ -1124,7 +1175,7 @@ function showEndGameModal(title, message) {
 }
 
 /* ======================================
-17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+   17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
 ====================================== */
 function setupControlButtons() {
   const buttons = document.querySelectorAll('.control-button');
@@ -1134,14 +1185,16 @@ function setupControlButtons() {
       if ((localDirection === 'left' && newDirection === 'right') ||
           (localDirection === 'right' && newDirection === 'left') ||
           (localDirection === 'up' && newDirection === 'down') ||
-          (localDirection === 'down' && newDirection === 'up')) { return; }
+          (localDirection === 'down' && newDirection === 'up')) {
+        return;
+      }
       localDirection = newDirection;
     });
   });
 }
 
 /* ======================================
-18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+   18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -1155,20 +1208,24 @@ function cleanupRoom() {
 }
 
 window.addEventListener('beforeunload', function() {
-  if (roomId && gameStateRef) { gameStateRef.child('players').child(playerId).remove(); }
+  if (roomId && gameStateRef) {
+    gameStateRef.child('players').child(playerId).remove();
+  }
 });
 
 /* ======================================
-19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+   19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
   window.location.href = 'index.html';
 }
-function returnToMain() { window.location.href = 'index.html'; }
+function returnToMain() {
+  window.location.href = 'index.html';
+}
 
 /* ======================================
-20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
 ====================================== */
 document.getElementById('createRoomBtn').addEventListener('click', function() {
   document.getElementById('landingScreen').style.display = 'none';
@@ -1212,30 +1269,18 @@ document.getElementById('cancelSearchRoomBtn').addEventListener('click', functio
 });
 
 /* ======================================
-21. КНОПКА "Back" во время ожидания
+   21. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
 ====================================== */
 document.getElementById('searchBackBtn').addEventListener('click', function() {
-  cancelWaiting();
-});
-
-/* Функция отмены ожидания */
-function cancelWaiting() {
-  if (waitingListener && roomId) {
-    firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
-    waitingListener = null;
-  }
-  if (oppListener && roomId) {
-    firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId).off('value', oppListener);
-    oppListener = null;
-  }
-  if (roomId) { cleanupRoom(); }
-  document.getElementById('searchBackBtn').style.display = 'none';
+  // При нажатии "Back" удаляем комнату и возвращаем пользователя на главный экран.
+  cleanupRoom();
   document.getElementById('landingScreen').style.display = 'flex';
   document.getElementById('topBar').style.display = 'flex';
-}
+  document.getElementById('searchBackBtn').style.display = 'none';
+});
 
 /* ======================================
-22. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+   22. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 ====================================== */
 window.addEventListener('load', () => {
   const firebaseConfig = {
@@ -1248,7 +1293,9 @@ window.addEventListener('load', () => {
     appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
     measurementId: "G-WJNF0HSN9P"
   };
-  if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   if (!window.currentUser) {
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
       const tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -1257,14 +1304,22 @@ window.addEventListener('load', () => {
         photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
       };
     } else {
-      window.currentUser = { username: "TestUser", photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png" };
+      window.currentUser = {
+        username: "TestUser",
+        photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+      };
     }
   }
   if (window.currentUser && window.currentUser.username) {
     const userRef = firebase.database().ref('users/' + window.currentUser.username);
     userRef.once('value').then(snapshot => {
       if (!snapshot.exists()) {
-        userRef.set({ coins: 0, tickets: 0, points: 0, lastSpinTime: 0 });
+        userRef.set({
+          coins: 0,
+          tickets: 0,
+          points: 0,
+          lastSpinTime: 0
+        });
       }
     });
     userRef.on('value', snapshot => {
@@ -1288,17 +1343,8 @@ window.addEventListener('load', () => {
   });
 });
 
-/* Функция смены направления */
-function changeDirection(newDir) {
-  if ((newDir === 'up' && localDirection === 'down') ||
-      (newDir === 'down' && localDirection === 'up') ||
-      (newDir === 'left' && localDirection === 'right') ||
-      (newDir === 'right' && localDirection === 'left')) { return; }
-  localDirection = newDir;
-}
-
 /* ======================================
-23. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА
+   23. ФУНКЦИИ СМЕНЫ ЯЗЫКА
 ====================================== */
 let currentLanguage = "en";
 const languageStrings = {
@@ -1355,3 +1401,4 @@ function updateCoinDisplay(coins) {
   </script>
 </body>
 </html>
+
