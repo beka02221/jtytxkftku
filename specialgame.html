@@ -20,8 +20,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Основные стили страницы */
-  /* ========= Сброс стилей ========= */
+ /* ========= Базовые сбросы ========= */
 * {
   margin: 0;
   padding: 0;
@@ -31,6 +30,8 @@ html, body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 /* ========= Основной стиль страницы ========= */
@@ -40,7 +41,12 @@ body {
   background-color: #0e162e; /* Тёмный фон */
   color: #e0e0e0;          /* Основной цвет текста */
   font-family: 'Press Start 2P', sans-serif;
-  overflow: hidden;
+}
+
+/* ========= Заголовки ========= */
+h1, h2, h3, h4 {
+  text-transform: uppercase;
+  color: #bb86fc; /* Неоновый фиолетовый акцент */
 }
 
 /* ========= Верхняя панель ========= */
@@ -57,165 +63,46 @@ body {
   z-index: 2100;
 }
 
-/* Кнопки в верхней панели */
-#topBar button {
-  font-family: 'Press Start 2P', sans-serif;
+/* ========= Кнопки ========= */
+button {
   font-size: 12px;
-  padding: 5px 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   background: linear-gradient(135deg, #bb86fc, #29b6f6);
   color: #000;
   border: none;
   border-radius: 4px;
-  cursor: pointer;
+  padding: 8px 16px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
-#topBar button:hover {
+
+button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 }
-#topBar button:active {
+
+button:active {
   transform: translateY(2px);
 }
 
-/* ========= Игровой холст ========= */
+/* ========= Специфичные кнопки ========= */
+#homeBackBtn,
+#coinButton,
+#langToggleBtn {
+  padding: 5px 10px;
+}
+
+/* ========= Canvas для игры ========= */
 #specialGameCanvas {
   display: block;
   margin: 20px auto;
   background-image: url('1.jpg');
-  border: 2px solid #FF00FF; /* Неоновая рамка */
-  border-radius: 8px;
+  border: 2px solid #bb86fc;
 }
 
-/* ========= Экран приветствия ========= */
-#landingScreen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0e162e, #0a0a23);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  z-index: 2000;
-  text-align: center;
-  padding: 20px;
-}
-.landingContent {
-  max-width: 600px;
-}
-.landingContent img {
-  max-width: 300px;
-  height: auto;
-  margin-bottom: 20px;
-  border: 2px solid #FF00FF;
-  border-radius: 8px;
-}
-.landingContent h1 {
-  margin: 10px 0;
-  font-size: 28px;
-  color: #bb86fc;
-}
-.landingContent p {
-  font-size: 14px;
-  line-height: 1.4;
-  margin-bottom: 10px;
-  text-align: left;
-  color: #e0e0e0;
-}
-.landingContent button {
-  font-family: 'Press Start 2P', sans-serif;
-  font-size: 14px;
-  padding: 10px 20px;
-  margin: 10px;
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.landingContent button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-.landingContent button:active {
-  transform: translateY(2px);
-}
-
-/* ========= Модальные окна ========= */
-.modal-backdrop,
-.endgame-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.3);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-.endgame-backdrop {
-  z-index: 10001;
-}
-.modal, .endgame-modal {
-  background: #0e162e;
-  border: 2px solid #3b3b3b;
-  padding: 20px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  border-radius: 8px;
-  box-shadow: 0 0 15px #0ff;
-}
-.modal h2, .endgame-modal h2 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #bb86fc;
-}
-.modal p, .endgame-modal p {
-  font-size: 14px;
-  margin-bottom: 16px;
-  color: #e0e0e0;
-}
-.modal button, .endgame-modal button {
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* ========= Модальное окно "Недостаточно монет" ========= */
-#insufficientModal {
-  position: fixed;
-  z-index: 9999;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.3);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-#insufficientModal .modal {
-  background-color: #6d4fba;
-  border: 2px solid #3b3b3b;
-  padding: 20px;
-  width: 80%;
-  max-width: 360px;
-  text-align: center;
-  border-radius: 4px;
-}
-
-/* ========= Кнопка копирования ссылки ========= */
+/* ========= Кнопка для копирования ссылки ========= */
 #copyButton {
   position: absolute;
   bottom: 20px;
@@ -230,14 +117,64 @@ body {
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
   cursor: pointer;
   display: none;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-#copyButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 }
 
-/* ========= Элементы для управления (джойстик) ========= */
+/* ========= Модальные окна ========= */
+.modal-backdrop,
+.endgame-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.3);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-backdrop.active,
+.endgame-backdrop.active {
+  display: flex;
+}
+
+.modal,
+.endgame-modal {
+  background: #0e162e;
+  border: 2px solid #3b3b3b;
+  padding: 20px;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+/* ========= Модальное окно для недостатка монет ========= */
+#insufficientModal {
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#insufficientModal .modal {
+  background-color: #6d4fba;
+  border: 2px solid #3b3b3b;
+  padding: 20px;
+  width: 80%;
+  max-width: 360px;
+  text-align: center;
+  border-radius: 4px;
+}
+
+/* ========= Джойстик ========= */
 #joystick {
   position: fixed;
   width: 100px;
@@ -250,6 +187,7 @@ body {
   z-index: 1000;
   touch-action: none;
 }
+
 #joystick-stick {
   position: absolute;
   width: 50px;
@@ -263,41 +201,55 @@ body {
   touch-action: none;
 }
 
-/* ========= Карточки комнат ========= */
-.room-card {
-  border: 1px solid #FF00FF;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 10px;
+/* ========= Обучающая страница (landingScreen) ========= */
+#landingScreen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #00103c, #0a0a23);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: #0e162e;
-  color: #e0e0e0;
-}
-.room-card button {
-  background: linear-gradient(135deg, #bb86fc, #29b6f6);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-family: 'Press Start 2P', sans-serif;
-  font-size: 12px;
-  cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.room-card button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  justify-content: center;
+  flex-direction: column;
+  z-index: 2000;
+  color: #FF00FF;
+  text-align: center;
+  padding: 20px;
 }
 
-/* ========= Кнопка Back (режим ожидания) ========= */
+.landingContent {
+  max-width: 600px;
+  overflow-y: auto;
+}
+
+.landingContent img {
+  max-width: 300px;
+  height: auto;
+  margin-bottom: 20px;
+  border: 2px solid #FF00FF;
+  border-radius: 8px;
+}
+
+.landingContent h1 {
+  margin: 10px 0;
+  font-size: 28px;
+  color: #bb86fc;
+}
+
+.landingContent p {
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* ========= Кнопка Back ========= */
 #searchBackBtn {
   position: absolute;
   top: 10px;
   left: 10px;
-  font-family: 'Press Start 2P', sans-serif;
   font-size: 14px;
   padding: 5px 10px;
   background: linear-gradient(135deg, #bb86fc, #29b6f6);
@@ -308,18 +260,6 @@ body {
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
   z-index: 3000;
   display: none;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-#searchBackBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-}
-
-/* ========= Сворачиваемый текст ========= */
-.collapsed {
-  max-height: 100px;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
 }
 
   </style>
