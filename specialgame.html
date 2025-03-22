@@ -63,7 +63,7 @@
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
-      /* Убрана пунктирная рамка */
+      /* Пунктирная рамка убрана */
       border: none;
       border-radius: 8px;
     }
@@ -96,7 +96,13 @@
       align-items: center;
       z-index: 999;
     }
-    .modal, .endgame-modal {
+    /* Дополнительный класс для полноэкранного модального окна (для поиска комнат) */
+    .full-screen {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+    }
+    .modal {
       background: #1a1a1a;
       border: 3px solid #ff007f;
       padding: 20px;
@@ -106,9 +112,97 @@
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(255, 0, 127, 0.5);
     }
-    #insufficientModal .modal {
-      background-color: #2a2a2a;
-      border: 3px solid #007fff;
+    /* Стили для модального окна создания комнаты */
+    .create-room-modal {
+      max-width: 350px;
+    }
+    .create-room-modal h2 {
+      margin-bottom: 10px;
+    }
+    .bet-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0;
+    }
+    #betSlider {
+      width: 70%;
+      margin-right: 10px;
+    }
+    #betValueDisplay {
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    .bet-error {
+      color: #ff5555;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .modal-buttons {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .modal-buttons button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+      min-width: 120px;
+    }
+    .modal-buttons button:hover {
+      transform: scale(1.05);
+    }
+    /* Стили для модального окна поиска комнат */
+    .search-room-modal {
+      width: 95%;
+      max-width: none;
+      height: 95%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+    .search-room-modal h2 {
+      margin-bottom: 10px;
+    }
+    #roomListContainer {
+      flex: 1;
+      overflow-y: auto;
+      margin: 10px 0;
+    }
+    #roomListTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #roomListTable th, #roomListTable td {
+      border: 1px solid #007fff;
+      padding: 8px;
+      text-align: center;
+      font-size: 12px;
+    }
+    #roomListTable th {
+      background: #111;
+      color: #ff007f;
+    }
+    .refresh-button, .back-button {
+      font-family: 'Press Start 2P', sans-serif;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.1s ease;
+    }
+    .refresh-button:hover, .back-button:hover {
+      transform: scale(1.05);
     }
     /* Джойстик для мобильных устройств */
     #joystick {
@@ -227,6 +321,29 @@
     #searchBackBtn:hover {
       transform: scale(1.05);
     }
+    /* Адаптивные стили */
+    @media (max-width: 480px) {
+      .modal, .create-room-modal, .search-room-modal {
+        width: 95%;
+        padding: 15px;
+      }
+      #betSlider {
+        width: 60%;
+      }
+      .modal-buttons button {
+        font-size: 10px;
+        padding: 6px 10px;
+        min-width: 100px;
+      }
+      #roomListTable th, #roomListTable td {
+        font-size: 10px;
+        padding: 6px;
+      }
+      .refresh-button, .back-button {
+        font-size: 10px;
+        padding: 6px 10px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -257,42 +374,41 @@
 
   <!-- Модальное окно создания комнаты -->
   <div id="createRoomModal" class="modal-backdrop">
-    <div class="modal" style="max-width: 500px; width: 90%; padding: 20px; transition: all 0.3s ease;">
-      <h2 id="createRoomModalTitle">Create Room</h2>
-      <!-- Подсказка о ставке -->
-      <p id="betTooltip" style="font-size: 14px; color: #e0e0e0; margin-bottom: 10px;">
-        Set your bet. Higher bet increases potential rewards and risk.
-      </p>
-      <!-- Слайдер со значением ставки -->
-      <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <input type="range" id="betSlider" min="1" max="100" value="1" step="1" style="flex-grow: 1; margin-right: 10px;">
-        <span id="betValueDisplay" style="font-size: 18px; transition: all 0.3s ease;">1 m</span>
+    <div class="modal create-room-modal">
+      <h2 id="createRoomTitle">Create Room</h2>
+      <p id="createRoomHint">Choose bet (in millions):</p>
+      <div class="bet-container">
+        <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
+        <span id="betValueDisplay">1 m</span>
       </div>
-      <!-- Сообщение об ошибке, если ставка неверна -->
-      <p id="betError" style="display: none; color: red; font-size: 14px; margin-bottom: 10px;">
-        Insufficient coins for this bet.
-      </p>
-      <div style="margin-top: 20px; text-align: center;">
-        <button id="confirmCreateRoomBtn" style="padding: 10px 20px; margin-right: 10px;">Create</button>
-        <button id="cancelCreateRoomBtn" style="padding: 10px 20px;">Cancel</button>
+      <div class="bet-error" id="betError" style="display: none;">Not enough coins</div>
+      <div class="modal-buttons">
+        <button id="confirmCreateRoomBtn">Create</button>
+        <button id="cancelCreateRoomBtn">Cancel</button>
       </div>
     </div>
   </div>
 
   <!-- Модальное окно поиска комнат -->
-  <div id="searchRoomModal" class="modal-backdrop" style="display: none; width: 100%; height: 100%; padding: 20px; box-sizing: border-box;">
-    <div class="modal" style="width: 100%; height: 100%; max-width: none; border-radius: 0; padding: 20px; overflow-y: auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h2 id="searchRoomModalTitle" style="margin: 0;">Search Rooms</h2>
-        <button id="refreshRoomsBtn" style="padding: 10px 20px;">Refresh</button>
+  <div id="searchRoomModal" class="modal-backdrop full-screen">
+    <div class="modal search-room-modal">
+      <h2 id="searchRoomTitle">Search Rooms</h2>
+      <button id="refreshRoomsBtn" class="refresh-button">Refresh</button>
+      <div id="roomListContainer">
+        <table id="roomListTable">
+          <thead>
+            <tr>
+              <th>Creator</th>
+              <th>Bet</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="roomList">
+            <!-- Динамически заполняется -->
+          </tbody>
+        </table>
       </div>
-      <!-- Список комнат оформлен в виде таблицы -->
-      <div id="roomList" style="width: 100%; border-collapse: collapse;">
-        <!-- Здесь динамически будут создаваться строки с данными комнат -->
-      </div>
-      <div style="margin-top: 20px;">
-        <button id="cancelSearchRoomBtn" style="padding: 10px 20px; width: 100%;">Back</button>
-      </div>
+      <button id="cancelSearchRoomBtn" class="back-button">Back</button>
     </div>
   </div>
 
@@ -319,20 +435,23 @@
   <!-- Модальное окно недостатка монет -->
   <div id="insufficientModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="insufficientTitle">Not enough coins</h2>
-      <p id="insufficientText">You don't have enough coins to join the game.</p>
-      <button onclick="window.location.href='buy.html'" id="topUpBtn">Top Up</button>
+      <h2>Not enough coins</h2>
+      <p>You don't have enough coins to join the game.</p>
+      <button onclick="window.location.href='buy.html'">Top Up</button>
     </div>
   </div>
 
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Основной код с модальными окнами создания и поиска комнат.
-       • Счёт в игре выводится точным числом (без суффиксов), а баланс в меню – с "m"/"b".
-       • Пунктирные рамки убраны.
-       • Локализация реализована через объект languageStrings.
-       • Модальные окна для создания и поиска комнат дополнены динамическим отображением, анимацией, информативными подсказками, валидацией и адаптивным дизайном.
+     Special Snake PvP – Код с доработками модальных окон:
+       • Окно создания комнаты:
+         - Динамический вывод выбранной ставки с анимацией.
+         - Поясняющий текст и inline-валидация (вывод ошибки, если недостаточно монет).
+         - Адаптивный дизайн для мобильных устройств.
+       • Окно поиска комнат:
+         - Полноэкранное окно с таблицей, кнопкой обновления и понятной кнопкой входа.
+         - Если комнат нет, выводится рекомендация «Check back later».
     ============================================================
     */
 
@@ -408,9 +527,6 @@
     let waitingListener = null;
     let oppListener = null;
 
-    // Глобальная переменная для хранения текущего баланса пользователя (например, 3000000 для 3m)
-    let userCoins = 0;
-
     // Цвета змейки
     const snakeColors = {
       player1: '#FFFF00', // желтый
@@ -425,6 +541,9 @@
 
     // Флаг отключения противника
     let opponentDisconnected = false;
+
+    // Глобальная переменная для текущего баланса монет
+    let currentCoins = 0;
 
     /* ======================================
        Вспомогательная функция интерполяции
@@ -531,21 +650,32 @@
     }
 
     function createRoom(bet) {
+      // Если ставка > 0, сначала пробуем списать монеты
       if (bet > 0) {
         deductUserCoins(bet).then(function(result) {
           if (!result.committed) {
-            showInsufficientModal();
+            // Если недостаточно монет, вызываем встроенное сообщение об ошибке
+            showBetError();
             return;
           } else {
             actuallyCreateRoom(bet);
           }
         }).catch(err => {
           console.error(err);
-          showInsufficientModal();
+          showBetError();
         });
       } else {
         actuallyCreateRoom(bet);
       }
+    }
+
+    function showBetError() {
+      const betErrorEl = document.getElementById('betError');
+      betErrorEl.style.display = 'block';
+      betErrorEl.textContent = languageStrings[currentLanguage].betError;
+      setTimeout(() => {
+        betErrorEl.style.display = 'none';
+      }, 3000);
     }
 
     function actuallyCreateRoom(bet) {
@@ -573,50 +703,51 @@
       queueRef.orderByChild('status').equalTo('waiting').once('value')
         .then(snapshot => {
           const rooms = snapshot.val();
-          const roomListDiv = document.getElementById('roomList');
-          roomListDiv.innerHTML = '';
+          const roomListBody = document.getElementById('roomList');
+          roomListBody.innerHTML = '';
           if (rooms) {
             Object.keys(rooms).forEach(roomKey => {
               const room = rooms[roomKey];
               if (room.creator === window.currentUser.username) return;
-              // Создаём строку для отображения информации о комнате
-              const row = document.createElement('div');
-              row.style.display = 'flex';
-              row.style.justifyContent = 'space-between';
-              row.style.alignItems = 'center';
-              row.style.borderBottom = '1px solid #ccc';
-              row.style.padding = '10px 0';
-              // Ячейка с именем создателя
-              const creatorCell = document.createElement('div');
-              creatorCell.style.flex = '1';
-              creatorCell.textContent = "@" + room.creator;
-              creatorCell.style.color = '#FF00FF';
-              // Ячейка со ставкой
-              const betCell = document.createElement('div');
-              betCell.style.flex = '1';
-              betCell.textContent = room.bet + " m";
-              betCell.style.color = '#FF00FF';
-              // Ячейка с кнопкой входа в комнату
-              const joinCell = document.createElement('div');
-              joinCell.style.flex = '0';
+              const tr = document.createElement('tr');
+
+              const creatorTd = document.createElement('td');
+              creatorTd.textContent = "@" + room.creator;
+              tr.appendChild(creatorTd);
+
+              const betTd = document.createElement('td');
+              betTd.textContent = room.bet + languageStrings[currentLanguage].betUnit;
+              tr.appendChild(betTd);
+
+              const actionTd = document.createElement('td');
               const joinBtn = document.createElement('button');
               joinBtn.textContent = languageStrings[currentLanguage].join;
-              joinBtn.style.padding = '10px 20px';
               joinBtn.style.fontFamily = 'Press Start 2P, sans-serif';
-              joinBtn.style.fontSize = '14px';
+              joinBtn.style.fontSize = '12px';
+              joinBtn.style.padding = '5px 10px';
+              joinBtn.style.background = '#06B6D1';
+              joinBtn.style.color = '#262626';
+              joinBtn.style.border = 'none';
+              joinBtn.style.borderRadius = '4px';
               joinBtn.style.cursor = 'pointer';
+              joinBtn.style.boxShadow = '0 3px #6b6b6b';
               joinBtn.addEventListener('click', function() {
                 joinRoom(roomKey);
               });
-              joinCell.appendChild(joinBtn);
-              // Добавляем ячейки в строку
-              row.appendChild(creatorCell);
-              row.appendChild(betCell);
-              row.appendChild(joinCell);
-              roomListDiv.appendChild(row);
+              actionTd.appendChild(joinBtn);
+              tr.appendChild(actionTd);
+
+              roomListBody.appendChild(tr);
             });
-          } else {
-            roomListDiv.innerHTML = '<p style="color: #FF00FF; text-align: center; margin-top: 20px;">No available rooms. Try creating a new room or check back later.</p>';
+          }
+          if (!roomListBody.hasChildNodes()) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.setAttribute("colspan", "3");
+            td.style.color = "#FF00FF";
+            td.textContent = languageStrings[currentLanguage].searchRoomNoRooms;
+            tr.appendChild(td);
+            roomListBody.appendChild(tr);
           }
         })
         .catch(err => console.error('Error searching rooms:', err));
@@ -1283,18 +1414,32 @@
 
     document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
       const betValue = parseInt(document.getElementById('betSlider').value);
-      // Если недостаточно монет, сообщение об ошибке уже показано
-      if(userCoins < betValue * 1000000) {
-        document.getElementById('betError').style.display = 'block';
+      // Проверяем, достаточно ли монет (betValue – в миллионах)
+      if (currentCoins < betValue * 1e6) {
+        showBetError();
         return;
       }
       createRoom(betValue);
+    });
+
+    // При изменении слайдера обновляем значение и подсказку
+    document.getElementById('betSlider').addEventListener('input', function() {
+      const value = document.getElementById('betSlider').value;
+      document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
+      // Можно добавить анимацию изменения значения через CSS (у элемента betValueDisplay уже есть transition)
+      // Обновляем также текст подсказки, если нужно:
+      document.getElementById('createRoomHint').textContent = languageStrings[currentLanguage].createRoomHint;
     });
 
     document.getElementById('cancelSearchRoomBtn').addEventListener('click', function() {
       document.getElementById('searchRoomModal').style.display = 'none';
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
+    });
+
+    // Обработчик кнопки обновления списка комнат
+    document.getElementById('refreshRoomsBtn').addEventListener('click', function() {
+      searchRooms();
     });
 
     /* ======================================
@@ -1354,6 +1499,7 @@
         userRef.on('value', snapshot => {
           const data = snapshot.val() || {};
           const coins = data.coins || 0;
+          currentCoins = coins; // сохраняем текущий баланс
           updateCoinDisplay(coins);
         });
       }
@@ -1379,15 +1525,15 @@
         draw: "Draw",
         opponentDisconnected: "Opponent Disconnected. You Win!",
         createRoomTitle: "Create Room",
-        chooseBet: "Choose bet (in millions): ",
+        createRoomHint: "Choose bet (in millions):",
         betUnit: " m",
         confirmCreateRoom: "Create",
         cancel: "Cancel",
+        betError: "Not enough coins",
         searchRoomTitle: "Search Rooms",
+        refresh: "Refresh",
         back: "Back",
-        insufficientTitle: "Not enough coins",
-        insufficientText: "You don't have enough coins to join the game.",
-        topUp: "Top Up",
+        searchRoomNoRooms: "No available rooms. Check back later.",
         join: "Join"
       },
       ru: {
@@ -1403,15 +1549,15 @@
         draw: "Ничья",
         opponentDisconnected: "Противник отключился. ты выиграл",
         createRoomTitle: "Создать комнату",
-        chooseBet: "Выберите ставку (в миллионах): ",
+        createRoomHint: "Выберите ставку (в миллионах):",
         betUnit: " млн",
         confirmCreateRoom: "Создать",
         cancel: "Отмена",
+        betError: "Недостаточно монет",
         searchRoomTitle: "Поиск комнат",
+        refresh: "Обновить",
         back: "Назад",
-        insufficientTitle: "Недостаточно монет",
-        insufficientText: "У вас недостаточно монет для участия в игре.",
-        topUp: "Пополнить",
+        searchRoomNoRooms: "Нет доступных комнат. Проверьте позже.",
         join: "Присоединиться"
       }
     };
@@ -1425,30 +1571,25 @@
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
       
-      if(document.querySelector('#createRoomModal .modal h2')) {
-        document.querySelector('#createRoomModal .modal h2').textContent = languageStrings[currentLanguage].createRoomTitle;
-      }
-      if(document.querySelector('#createRoomModal .modal p')) {
-        const betVal = document.getElementById('betSlider').value;
-        document.querySelector('#createRoomModal .modal p').textContent = languageStrings[currentLanguage].chooseBet + betVal + languageStrings[currentLanguage].betUnit;
-      }
-      document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].confirmCreateRoom;
-      document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].cancel;
+      // Обновление текста в модальных окнах
+      if(document.getElementById('createRoomTitle'))
+        document.getElementById('createRoomTitle').textContent = languageStrings[currentLanguage].createRoomTitle;
+      if(document.getElementById('createRoomHint'))
+        document.getElementById('createRoomHint').textContent = languageStrings[currentLanguage].createRoomHint;
+      if(document.getElementById('confirmCreateRoomBtn'))
+        document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].confirmCreateRoom;
+      if(document.getElementById('cancelCreateRoomBtn'))
+        document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].cancel;
       
-      if(document.querySelector('#searchRoomModal .modal h2')) {
-        document.querySelector('#searchRoomModal .modal h2').textContent = languageStrings[currentLanguage].searchRoomTitle;
-      }
-      document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].back;
+      if(document.getElementById('searchRoomTitle'))
+        document.getElementById('searchRoomTitle').textContent = languageStrings[currentLanguage].searchRoomTitle;
+      if(document.getElementById('refreshRoomsBtn'))
+        document.getElementById('refreshRoomsBtn').textContent = languageStrings[currentLanguage].refresh;
+      if(document.getElementById('cancelSearchRoomBtn'))
+        document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].back;
       
-      if(document.querySelector('#insufficientModal .modal h2')) {
-        document.querySelector('#insufficientModal .modal h2').textContent = languageStrings[currentLanguage].insufficientTitle;
-      }
-      if(document.querySelector('#insufficientModal .modal p')) {
-        document.querySelector('#insufficientModal .modal p').textContent = languageStrings[currentLanguage].insufficientText;
-      }
-      if(document.querySelector('#insufficientModal .modal button')) {
-        document.querySelector('#insufficientModal .modal button').textContent = languageStrings[currentLanguage].topUp;
-      }
+      if(document.getElementById('betError'))
+        document.getElementById('betError').textContent = languageStrings[currentLanguage].betError;
     }
 
     document.getElementById('langToggleBtn').addEventListener('click', function() {
@@ -1460,8 +1601,10 @@
       window.location.href = 'index.html';
     });
 
-    // Обновление динамического значения ставки уже настроено выше через событие input на betSlider.
+    function updateCoinDisplay(coins) {
+      document.getElementById('coinButton').innerHTML =
+        formatNumber(coins) + ' <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>';
+    }
   </script>
 </body>
 </html>
-
