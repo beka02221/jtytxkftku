@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>Special Snake PvP</title>
 
-  <!-- Ретро-шрифт -->
+  <!-- Retro font -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
-  <!-- Подключение внешнего файла CSS, если нужно -->
+  <!-- External CSS if needed -->
   <link id="themeStylesheet" rel="stylesheet" href="st1.css">
 
   <!-- Firebase SDK -->
@@ -63,7 +63,7 @@
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
-      /* Убрана пунктирная рамка */
+      /* Убраны пунктирные рамки – теперь рамки нет */
       border: none;
       border-radius: 8px;
     }
@@ -245,9 +245,10 @@
   <!-- Обучающая страница -->
   <div id="landingScreen">
     <div class="landingContent">
+      <!-- Превью игры и кнопка раскрытия инфы удалены -->
       <h1 id="landingTitle">Special Snake PvP</h1>
       <p id="landingText">
-        Control your snake using a virtual joystick. Collect tokens to earn points. The game lasts 60 seconds. Avoid obstacles and compete against your opponent in real-time.
+        Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
       </p>
       <button id="createRoomBtn">Create Room</button>
       <button id="searchRoomBtn">Search Room</button>
@@ -258,8 +259,10 @@
   <!-- Модальное окно создания комнаты -->
   <div id="createRoomModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="createRoomModalTitle">Create Room</h2>
-      <p id="createRoomModalText">Choose a bet (in millions): <span id="betValueDisplay">1m</span></p>
+      <h2>Create Room</h2>
+      <p>
+        Choose bet (in millions): <span id="betValueDisplay">1m</span>
+      </p>
       <div style="margin-top: 20px;">
         <button id="confirmCreateRoomBtn">Create</button>
         <button id="cancelCreateRoomBtn">Cancel</button>
@@ -270,7 +273,7 @@
   <!-- Модальное окно поиска комнат -->
   <div id="searchRoomModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="searchRoomModalTitle">Search Rooms</h2>
+      <h2>Search Rooms</h2>
       <div id="roomList" style="max-height: 60vh; overflow-y: auto; margin: 20px 0;">
         <!-- Здесь будут карточки с комнатами -->
       </div>
@@ -294,31 +297,31 @@
     <div class="endgame-modal">
       <h2 id="endgameTitle">Game Over!</h2>
       <p id="endgameMessage"></p>
-      <button id="endGameContinueBtn" onclick="finishGame()">Continue</button>
+      <button onclick="finishGame()">Continue</button>
     </div>
   </div>
 
   <!-- Модальное окно недостатка монет -->
   <div id="insufficientModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="insufficientModalTitle">Insufficient Coins</h2>
-      <p id="insufficientModalText">You do not have enough coins to participate in the game.</p>
-      <button id="insufficientModalButton" onclick="window.location.href='buy.html'">Buy Coins</button>
+      <h2>Insufficient Coins</h2>
+      <p>You do not have enough coins to participate in the game.</p>
+      <button onclick="window.location.href='buy.html'">Top Up</button>
     </div>
   </div>
 
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Полностью исправленный код с изменениями:
-       • Во время игры выводится точное число очков (без сокращений).
-       • Убраны пунктирные рамки.
-       • Описание игры теперь краткое и информативное: джойстик, сбор токенов, время.
-       • Все текстовые элементы зависят от выбранного языка (английский по умолчанию, переключение на русский).
+     Special Snake PvP – Исправленный код:
+       • Во время игры счёт выводится точными значениями.
+       • В меню (Coins) счёт форматируется сокращённо (3m, 5b и т.д.).
+       • Убраны все пунктирные границы.
+       • Все надписи по умолчанию на английском, при переключении языка всё обновляется на русский.
     ============================================================
     */
 
-    // Функция форматирования чисел (используется только для отображения монет)
+    // Функция форматирования чисел (используется только для отображения баланса в меню)
     function formatNumber(num) {
       if(num >= 1e9) {
         return (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'b';
@@ -387,8 +390,8 @@
 
     // Цвета змейки
     const snakeColors = {
-      player1: '#FFFF00', // желтый
-      player2: '#FF0000'  // красный
+      player1: '#FFFF00', // yellow
+      player2: '#FF0000'  // red
     };
 
     // Логический интервал
@@ -579,8 +582,7 @@
               detailsDiv.appendChild(infoDiv);
               card.appendChild(detailsDiv);
               const joinBtn = document.createElement('button');
-              // Используем языковую строку для кнопки присоединения
-              joinBtn.textContent = languageStrings[currentLanguage].joinRoomBtn;
+              joinBtn.textContent = 'Join';
               joinBtn.style.fontFamily = 'Press Start 2P, sans-serif';
               joinBtn.style.fontSize = '12px';
               joinBtn.style.padding = '5px 10px';
@@ -793,7 +795,7 @@
     ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
-      // Убираем рамку canvas при старте игры
+      // Убираем любые рамки у canvas (хотя в CSS теперь border: none)
       specialGameCanvas.style.border = 'none';
       isGameRunning = true;
       isGameOver = false;
@@ -919,17 +921,18 @@
       stopLogicLoop();
       let resultTitle = '';
       if (opponentDisconnected) {
-        resultTitle = (currentLanguage === 'ru') ? languageStrings.ru.opponentDisconnected : languageStrings.en.opponentDisconnected;
+        resultTitle = (currentLanguage === 'ru') ? 'Противник отключился. ты выиграл' : 'Opponent Disconnected. You Win!';
       } else {
         if (score > opponentScore) {
-          resultTitle = (currentLanguage === 'ru') ? languageStrings.ru.win : languageStrings.en.win;
+          resultTitle = (currentLanguage === 'ru') ? 'ты выиграл' : 'You Win!';
         } else if (score < opponentScore) {
-          resultTitle = (currentLanguage === 'ru') ? languageStrings.ru.lose : languageStrings.en.lose;
+          resultTitle = (currentLanguage === 'ru') ? 'ты проиграл' : 'You Lose...';
         } else {
-          resultTitle = (currentLanguage === 'ru') ? languageStrings.ru.draw : languageStrings.en.draw;
+          resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
         }
       }
-      const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
+      // Здесь в итоговом модальном окне можно оставить сокращённое отображение, если нужно:
+      const msg = `Your score: ${formatNumber(score)} | Opponent: ${formatNumber(opponentScore)}`;
       showEndGameModal(resultTitle, msg);
       cleanupRoom();
     }
@@ -1004,7 +1007,7 @@
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
       
-      // Выводим точное количество очков (без сокращения)
+      // Во время игры выводим точное значение счёта (без сокращений)
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
@@ -1047,7 +1050,7 @@
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText(languageStrings[currentLanguage].searchScreenText, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
       specialCtx.font = '10px "Press Start 2P", sans-serif';
       specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
     }
@@ -1065,7 +1068,7 @@
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText(languageStrings[currentLanguage].opponentFoundText, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.fillText('Opponent found!', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
     }
 
     /* ======================================
@@ -1351,55 +1354,47 @@
     const languageStrings = {
       en: {
         landingTitle: "Special Snake PvP",
-        landingText: "Control your snake using a virtual joystick. Collect tokens to earn points. The game lasts 60 seconds. Avoid obstacles and compete against your opponent in real-time.",
+        landingText: "Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!",
         homeBack: "Back",
         languageToggle: "RU",
         createRoomBtn: "Create Room",
         searchRoomBtn: "Search Room",
         playFreeBtn: "Play for Free",
-        createRoomModalTitle: "Create Room",
-        createRoomModalText: "Choose a bet (in millions): ",
-        confirmCreateRoomBtn: "Create",
-        cancelCreateRoomBtn: "Cancel",
-        searchRoomModalTitle: "Search Rooms",
-        cancelSearchRoomBtn: "Back",
-        joinRoomBtn: "Join",
         win: "You Win!",
         lose: "You Lose...",
         draw: "Draw",
         opponentDisconnected: "Opponent Disconnected. You Win!",
-        endGameContinueBtn: "Continue",
-        insufficientModalTitle: "Insufficient Coins",
+        createRoomModalHeader: "Create Room",
+        createRoomModalText: "Choose bet (in millions): ",
+        createRoomModalConfirm: "Create",
+        createRoomModalCancel: "Cancel",
+        searchRoomModalHeader: "Search Rooms",
+        searchRoomModalCancel: "Back",
+        insufficientModalHeader: "Insufficient Coins",
         insufficientModalText: "You do not have enough coins to participate in the game.",
-        insufficientModalButton: "Buy Coins",
-        searchScreenText: "Searching for opponent...",
-        opponentFoundText: "Opponent found!"
+        insufficientModalButton: "Top Up"
       },
       ru: {
         landingTitle: "Спешл Снейк PvP",
-        landingText: "Управляйте своей змеей с помощью виртуального джойстика. Собирайте токены, чтобы заработать очки. Игра длится 60 секунд. Избегайте препятствий и соревнуйтесь с противником в режиме реального времени.",
+        landingText: "Добро пожаловать в Special Snake PvP – захватывающий мир динамичных PvP-сражений, где скорость, стратегия и рефлексы решают судьбу каждой битвы! Управляйте своей уникальной змеей в ретро-стилистике, с эффектной графикой и атмосферным звуковым сопровождением. Каждая секунда – это борьба за выживание: избегайте столкновений, собирайте бонусы и опережайте противника в лабиринте арены. Играйте с друзьями или случайными противниками в режиме реального времени и докажите, что вы – настоящий мастер змей!",
         homeBack: "Назад",
         languageToggle: "EN",
         createRoomBtn: "Создать комнату",
         searchRoomBtn: "Поиск комнат",
         playFreeBtn: "Играть бесплатно",
-        createRoomModalTitle: "Создать комнату",
-        createRoomModalText: "Выберите ставку (в миллионах): ",
-        confirmCreateRoomBtn: "Создать",
-        cancelCreateRoomBtn: "Отмена",
-        searchRoomModalTitle: "Поиск комнат",
-        cancelSearchRoomBtn: "Назад",
-        joinRoomBtn: "Присоединиться",
         win: "ты выиграл",
         lose: "ты проиграл",
         draw: "Ничья",
         opponentDisconnected: "Противник отключился. ты выиграл",
-        endGameContinueBtn: "Продолжить",
-        insufficientModalTitle: "Недостаточно монет",
+        createRoomModalHeader: "Создать комнату",
+        createRoomModalText: "Выберите ставку (в миллионах): ",
+        createRoomModalConfirm: "Создать",
+        createRoomModalCancel: "Отмена",
+        searchRoomModalHeader: "Поиск комнат",
+        searchRoomModalCancel: "Назад",
+        insufficientModalHeader: "Недостаточно монет",
         insufficientModalText: "У вас недостаточно монет для участия в игре.",
-        insufficientModalButton: "Пополнить",
-        searchScreenText: "Поиск противника...",
-        opponentFoundText: "Противник найден!"
+        insufficientModalButton: "Пополнить"
       }
     };
 
@@ -1411,20 +1406,18 @@
       document.getElementById('createRoomBtn').textContent = languageStrings[currentLanguage].createRoomBtn;
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
-      // Модальное окно создания комнаты
-      document.getElementById('createRoomModalTitle').textContent = languageStrings[currentLanguage].createRoomModalTitle;
-      document.getElementById('createRoomModalText').childNodes[0].textContent = languageStrings[currentLanguage].createRoomModalText;
-      document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].confirmCreateRoomBtn;
-      document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].cancelCreateRoomBtn;
-      // Модальное окно поиска комнат
-      document.getElementById('searchRoomModalTitle').textContent = languageStrings[currentLanguage].searchRoomModalTitle;
-      document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].cancelSearchRoomBtn;
-      // Модальное окно конца игры
-      document.getElementById('endGameContinueBtn').textContent = languageStrings[currentLanguage].endGameContinueBtn;
-      // Модальное окно недостатка монет
-      document.getElementById('insufficientModalTitle').textContent = languageStrings[currentLanguage].insufficientModalTitle;
-      document.getElementById('insufficientModalText').textContent = languageStrings[currentLanguage].insufficientModalText;
-      document.getElementById('insufficientModalButton').textContent = languageStrings[currentLanguage].insufficientModalButton;
+
+      // Обновление текста модальных окон:
+      document.querySelector('#createRoomModal h2').textContent = languageStrings[currentLanguage].createRoomModalHeader;
+      // Обновляем первый текстовый узел в параграфе (до <span>)
+      document.querySelector('#createRoomModal p').childNodes[0].textContent = languageStrings[currentLanguage].createRoomModalText;
+      document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].createRoomModalConfirm;
+      document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].createRoomModalCancel;
+      document.querySelector('#searchRoomModal h2').textContent = languageStrings[currentLanguage].searchRoomModalHeader;
+      document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomModalCancel;
+      document.querySelector('#insufficientModal h2').textContent = languageStrings[currentLanguage].insufficientModalHeader;
+      document.querySelector('#insufficientModal p').textContent = languageStrings[currentLanguage].insufficientModalText;
+      document.querySelector('#insufficientModal button').textContent = languageStrings[currentLanguage].insufficientModalButton;
     }
 
     document.getElementById('langToggleBtn').addEventListener('click', function() {
