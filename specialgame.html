@@ -395,7 +395,10 @@
   <!-- Кнопка Back для ожидания -->
   <button id="searchBackBtn">Back</button>
 
-  <!-- УДАЛЁННАЯ КНОПКА КОПИРОВАНИЯ ССЫЛКИ -->
+  <!-- Джойстик (для мобильных устройств) -->
+  <div id="joystick">
+    <div id="joystick-stick"></div>
+  </div>
 
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
@@ -418,15 +421,13 @@
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Код с доработками:
-       • Удалена кнопка «Скопировать инвайт ссылку».
-       • Ставка: у первого игрока монеты списываются только
-         после подключения второго игрока (статус ready).
-       • У второго игрока списание происходит сразу при входе.
-       • В конце игры победитель получает сумму обеих ставок,
-         при ничьей каждому возвращается своя ставка.
-       • Модальное окно: убраны сообщения «оппонент вышел»,
-         оставлены только «ты выиграл/ты проиграл/ничья» + итоги.
+     Special Snake PvP – Основной код игры с доработками:
+       • Удалена кнопка копирования ссылки.
+       • Логика ставок изменена:
+         - Создатель комнаты (player1): коины списываются только после подключения оппонента.
+         - Игрок, который подключается позже (player2): списание происходит сразу.
+       • Распределение выигрыша: в конце игры победитель получает все поставленные коины, а при ничьей – ставки возвращаются.
+       • Модальное окно итогов показывает только "ты выиграл" или "ты проиграл" с итогами игры.
     ============================================================
     */
 
@@ -477,6 +478,7 @@
     // Состояние змейки противника
     let opponentSnake = [];
     let opponentScore = 0;
+    let opponentName = '';
 
     // Для плавной анимации змейки противника
     let previousOpponentSnake = [];
@@ -488,6 +490,7 @@
     // Флаги игры
     let isGameRunning = false;
     let isGameOver = false;
+    let showOpponentNameTimeout = null;
 
     // Таймер (1 минута)
     let timerTotal = 60;
@@ -509,41 +512,28 @@
     // Логический интервал
     const LOGIC_INTERVAL = 150;
 
+    // Пригласительная ссылка (больше не используется)
+    let inviteLink = "";
+
+    // Флаг отключения противника
+    let opponentDisconnected = false;
+
     // Глобальная переменная для текущего баланса монет
     let currentCoins = 0;
 
-    // Функции транзакций монет
-    function deductUserCoins(amount) {
-      const userRef = firebase.database().ref('users/' + window.currentUser.username);
-      return userRef.transaction(function(currentData) {
-        if (currentData) {
-          if (currentData.coins >= amount) {
-            currentData.coins -= amount;
-            return currentData;
-          } else {
-            return; // Недостаточно монет
-          }
-        }
-        return;
-      });
-    }
-
-    function addUserCoinsToUsername(username, amount) {
-      const userRef = firebase.database().ref('users/' + username);
-      return userRef.transaction(function(currentData) {
-        if (!currentData) {
-          currentData = {};
-        }
-        if (!currentData.coins) {
-          currentData.coins = 0;
-        }
-        currentData.coins += amount;
-        return currentData;
-      });
-    }
-
-    function showInsufficientModal() {
-      document.getElementById('insufficientModal').style.display = 'flex';
+    /* ======================================
+       Вспомогательная функция интерполяции
+    ====================================== */
+    function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
+      let diff = currVal - prevVal;
+      if (Math.abs(diff) > maxVal / 2) {
+        if (diff > 0) diff -= maxVal;
+        else diff += maxVal;
+      }
+      let interp = prevVal + diff * factor;
+      if (interp < 0) interp += maxVal;
+      if (interp >= maxVal) interp -= maxVal;
+      return interp;
     }
 
     /* ======================================
@@ -559,6 +549,10 @@
 
     function resetSpecialGame1() {
       stopLogicLoop();
+      if (showOpponentNameTimeout) {
+        clearTimeout(showOpponentNameTimeout);
+        showOpponentNameTimeout = null;
+      }
       roomId = null;
       playerId = null;
       opponentId = null;
@@ -568,11 +562,13 @@
       score = 0;
       opponentSnake = [];
       opponentScore = 0;
+      opponentName = "";
       applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
       timerTotal = 60;
       timerCurrent = 60;
+      inviteLink = "";
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -601,7 +597,6 @@
             }
           });
           if (!found) {
-            // Создаём комнату со ставкой 0
             createRoom(0);
           }
         })
@@ -611,10 +606,37 @@
         });
     }
 
-    // === Исправленная функция: у создателя комнаты НЕ списываем монеты сразу ===
+    function deductUserCoins(amount) {
+      const userRef = firebase.database().ref('users/' + window.currentUser.username);
+      return userRef.transaction(function(currentData) {
+        if (currentData) {
+          if (currentData.coins >= amount * 1e6) {
+            currentData.coins -= amount * 1e6;
+            return currentData;
+          } else {
+            return;
+          }
+        }
+        return;
+      });
+    }
+
+    function showInsufficientModal() {
+      document.getElementById('insufficientModal').style.display = 'flex';
+    }
+
+    // Создание комнаты – для создателя теперь не происходит списание сразу
     function createRoom(bet) {
-      // Просто создаём комнату без списания (для первого игрока)
       actuallyCreateRoom(bet);
+    }
+
+    function showBetError() {
+      const betErrorEl = document.getElementById('betError');
+      betErrorEl.style.display = 'block';
+      betErrorEl.textContent = languageStrings[currentLanguage].betError;
+      setTimeout(() => {
+        betErrorEl.style.display = 'none';
+      }, 3000);
     }
 
     function actuallyCreateRoom(bet) {
@@ -622,16 +644,14 @@
       roomId = queueRef.push().key;
       playerId = 'player1';
       opponentId = 'player2';
-
       queueRef.child(roomId).set({
         status: 'waiting',
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         creator: window.currentUser.username,
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
-
       queueRef.child(roomId).onDisconnect().remove();
-
+      // Приглашательная ссылка более не используется
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -693,15 +713,13 @@
         .catch(err => console.error('Error searching rooms:', err));
     }
 
-    // === Для второго игрока делаем списание сразу ===
     function joinRoom(roomKey) {
       firebase.database().ref('snakeQueue/' + roomKey).once('value').then(snapshot => {
         const room = snapshot.val();
         const bet = room.bet || 0;
-
         if (bet > 0) {
           deductUserCoins(bet).then(result => {
-            if (!result || !result.committed) {
+            if (!result.committed) {
               showInsufficientModal();
               return;
             } else {
@@ -723,7 +741,6 @@
       opponentId = 'player1';
       firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' })
         .catch(err => console.error('Error updating room status:', err));
-
       setupGameReferences();
       document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
@@ -731,81 +748,78 @@
     }
 
     /* ======================================
-       3. ОЖИДАНИЕ ПРОТИВНИКА (и списание монет у первого игрока)
+       3. ОЖИДАНИЕ ПРОТИВНИКА
     ====================================== */
     function waitForOpponent() {
       drawSearchScreen();
       // Показываем кнопку Back, чтобы пользователь мог выйти из ожидания
       document.getElementById('searchBackBtn').style.display = 'block';
-
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       waitingListener = statusRef.on('value', async (snapshot) => {
         const currentStatus = snapshot.val();
         if (currentStatus === 'ready') {
-          // Отключаем слушатель
           statusRef.off('value', waitingListener);
           waitingListener = null;
-
           // Скрываем кнопку Back, так как противник найден
           document.getElementById('searchBackBtn').style.display = 'none';
-
-          // Если мы первый игрок (creator), то теперь списываем монеты
-          // (только если ставка > 0)
-          if (playerId === 'player1') {
-            try {
-              const betRef = firebase.database().ref('snakeQueue/' + roomId + '/bet');
-              const betSnapshot = await betRef.once('value');
-              const betValue = betSnapshot.val() || 0;
-
-              if (betValue > 0) {
-                const result = await deductUserCoins(betValue);
-                if (!result || !result.committed) {
-                  // Недостаточно монет у первого игрока на момент готовности
-                  showInsufficientModal();
-                  cleanupRoom();
-                  return;
-                }
-              }
-            } catch (err) {
-              console.error("Error deducting coins for first user:", err);
-              showInsufficientModal();
-              cleanupRoom();
-              return;
-            }
-          }
-
-          // Получаем данные оппонента (для отображения, если нужно)
           try {
             const oppSnapshot = await firebase.database()
               .ref('snakeGames/' + roomId + '/players/' + opponentId)
               .once('value');
             const oppData = oppSnapshot.val();
             if (oppData && oppData.username) {
-              // Можно сохранить oppName, если нужно
+              opponentName = oppData.username;
             }
           } catch (e) {
             console.error("Error reading opponent data: ", e);
           }
-
-          drawOpponentFoundScreen();
-          document.getElementById('topBar').style.display = 'none';
-          setTimeout(() => {
-            startPreGameCountdown();
-          }, 2000);
+          // Для создателя (player1) списываем коины только после подключения оппонента
+          if (playerId === 'player1') {
+            firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
+              const betValue = snap.val() || 0;
+              if (betValue > 0) {
+                deductUserCoins(betValue).then(result => {
+                  if (!result.committed) {
+                    showInsufficientModal();
+                    cleanupRoom();
+                  } else {
+                    proceedWithOpponentFound();
+                  }
+                });
+              } else {
+                proceedWithOpponentFound();
+              }
+            });
+          } else {
+            proceedWithOpponentFound();
+          }
         }
       });
+      
+      oppListener = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId)
+        .on('value', (snapshot) => {
+          const oppData = snapshot.val();
+          if (oppData) {
+            previousOpponentSnake = opponentSnake.length ? opponentSnake.map(seg => ({ ...seg })) : (oppData.snake || []);
+            opponentSnake = oppData.snake || [];
+            opponentScore = oppData.score || 0;
+            opponentName = (oppData.username && oppData.username.trim() !== "") ? oppData.username : 'Player';
+            lastOpponentUpdateTime = performance.now();
+          } else {
+            if (isGameRunning) {
+              opponentDisconnected = true;
+              setGameOver();
+            }
+          }
+        });
+    }
 
-      // Слушатель состояния оппонента
-      const oppRef = firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId);
-      oppListener = oppRef.on('value', (snapshot) => {
-        const oppData = snapshot.val();
-        if (oppData) {
-          previousOpponentSnake = opponentSnake.length ? opponentSnake.map(seg => ({ ...seg })) : (oppData.snake || []);
-          opponentSnake = oppData.snake || [];
-          opponentScore = oppData.score || 0;
-          lastOpponentUpdateTime = performance.now();
-        }
-      });
+    function proceedWithOpponentFound() {
+      drawOpponentFoundScreen();
+      document.getElementById('topBar').style.display = 'none';
+      setTimeout(() => {
+        startPreGameCountdown();
+      }, 2000);
     }
 
     /* ======================================
@@ -814,7 +828,6 @@
     function setupGameReferences() {
       gameStateRef = firebase.database().ref('snakeGames/' + roomId);
       const playerRef = gameStateRef.child('players').child(playerId);
-
       playerRef.once('value').then((snapshot) => {
         if (!snapshot.exists()) {
           let startX, startY;
@@ -836,13 +849,11 @@
             score: 0,
             username: (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'Player'
           }).catch(err => console.error('Error initializing player data:', err));
-
           playerRef.onDisconnect().remove()
             .then(() => console.log("onDisconnect set for player:", playerId))
             .catch(err => console.error("Error setting onDisconnect:", err));
         }
       });
-
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -850,7 +861,6 @@
           applePos.y = aData.y;
         }
       });
-
       gameStateRef.child('gameOver').on('value', (snapshot) => {
         if (snapshot.val() === true && !isGameOver) {
           isGameOver = true;
@@ -860,12 +870,11 @@
     }
 
     /* ======================================
-       5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ
+       5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
     ====================================== */
     function startPreGameCountdown() {
       const totalTime = 15; // 15 секунд
       const startTime = performance.now();
-
       function countdownLoop() {
         const now = performance.now();
         const elapsed = (now - startTime) / 1000;
@@ -884,17 +893,14 @@
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '60px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       const displayTime = Math.ceil(remaining);
       specialCtx.fillText(displayTime.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 3);
-
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '20px "Press Start 2P", sans-serif';
       specialCtx.fillText("Your snake is", specialGameCanvas.width / 2, specialGameCanvas.height / 3 + 60);
-
       const segmentSize = 20;
       const numSegments = 3;
       const snakeLength = numSegments * segmentSize;
@@ -902,7 +908,6 @@
       const animTime = performance.now() % period;
       const animX = (animTime / period) * (specialGameCanvas.width - snakeLength);
       const snakeY = specialGameCanvas.height / 3 + 90;
-
       specialCtx.fillStyle = snakeColors[playerId] || '#FFFF00';
       for (let i = 0; i < numSegments; i++) {
         const segX = animX + i * segmentSize;
@@ -920,7 +925,6 @@
       document.getElementById('topBar').style.display = 'none';
       isGameRunning = true;
       isGameOver = false;
-
       gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
         const data = snapshot.val();
         if (data && data.snake) {
@@ -930,13 +934,11 @@
         score = (data && data.score) ? data.score : 0;
         previousSnake = localSnake.map(seg => ({ ...seg }));
         lastLogicUpdateTime = performance.now();
-
         gameStateRef.child('apple').once('value').then(appleSnap => {
           if (!appleSnap.exists()) {
             spawnApple();
           }
         });
-
         addSwipeListeners();
         startLogicLoop();
         startTimer();
@@ -960,16 +962,13 @@
 
     function gameLogicUpdate() {
       if (!isGameRunning || isGameOver) return;
-
       previousSnake = localSnake.map(seg => ({ ...seg }));
       moveLocalSnake();
       lastLogicUpdateTime = performance.now();
-
       if (checkSelfCollision()) {
         setGameOver();
         return;
       }
-
       const head = localSnake[0];
       if (head.x === applePos.x && head.y === applePos.y) {
         score++;
@@ -1002,16 +1001,12 @@
       if (head.x >= tileCountX) head.x = 0;
       if (head.y < 0) head.y = tileCountY - 1;
       if (head.y >= tileCountY) head.y = 0;
-
       localSnake.unshift(head);
       localSnake.pop();
     }
 
     function checkSelfCollision() {
-      // Пример простой проверки на самопересечение
-      // (по желанию можно улучшить)
-      const [head, ...body] = localSnake;
-      return body.some(segment => segment.x === head.x && segment.y === head.y);
+      return false;
     }
 
     /* ======================================
@@ -1048,77 +1043,51 @@
       endGame();
     }
 
-    // === Основная функция окончания игры с учётом распределения выигрыша ===
-    function endGame() {
-      stopLogicLoop();
-      // Чтобы избежать двойных выплат, смотрим флаг payoutDone
-      gameStateRef.child('payoutDone').once('value').then(snapshot => {
-        if (snapshot.val()) {
-          // Выплата уже произведена
-          showResultsModal();
-        } else {
-          // Выплату ещё не делали
-          doPayout().then(() => {
-            gameStateRef.child('payoutDone').set(true);
-            showResultsModal();
-          }).catch(err => {
-            console.error('Error in doPayout:', err);
-            showResultsModal(); // Показываем окно, даже если что-то пошло не так
-          });
+    // Функция для распределения ставок после игры
+    function settleBets() {
+      firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snapshot => {
+        const betValue = snapshot.val() || 0;
+        if (betValue > 0) {
+          // Если выигрывает локальный игрок, добавляем сумму обеих ставок;
+          // при ничьей – возвращаем поставленную сумму.
+          if (score > opponentScore) {
+            const userRef = firebase.database().ref('users/' + window.currentUser.username);
+            userRef.transaction(currentData => {
+              if (currentData) {
+                currentData.coins = (currentData.coins || 0) + betValue * 1e6 * 2;
+                return currentData;
+              }
+              return;
+            });
+          } else if (score === opponentScore) {
+            const userRef = firebase.database().ref('users/' + window.currentUser.username);
+            userRef.transaction(currentData => {
+              if (currentData) {
+                currentData.coins = (currentData.coins || 0) + betValue * 1e6;
+                return currentData;
+              }
+              return;
+            });
+          }
+          // В случае поражения у игрока ничего не возвращается (средства уже списаны).
         }
       });
     }
 
-    // Показывает конечное модальное окно с "ты выиграл"/"ты проиграл"/"ничья"
-    function showResultsModal() {
+    function endGame() {
+      stopLogicLoop();
+      settleBets();
       let resultTitle = '';
       if (score > opponentScore) {
-        // Локальный игрок выиграл
-        resultTitle = (currentLanguage === 'ru') ? 'ты выиграл' : 'You Win!';
+        resultTitle = languageStrings[currentLanguage].win;
       } else if (score < opponentScore) {
-        // Локальный игрок проиграл
-        resultTitle = (currentLanguage === 'ru') ? 'ты проиграл' : 'You Lose...';
+        resultTitle = languageStrings[currentLanguage].lose;
       } else {
-        // Ничья
-        resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
+        resultTitle = languageStrings[currentLanguage].draw;
       }
-
       const msg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
       showEndGameModal(resultTitle, msg);
-
       cleanupRoom();
-    }
-
-    // Выплаты: победителю вся сумма (bet*2), при ничьей — каждому возвращаем bet
-    async function doPayout() {
-      // Узнаём ставку из snakeQueue
-      const betSnapshot = await firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value');
-      const betValue = betSnapshot.val() || 0;
-      if (betValue === 0) {
-        return; // Если ставка = 0, ничего переводить не надо
-      }
-      // Читаем игроков
-      const p1Snapshot = await firebase.database().ref('snakeGames/' + roomId + '/players/player1').once('value');
-      const p2Snapshot = await firebase.database().ref('snakeGames/' + roomId + '/players/player2').once('value');
-      const p1Data = p1Snapshot.val() || {};
-      const p2Data = p2Snapshot.val() || {};
-      const p1Score = p1Data.score || 0;
-      const p2Score = p2Data.score || 0;
-      const p1User = p1Data.username || 'player1';
-      const p2User = p2Data.username || 'player2';
-
-      // Вычисляем результат
-      if (p1Score > p2Score) {
-        // p1 — победитель
-        await addUserCoinsToUsername(p1User, betValue * 2);
-      } else if (p2Score > p1Score) {
-        // p2 — победитель
-        await addUserCoinsToUsername(p2User, betValue * 2);
-      } else {
-        // Ничья
-        await addUserCoinsToUsername(p1User, betValue);
-        await addUserCoinsToUsername(p2User, betValue);
-      }
     }
 
     /* ======================================
@@ -1142,28 +1111,14 @@
     /* ======================================
        12. РЕНДЕР ИГРЫ (с интерполяцией)
     ====================================== */
-    function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
-      let diff = currVal - prevVal;
-      if (Math.abs(diff) > maxVal / 2) {
-        if (diff > 0) diff -= maxVal;
-        else diff += maxVal;
-      }
-      let interp = prevVal + diff * factor;
-      if (interp < 0) interp += maxVal;
-      if (interp >= maxVal) interp -= maxVal;
-      return interp;
-    }
-
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-
       drawMatrixGrid();
-
       const now = performance.now();
       const factor = Math.min((now - lastLogicUpdateTime) / LOGIC_INTERVAL, 1);
-
+      
       let appleImg = new Image();
       appleImg.src = 'https://www.pngkit.com/png/full/784-7843310_christmas-star-star-pixel-art.png';
       if (appleImg.complete) {
@@ -1175,8 +1130,7 @@
           gridSize
         );
       }
-
-      // Рисуем змею игрока
+      
       for (let i = 0; i < localSnake.length; i++) {
         const curr = localSnake[i];
         const prev = previousSnake[i] || curr;
@@ -1186,13 +1140,11 @@
         const y = GAME_AREA_Y + interpY * gridSize;
         specialCtx.fillStyle = snakeColors[playerId] || '#800080';
         specialCtx.fillRect(x, y, gridSize, gridSize);
-
         specialCtx.strokeStyle = '#000';
         specialCtx.lineWidth = 2;
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
-
-      // Рисуем змею оппонента
+      
       const opponentFactor = Math.min((now - lastOpponentUpdateTime) / LOGIC_INTERVAL, 1);
       for (let i = 0; i < opponentSnake.length; i++) {
         const curr = opponentSnake[i];
@@ -1203,19 +1155,15 @@
         const y = GAME_AREA_Y + interpY * gridSize;
         specialCtx.fillStyle = snakeColors[opponentId] || '#FFFF00';
         specialCtx.fillRect(x, y, gridSize, gridSize);
-
         specialCtx.strokeStyle = '#000';
         specialCtx.lineWidth = 2;
         specialCtx.strokeRect(x, y, gridSize, gridSize);
       }
-
-      // Счёт
+      
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
       specialCtx.fillText(`Score: ${formatScore(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
       specialCtx.fillText(`Opp: ${formatScore(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
-
-      // Полоса таймера
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1224,7 +1172,6 @@
     function drawMatrixGrid() {
       specialCtx.fillStyle = '#433171';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y, GAME_AREA_WIDTH, GAME_AREA_HEIGHT);
-
       specialCtx.strokeStyle = '#00103c';
       for (let i = 0; i <= tileCountX; i++) {
         const x = GAME_AREA_X + i * gridSize;
@@ -1252,11 +1199,12 @@
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
       specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.font = '10px "Press Start 2P", sans-serif';
+      specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
     }
 
     function drawWaitingScreen() {
@@ -1269,7 +1217,6 @@
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
       specialCtx.fillStyle = '#1f1c2c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
@@ -1277,7 +1224,7 @@
     }
 
     /* ======================================
-       14. ОБРАБОТКА ВВОДА (ДЖОЙСТИК + КЛАВИАТУРА)
+       14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
     ====================================== */
     function addSwipeListeners() {
       function onKeyDown(e) {
@@ -1298,14 +1245,12 @@
       }
       window.addEventListener('keydown', onKeyDown);
       window.__joystick_keydown = onKeyDown;
-
       const canvas = specialGameCanvas;
       const joystick = document.getElementById('joystick');
       const joystickStick = document.getElementById('joystick-stick');
       let joystickActive = false;
       let joystickCenter = { x: 0, y: 0 };
       const maxDistance = 40;
-
       function handleTouchStart(e) {
         if (e.touches.length > 0) {
           const touch = e.touches[0];
@@ -1319,7 +1264,6 @@
           e.preventDefault();
         }
       }
-
       function handleTouchMove(e) {
         if (!joystickActive) return;
         if (e.touches.length > 0) {
@@ -1334,10 +1278,8 @@
             dy = Math.sin(angle) * maxDistance;
           }
           joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
-
           let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
           if (angleDeg < 0) angleDeg += 360;
-
           if (angleDeg >= 45 && angleDeg < 135) {
             if (localDirection !== 'up') localDirection = 'down';
           } else if (angleDeg >= 135 && angleDeg < 225) {
@@ -1350,17 +1292,14 @@
           e.preventDefault();
         }
       }
-
       function handleTouchEnd(e) {
         joystickActive = false;
         joystick.style.display = 'none';
         e.preventDefault();
       }
-
       canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
       canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
       canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-
       window.__joystick_touchstart = handleTouchStart;
       window.__joystick_touchmove = handleTouchMove;
       window.__joystick_touchend = handleTouchEnd;
@@ -1372,16 +1311,11 @@
       specialGameCanvas.removeEventListener('touchmove', window.__joystick_touchmove);
       specialGameCanvas.removeEventListener('touchend', window.__joystick_touchend);
       window.removeEventListener('keydown', window.__joystick_keydown);
-
       window.__joystick_touchstart = null;
       window.__joystick_touchmove = null;
       window.__joystick_touchend = null;
       window.__joystick_keydown = null;
     }
-
-    /* ======================================
-       15. УДАЛЁННЫЙ КОД КОПИРОВАНИЯ ССЫЛКИ
-    ====================================== */
 
     /* ======================================
        16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
@@ -1390,10 +1324,8 @@
       const modal = document.getElementById('endgameBackdrop');
       const titleEl = document.getElementById('endgameTitle');
       const msgEl = document.getElementById('endgameMessage');
-
       titleEl.textContent = title;
       msgEl.textContent = message;
-
       modal.classList.add('active');
       modal.style.display = 'flex';
     }
@@ -1425,7 +1357,6 @@
         firebase.database().ref('snakeGames/' + roomId).remove()
           .then(() => console.log("Game room removed from snakeGames."))
           .catch(err => console.error("Error removing game room:", err));
-
         firebase.database().ref('snakeQueue/' + roomId).remove()
           .then(() => console.log("Game room removed from snakeQueue."))
           .catch(err => console.error("Error removing room from snakeQueue:", err));
@@ -1480,22 +1411,13 @@
 
     document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
       const betValue = parseInt(document.getElementById('betSlider').value);
-      // Проверяем, достаточно ли монет (betValue – в миллионах)
+      // Проверяем, достаточно ли монет для возможного списания (betValue – в миллионах)
       if (currentCoins < betValue * 1e6) {
         showBetError();
         return;
       }
       createRoom(betValue);
     });
-
-    function showBetError() {
-      const betErrorEl = document.getElementById('betError');
-      betErrorEl.style.display = 'block';
-      betErrorEl.textContent = languageStrings[currentLanguage].betError;
-      setTimeout(() => {
-        betErrorEl.style.display = 'none';
-      }, 3000);
-    }
 
     document.getElementById('betSlider').addEventListener('input', function() {
       const value = document.getElementById('betSlider').value;
@@ -1513,11 +1435,7 @@
       searchRooms();
     });
 
-    /* ======================================
-       21. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
-    ====================================== */
     document.getElementById('searchBackBtn').addEventListener('click', function() {
-      // При нажатии "Back" удаляем комнату и возвращаем в меню
       cleanupRoom();
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
@@ -1525,7 +1443,7 @@
     });
 
     /* ======================================
-       22. ЗАПУСК ПРИ ЗАГРУЗКЕ
+       21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     ====================================== */
     window.addEventListener('load', () => {
       const firebaseConfig = {
@@ -1541,8 +1459,6 @@
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
       }
-
-      // Определяем текущего пользователя (TelegramWebApp или тестовый)
       if (!window.currentUser) {
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
           const tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -1557,8 +1473,6 @@
           };
         }
       }
-
-      // Создаём запись о пользователе, если нет
       if (window.currentUser && window.currentUser.username) {
         const userRef = firebase.database().ref('users/' + window.currentUser.username);
         userRef.once('value').then(snapshot => {
@@ -1571,21 +1485,19 @@
             });
           }
         });
-        // Следим за балансом монет
         userRef.on('value', snapshot => {
           const data = snapshot.val() || {};
           const coins = data.coins || 0;
-          currentCoins = coins; 
+          currentCoins = coins;
           updateCoinDisplay(coins);
         });
       }
-
       initSpecialGame1();
       updateLanguageTexts();
     });
 
     /* ======================================
-       23. ЛОКАЛИЗАЦИЯ
+       22. ЛОКАЛИЗАЦИЯ
     ====================================== */
     let currentLanguage = "en";
     const languageStrings = {
@@ -1600,7 +1512,6 @@
         win: "You Win!",
         lose: "You Lose...",
         draw: "Draw",
-        opponentDisconnected: "Opponent Disconnected. You Win!", // более не используется
         createRoomTitle: "Create Room",
         createRoomHint: "Choose bet (in millions):",
         betUnit: " m",
@@ -1624,7 +1535,6 @@
         win: "ты выиграл",
         lose: "ты проиграл",
         draw: "Ничья",
-        opponentDisconnected: "Противник отключился. ты выиграл", // более не используется
         createRoomTitle: "Создать комнату",
         createRoomHint: "Выберите ставку (в миллионах):",
         betUnit: " млн",
@@ -1656,14 +1566,14 @@
         document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].confirmCreateRoom;
       if(document.getElementById('cancelCreateRoomBtn'))
         document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].cancel;
-
+      
       if(document.getElementById('searchRoomTitle'))
         document.getElementById('searchRoomTitle').textContent = languageStrings[currentLanguage].searchRoomTitle;
       if(document.getElementById('refreshRoomsBtn'))
         document.getElementById('refreshRoomsBtn').textContent = languageStrings[currentLanguage].refresh;
       if(document.getElementById('cancelSearchRoomBtn'))
         document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].back;
-
+      
       if(document.getElementById('betError'))
         document.getElementById('betError').textContent = languageStrings[currentLanguage].betError;
     }
@@ -1684,3 +1594,4 @@
   </script>
 </body>
 </html>
+
