@@ -237,7 +237,9 @@
   <!-- Верхняя панель -->
   <div id="topBar">
     <button id="homeBackBtn">Back</button>
-    <button id="coinButton" onclick="window.location.href='buy.html'">0 Coins</button>
+    <button id="coinButton" onclick="window.location.href='buy.html'">
+      <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/> 0m
+    </button>
     <button id="langToggleBtn">RU</button>
   </div>
 
@@ -247,12 +249,12 @@
   <!-- Обучающая страница -->
   <div id="landingScreen">
     <div class="landingContent">
-      <img src="game_preview.jpg" alt="Game Preview">
+      <!-- Убрана game preview -->
       <h1 id="landingTitle">Special Snake PvP</h1>
       <p id="landingText" class="collapsed">
         Welcome to Special Snake PvP – an exciting world of dynamic PvP battles where speed, strategy, and reflexes determine every fight! Control your unique snake in retro style, with striking graphics and atmospheric sound effects. Every second is a battle for survival: avoid collisions, collect bonuses, and outmaneuver your opponent in the arena maze. Play with friends or random opponents in real-time and prove that you are a true snake master!
       </p>
-      <button id="toggleDescBtn" style="background: transparent; border: none; color: #ff00ff; font-size: 24px; cursor: pointer;">▼</button>
+      <!-- Кнопка для разворачивания описания удалена -->
       <button id="createRoomBtn">Create Room</button>
       <button id="searchRoomBtn">Search Room</button>
       <button id="playFreeBtn">Play for Free</button>
@@ -322,6 +324,22 @@
        • Кнопкой "Back" в режиме ожидания, которая исчезает после нахождения противника.
     ============================================================
     */
+
+    // Функция для форматирования чисел в миллионы и миллиарды
+    function formatValue(value) {
+      if (value >= 1e9) {
+        return Math.floor(value / 1e9) + "b";
+      } else {
+        return Math.floor(value / 1e6) + "m";
+      }
+    }
+
+    // Функция обновления отображения монет (с иконкой)
+    function updateCoinDisplay(coins) {
+      document.getElementById('coinButton').innerHTML =
+        '<img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/> ' +
+        formatValue(coins);
+    }
 
     // Глобальные переменные для canvas и контекста
     let specialGameCanvas;
@@ -788,6 +806,8 @@
     ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
+      // Убираем пунктирную границу при запуске игры
+      specialGameCanvas.style.border = 'none';
       isGameRunning = true;
       isGameOver = false;
       gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
@@ -922,7 +942,7 @@
           resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
         }
       }
-      const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
+      const msg = `Your score: ${formatValue(score)} | Opponent: ${formatValue(opponentScore)}`;
       showEndGameModal(resultTitle, msg);
       cleanupRoom();
     }
@@ -999,8 +1019,8 @@
       
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
-      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+      specialCtx.fillText(`Score: ${formatValue(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
+      specialCtx.fillText(`Opp: ${formatValue(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1334,17 +1354,7 @@
       }
       initSpecialGame1();
       updateLanguageTexts();
-      const toggleDescBtn = document.getElementById('toggleDescBtn');
-      toggleDescBtn.addEventListener('click', function() {
-        const landingText = document.getElementById('landingText');
-        if (landingText.classList.contains('collapsed')) {
-          landingText.classList.remove('collapsed');
-          toggleDescBtn.textContent = "▲";
-        } else {
-          landingText.classList.add('collapsed');
-          toggleDescBtn.textContent = "▼";
-        }
-      });
+      // Обработчик toggleDescBtn удалён, так как кнопка была удалена
     });
 
     /* ======================================
@@ -1398,10 +1408,7 @@
     document.getElementById('homeBackBtn').addEventListener('click', function() {
       window.location.href = 'index.html';
     });
-
-    function updateCoinDisplay(coins) {
-      document.getElementById('coinButton').textContent = coins + " Coins";
-    }
   </script>
 </body>
 </html>
+
