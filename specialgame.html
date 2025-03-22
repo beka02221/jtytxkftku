@@ -373,7 +373,8 @@
 /* 
 ============================================================
   Special Snake PvP – Исправленный код с автоматическим соединением бесплатных игроков,
-  сворачиваемым описанием, переключением языка и 15-секундным обратным отсчётом с анимированным превью змейки.
+  сворачиваемым описанием, переключением языка и предигровым 15-секундным обратным отсчётом,
+  во время которого в нижней части экрана анимированно отображается змейка.
 ============================================================
 */
 
@@ -387,7 +388,7 @@ const GAME_AREA_Y = 50;
 const GAME_AREA_WIDTH = 300;
 const GAME_AREA_HEIGHT = 500;
 
-// Настройки сетки для игры
+// Настройки сетки
 const gridSize = 20;
 const tileCountX = GAME_AREA_WIDTH / gridSize;  
 const tileCountY = GAME_AREA_HEIGHT / gridSize; 
@@ -422,7 +423,7 @@ let applePos = { x: 0, y: 0 };
 // Флаги игры
 let isGameRunning = false;
 let isGameOver = false;
-let countdownValue = 15; // для обратного отсчёта теперь 15 секунд
+let countdownValue = 5;
 let showOpponentNameTimeout = null;
 
 // Таймер (1 минута)
@@ -452,21 +453,13 @@ let inviteLink = "";
 // Флаг отключения противника (авто-победа)
 let opponentDisconnected = false;
 
-/* ======================================
-   Дополнительные переменные для превью обратного отсчёта
-====================================== */
-// Для превью змейки используется меньший размер ячейки
-const previewCellSize = 10;
-let previewSnake = [];
-let previewDirection = "right";
-let previewInterval = null;
-// Определяем область, где будет отображаться превью (в пикселях)
-let previewArea = { x: 200, y: 0, width: 150, height: 50 };
-let previewAreaGridWidth = 0;
-let previewAreaGridHeight = 0;
+/* ===== Новые глобальные переменные для предигрового отсчёта ===== */
+let preGameCountdown = 15; // 15 секунд обратного отсчёта
+let snakeAnimX = - (5 * gridSize); // Начинаем анимацию змейки за экраном слева
+let preGameAnimFrame; // для хранения id requestAnimationFrame
 
 /* ======================================
-   Вспомогательная функция для интерполяции с учетом wrap-around (для основной игры)
+   Вспомогательная функция для интерполяции с учетом wrap-around
 ====================================== */
 function interpolateCoordinate(prevVal, currVal, factor, maxVal) {
   let diff = currVal - prevVal;
@@ -515,7 +508,7 @@ function resetSpecialGame1() {
   applePos = { x: 0, y: 0 };
   isGameRunning = false;
   isGameOver = false;
-  countdownValue = 15;
+  countdownValue = 5;
   timerTotal = 60;
   timerCurrent = 60;
   inviteLink = "";
@@ -734,9 +727,9 @@ function waitForOpponent() {
       drawOpponentFoundScreen();
       document.getElementById('copyButton').style.display = 'none';
       document.getElementById('topBar').style.display = 'none';
-      // После обнаружения противника запускаем 15-секундный отсчёт с превью змейки
+      // Запускаем предигровой отсчёт через 2 сек после обнаружения противника
       showOpponentNameTimeout = setTimeout(() => {
-        startPreviewCountdown();
+        startPreGameCountdown();
       }, 2000);
     }
   });
@@ -811,151 +804,68 @@ function setupGameReferences() {
 }
 
 /* ======================================
-   5. ОБРАТНЫЙ ОТСЧЁТ С ПРЕВЬЮ ЗМЕЙКИ (15 секунд)
+   5. ПРЕДИГРОВОЙ ОТСЧЁТ (15 секунд) И АНИМАЦИЯ ЗМЕЙКИ
 ====================================== */
-function initPreviewSnake() {
-  // Для превью будем использовать отдельную сетку: координаты в ячейках относительно previewArea
-  previewSnake = [];
-  // Начинаем с горизонтальной змейки из 5 клеток, расположенной в середине превью
-  let startY = Math.floor(previewAreaGridHeight / 2);
-  for (let i = 0; i < 5; i++) {
-    previewSnake.push({ x: i, y: startY });
-  }
-  previewDirection = "right";
-}
-
-function updatePreviewSnake() {
-  // С небольшим шансом меняем направление (не противоположное текущему)
-  if (Math.random() < 0.3) {
-    let possibleDirs = ["up", "down", "left", "right"];
-    if (previewDirection === "up") {
-      possibleDirs = possibleDirs.filter(d => d !== "down");
-    } else if (previewDirection === "down") {
-      possibleDirs = possibleDirs.filter(d => d !== "up");
-    } else if (previewDirection === "left") {
-      possibleDirs = possibleDirs.filter(d => d !== "right");
-    } else if (previewDirection === "right") {
-      possibleDirs = possibleDirs.filter(d => d !== "left");
-    }
-    previewDirection = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-  }
-  // Обновляем превью: добавляем новую голову в направлении previewDirection
-  let head = { ...previewSnake[0] };
-  switch (previewDirection) {
-    case "up":    head.y -= 1; break;
-    case "down":  head.y += 1; break;
-    case "left":  head.x -= 1; break;
-    case "right": head.x += 1; break;
-  }
-  // Реализуем wrap-around в пределах превью (grid)
-  if (head.x < 0) head.x = previewAreaGridWidth - 1;
-  if (head.x >= previewAreaGridWidth) head.x = 0;
-  if (head.y < 0) head.y = previewAreaGridHeight - 1;
-  if (head.y >= previewAreaGridHeight) head.y = 0;
-  previewSnake.unshift(head);
-  if (previewSnake.length > 5) {
-    previewSnake.pop();
-  }
-}
-
-function drawPreviewSnake() {
-  // Рисуем превью змейку внутри заданной области
-  specialCtx.fillStyle = snakeColors[playerId] || '#FFFF00';
-  for (let segment of previewSnake) {
-    let pixelX = previewArea.x + segment.x * previewCellSize;
-    let pixelY = previewArea.y + segment.y * previewCellSize;
-    specialCtx.fillRect(pixelX, pixelY, previewCellSize, previewCellSize);
-    specialCtx.strokeStyle = '#000';
-    specialCtx.lineWidth = 1;
-    specialCtx.strokeRect(pixelX, pixelY, previewCellSize, previewCellSize);
-  }
-}
-
-function drawPreviewCountdownScreen(countValue) {
-  // Очищаем весь canvas
-  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-  // Фон обратного отсчёта
-  specialCtx.fillStyle = '#1f1c2c';
-  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-  // Отрисовываем большое число обратного отсчёта в центре
-  specialCtx.fillStyle = '#00FF00';
-  specialCtx.font = '60px "Press Start 2P", sans-serif';
-  specialCtx.textAlign = 'center';
-  specialCtx.fillText(countValue.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 2);
-  // Отрисовываем текст "Your snake is" в нижней части экрана
-  specialCtx.fillStyle = '#FF00FF';
-  specialCtx.font = '20px "Press Start 2P", sans-serif';
-  specialCtx.textAlign = 'left';
-  specialCtx.fillText("Your snake is", 20, specialGameCanvas.height - 20);
-  // Отрисовываем превью змейки рядом с текстом
-  drawPreviewSnake();
-}
-
-function startPreviewCountdown() {
-  // Устанавливаем значение отсчёта в 15 секунд
-  countdownValue = 15;
-  // Настраиваем область для превью: разместим её справа от текста "Your snake is"
-  previewArea = {
-    x: 200,
-    y: specialGameCanvas.height - 70,
-    width: 150,
-    height: 50
-  };
-  previewAreaGridWidth = Math.floor(previewArea.width / previewCellSize);
-  previewAreaGridHeight = Math.floor(previewArea.height / previewCellSize);
-  // Инициализируем превью змейки
-  initPreviewSnake();
-  // Запускаем интервалы: один обновляет обратный отсчёт (раз в 1 сек), другой – анимацию превью (каждые 300 мс)
-  countdownInterval = setInterval(() => {
-    drawPreviewCountdownScreen(countdownValue);
-    countdownValue--;
-    if (countdownValue < 0) {
-      clearInterval(countdownInterval);
-      clearInterval(previewInterval);
+function startPreGameCountdown() {
+  preGameCountdown = 15;
+  snakeAnimX = - (5 * gridSize);
+  // Каждую секунду уменьшаем время отсчёта
+  const preGameInterval = setInterval(() => {
+    preGameCountdown--;
+    if (preGameCountdown <= 0) {
+      clearInterval(preGameInterval);
+      cancelAnimationFrame(preGameAnimFrame);
       launchGame();
     }
   }, 1000);
-  previewInterval = setInterval(() => {
-    updatePreviewSnake();
-  }, 300);
+  updatePreGameScreen();
 }
 
-/* ======================================
-   6. ОБРАТНЫЙ ОТСЧЁТ И СТАРТ ИГРЫ (для основной игры, вызывается после превью)
-====================================== */
-// После завершения 15-секундного отсчёта превью вызывается launchGame()
-
-function launchGame() {
-  document.getElementById('topBar').style.display = 'none';
-  isGameRunning = true;
-  isGameOver = false;
-
-  gameStateRef.child('players').child(playerId).once('value').then((snapshot) => {
-    const data = snapshot.val();
-    if (data && data.snake) {
-      localSnake = data.snake;
+function updatePreGameScreen() {
+  // Отрисовка фона отсчёта
+  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+  specialCtx.fillStyle = '#1f1c2c';
+  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+  
+  // Отрисовка числа обратного отсчёта по центру
+  specialCtx.fillStyle = '#00FF00';
+  specialCtx.font = '60px "Press Start 2P", sans-serif';
+  specialCtx.textAlign = 'center';
+  specialCtx.fillText(preGameCountdown.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+  
+  // Отрисовка надписи "Your snake is" в нижней части экрана
+  specialCtx.fillStyle = '#FF00FF';
+  specialCtx.font = '20px "Press Start 2P", sans-serif';
+  specialCtx.fillText("Your snake is", specialGameCanvas.width / 2, specialGameCanvas.height - 100);
+  
+  // Отрисовка анимированной змейки (5 клеток)
+  const snakeLength = 5 * gridSize;
+  const snakeY = specialGameCanvas.height - 70;
+  for (let i = 0; i < 5; i++) {
+    let cellX = snakeAnimX + i * gridSize;
+    // Если клетка выходит за правый край, оборачиваем
+    if (cellX > specialGameCanvas.width) {
+      cellX = cellX - specialGameCanvas.width - snakeLength;
     }
-    localDirection = (data && data.direction) ? data.direction : 'right';
-    score = (data && data.score) ? data.score : 0;
-    
-    previousSnake = localSnake.map(seg => ({...seg}));
-    lastLogicUpdateTime = performance.now();
-
-    gameStateRef.child('apple').once('value').then((appleSnap) => {
-      if (!appleSnap.exists()) {
-        spawnApple();
-      }
-    });
-
-    addSwipeListeners();
-    startLogicLoop();
-    startTimer();
-    requestAnimationFrame(renderLoop);
-  });
+    specialCtx.fillStyle = snakeColors[playerId] || '#800080';
+    specialCtx.fillRect(cellX, snakeY, gridSize, gridSize);
+    specialCtx.strokeStyle = '#000';
+    specialCtx.lineWidth = 2;
+    specialCtx.strokeRect(cellX, snakeY, gridSize, gridSize);
+  }
+  
+  // Обновление позиции змейки для плавной анимации
+  snakeAnimX += 2; // скорость анимации (настраиваемая)
+  const totalWidth = specialGameCanvas.width + snakeLength;
+  if (snakeAnimX > totalWidth) {
+    snakeAnimX = -snakeLength;
+  }
+  
+  preGameAnimFrame = requestAnimationFrame(updatePreGameScreen);
 }
 
 /* ======================================
-   7. ЛОГИКА ИГРЫ И РЕНДЕР
+   6. ЛОГИКА ИГРЫ И РЕНДЕР
 ====================================== */
 function startLogicLoop() {
   logicTimer = setInterval(gameLogicUpdate, LOGIC_INTERVAL);
@@ -998,7 +908,7 @@ function renderLoop() {
 }
 
 /* ======================================
-   8. ДВИЖЕНИЕ И СТОЛКНОВЕНИЯ (для основной игры)
+   7. ДВИЖЕНИЕ И СТОЛКНОВЕНИЯ
 ====================================== */
 function moveLocalSnake() {
   const head = { ...localSnake[0] };
@@ -1021,7 +931,7 @@ function checkSelfCollision() {
 }
 
 /* ======================================
-   9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE (для основной игры)
+   8. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
 ====================================== */
 function updatePlayerState(ateApple) {
   if (ateApple) {
@@ -1045,7 +955,7 @@ function spawnApple() {
 }
 
 /* ======================================
-   10. КОНЕЦ ИГРЫ
+   9. КОНЕЦ ИГРЫ
 ====================================== */
 function setGameOver() {
   isGameOver = true;
@@ -1075,7 +985,7 @@ function endGame() {
 }
 
 /* ======================================
-   11. ТАЙМЕР (1 минута)
+   10. ТАЙМЕР (1 минута)
 ====================================== */
 function startTimer() {
   timerCurrent = timerTotal;
@@ -1093,7 +1003,7 @@ function startTimer() {
 }
 
 /* ======================================
-   12. РЕНДЕР ИГРЫ (с интерполяцией, для основной игры)
+   11. РЕНДЕР ИГРЫ (с интерполяцией)
 ====================================== */
 function renderGame() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1185,7 +1095,7 @@ function drawMatrixGrid() {
 }
 
 /* ======================================
-   13. ЭКРАНЫ: "SEARCHING / WAITING..."
+   12. ЭКРАНЫ: "SEARCHING / WAITING..."
 ====================================== */
 function drawSearchScreen() {
   specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1221,8 +1131,20 @@ function drawOpponentFoundScreen() {
   specialCtx.fillText('Opponent found!', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
 }
 
+function drawCountdownScreen(value) {
+  // Эта функция не используется после перехода на предигровой отсчёт.
+  specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+  specialCtx.fillStyle = '#1f1c2c';
+  specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+
+  specialCtx.fillStyle = '#00FF00';
+  specialCtx.font = '60px "Press Start 2P", sans-serif';
+  specialCtx.textAlign = 'center';
+  specialCtx.fillText(value.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+}
+
 /* ======================================
-   14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
+   13. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
 ====================================== */
 function addSwipeListeners() {
   function onKeyDown(e) {
@@ -1272,7 +1194,6 @@ function addSwipeListeners() {
       let dx = touch.clientX - joystickCenter.x;
       let dy = touch.clientY - joystickCenter.y;
       let distance = Math.sqrt(dx * dx + dy * dy);
-      // Минимальный порог
       if (distance < 1) {
         return;
       }
@@ -1283,10 +1204,8 @@ function addSwipeListeners() {
       }
       joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
       
-      // Вычисляем угол в градусах
       let angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
       if (angleDeg < 0) angleDeg += 360;
-      // Определяем направление по углу
       if (angleDeg >= 45 && angleDeg < 135) {
          if (localDirection !== 'up') localDirection = 'down';
       } else if (angleDeg >= 135 && angleDeg < 225) {
@@ -1328,7 +1247,7 @@ function removeSwipeListeners() {
 }
 
 /* ======================================
-   15. КОПИРОВАНИЕ ССЫЛКИ
+   14. КОПИРОВАНИЕ ССЫЛКИ
 ====================================== */
 function copyInviteLink() {
   if (!inviteLink) return;
@@ -1338,7 +1257,7 @@ function copyInviteLink() {
 }
 
 /* ======================================
-   16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+   15. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
 ====================================== */
 function showEndGameModal(title, message) {
   const modal = document.getElementById('endgameBackdrop');
@@ -1350,7 +1269,7 @@ function showEndGameModal(title, message) {
 }
 
 /* ======================================
-   17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+   16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
 ====================================== */
 function setupControlButtons() {
   const buttons = document.querySelectorAll('.control-button');
@@ -1369,7 +1288,7 @@ function setupControlButtons() {
 }
 
 /* ======================================
-   18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+   17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
 ====================================== */
 function cleanupRoom() {
   if (roomId) {
@@ -1390,7 +1309,7 @@ window.addEventListener('beforeunload', function() {
 });
 
 /* ======================================
-   19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+   18. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
 ====================================== */
 function finishGame() {
   document.getElementById('endgameBackdrop').classList.remove('active');
@@ -1401,7 +1320,7 @@ function returnToMain() {
 }
 
 /* ======================================
-   20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+   19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
    (Скрытие/отображение topBar)
 ====================================== */
 document.getElementById('createRoomBtn').addEventListener('click', function(){
@@ -1445,7 +1364,7 @@ document.getElementById('cancelSearchRoomBtn').addEventListener('click', functio
 });
 
 /* ======================================
-   21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+   20. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
 ====================================== */
 window.addEventListener('load', () => {
   const firebaseConfig = {
@@ -1528,7 +1447,7 @@ function changeDirection(newDir) {
 }
 
 /* ======================================
-   22. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА
+   21. ФУНКЦИИ ДЛЯ СМЕНЫ ЯЗЫКА
 ====================================== */
 let currentLanguage = "en";
 const languageStrings = {
@@ -1588,4 +1507,3 @@ function updateCoinDisplay(coins) {
   </script>
 </body>
 </html>
-
