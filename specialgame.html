@@ -67,6 +67,25 @@
       border: none;
       border-radius: 8px;
     }
+    /* Кнопка для копирования ссылки */
+    #copyButton {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      padding: 8px 16px;
+      background: #111;
+      color: #ff007f;
+      border: 2px solid #ff007f;
+      border-radius: 4px;
+      cursor: pointer;
+      display: none;
+      transition: transform 0.1s ease;
+    }
+    #copyButton:hover {
+      transform: scale(1.05);
+    }
     /* Модальные окна */
     .modal-backdrop, .endgame-backdrop {
       position: fixed;
@@ -302,8 +321,8 @@
     #searchBackBtn:hover {
       transform: scale(1.05);
     }
-    /* Адаптивные стили для мобильных устройств в вертикальной ориентации */
-    @media (max-width: 480px), (orientation: portrait) {
+    /* Адаптивные стили */
+    @media (max-width: 480px) {
       .modal, .create-room-modal, .search-room-modal {
         width: 95%;
         padding: 15px;
@@ -401,6 +420,9 @@
     <div id="joystick-stick"></div>
   </div>
 
+  <!-- Кнопка для копирования ссылки -->
+  <button id="copyButton" onclick="copyInviteLink()">Copy Invite Link</button>
+
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
@@ -422,11 +444,14 @@
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Код с доработками экрана ожидания:
-       • Текст «Searching for opponent...» перемещён ниже и мигает, имитируя загрузку.
-       • Над текстом по центру выводится горизонтальная GIF-анимация.
-       • Кнопка копирования инвайт-ссылки удалена (и её ссылки из кода убраны).
-       • Код адаптирован для корректного отображения на мобильных устройствах в вертикальной ориентации.
+     Special Snake PvP – Код с доработками модальных окон:
+       • Окно создания комнаты:
+         - Динамический вывод выбранной ставки с анимацией.
+         - Поясняющий текст и inline-валидация (вывод ошибки, если недостаточно монет).
+         - Адаптивный дизайн для мобильных устройств.
+       • Окно поиска комнат:
+         - Полноэкранное окно с таблицей, кнопкой обновления и понятной кнопкой входа.
+         - Если комнат нет, выводится рекомендация «Check back later».
     ============================================================
     */
 
@@ -511,7 +536,7 @@
     // Логический интервал
     const LOGIC_INTERVAL = 150;
 
-    // Пригласительная ссылка (больше не используется для копирования)
+    // Пригласительная ссылка
     let inviteLink = "";
 
     // Флаг отключения противника
@@ -625,9 +650,11 @@
     }
 
     function createRoom(bet) {
+      // Если ставка > 0, сначала пробуем списать монеты
       if (bet > 0) {
         deductUserCoins(bet).then(function(result) {
           if (!result.committed) {
+            // Если недостаточно монет, вызываем встроенное сообщение об ошибке
             showBetError();
             return;
           } else {
@@ -663,7 +690,8 @@
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
       queueRef.child(roomId).onDisconnect().remove();
-      // inviteLink больше не используется для копирования
+      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
+      document.getElementById('copyButton').style.display = 'block';
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -754,6 +782,8 @@
       firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' })
         .catch(err => console.error('Error updating room status:', err));
       setupGameReferences();
+      inviteLink = "https://mygame.example.com/invite?room=" + roomId;
+      document.getElementById('copyButton').style.display = 'block';
       document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
       waitForOpponent();
@@ -786,6 +816,7 @@
             console.error("Error reading opponent data: ", e);
           }
           drawOpponentFoundScreen();
+          document.getElementById('copyButton').style.display = 'none';
           document.getElementById('topBar').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
             startPreGameCountdown();
@@ -862,7 +893,7 @@
        5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
     ====================================== */
     function startPreGameCountdown() {
-      const totalTime = 15;
+      const totalTime = 15; // 15 секунд
       const startTime = performance.now();
       function countdownLoop() {
         const now = performance.now();
@@ -912,6 +943,7 @@
     ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
+      // Граница canvas уже убрана в CSS
       isGameRunning = true;
       isGameOver = false;
       gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
@@ -1158,37 +1190,14 @@
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      // Заполняем фон
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
-      
-      // Рисуем GIF-анимацию над текстом
-      let loadImg = new Image();
-      loadImg.src = "https://raw.githubusercontent.com/qnexst/404token/main/load.gif";
-      // Задаём фиксированный размер для анимации (горизонтальный GIF)
-      const imgWidth = 150;
-      const imgHeight = 50;
-      const imgX = (specialGameCanvas.width - imgWidth) / 2;
-      const imgY = (specialGameCanvas.height / 2) - imgHeight - 10;
-      if (loadImg.complete) {
-        specialCtx.drawImage(loadImg, imgX, imgY, imgWidth, imgHeight);
-      } else {
-        loadImg.onload = function() {
-          specialCtx.drawImage(loadImg, imgX, imgY, imgWidth, imgHeight);
-        }
-      }
-      
-      // Рисуем мигающий текст ниже
-      const now = performance.now();
-      // Вычисляем альфа-канал для мигания (период 1 секунда)
-      let alpha = (Math.sin(now / 500) + 1) / 2;
-      specialCtx.globalAlpha = alpha;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      // Текст смещён ниже центра
-      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 50);
-      specialCtx.globalAlpha = 1;
+      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.font = '10px "Press Start 2P", sans-serif';
+      specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
     }
 
     function drawWaitingScreen() {
@@ -1302,6 +1311,16 @@
     }
 
     /* ======================================
+       15. КОПИРОВАНИЕ ССЫЛКИ
+    ====================================== */
+    function copyInviteLink() {
+      if (!inviteLink) return;
+      navigator.clipboard.writeText(inviteLink)
+        .then(() => { console.log("Invite link copied:", inviteLink); })
+        .catch(err => console.error("Error copying invite link:", err));
+    }
+
+    /* ======================================
        16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
     ====================================== */
     function showEndGameModal(title, message) {
@@ -1403,10 +1422,12 @@
       createRoom(betValue);
     });
 
-    // При изменении слайдера обновляем значение
+    // При изменении слайдера обновляем значение и подсказку
     document.getElementById('betSlider').addEventListener('input', function() {
       const value = document.getElementById('betSlider').value;
       document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
+      // Можно добавить анимацию изменения значения через CSS (у элемента betValueDisplay уже есть transition)
+      // Обновляем также текст подсказки, если нужно:
       document.getElementById('createRoomHint').textContent = languageStrings[currentLanguage].createRoomHint;
     });
 
@@ -1425,6 +1446,7 @@
        21. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
     ====================================== */
     document.getElementById('searchBackBtn').addEventListener('click', function() {
+      // При нажатии "Back" удаляем комнату и возвращаем пользователя на главный экран.
       cleanupRoom();
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
@@ -1477,7 +1499,7 @@
         userRef.on('value', snapshot => {
           const data = snapshot.val() || {};
           const coins = data.coins || 0;
-          currentCoins = coins;
+          currentCoins = coins; // сохраняем текущий баланс
           updateCoinDisplay(coins);
         });
       }
@@ -1549,6 +1571,7 @@
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
       
+      // Обновление текста в модальных окнах
       if(document.getElementById('createRoomTitle'))
         document.getElementById('createRoomTitle').textContent = languageStrings[currentLanguage].createRoomTitle;
       if(document.getElementById('createRoomHint'))
@@ -1585,4 +1608,3 @@
   </script>
 </body>
 </html>
-
