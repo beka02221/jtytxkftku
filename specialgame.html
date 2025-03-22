@@ -63,6 +63,8 @@
       margin: 20px auto;
       background: url('1.jpg') no-repeat center center;
       background-size: cover;
+      /* Пунктирная рамка – будет удалена при старте игры */
+      border: 4px dashed #007fff;
       border-radius: 8px;
     }
     /* Кнопка для копирования ссылки */
@@ -257,11 +259,12 @@
   <!-- Модальное окно создания комнаты -->
   <div id="createRoomModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="createRoomModalTitle">Create Room</h2>
-      <p id="createRoomModalBetText">Select bet (in millions): <span id="betValueDisplay">1m</span></p>
+      <h2>Создать комнату</h2>
+      <p>Выберите ставку (в миллионах): <span id="betValueDisplay">1 млн</span></p>
+      <input type="range" id="betSlider" min="1" max="100" value="1" step="1">
       <div style="margin-top: 20px;">
-        <button id="confirmCreateRoomBtn">Create</button>
-        <button id="cancelCreateRoomBtn">Cancel</button>
+        <button id="confirmCreateRoomBtn">Создать</button>
+        <button id="cancelCreateRoomBtn">Отмена</button>
       </div>
     </div>
   </div>
@@ -269,11 +272,11 @@
   <!-- Модальное окно поиска комнат -->
   <div id="searchRoomModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="searchRoomModalTitle">Search Rooms</h2>
+      <h2>Поиск комнат</h2>
       <div id="roomList" style="max-height: 60vh; overflow-y: auto; margin: 20px 0;">
         <!-- Здесь будут карточки с комнатами -->
       </div>
-      <button id="cancelSearchRoomBtn">Back</button>
+      <button id="cancelSearchRoomBtn">Назад</button>
     </div>
   </div>
 
@@ -300,23 +303,24 @@
   <!-- Модальное окно недостатка монет -->
   <div id="insufficientModal" class="modal-backdrop">
     <div class="modal">
-      <h2 id="insufficientModalTitle">Insufficient Coins</h2>
-      <p id="insufficientModalText">You do not have enough coins to join the game.</p>
-      <button id="insufficientModalButton" onclick="window.location.href='buy.html'">Top Up</button>
+      <h2>Недостаточно монет</h2>
+      <p>У вас недостаточно монет для участия в игре.</p>
+      <button onclick="window.location.href='buy.html'">Пополнить</button>
     </div>
   </div>
 
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Исправленный код с изменениями:
-       • Во время игры счёт выводится точно (без сокращений).
-       • Убраны пунктирные границы (в CSS и из кода старта игры).
-       • Тексты по умолчанию на английском; переключение языка обновляет все надписи.
+     Special Snake PvP – Полностью исправленный код с изменениями:
+       • Убраны превью игры и кнопка раскрытия инфы.
+       • Кнопка монет заменена на формат с иконкой и отображением в миллионах.
+       • Счет (а также монеты) отображаются в сокращённом виде (например, 3m, 30m, 1b).
+       • Убраны пунктирные рамки canvas при старте игры.
     ============================================================
     */
 
-    // Функция форматирования чисел для меню монет (оставляем для updateCoinDisplay)
+    // Функция форматирования чисел в миллионы/миллиарды
     function formatNumber(num) {
       if(num >= 1e9) {
         return (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'b';
@@ -569,7 +573,7 @@
               usernameP.style.margin = '0';
               usernameP.style.color = '#FF00FF';
               const betP = document.createElement('p');
-              betP.textContent = room.bet + " m";
+              betP.textContent = room.bet + " млн";
               betP.style.margin = '0';
               betP.style.color = '#FF00FF';
               infoDiv.appendChild(usernameP);
@@ -577,7 +581,7 @@
               detailsDiv.appendChild(infoDiv);
               card.appendChild(detailsDiv);
               const joinBtn = document.createElement('button');
-              joinBtn.textContent = languageStrings[currentLanguage].joinRoom;
+              joinBtn.textContent = 'Присоединиться';
               joinBtn.style.fontFamily = 'Press Start 2P, sans-serif';
               joinBtn.style.fontSize = '12px';
               joinBtn.style.padding = '5px 10px';
@@ -594,7 +598,7 @@
               roomListDiv.appendChild(card);
             });
           } else {
-            roomListDiv.innerHTML = '<p style="color: #FF00FF;">No available rooms</p>';
+            roomListDiv.innerHTML = '<p style="color: #FF00FF;">Нет доступных комнат</p>';
           }
         })
         .catch(err => console.error('Error searching rooms:', err));
@@ -767,7 +771,7 @@
       specialCtx.fillText(displayTime.toString(), specialGameCanvas.width / 2, specialGameCanvas.height / 3);
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '20px "Press Start 2P", sans-serif';
-      specialCtx.fillText(languageStrings[currentLanguage].yourSnakeIs, specialGameCanvas.width / 2, specialGameCanvas.height / 3 + 60);
+      specialCtx.fillText("Your snake is", specialGameCanvas.width / 2, specialGameCanvas.height / 3 + 60);
       const segmentSize = 20;
       const numSegments = 3;
       const snakeLength = numSegments * segmentSize;
@@ -790,7 +794,7 @@
     ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
-      // Убираем рамку (если вдруг она установлена)
+      // Убираем пунктирную рамку canvas при старте игры
       specialGameCanvas.style.border = 'none';
       isGameRunning = true;
       isGameOver = false;
@@ -916,17 +920,17 @@
       stopLogicLoop();
       let resultTitle = '';
       if (opponentDisconnected) {
-        resultTitle = currentLanguage === 'ru' ? languageStrings[currentLanguage].opponentDisconnected : languageStrings[currentLanguage].opponentDisconnected;
+        resultTitle = (currentLanguage === 'ru') ? 'Противник отключился. ты выиграл' : 'Opponent Disconnected. You Win!';
       } else {
         if (score > opponentScore) {
-          resultTitle = currentLanguage === 'ru' ? languageStrings[currentLanguage].win : languageStrings[currentLanguage].win;
+          resultTitle = (currentLanguage === 'ru') ? 'ты выиграл' : 'You Win!';
         } else if (score < opponentScore) {
-          resultTitle = currentLanguage === 'ru' ? languageStrings[currentLanguage].lose : languageStrings[currentLanguage].lose;
+          resultTitle = (currentLanguage === 'ru') ? 'ты проиграл' : 'You Lose...';
         } else {
-          resultTitle = currentLanguage === 'ru' ? languageStrings[currentLanguage].draw : languageStrings[currentLanguage].draw;
+          resultTitle = (currentLanguage === 'ru') ? 'Ничья' : 'Draw';
         }
       }
-      const msg = `Your score: ${score} | Opponent: ${opponentScore}`;
+      const msg = `Your score: ${formatNumber(score)} | Opponent: ${formatNumber(opponentScore)}`;
       showEndGameModal(resultTitle, msg);
       cleanupRoom();
     }
@@ -1003,9 +1007,8 @@
       
       specialCtx.fillStyle = '#00FF00';
       specialCtx.font = '12px "Press Start 2P", sans-serif';
-      // Выводим точное значение счёта без сокращений
-      specialCtx.fillText(`Score: ${score}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
-      specialCtx.fillText(`Opp: ${opponentScore}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
+      specialCtx.fillText(`Score: ${formatNumber(score)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 30);
+      specialCtx.fillText(`Opp: ${formatNumber(opponentScore)}`, GAME_AREA_X + GAME_AREA_WIDTH - 140, GAME_AREA_Y - 15);
       const barWidth = (timerCurrent / timerTotal) * GAME_AREA_WIDTH;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.fillRect(GAME_AREA_X, GAME_AREA_Y - 5, barWidth, 4);
@@ -1044,7 +1047,7 @@
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText(languageStrings[currentLanguage].searchingForOpponent, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
       specialCtx.font = '10px "Press Start 2P", sans-serif';
       specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
     }
@@ -1062,7 +1065,7 @@
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '16px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText(languageStrings[currentLanguage].opponentFound, specialGameCanvas.width / 2, specialGameCanvas.height / 2);
+      specialCtx.fillText('Opponent found!', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
     }
 
     /* ======================================
@@ -1268,7 +1271,7 @@
 
     document.getElementById('betSlider').addEventListener('input', function() {
       const value = document.getElementById('betSlider').value;
-      document.getElementById('betValueDisplay').textContent = value + " m";
+      document.getElementById('betValueDisplay').textContent = value + " млн";
     });
 
     document.getElementById('cancelSearchRoomBtn').addEventListener('click', function() {
@@ -1357,20 +1360,7 @@
         win: "You Win!",
         lose: "You Lose...",
         draw: "Draw",
-        opponentDisconnected: "Opponent Disconnected. You Win!",
-        createRoomModalTitle: "Create Room",
-        createRoomModalBetText: "Select bet (in millions):",
-        confirmCreateRoom: "Create",
-        cancelCreateRoom: "Cancel",
-        searchRoomModalTitle: "Search Rooms",
-        cancelSearchRoom: "Back",
-        insufficientModalTitle: "Insufficient Coins",
-        insufficientModalText: "You do not have enough coins to join the game.",
-        topUp: "Top Up",
-        joinRoom: "Join",
-        yourSnakeIs: "Your snake is",
-        searchingForOpponent: "Searching for opponent...",
-        opponentFound: "Opponent found!"
+        opponentDisconnected: "Opponent Disconnected. You Win!"
       },
       ru: {
         landingTitle: "Спешл Снейк PvP",
@@ -1383,20 +1373,7 @@
         win: "ты выиграл",
         lose: "ты проиграл",
         draw: "Ничья",
-        opponentDisconnected: "Противник отключился. ты выиграл",
-        createRoomModalTitle: "Создать комнату",
-        createRoomModalBetText: "Выберите ставку (в миллионах):",
-        confirmCreateRoom: "Создать",
-        cancelCreateRoom: "Отмена",
-        searchRoomModalTitle: "Поиск комнат",
-        cancelSearchRoom: "Назад",
-        insufficientModalTitle: "Недостаточно монет",
-        insufficientModalText: "У вас недостаточно монет для участия в игре.",
-        topUp: "Пополнить",
-        joinRoom: "Присоединиться",
-        yourSnakeIs: "Твоя змея",
-        searchingForOpponent: "Поиск противника...",
-        opponentFound: "Противник найден!"
+        opponentDisconnected: "Противник отключился. ты выиграл"
       }
     };
 
@@ -1408,36 +1385,6 @@
       document.getElementById('createRoomBtn').textContent = languageStrings[currentLanguage].createRoomBtn;
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
-
-      const createRoomModalTitle = document.getElementById('createRoomModalTitle');
-      if (createRoomModalTitle) {
-        createRoomModalTitle.textContent = languageStrings[currentLanguage].createRoomModalTitle;
-      }
-      const createRoomModalBetText = document.getElementById('createRoomModalBetText');
-      if (createRoomModalBetText) {
-        createRoomModalBetText.childNodes[0].textContent = languageStrings[currentLanguage].createRoomModalBetText + " ";
-      }
-      document.getElementById('confirmCreateRoomBtn').textContent = languageStrings[currentLanguage].confirmCreateRoom;
-      document.getElementById('cancelCreateRoomBtn').textContent = languageStrings[currentLanguage].cancelCreateRoom;
-
-      const searchRoomModalTitle = document.getElementById('searchRoomModalTitle');
-      if (searchRoomModalTitle) {
-        searchRoomModalTitle.textContent = languageStrings[currentLanguage].searchRoomModalTitle;
-      }
-      document.getElementById('cancelSearchRoomBtn').textContent = languageStrings[currentLanguage].cancelSearchRoom;
-
-      const insufficientModalTitle = document.getElementById('insufficientModalTitle');
-      if (insufficientModalTitle) {
-        insufficientModalTitle.textContent = languageStrings[currentLanguage].insufficientModalTitle;
-      }
-      const insufficientModalText = document.getElementById('insufficientModalText');
-      if (insufficientModalText) {
-        insufficientModalText.textContent = languageStrings[currentLanguage].insufficientModalText;
-      }
-      const insufficientModalButton = document.getElementById('insufficientModalButton');
-      if (insufficientModalButton) {
-        insufficientModalButton.textContent = languageStrings[currentLanguage].topUp;
-      }
     }
 
     document.getElementById('langToggleBtn').addEventListener('click', function() {
