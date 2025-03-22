@@ -67,25 +67,6 @@
       border: none;
       border-radius: 8px;
     }
-    /* Кнопка для копирования ссылки */
-    #copyButton {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 16px;
-      padding: 8px 16px;
-      background: #111;
-      color: #ff007f;
-      border: 2px solid #ff007f;
-      border-radius: 4px;
-      cursor: pointer;
-      display: none;
-      transition: transform 0.1s ease;
-    }
-    #copyButton:hover {
-      transform: scale(1.05);
-    }
     /* Модальные окна */
     .modal-backdrop, .endgame-backdrop {
       position: fixed;
@@ -420,9 +401,6 @@
     <div id="joystick-stick"></div>
   </div>
 
-  <!-- Кнопка для копирования ссылки -->
-
-
   <!-- Модальное окно итогов -->
   <div id="endgameBackdrop" class="endgame-backdrop">
     <div class="endgame-modal">
@@ -444,14 +422,10 @@
   <script>
     /* 
     ============================================================
-     Special Snake PvP – Код с доработками модальных окон:
-       • Окно создания комнаты:
-         - Динамический вывод выбранной ставки с анимацией.
-         - Поясняющий текст и inline-валидация (вывод ошибки, если недостаточно монет).
-         - Адаптивный дизайн для мобильных устройств.
-       • Окно поиска комнат:
-         - Полноэкранное окно с таблицей, кнопкой обновления и понятной кнопкой входа.
-         - Если комнат нет, выводится рекомендация «Check back later».
+     Special Snake PvP – Код с улучшенной областью ожидания противника:
+       • В режиме "Searching for opponent" текст теперь мигает, располагается внизу по центру.
+       • Под текстом отображается горизонтальный GIF (замените YOUR_GIF_LINK_HERE на нужную ссылку).
+       • Кнопка копирования инвайт-ссылки удалена.
     ============================================================
     */
 
@@ -654,7 +628,6 @@
       if (bet > 0) {
         deductUserCoins(bet).then(function(result) {
           if (!result.committed) {
-            // Если недостаточно монет, вызываем встроенное сообщение об ошибке
             showBetError();
             return;
           } else {
@@ -691,7 +664,7 @@
       }).catch(err => console.error('Error creating room:', err));
       queueRef.child(roomId).onDisconnect().remove();
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-      document.getElementById('copyButton').style.display = 'block';
+      // Убрана отсылка к кнопке копирования инвайт-ссылки
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -783,7 +756,7 @@
         .catch(err => console.error('Error updating room status:', err));
       setupGameReferences();
       inviteLink = "https://mygame.example.com/invite?room=" + roomId;
-      document.getElementById('copyButton').style.display = 'block';
+      // Убрана отсылка к кнопке копирования инвайт-ссылки
       document.getElementById('searchRoomModal').style.display = 'none';
       drawWaitingScreen();
       waitForOpponent();
@@ -816,7 +789,7 @@
             console.error("Error reading opponent data: ", e);
           }
           drawOpponentFoundScreen();
-          document.getElementById('copyButton').style.display = 'none';
+          // Скрываем верхнюю панель при старте игры
           document.getElementById('topBar').style.display = 'none';
           showOpponentNameTimeout = setTimeout(() => {
             startPreGameCountdown();
@@ -943,7 +916,6 @@
     ====================================== */
     function launchGame() {
       document.getElementById('topBar').style.display = 'none';
-      // Граница canvas уже убрана в CSS
       isGameRunning = true;
       isGameOver = false;
       gameStateRef.child('players').child(playerId).once('value').then(snapshot => {
@@ -1186,18 +1158,41 @@
     }
 
     /* ======================================
-       13. ЭКРАНЫ "SEARCHING / WAITING..."
+       13. ЭКРАН "SEARCHING FOR OPPONENT..."
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      // Заливаем фон
       specialCtx.fillStyle = '#00103c';
       specialCtx.fillRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
+      
+      // Мигающий текст "Searching for opponent..." внизу по центру
+      const currentTime = performance.now();
+      const blink = Math.floor(currentTime / 500) % 2 === 0 ? 1 : 0;
+      specialCtx.save();
+      specialCtx.globalAlpha = blink;
       specialCtx.fillStyle = '#FF00FF';
       specialCtx.font = '15px "Press Start 2P", sans-serif';
       specialCtx.textAlign = 'center';
-      specialCtx.fillText('Searching for opponent...', specialGameCanvas.width / 2, specialGameCanvas.height / 2);
-      specialCtx.font = '10px "Press Start 2P", sans-serif';
-      specialCtx.fillText(' ', specialGameCanvas.width / 2, specialGameCanvas.height / 2 + 40);
+      const textX = specialGameCanvas.width / 2;
+      const textY = specialGameCanvas.height - 60;
+      specialCtx.fillText('Searching for opponent...', textX, textY);
+      specialCtx.restore();
+      
+      // Отрисовка горизонтального GIF внизу по центру (замените ссылку ниже на нужную)
+      const gifImg = new Image();
+      gifImg.src = 'YOUR_GIF_LINK_HERE';
+      const gifWidth = Math.min(specialGameCanvas.width * 0.8, 300);
+      const gifHeight = gifWidth * 0.3;
+      const gifX = (specialGameCanvas.width - gifWidth) / 2;
+      const gifY = specialGameCanvas.height - 60 - gifHeight - 10;
+      if (gifImg.complete) {
+        specialCtx.drawImage(gifImg, gifX, gifY, gifWidth, gifHeight);
+      } else {
+        gifImg.onload = function() {
+          specialCtx.drawImage(gifImg, gifX, gifY, gifWidth, gifHeight);
+        }
+      }
     }
 
     function drawWaitingScreen() {
@@ -1311,17 +1306,7 @@
     }
 
     /* ======================================
-       15. КОПИРОВАНИЕ ССЫЛКИ
-    ====================================== */
-    function copyInviteLink() {
-      if (!inviteLink) return;
-      navigator.clipboard.writeText(inviteLink)
-        .then(() => { console.log("Invite link copied:", inviteLink); })
-        .catch(err => console.error("Error copying invite link:", err));
-    }
-
-    /* ======================================
-       16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+       15. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -1334,7 +1319,7 @@
     }
 
     /* ======================================
-       17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+       16. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
     ====================================== */
     function setupControlButtons() {
       const buttons = document.querySelectorAll('.control-button');
@@ -1353,7 +1338,7 @@
     }
 
     /* ======================================
-       18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+       17. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
     ====================================== */
     function cleanupRoom() {
       if (roomId) {
@@ -1373,7 +1358,7 @@
     });
 
     /* ======================================
-       19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+       18. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
     ====================================== */
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
@@ -1385,7 +1370,7 @@
     }
 
     /* ======================================
-       20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+       19. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
     ====================================== */
     document.getElementById('createRoomBtn').addEventListener('click', function() {
       document.getElementById('landingScreen').style.display = 'none';
@@ -1422,12 +1407,9 @@
       createRoom(betValue);
     });
 
-    // При изменении слайдера обновляем значение и подсказку
     document.getElementById('betSlider').addEventListener('input', function() {
       const value = document.getElementById('betSlider').value;
       document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
-      // Можно добавить анимацию изменения значения через CSS (у элемента betValueDisplay уже есть transition)
-      // Обновляем также текст подсказки, если нужно:
       document.getElementById('createRoomHint').textContent = languageStrings[currentLanguage].createRoomHint;
     });
 
@@ -1437,16 +1419,14 @@
       document.getElementById('topBar').style.display = 'flex';
     });
 
-    // Обработчик кнопки обновления списка комнат
     document.getElementById('refreshRoomsBtn').addEventListener('click', function() {
       searchRooms();
     });
 
     /* ======================================
-       21. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
+       20. ОБРАБОТКА КНОПКИ BACK (в режиме ожидания)
     ====================================== */
     document.getElementById('searchBackBtn').addEventListener('click', function() {
-      // При нажатии "Back" удаляем комнату и возвращаем пользователя на главный экран.
       cleanupRoom();
       document.getElementById('landingScreen').style.display = 'flex';
       document.getElementById('topBar').style.display = 'flex';
@@ -1454,7 +1434,7 @@
     });
 
     /* ======================================
-       22. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+       21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     ====================================== */
     window.addEventListener('load', () => {
       const firebaseConfig = {
@@ -1499,7 +1479,7 @@
         userRef.on('value', snapshot => {
           const data = snapshot.val() || {};
           const coins = data.coins || 0;
-          currentCoins = coins; // сохраняем текущий баланс
+          currentCoins = coins;
           updateCoinDisplay(coins);
         });
       }
@@ -1508,7 +1488,7 @@
     });
 
     /* ======================================
-       23. ЛОКАЛИЗАЦИЯ
+       22. ЛОКАЛИЗАЦИЯ
     ====================================== */
     let currentLanguage = "en";
     const languageStrings = {
@@ -1571,7 +1551,6 @@
       document.getElementById('searchRoomBtn').textContent = languageStrings[currentLanguage].searchRoomBtn;
       document.getElementById('playFreeBtn').textContent = languageStrings[currentLanguage].playFreeBtn;
       
-      // Обновление текста в модальных окнах
       if(document.getElementById('createRoomTitle'))
         document.getElementById('createRoomTitle').textContent = languageStrings[currentLanguage].createRoomTitle;
       if(document.getElementById('createRoomHint'))
