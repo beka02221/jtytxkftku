@@ -422,16 +422,13 @@
     /* 
     ============================================================
      Special Snake PvP – Основной код игры с доработками:
-       • Удалена кнопка копирования ссылки.
-       • Логика ставок изменена:
-         - Создатель комнаты (player1): коины списываются только после подключения оппонента.
-         - Игрок, который подключается позже (player2): списание происходит сразу.
-       • При создании комнаты ставка сохраняется как полное значение (в монетах, умноженное на 1e6).
-       • Распределение выигрыша:
-            - Если игрок побеждает (score больше), то он получает весь банк (ставку свою и противника).
-            - Если ничья – возвращается исходная ставка.
+       • Если игрок выходит (обновляет страницу или закрывает окно) во время игры – его счёт устанавливается в -1, что означает автоматический проигрыш.
+       • Кнопка "Join" в списке комнат отключается после первого нажатия.
+       • Логика ставок:
+            - Если игрок выигрывает (score больше), он получает весь банк (2×ставка).
+            - Если ничья – возвращается его исходная ставка.
             - Проигравший не получает ничего.
-       • Итоговое модальное окно теперь показывает, сколько коинов выиграл победитель и сколько проиграл проигравший.
+       • Итоговое модальное окно отображает, сколько коинов выиграл или проиграл игрок.
     ============================================================
     */
 
@@ -512,8 +509,8 @@
 
     // Цвета змейки
     const snakeColors = {
-      player1: '#FFFF00', // желтый
-      player2: '#FF0000'  // красный
+      player1: '#FFFF00',
+      player2: '#FF0000'
     };
 
     // Логический интервал
@@ -613,7 +610,7 @@
         });
     }
 
-    // Функция для списания монет – теперь работает с полным значением
+    // Функция для списания монет – работает с полным значением
     function deductUserCoins(amount) {
       const userRef = firebase.database().ref('users/' + window.currentUser.username);
       return userRef.transaction(function(currentData) {
@@ -633,7 +630,7 @@
       document.getElementById('insufficientModal').style.display = 'flex';
     }
 
-    // Создание комнаты – для создателя списание происходит позже
+    // Создание комнаты – списание для создателя происходит позже
     function createRoom(bet) {
       actuallyCreateRoom(bet);
     }
@@ -647,13 +644,12 @@
       }, 3000);
     }
 
-    // При создании комнаты сохраняем ставку как полное значение (умноженное на 1e6)
+    // При создании комнаты сохраняем ставку (умноженную на 1e6) и задаем currentBet
     function actuallyCreateRoom(bet) {
       const queueRef = firebase.database().ref('snakeQueue');
       roomId = queueRef.push().key;
       playerId = 'player1';
       opponentId = 'player2';
-      // Сохраняем полную ставку и устанавливаем currentBet
       currentBet = bet * 1e6;
       queueRef.child(roomId).set({
         status: 'waiting',
@@ -686,7 +682,6 @@
               tr.appendChild(creatorTd);
 
               const betTd = document.createElement('td');
-              // Делим ставку на 1e6 для отображения в "млн"
               betTd.textContent = (room.bet / 1e6) + languageStrings[currentLanguage].betUnit;
               tr.appendChild(betTd);
 
@@ -702,7 +697,10 @@
               joinBtn.style.borderRadius = '4px';
               joinBtn.style.cursor = 'pointer';
               joinBtn.style.boxShadow = '0 3px #6b6b6b';
+              // Отключаем кнопку после первого нажатия, чтобы избежать багов
               joinBtn.addEventListener('click', function() {
+                if (joinBtn.disabled) return;
+                joinBtn.disabled = true;
                 joinRoom(roomKey);
               });
               actionTd.appendChild(joinBtn);
@@ -728,7 +726,6 @@
       firebase.database().ref('snakeQueue/' + roomKey).once('value').then(snapshot => {
         const room = snapshot.val();
         const bet = room.bet || 0;
-        // Для игрока, присоединяющегося к комнате, устанавливаем currentBet
         currentBet = bet;
         if (bet > 0) {
           deductUserCoins(bet).then(result => {
@@ -765,7 +762,6 @@
     ====================================== */
     function waitForOpponent() {
       drawSearchScreen();
-      // Показываем кнопку Back, чтобы пользователь мог выйти из ожидания
       document.getElementById('searchBackBtn').style.display = 'block';
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       waitingListener = statusRef.on('value', async (snapshot) => {
@@ -773,7 +769,6 @@
         if (currentStatus === 'ready') {
           statusRef.off('value', waitingListener);
           waitingListener = null;
-          // Скрываем кнопку Back, так как противник найден
           document.getElementById('searchBackBtn').style.display = 'none';
           try {
             const oppSnapshot = await firebase.database()
@@ -786,7 +781,6 @@
           } catch (e) {
             console.error("Error reading opponent data: ", e);
           }
-          // Для создателя (player1) списываем коины только после подключения оппонента
           if (playerId === 'player1') {
             firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
               const betValue = snap.val() || 0;
@@ -886,7 +880,7 @@
        5. 15-СЕКУНДНЫЙ ОБРАТНЫЙ ОТСЧЁТ С АНИМАЦИЕЙ ЗМЕЙКИ
     ====================================== */
     function startPreGameCountdown() {
-      const totalTime = 15; // 15 секунд
+      const totalTime = 15;
       const startTime = performance.now();
       function countdownLoop() {
         const now = performance.now();
@@ -1056,10 +1050,10 @@
       endGame();
     }
 
-    // Функция распределения ставок.
-    // Если игрок выигрывает, его баланс увеличивается на 2×currentBet (то есть он получает весь банк),
-    // если ничья – возвращается его ставка,
-    // а при поражении – ставка остается списанной.
+    // Функция распределения ставок:
+    // Если игрок выигрывает – его баланс увеличивается на 2×currentBet,
+    // если ничья – возвращается currentBet,
+    // проигравший не получает ничего.
     function settleBets() {
       if (currentBet > 0) {
         if (score > opponentScore) {
@@ -1084,10 +1078,7 @@
       }
     }
 
-    // В endGame() формируем итоговое сообщение:
-    // Победитель получает весь банк (2×ставка) – сообщение "You won ... coins!"
-    // Проигравший – "You lost ... coins!"
-    // При ничьей – "Your bet has been returned."
+    // В endGame() формируется итоговое сообщение: если игрок выиграл, пишется, что он выиграл 2×ставку, если проиграл – что проиграл свою ставку.
     function endGame() {
       stopLogicLoop();
       settleBets();
@@ -1381,9 +1372,10 @@
       }
     }
 
+    // Если игрок выходит или обновляет страницу во время игры – его счёт обновляется на -1 (автоматический проигрыш)
     window.addEventListener('beforeunload', function() {
-      if (roomId && gameStateRef) {
-        gameStateRef.child('players').child(playerId).remove();
+      if (roomId && gameStateRef && isGameRunning && !isGameOver) {
+        gameStateRef.child('players').child(playerId).update({ score: -1 });
       }
     });
 
@@ -1429,7 +1421,6 @@
 
     document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
       const betValue = parseInt(document.getElementById('betSlider').value);
-      // Проверяем, достаточно ли монет для возможного списания (betValue – в миллионах)
       if (currentCoins < betValue * 1e6) {
         showBetError();
         return;
@@ -1612,3 +1603,4 @@
   </script>
 </body>
 </html>
+
