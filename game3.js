@@ -207,11 +207,9 @@
   }
 
   // Функция для анимации очистки заполненных строк
-  // Выполняется последовательность: fade out → анимация падения → обновление счета
   function clearLinesAnimation(fullRows) {
     return new Promise(resolve => {
       let fadeStart = performance.now();
-      // Функция анимации затухания
       function fadeAnimation() {
         let elapsed = performance.now() - fadeStart;
         let alpha = 1 - Math.min(elapsed / FADE_DURATION, 1);
@@ -219,9 +217,7 @@
         if (elapsed < FADE_DURATION) {
           requestAnimationFrame(fadeAnimation);
         } else {
-          // После fade out сохраняем старое состояние поля
           let oldBoard = board.map(row => row.slice());
-          // Удаляем заполненные строки: сортировка по возрастанию индекса
           fullRows.sort((a, b) => a - b);
           fullRows.forEach(r => {
             board.splice(r, 1);
@@ -235,7 +231,7 @@
             if (elapsedFall < FALL_DURATION) {
               requestAnimationFrame(fallAnimation);
             } else {
-              // Обновляем счет за каждую очищенную строку
+              // Обновляем счет (хранится, но не отображается)
               score += fullRows.length * 30;
               resolve();
             }
@@ -252,15 +248,11 @@
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Индикатор времени (без счётчика)
     const timeLeft = Math.max(GAME_DURATION - (Date.now() - gameStartTime), 0);
     const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
     ctx.fillStyle = "#00FF00";
     ctx.fillRect(0, 0, sliderWidth, 5);
-
-    ctx.fillStyle = "#00FF00";
-    ctx.font = "20px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.fillText("Score: " + score, canvas.width / 2, 30);
 
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     ctx.save();
@@ -269,7 +261,6 @@
       for (let c = 0; c < COLS; c++) {
         const x = offsetX + c * BLOCK_SIZE;
         const y = r * BLOCK_SIZE;
-        // Для строк, подлежащих очистке, применяем эффект fade (красный цвет)
         if (rows.includes(r)) {
           if (board[r][c] !== 0) {
             ctx.fillStyle = `rgba(255,0,0,${alpha})`;
@@ -293,11 +284,10 @@
     ctx.strokeStyle = PIECE_COLOR;
     ctx.strokeRect(offsetX, 0, BOARD_WIDTH, BOARD_HEIGHT);
     ctx.restore();
-    // Рисуем текущую фигуру поверх анимации
     drawPiece(currentPiece);
   }
 
-  // Рисование анимации падения блоков (переход от старого к новому состоянию поля)
+  // Рисование анимации падения блоков
   function drawGame3WithFall(oldBoard, newBoard, fraction, clearedRows) {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -307,15 +297,9 @@
     ctx.fillStyle = "#00FF00";
     ctx.fillRect(0, 0, sliderWidth, 5);
 
-    ctx.fillStyle = "#00FF00";
-    ctx.font = "20px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.fillText("Score: " + score, canvas.width / 2, 30);
-
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     ctx.save();
     ctx.translate(0, TOP_OFFSET);
-    // Сначала рисуем обновлённое (новое) поле как фон
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const x = offsetX + c * BLOCK_SIZE;
@@ -331,11 +315,9 @@
         }
       }
     }
-    // Рисуем анимированное падение блоков из старого поля
     for (let r = 0; r < oldBoard.length; r++) {
       for (let c = 0; c < oldBoard[r].length; c++) {
         if (oldBoard[r][c] !== 0) {
-          // Определяем, на сколько строк должна сдвинуться клетка
           let clearedBelow = clearedRows.filter(row => row > r).length;
           let originalY = r * BLOCK_SIZE;
           let targetY = originalY + clearedBelow * BLOCK_SIZE;
@@ -351,16 +333,14 @@
     ctx.strokeStyle = PIECE_COLOR;
     ctx.strokeRect(offsetX, 0, BOARD_WIDTH, BOARD_HEIGHT);
     ctx.restore();
-    // В процессе анимации текущая фигура не отрисовывается
   }
 
-  // Опускаем фигуру на одну строку с проверкой на столкновение и запуском анимации очистки строк
+  // Опускаем фигуру на одну строку с проверкой и анимацией очистки строк
   function dropPiece() {
     currentPiece.y++;
     if (collide(currentPiece)) {
       currentPiece.y--;
       mergePiece(currentPiece);
-      // Поиск заполненных строк
       let fullRows = [];
       for (let r = ROWS - 1; r >= 0; r--) {
         if (board[r].every(cell => cell !== 0)) {
@@ -369,7 +349,6 @@
       }
       if (fullRows.length > 0) {
         animatingClear = true;
-        // Запускаем анимацию очистки строк
         clearLinesAnimation(fullRows).then(() => {
           animatingClear = false;
           currentPiece = randomPiece();
@@ -424,7 +403,7 @@
     game3AnimationFrameId = requestAnimationFrame(updateGame3);
   }
 
-  // Отрисовка игрового состояния
+  // Отрисовка игрового состояния (без счётчика)
   function drawGame3() {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -433,11 +412,6 @@
     const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
     ctx.fillStyle = "#00FF00";
     ctx.fillRect(0, 0, sliderWidth, 5);
-
-    ctx.fillStyle = "#00FF00";
-    ctx.font = "20px 'Press Start 2P'";
-    ctx.textAlign = "center";
-    ctx.fillText("Score: " + score, canvas.width / 2, 30);
 
     ctx.save();
     ctx.translate(0, TOP_OFFSET);
@@ -509,13 +483,11 @@
     }
   }
 
-  // Функция для имитации события отпускания клавиши (для кнопок "⟳" и "↓")
+  // Функции имитации нажатия/отпускания клавиш
   function simulateKeyUp(key) {
     const event = new KeyboardEvent("keyup", { key: key });
     handleKeyUp(event);
   }
-
-  // Имитируем событие нажатия клавиши (для кнопок "⟳" и "↓")
   function simulateKey(key) {
     const event = new KeyboardEvent("keydown", { key: key });
     handleKeyDown(event);
@@ -525,10 +497,9 @@
   function createMobileControls() {
     controlDiv = document.createElement("div");
     controlDiv.id = "tetrisControls";
-    // Позиционирование кнопок ниже игрового поля: используем абсолютное позиционирование
+    // Располагаем кнопки ниже игрового поля (сдвиг +40px)
     controlDiv.style.position = "absolute";
-    // Располагаем ниже canvas; предполагается, что canvas находится в одном контейнере
-    controlDiv.style.top = (canvas.offsetTop + BOARD_HEIGHT + 20) + "px";
+    controlDiv.style.top = (canvas.offsetTop + BOARD_HEIGHT + 40) + "px";
     controlDiv.style.left = "50%";
     controlDiv.style.transform = "translateX(-50%)";
     controlDiv.style.display = "flex";
@@ -536,11 +507,11 @@
     controlDiv.style.gap = "10px";
     controlDiv.style.zIndex = "1100";
 
-    // Функция для стилизации кнопки с пиксельным эффектом
+    // Стилизация кнопки – увеличены размеры и шрифт
     function styleControlButton(btn) {
-      btn.style.width = "50px";
-      btn.style.height = "50px";
-      btn.style.fontSize = "24px";
+      btn.style.width = "60px";
+      btn.style.height = "60px";
+      btn.style.fontSize = "28px";
       btn.style.borderRadius = "5px";
       btn.style.border = "2px solid #00FF00";
       btn.style.background = "#000";
@@ -729,7 +700,6 @@
     document.removeEventListener("keydown", handleKeyDown);
     document.removeEventListener("keyup", handleKeyUp);
     removeMobileControls();
-    // Оповещение через модальное окно, без системных уведомлений
     showEndGameModal("Time's up!", "Your score: " + score);
   }
 
