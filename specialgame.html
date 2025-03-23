@@ -184,12 +184,12 @@
     .refresh-button:hover, .back-button:hover {
       transform: scale(1.05);
     }
-    /* Джойстик для мобильных устройств */
+    /* Джойстик для мобильных устройств (уменьшенный) */
     #joystick {
       position: fixed;
-      width: 100px;
-      height: 100px;
-      margin: -50px 0 0 -50px;
+      width: 70px;
+      height: 70px;
+      margin: -35px 0 0 -35px;
       background: rgba(255, 255, 255, 0.1);
       border: 2px solid rgba(0, 191, 255, 0.7);
       border-radius: 50%;
@@ -199,9 +199,9 @@
     }
     #joystick-stick {
       position: absolute;
-      width: 50px;
-      height: 50px;
-      margin: -25px 0 0 -25px;
+      width: 35px;
+      height: 35px;
+      margin: -17px 0 0 -17px;
       background: rgba(0, 191, 255, 0.5);
       border: 2px solid rgba(255, 255, 255, 0.8);
       border-radius: 50%;
@@ -422,10 +422,13 @@
     /* 
     ============================================================
      Special Snake PvP – Основной код игры с доработками:
-       • Устранены утечки памяти: при завершении игры останавливаются все setInterval,
-         удаляются все Firebase‑слушатели и обработчики ввода.
-       • Оптимизирована частота записи в Firebase: состояние игрока (включая положение змейки)
-         отправляется не чаще, чем раз в 300 мс, что снижает нагрузку на сеть.
+       • Удалена кнопка копирования ссылки.
+       • Логика ставок изменена:
+         - Создатель комнаты (player1): коины списываются только после подключения оппонента.
+         - Игрок, который подключается позже (player2): списание происходит сразу.
+       • При создании комнаты ставка сохраняется как полное значение (в монетах, то есть умноженное на 1e6).
+       • Распределение выигрыша: в конце игры победитель получает все поставленные коины, а при ничьей – ставки возвращаются.
+       • Модальное окно итогов показывает только "ты выиграл" или "ты проиграл" с итогами игры.
     ============================================================
     */
 
@@ -493,7 +496,6 @@
     // Таймер (1 минута)
     let timerTotal = 60;
     let timerCurrent = 60;
-    let timerInterval = null; // Глобальный таймер для обратного отсчёта
 
     // Интервалы
     let logicTimer = null;
@@ -501,11 +503,6 @@
     // Слушатели Firebase
     let waitingListener = null;
     let oppListener = null;
-
-    // Глобальные переменные для оптимизации записи в Firebase
-    let lastFirebaseUpdateTime = 0;
-    const firebaseUpdateInterval = 300; // мс
-    let lastSentDirection = 'right';
 
     // Цвета змейки
     const snakeColors = {
@@ -585,30 +582,6 @@
     }
 
     /* ======================================
-       ФУНКЦИЯ ДЛЯ ОЧИСТКИ РЕСУРСОВ (слушатели, таймеры, обработчики)
-    ====================================== */
-    function cleanupGameResources() {
-      stopLogicLoop();
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
-      if (waitingListener && roomId) {
-        firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
-        waitingListener = null;
-      }
-      if (oppListener && roomId) {
-        firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId).off('value', oppListener);
-        oppListener = null;
-      }
-      if (gameStateRef) {
-        gameStateRef.child('apple').off();
-        gameStateRef.child('gameOver').off();
-      }
-      removeSwipeListeners();
-    }
-
-    /* ======================================
        2. ПОИСК / СОЗДАНИЕ КОМНАТЫ
     ====================================== */
     function autoJoinFreeGame() {
@@ -634,12 +607,13 @@
         });
     }
 
+    // Функция для списания монет – теперь работает с полным значением (без умножения)
     function deductUserCoins(amount) {
       const userRef = firebase.database().ref('users/' + window.currentUser.username);
       return userRef.transaction(function(currentData) {
         if (currentData) {
-          if (currentData.coins >= amount * 1e6) {
-            currentData.coins -= amount * 1e6;
+          if (currentData.coins >= amount) {
+            currentData.coins -= amount;
             return currentData;
           } else {
             return;
@@ -667,6 +641,7 @@
       }, 3000);
     }
 
+    // При создании комнаты сохраняем ставку как полное значение (умноженное на 1e6)
     function actuallyCreateRoom(bet) {
       const queueRef = firebase.database().ref('snakeQueue');
       roomId = queueRef.push().key;
@@ -676,10 +651,9 @@
         status: 'waiting',
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         creator: window.currentUser.username,
-        bet: bet
+        bet: bet * 1e6
       }).catch(err => console.error('Error creating room:', err));
       queueRef.child(roomId).onDisconnect().remove();
-      // Пригласительная ссылка более не используется
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -704,7 +678,8 @@
               tr.appendChild(creatorTd);
 
               const betTd = document.createElement('td');
-              betTd.textContent = room.bet + languageStrings[currentLanguage].betUnit;
+              // Делим ставку на 1e6 для отображения в "млн"
+              betTd.textContent = (room.bet / 1e6) + languageStrings[currentLanguage].betUnit;
               tr.appendChild(betTd);
 
               const actionTd = document.createElement('td');
@@ -1039,15 +1014,12 @@
 
     /* ======================================
        9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
-         Оптимизация: отправляем полное состояние не чаще, чем раз в 300 мс.
     ====================================== */
     function updatePlayerState(ateApple) {
-      const now = performance.now();
-      if (!ateApple && (now - lastFirebaseUpdateTime < firebaseUpdateInterval)) {
-        return; // Пропускаем обновление, если прошло недостаточно времени
+      if (ateApple) {
+        const lastSegment = localSnake[localSnake.length - 1];
+        localSnake.push({ ...lastSegment });
       }
-      lastFirebaseUpdateTime = now;
-      lastSentDirection = localDirection;
       gameStateRef.child('players').child(playerId).update({
         snake: localSnake,
         direction: localDirection,
@@ -1074,7 +1046,7 @@
       endGame();
     }
 
-    // Функция для распределения ставок после игры
+    // Функция для распределения ставок после игры – теперь без умножения на 1e6
     function settleBets() {
       firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snapshot => {
         const betValue = snapshot.val() || 0;
@@ -1083,7 +1055,7 @@
             const userRef = firebase.database().ref('users/' + window.currentUser.username);
             userRef.transaction(currentData => {
               if (currentData) {
-                currentData.coins = (currentData.coins || 0) + betValue * 1e6 * 2;
+                currentData.coins = (currentData.coins || 0) + betValue * 2;
                 return currentData;
               }
               return;
@@ -1092,7 +1064,7 @@
             const userRef = firebase.database().ref('users/' + window.currentUser.username);
             userRef.transaction(currentData => {
               if (currentData) {
-                currentData.coins = (currentData.coins || 0) + betValue * 1e6;
+                currentData.coins = (currentData.coins || 0) + betValue;
                 return currentData;
               }
               return;
@@ -1103,8 +1075,6 @@
     }
 
     function endGame() {
-      // Очищаем все ресурсы: таймеры, слушатели, обработчики
-      cleanupGameResources();
       stopLogicLoop();
       settleBets();
       let resultTitle = '';
@@ -1125,17 +1095,15 @@
     ====================================== */
     function startTimer() {
       timerCurrent = timerTotal;
-      timerInterval = setInterval(() => {
+      const timerInterval = setInterval(() => {
         if (!isGameRunning || isGameOver) {
           clearInterval(timerInterval);
-          timerInterval = null;
           return;
         }
         timerCurrent--;
         if (timerCurrent <= 0) {
           setGameOver();
           clearInterval(timerInterval);
-          timerInterval = null;
         }
       }, 1000);
     }
