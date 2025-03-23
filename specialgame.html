@@ -422,8 +422,10 @@
     /* 
     ============================================================
      Special Snake PvP – Основной код игры с доработками:
-       • Удаляются Firebase‑слушатели и останавливаются таймеры по окончании игры.
-       • Оптимизирована запись в Firebase: состояние игрока (направление, счёт, длина змейки) обновляется только при изменении направления или при событии (например, съедании яблока).
+       • Устранены утечки памяти: при завершении игры останавливаются все setInterval,
+         удаляются все Firebase‑слушатели и обработчики ввода.
+       • Оптимизирована частота записи в Firebase: состояние игрока (включая положение змейки)
+         отправляется не чаще, чем раз в 300 мс, что снижает нагрузку на сеть.
     ============================================================
     */
 
@@ -491,17 +493,19 @@
     // Таймер (1 минута)
     let timerTotal = 60;
     let timerCurrent = 60;
-    let timerInterval = null; // Глобальный идентификатор таймера
+    let timerInterval = null; // Глобальный таймер для обратного отсчёта
 
     // Интервалы
     let logicTimer = null;
 
-    // Firebase-слушатели
+    // Слушатели Firebase
     let waitingListener = null;
     let oppListener = null;
 
-    // Переменная для оптимизации обновлений: запоминаем последнее отправленное направление
-    let lastSentDirection = null;
+    // Глобальные переменные для оптимизации записи в Firebase
+    let lastFirebaseUpdateTime = 0;
+    const firebaseUpdateInterval = 300; // мс
+    let lastSentDirection = 'right';
 
     // Цвета змейки
     const snakeColors = {
@@ -549,11 +553,6 @@
 
     function resetSpecialGame1() {
       stopLogicLoop();
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
-      cleanupGameListeners();
       if (showOpponentNameTimeout) {
         clearTimeout(showOpponentNameTimeout);
         showOpponentNameTimeout = null;
@@ -574,7 +573,6 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
-      lastSentDirection = null;
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -587,22 +585,27 @@
     }
 
     /* ======================================
-       Функция очистки Firebase‑слушателей
+       ФУНКЦИЯ ДЛЯ ОЧИСТКИ РЕСУРСОВ (слушатели, таймеры, обработчики)
     ====================================== */
-    function cleanupGameListeners() {
-      if (roomId) {
-        // Убираем слушатель очереди ожидания
+    function cleanupGameResources() {
+      stopLogicLoop();
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
-        // Убираем слушатель данных противника
+      }
+      if (oppListener && roomId) {
         firebase.database().ref('snakeGames/' + roomId + '/players/' + opponentId).off('value', oppListener);
         oppListener = null;
-        // Убираем слушатели для яблока и gameOver
-        if (gameStateRef) {
-          gameStateRef.child('apple').off();
-          gameStateRef.child('gameOver').off();
-        }
       }
+      if (gameStateRef) {
+        gameStateRef.child('apple').off();
+        gameStateRef.child('gameOver').off();
+      }
+      removeSwipeListeners();
     }
 
     /* ======================================
@@ -676,7 +679,7 @@
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
       queueRef.child(roomId).onDisconnect().remove();
-      // Приглашательная ссылка более не используется
+      // Пригласительная ссылка более не используется
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -959,8 +962,6 @@
         score = (data && data.score) ? data.score : 0;
         previousSnake = localSnake.map(seg => ({ ...seg }));
         lastLogicUpdateTime = performance.now();
-        // Инициализируем переменную для оптимизации обновлений
-        lastSentDirection = localDirection;
         gameStateRef.child('apple').once('value').then(appleSnap => {
           if (!appleSnap.exists()) {
             spawnApple();
@@ -999,37 +1000,11 @@
       const head = localSnake[0];
       if (head.x === applePos.x && head.y === applePos.y) {
         score++;
-        // При поедании яблока всегда обновляем состояние
         updatePlayerState(true);
         spawnApple();
       } else {
-        // Обновляем состояние только при изменении направления
         updatePlayerState(false);
       }
-    }
-
-    // Оптимизированная функция обновления состояния в Firebase:
-    // Если змейка съела яблоко – обновляем всегда, иначе – только при изменении направления.
-    function updatePlayerState(ateApple) {
-      if (ateApple) {
-        const lastSegment = localSnake[localSnake.length - 1];
-        localSnake.push({ ...lastSegment });
-        sendPlayerUpdate();
-      } else {
-        if (localDirection !== lastSentDirection) {
-          sendPlayerUpdate();
-        }
-      }
-    }
-
-    // Функция отправки обновлений в Firebase
-    function sendPlayerUpdate() {
-      lastSentDirection = localDirection;
-      gameStateRef.child('players').child(playerId).update({
-        snake: localSnake,
-        direction: localDirection,
-        score: score
-      }).catch(err => console.error('Error updating player state:', err));
     }
 
     function renderLoop() {
@@ -1062,6 +1037,24 @@
       return false;
     }
 
+    /* ======================================
+       9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
+         Оптимизация: отправляем полное состояние не чаще, чем раз в 300 мс.
+    ====================================== */
+    function updatePlayerState(ateApple) {
+      const now = performance.now();
+      if (!ateApple && (now - lastFirebaseUpdateTime < firebaseUpdateInterval)) {
+        return; // Пропускаем обновление, если прошло недостаточно времени
+      }
+      lastFirebaseUpdateTime = now;
+      lastSentDirection = localDirection;
+      gameStateRef.child('players').child(playerId).update({
+        snake: localSnake,
+        direction: localDirection,
+        score: score
+      }).catch(err => console.error('Error updating player state:', err));
+    }
+
     function spawnApple() {
       const newApple = {
         x: Math.floor(Math.random() * tileCountX),
@@ -1072,7 +1065,7 @@
     }
 
     /* ======================================
-       9. КОНЕЦ ИГРЫ
+       10. КОНЕЦ ИГРЫ
     ====================================== */
     function setGameOver() {
       isGameOver = true;
@@ -1110,12 +1103,9 @@
     }
 
     function endGame() {
+      // Очищаем все ресурсы: таймеры, слушатели, обработчики
+      cleanupGameResources();
       stopLogicLoop();
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
-      cleanupGameListeners();
       settleBets();
       let resultTitle = '';
       if (score > opponentScore) {
@@ -1131,7 +1121,7 @@
     }
 
     /* ======================================
-       10. ТАЙМЕР (1 минута)
+       11. ТАЙМЕР (1 минута)
     ====================================== */
     function startTimer() {
       timerCurrent = timerTotal;
@@ -1151,7 +1141,7 @@
     }
 
     /* ======================================
-       11. РЕНДЕР ИГРЫ (с интерполяцией)
+       12. РЕНДЕР ИГРЫ (с интерполяцией)
     ====================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1235,7 +1225,7 @@
     }
 
     /* ======================================
-       12. ЭКРАНЫ "SEARCHING / WAITING..."
+       13. ЭКРАНЫ "SEARCHING / WAITING..."
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1266,7 +1256,7 @@
     }
 
     /* ======================================
-       13. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
+       14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
     ====================================== */
     function addSwipeListeners() {
       function onKeyDown(e) {
@@ -1360,7 +1350,7 @@
     }
 
     /* ======================================
-       14. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+       16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -1373,7 +1363,7 @@
     }
 
     /* ======================================
-       15. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+       17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
     ====================================== */
     function setupControlButtons() {
       const buttons = document.querySelectorAll('.control-button');
@@ -1392,7 +1382,7 @@
     }
 
     /* ======================================
-       16. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+       18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
     ====================================== */
     function cleanupRoom() {
       if (roomId) {
@@ -1412,7 +1402,7 @@
     });
 
     /* ======================================
-       17. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+       19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
     ====================================== */
     function finishGame() {
       document.getElementById('endgameBackdrop').classList.remove('active');
@@ -1424,7 +1414,7 @@
     }
 
     /* ======================================
-       18. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
+       20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
     ====================================== */
     document.getElementById('createRoomBtn').addEventListener('click', function() {
       document.getElementById('landingScreen').style.display = 'none';
@@ -1453,6 +1443,7 @@
 
     document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
       const betValue = parseInt(document.getElementById('betSlider').value);
+      // Проверяем, достаточно ли монет для возможного списания (betValue – в миллионах)
       if (currentCoins < betValue * 1e6) {
         showBetError();
         return;
@@ -1484,7 +1475,7 @@
     });
 
     /* ======================================
-       19. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+       21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     ====================================== */
     window.addEventListener('load', () => {
       const firebaseConfig = {
@@ -1538,7 +1529,7 @@
     });
 
     /* ======================================
-       20. ЛОКАЛИЗАЦИЯ
+       22. ЛОКАЛИЗАЦИЯ
     ====================================== */
     let currentLanguage = "en";
     const languageStrings = {
@@ -1635,4 +1626,3 @@
   </script>
 </body>
 </html>
-
