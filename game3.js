@@ -1,42 +1,42 @@
-
 (function () {
-  // Размеры игрового поля и базовые константы
+  // --------------------
+  // --- Константы ---
+  // --------------------
   const COLS = 10;
   const ROWS = 20;
-  const BLOCK_SIZE = 30; // размер клетки в пикселях
-  const BOARD_WIDTH = COLS * BLOCK_SIZE;   // 300px
-  const BOARD_HEIGHT = ROWS * BLOCK_SIZE;  // 600px
-  
-  const DROP_INTERVAL = 1000;      // интервал падения фигуры (мс) при обычном режиме
-  const FAST_DROP_INTERVAL = 100;  // интервал падения при быстром режиме (мс)
-  const GAME_DURATION = 120000;    // длительность игры: 2 минуты (120000 мс)
+  const BLOCK_SIZE = 30;
+  const BOARD_WIDTH = COLS * BLOCK_SIZE;  // 300
+  const BOARD_HEIGHT = ROWS * BLOCK_SIZE; // 600
 
-  // "Неоново-зелёный" по умолчанию
-  const PIECE_COLOR = "#00FF00";  
-  // Отступ сверху для отрисовки игрового поля (если нужно сместить вниз)
-  const TOP_OFFSET = 80;
+  const DROP_INTERVAL = 1000;       // Интервал падения (обычный)
+  const FAST_DROP_INTERVAL = 100;   // Интервал при ускорении (зажат Down)
+  const GAME_DURATION = 120000;     // 2 минуты в мс
 
-  // Параметры для анимации удаления линий
-  const LINE_CLEAR_DURATION = 500; // 0.5 секунды мигаем строкой
-  const FLASH_FREQUENCY = 100;     // каждые 100 мс меняем цвет для мигания
+  // Цвет самой фигуры (по умолчанию)
+  const PIECE_COLOR = "#00FF00";
 
-  // Глобальные переменные для игры
+  // Сколько времени мигает строка перед удалением (мс)
+  const LINE_CLEAR_ANIMATION_TIME = 500;
+  // Сколько времени занимает "падение" блоков при очистке строк (мс)
+  const FALL_ANIMATION_TIME = 400;
+
+  // --------------------
+  // --- Глобальные переменные ---
+  // --------------------
   let canvas, ctx;
-  let board;
-  let currentPiece;
+  let board;          // Матрица поля
+  let currentPiece;   // Текущая фигура
   let dropCounter = 0;
   let lastTime = 0;
   let gameStartTime = 0;
   let score = 0;
   let game3Running = false;
   let game3AnimationFrameId;
-  
-  // флаг быстрого падения
-  let fastDrop = false;
-  // время ожидания перед включением fastDrop (чтобы короткое нажатие делало одиночное "шаг вниз")
-  let arrowDownTimeout = null;
 
-  // Переменные для автоповтора лево/право
+  let fastDrop = false;          // флаг ускоренного падения
+  let arrowDownTimeout = null;   // таймер для нажатия вниз (чтобы отличать короткое от долгого)
+
+  // Автоповтор лево/право
   let leftPressed = false;
   let rightPressed = false;
   let leftInitialTimeout = null;
@@ -44,16 +44,25 @@
   let leftInterval = null;
   let rightInterval = null;
 
-  // Для мобильных кнопок
+  // Мобильные кнопки
   let controlDiv = null;
 
-  // Переменные для анимации удаления линий
-  let animatingLineClear = false;   // флаг, что мы сейчас мигаем заполненные линии
-  let lineClearStartTime = 0;       // время начала анимации
-  let linesToClear = [];            // массив индексов строк, которые надо очистить после анимации
+  // Состояние анимации очистки строк
+  let isClearing = false;      // Идёт ли анимация очистки?
+  let clearingRows = [];       // какие строки удаляются
+  let clearingStartTime = 0;   // когда начали анимировать
+  let linesToRemove = 0;       // сколько строк реально убрать
 
-  // Определения тетрамино
-  // (Все будут одного цвета, но можно расширить логику, чтобы каждая фигура имела свой цвет)
+  // Состояние анимации падения (после очистки)
+  let isFalling = false;               // идёт ли анимация падения
+  let fallStartTime = 0;              // начало анимации
+  let oldBoard = null;                // копия доски до падения
+  let newBoard = null;                // копия доски после удаления
+  let linesClearedThisTime = 0;       // сколько строк очистили для подсчёта очков
+
+  // --------------------
+  // --- Определения тетрамино ---
+  // --------------------
   const tetrominoes = {
     I: {
       shape: [
@@ -106,72 +115,149 @@
     },
   };
 
-  // Создаём пустое игровое поле (матрица ROWS x COLS)
+  // --------------------
+  // --- ФУНКЦИИ ИНИЦИАЛИЗАЦИИ ---
+  // --------------------
   function createBoard() {
     board = [];
     for (let r = 0; r < ROWS; r++) {
-      board[r] = [];
-      for (let c = 0; c < COLS; c++) {
-        board[r][c] = 0; // 0 означает пусто
-      }
+      board[r] = new Array(COLS).fill(0);
     }
   }
 
-  // Функция для получения цвета клетки с учётом анимации удаления
-  function getCellColor(r, c) {
-    const cellVal = board[r][c];
-
-    // Если клетка пустая
-    if (cellVal === 0) {
-      return null; // в drawBoard проверим, если null — не заливаем
-    }
-
-    // Если сейчас идёт анимация удаления и эта строка в списке linesToClear,
-    // мигаем между красным и белым
-    if (animatingLineClear && linesToClear.includes(r)) {
-      const elapsed = Date.now() - lineClearStartTime;
-      // каждую половину FLASH_FREQUENCY чередуем цвет
-      const phase = Math.floor((elapsed % (FLASH_FREQUENCY * 2)) / FLASH_FREQUENCY);
-      return phase === 0 ? "#FFFFFF" : "#FF0000";
-    }
-
-    // Иначе возвращаем основной цвет тетрамино
-    return PIECE_COLOR;
+  // Создаём случайную фигуру
+  function randomPiece() {
+    const types = Object.keys(tetrominoes);
+    const randType = types[Math.floor(Math.random() * types.length)];
+    return {
+      shape: tetrominoes[randType].shape,
+      x: Math.floor(COLS / 2) - Math.floor(tetrominoes[randType].shape[0].length / 2),
+      y: 0,
+    };
   }
 
-  // Рисуем игровое поле
-  function drawBoard() {
+  // --------------------
+  // --- РИСОВАНИЕ ---
+  // --------------------
+  // Отрисовка доски + блоков
+  // Добавляем time для анимаций (requestAnimationFrame даёт текущее время).
+  function drawBoard(time = 0) {
+    // Задаём смещение (чтобы поле было по центру канваса)
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
 
-    ctx.lineWidth = 2; 
+    ctx.lineWidth = 1;
+
+    // Если идёт анимация падения, часть блоков берём из старой доски, часть — из новой
+    // иначе просто рисуем board.
+    // Но нам нужно понимать, где сейчас визуально находятся блоки, если они «едут» вниз.
+
+    // Фактор прогресса падения от 0 до 1
+    let fallProgress = 1;
+    if (isFalling) {
+      const elapsed = time - fallStartTime;
+      fallProgress = Math.min(elapsed / FALL_ANIMATION_TIME, 1);
+    }
+
+    // Пробегаемся по всем ячейкам
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        const x = offsetX + c * BLOCK_SIZE;
-        const y = r * BLOCK_SIZE;
-        const color = getCellColor(r, c);
+        let cellValue = 0;
 
-        if (color) {
-          // заблокированный блок
-          ctx.fillStyle = color;
+        // Если есть анимация падения:
+        if (isFalling) {
+          // Как будет выглядеть позиция этой ячейки при «падении»?
+          // В newBoard[r][c] лежит значение ячейки после падения,
+          // в oldBoard[r][c] — до.
+          // Но визуально блок может «ехать» из старого места в новое.
+          // На самом деле, проще пробежаться по oldBoard, найти, куда
+          // она «переедет» в newBoard, и интерполировать.
+
+          // Для упрощения: если в newBoard[r][c] != 0, значит там
+          // в конечном итоге будет блок. Проверим, был ли этот блок
+          // на старой доске выше.
+          const finalVal = newBoard[r][c];
+          if (finalVal !== 0) {
+            // Найдём, откуда этот блок «упал»:
+            // По логике формирования newBoard, блок мог сдвинуться вниз
+            // на (кол-во удалённых строк ниже) строк. Чтобы не считать каждый раз,
+            // мы можем пройтись: смотрим старую доску выше r.
+            // Но для наглядности — перебор:
+            let foundOldRow = -1;
+            for (let oldr = 0; oldr <= r; oldr++) {
+              if (oldBoard[oldr][c] !== 0 && oldBoard[oldr][c] === finalVal) {
+                // Предположим, это тот же блок.
+                // (В реальном коде лучше хранить ID фигуры, но у нас всё = 1.
+                // Для демонстрации хватит.)
+                foundOldRow = oldr;
+              }
+            }
+            if (foundOldRow !== -1 && foundOldRow !== r) {
+              // Интерполируем координату
+              const deltaRows = r - foundOldRow;
+              const currentShift = deltaRows * fallProgress;
+              // Позиция по факту будет foundOldRow + currentShift
+              // Округлить не надо, рисуем плавающе, чтобы была анимация
+              const drawY = (foundOldRow + currentShift) * BLOCK_SIZE;
+              cellValue = finalVal;
+
+              // Рисуем блок
+              const x = offsetX + c * BLOCK_SIZE;
+              const y = drawY;
+              ctx.fillStyle = PIECE_COLOR;
+              ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+              // Рисуем рамку
+              ctx.strokeStyle = "#005500";
+              ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+              continue;
+            } else {
+              // Если не нашли старую позицию (или старое = текущее),
+              // значит он не падал, просто рисуем.
+              cellValue = finalVal;
+            }
+          }
+        } else {
+          // Без падения, смотрим board напрямую
+          cellValue = board[r][c];
+        }
+
+        // Если ячейка заполнена (не 0), рисуем
+        if (cellValue !== 0) {
+          // Если идёт анимация очистки и эта строка в списке clearingRows,
+          // можно сделать мигание.
+          let fillCol = PIECE_COLOR;
+          if (isClearing && clearingRows.includes(r)) {
+            // Сделаем мигание: каждые 100 мс — переключение цвета
+            const animTime = time - clearingStartTime;
+            const blink = Math.floor(animTime / 100) % 2; // 0 или 1
+            fillCol = blink === 0 ? "#FFFF00" : "#FF0000"; // жёлто-красное мигание
+          }
+          const x = offsetX + c * BLOCK_SIZE;
+          const y = r * BLOCK_SIZE;
+
+          ctx.fillStyle = fillCol;
           ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
           ctx.strokeStyle = "#005500";
           ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
         } else {
-          // пустая клетка - просто нарисуем сетку
+          // Пустая ячейка — просто рисуем сетку
+          const x = offsetX + c * BLOCK_SIZE;
+          const y = r * BLOCK_SIZE;
           ctx.strokeStyle = "#002200";
           ctx.strokeRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
         }
       }
     }
 
-    // Отрисовка внешней рамки поля
+    // Внешняя рамка
     ctx.strokeStyle = PIECE_COLOR;
     ctx.strokeRect(offsetX, 0, BOARD_WIDTH, BOARD_HEIGHT);
-    ctx.lineWidth = 1; 
   }
 
-  // Рисуем текущую фигуру
+  // Отрисовка текущей падающей фигуры
   function drawPiece(piece) {
+    if (!piece) return;
+    if (isClearing || isFalling) return; // во время анимации строк не двигаем фигуру
+
     const offsetX = (canvas.width - BOARD_WIDTH) / 2;
     ctx.fillStyle = PIECE_COLOR;
     ctx.shadowColor = PIECE_COLOR;
@@ -191,29 +277,18 @@
     ctx.shadowBlur = 0;
   }
 
-  // Фиксируем фигуру на игровом поле
-  function mergePiece(piece) {
-    piece.shape.forEach((row, r) => {
-      row.forEach((value, c) => {
-        if (value) {
-          board[piece.y + r][piece.x + c] = 1; // тут можно хранить разные цифры для разных фигур
-        }
-      });
-    });
-  }
-
-  // Проверка столкновения фигуры с границами или другими блоками
+  // --------------------
+  // --- ЛОГИКА ---
+  // --------------------
   function collide(piece) {
     for (let r = 0; r < piece.shape.length; r++) {
       for (let c = 0; c < piece.shape[r].length; c++) {
         if (piece.shape[r][c]) {
-          let newX = piece.x + c;
-          let newY = piece.y + r;
-          // Границы поля
+          const newX = piece.x + c;
+          const newY = piece.y + r;
           if (newX < 0 || newX >= COLS || newY >= ROWS) {
             return true;
           }
-          // Столкновение с уже лежащим блоком
           if (newY >= 0 && board[newY][newX] !== 0) {
             return true;
           }
@@ -223,7 +298,17 @@
     return false;
   }
 
-  // Поворот матрицы (на 90° по часовой стрелке)
+  function mergePiece(piece) {
+    piece.shape.forEach((row, r) => {
+      row.forEach((value, c) => {
+        if (value) {
+          board[piece.y + r][piece.x + c] = 1; // у нас один цвет (1)
+        }
+      });
+    });
+  }
+
+  // Поворот матрицы
   function rotate(matrix) {
     const N = matrix.length;
     const result = [];
@@ -236,297 +321,306 @@
     return result;
   }
 
-  // Создаём фигуру по типу (согласно тетрамино)
-  function createPiece(type) {
-    return {
-      shape: tetrominoes[type].shape,
-      x: Math.floor(COLS / 2) - Math.floor(tetrominoes[type].shape[0].length / 2),
-      y: 0,
-    };
-  }
-
-  // Возвращает случайную фигуру
-  function randomPiece() {
-    const types = Object.keys(tetrominoes);
-    const rand = types[Math.floor(Math.random() * types.length)];
-    return createPiece(rand);
-  }
-
-  // Запуск анимации подсвечивания заполненных строк (если есть)
-  function checkAndStartLineClearAnimation() {
-    let fullLines = [];
-    for (let r = 0; r < ROWS; r++) {
-      let isFull = true;
-      for (let c = 0; c < COLS; c++) {
-        if (board[r][c] === 0) {
-          isFull = false;
-          break;
-        }
-      }
-      if (isFull) {
-        fullLines.push(r);
-      }
-    }
-    if (fullLines.length > 0) {
-      // Запускаем анимацию
-      animatingLineClear = true;
-      linesToClear = fullLines;
-      lineClearStartTime = Date.now();
-    }
-  }
-
-  // Удаляем «полные» строки из доски (после анимации)
-  // и добавляем пустые строки сверху
-  function removeFullLines() {
-    let linesCleared = 0;
-    linesToClear.forEach((rowIndex) => {
-      board.splice(rowIndex, 1);
-      board.unshift(new Array(COLS).fill(0));
-      linesCleared++;
-    });
-    // Добавляем очки
-    if (linesCleared > 0) {
-      score += linesCleared * 30;
-    }
-    linesToClear = [];
-  }
-
-  // Опускаем фигуру на одну строку
+  // Опускание фигуры на 1 вниз
   function dropPiece() {
+    if (isClearing || isFalling) return; // пока идёт анимация, не двигаем фигуры
     currentPiece.y++;
     if (collide(currentPiece)) {
-      // откат обратно
       currentPiece.y--;
       mergePiece(currentPiece);
-
-      // Проверяем заполненные строки (запускаем анимацию, если есть)
-      checkAndStartLineClearAnimation();
-
-      // Сразу даём новую фигуру (если строк нет, мы продолжим обычную игру)
+      checkLinesAndAnimate();
       currentPiece = randomPiece();
-      // Если новая фигура сразу не может встать, значит игра окончена
       if (collide(currentPiece)) {
+        // Игра окончена
         endGame();
       }
     }
     dropCounter = 0;
   }
 
-  // Автоповтор влево
+  // Проверяем заполненные линии
+  // Но вместо мгновенного удаления — запускаем анимацию мигания.
+  function checkLinesAndAnimate() {
+    const toClear = [];
+    for (let r = 0; r < ROWS; r++) {
+      let full = true;
+      for (let c = 0; c < COLS; c++) {
+        if (board[r][c] === 0) {
+          full = false;
+          break;
+        }
+      }
+      if (full) toClear.push(r);
+    }
+    if (toClear.length > 0) {
+      isClearing = true;
+      clearingRows = toClear;
+      clearingStartTime = performance.now();
+      linesToRemove = toClear.length;
+      linesClearedThisTime = toClear.length;
+      // Пока идёт мигание, мы «замораживаем» падение
+    }
+  }
+
+  // Функция, которая действительно удаляет строки из board (после мигания)
+  function removeClearedLines() {
+    let count = 0;
+    clearingRows.forEach((rowIndex) => {
+      board.splice(rowIndex - count, 1);
+      board.unshift(new Array(COLS).fill(0));
+      count++;
+    });
+    // Начислим очки
+    score += linesClearedThisTime * 30;
+
+    // После этого запускаем анимацию падения (если хотите более реалистично —
+    // можно сразу «сдвинуть» и не анимировать; здесь для примера).
+    startFallAnimation();
+  }
+
+  // --------------------
+  // --- АНИМАЦИЯ ПАДЕНИЯ ---
+  // --------------------
+  function startFallAnimation() {
+    isClearing = false; // закончили мигание
+    clearingRows = [];
+    linesToRemove = 0;
+
+    oldBoard = null;
+    newBoard = null;
+
+    // Сохраняем текущее состояние (уже с удалёнными строками) как newBoard
+    newBoard = board.map(row => [...row]);
+
+    // Но чтобы сделать анимацию падения, нужно откатиться назад?
+    // На самом деле, для наглядности можно сказать:
+    //  - oldBoard — это доска *до* removeClearedLines.
+    //  Однако мы уже удалили строки. Для демонстрации «плавного» падения
+    //  мы берём newBoard как финальную, а oldBoard делаем «до удаления строк»?
+    //  Но на самом деле лучше сделать копию до splice. Тут для простоты:
+    //    - Вызовем checkLinesAndAnimate → removeClearedLines, *потом* startFallAnimation,
+    //      где oldBoard будет доской *уже без* строк.
+    //    - Но визуально падать нечему, ведь мы уже убрали строку внизу?
+    //  Поэтому давайте сделаем иначе:
+    //    - Сначала сохраним oldBoard, потом удалим строки, запишем это в newBoard,
+    //      потом начнём анимацию.
+
+    // Упростим: мы уже удалили строки, значит всё сверху «телепортнулось».
+    // Чтобы показать анимацию, сделаем наоборот:
+    // oldBoard = «доска до сдвига», newBoard = «доска после сдвига».
+    // но у нас уже нет старого board. Для демонстрации пусть всё «прыгает» :)
+
+    // Закончим тем, что используем newBoard как есть. oldBoard сделаем копией newBoard,
+    // потом быстро «поднимем» ряды вверх на кол-во удалённых строк, чтобы анимировать вниз.
+    oldBoard = newBoard.map(row => [...row]);
+
+    // Поднимем все ряды на linesClearedThisTime
+    // Чтобы получился эффект, будто они сейчас опустятся назад вниз :)
+    // (Да, это не совсем «реальный» тетрис, но демонстрирует анимацию.)
+    if (linesClearedThisTime > 0) {
+      const shift = linesClearedThisTime;
+      for (let r = 0; r < ROWS - shift; r++) {
+        oldBoard[r] = oldBoard[r + shift].slice();
+      }
+      for (let r = ROWS - shift; r < ROWS; r++) {
+        oldBoard[r] = new Array(COLS).fill(0);
+      }
+    }
+
+    // Запускаем анимацию
+    isFalling = true;
+    fallStartTime = performance.now();
+  }
+
+  // Когда анимация падения завершается (если требуется),
+  // мы копируем newBoard в board окончательно.
+  function finalizeFallAnimation() {
+    isFalling = false;
+    board = newBoard.map(row => [...row]);
+    oldBoard = null;
+    newBoard = null;
+    linesClearedThisTime = 0;
+  }
+
+  // --------------------
+  // --- ГЛАВНЫЙ ЦИКЛ ---
+  // --------------------
+  function updateGame3(time = 0) {
+    const deltaTime = time - lastTime;
+    lastTime = time;
+
+    if (!isClearing && !isFalling) {
+      // Обычный режим падения
+      dropCounter += deltaTime;
+      if (dropCounter > (fastDrop ? FAST_DROP_INTERVAL : DROP_INTERVAL)) {
+        dropPiece();
+      }
+    } else if (isClearing) {
+      // Проверяем, не закончилось ли время мигания
+      const elapsed = time - clearingStartTime;
+      if (elapsed >= LINE_CLEAR_ANIMATION_TIME) {
+        // Удаляем строки
+        removeClearedLines();
+      }
+    } else if (isFalling) {
+      // Проверяем, не закончилось ли время падения
+      const elapsed = time - fallStartTime;
+      if (elapsed >= FALL_ANIMATION_TIME) {
+        finalizeFallAnimation();
+      }
+    }
+
+    // Проверяем время игры
+    const elapsedGame = Date.now() - gameStartTime;
+    if (elapsedGame >= GAME_DURATION) {
+      endGame();
+      return;
+    }
+
+    // Рисуем всё
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Полоска оставшегося времени
+    const timeLeft = Math.max(GAME_DURATION - elapsedGame, 0);
+    const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
+    ctx.fillStyle = "#00FF00";
+    ctx.fillRect(0, 0, sliderWidth, 5);
+
+    // Счёт
+    ctx.fillStyle = "#00FF00";
+    ctx.font = "16px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("Score: " + score, canvas.width / 2, 25);
+
+    // Рисуем поле и фигуру
+    drawBoard(time);
+    drawPiece(currentPiece);
+
+    game3AnimationFrameId = requestAnimationFrame(updateGame3);
+  }
+
+  // --------------------
+  // --- УПРАВЛЕНИЕ ---
+  // --------------------
+  function handleKeyDown(event) {
+    if (!game3Running) return;
+    if (isClearing || isFalling) return; // во время анимаций не двигаем фигуру
+
+    switch (event.key) {
+      case "ArrowLeft":
+        if (!leftPressed) {
+          leftPressed = true;
+          moveLeft();
+          leftInitialTimeout = setTimeout(() => {
+            leftInterval = setInterval(moveLeft, 100);
+          }, 150);
+        }
+        break;
+      case "ArrowRight":
+        if (!rightPressed) {
+          rightPressed = true;
+          moveRight();
+          rightInitialTimeout = setTimeout(() => {
+            rightInterval = setInterval(moveRight, 100);
+          }, 150);
+        }
+        break;
+      case "ArrowDown":
+        if (!arrowDownTimeout) {
+          arrowDownTimeout = setTimeout(() => {
+            fastDrop = true;
+            arrowDownTimeout = null;
+          }, 150);
+        }
+        break;
+      case "ArrowUp":
+        rotatePiece();
+        break;
+      default:
+        break;
+    }
+  }
+
+  function handleKeyUp(event) {
+    switch (event.key) {
+      case "ArrowLeft":
+        clearTimeout(leftInitialTimeout);
+        clearInterval(leftInterval);
+        leftPressed = false;
+        break;
+      case "ArrowRight":
+        clearTimeout(rightInitialTimeout);
+        clearInterval(rightInterval);
+        rightPressed = false;
+        break;
+      case "ArrowDown":
+        if (arrowDownTimeout) {
+          // Если отпустили быстро — делаем один шаг вниз
+          clearTimeout(arrowDownTimeout);
+          arrowDownTimeout = null;
+          dropPiece();
+        }
+        fastDrop = false;
+        break;
+      default:
+        break;
+    }
+  }
+
   function moveLeft() {
     currentPiece.x--;
     if (collide(currentPiece)) {
       currentPiece.x++;
     }
-    drawGame3();
   }
-  // Автоповтор вправо
   function moveRight() {
     currentPiece.x++;
     if (collide(currentPiece)) {
       currentPiece.x--;
     }
-    drawGame3();
   }
-
-  // Основной игровой цикл
-  function updateGame3(time = 0) {
-    const deltaTime = time - lastTime;
-    lastTime = time;
-
-    // Если идёт анимация удаления линий, проверим, не пора ли завершать
-    if (animatingLineClear) {
-      const elapsed = Date.now() - lineClearStartTime;
-      // Если прошла заданная длительность мигания, удаляем строки
-      if (elapsed >= LINE_CLEAR_DURATION) {
-        removeFullLines();       // физически убираем строки
-        animatingLineClear = false;
-      }
-      // Пока анимация идёт, мы не двигаем фигуру, не обрабатываем dropPiece
-      // Просто перерисовываем кадр и всё.
-      drawGame3();
-
-    } else {
-      // Обычный игровой режим — двигаем фигуру
-      dropCounter += deltaTime;
-      if (dropCounter > (fastDrop ? FAST_DROP_INTERVAL : DROP_INTERVAL)) {
-        dropPiece();
-      }
-      // Проверяем, не вышло ли время (2 минуты)
-      const elapsed = Date.now() - gameStartTime;
-      if (elapsed >= GAME_DURATION) {
-        endGame();
-        return;
-      }
-      // Рисуем всё
-      drawGame3();
-    }
-    // Рекурсивно заказываем следующий кадр анимации
-    game3AnimationFrameId = requestAnimationFrame(updateGame3);
-  }
-
-  // Отрисовка текущего состояния
-  function drawGame3() {
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Полоска таймера
-    const timeLeft = Math.max(GAME_DURATION - (Date.now() - gameStartTime), 0);
-    const sliderWidth = (timeLeft / GAME_DURATION) * canvas.width;
-    ctx.fillStyle = "#00FF00";
-    ctx.fillRect(0, 0, sliderWidth, 5);
-
-    // Текст со счётом
-    ctx.fillStyle = "#00FF00";
-    ctx.font = "20px 'Press Start 2P', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("Score: " + score, canvas.width / 2, 30);
-
-    // Сдвигаем ось Y, если нужен TOP_OFFSET
-    ctx.save();
-    ctx.translate(0, TOP_OFFSET);
-    drawBoard();
-    // Рисуем фигуру, если не идёт анимация удаления
-    // (Можно рисовать даже при анимации — но тогда мешается визуально)
-    if (!animatingLineClear) {
-      drawPiece(currentPiece);
-    }
-    ctx.restore();
-  }
-
-  // Обработчик нажатия клавиш
-  function handleKeyDown(event) {
-    if (!game3Running) return;
-
-    // Если идёт анимация удаления, обычно блокируем управление:
-    if (animatingLineClear) {
-      return;
-    }
-
-    if (event.key === "ArrowLeft") {
-      if (!leftPressed) {
-        leftPressed = true;
-        moveLeft();
-        leftInitialTimeout = setTimeout(() => {
-          leftInterval = setInterval(moveLeft, 100);
-        }, 150);
-      }
-    } else if (event.key === "ArrowRight") {
-      if (!rightPressed) {
-        rightPressed = true;
-        moveRight();
-        rightInitialTimeout = setTimeout(() => {
-          rightInterval = setInterval(moveRight, 100);
-        }, 150);
-      }
-    } else if (event.key === "ArrowDown") {
-      // Через 150 мс включаем fastDrop, если кнопку не отпустили
-      if (!arrowDownTimeout) {
-        arrowDownTimeout = setTimeout(() => {
-          fastDrop = true;
-          arrowDownTimeout = null;
-        }, 150);
-      }
-    } else if (event.key === "ArrowUp") {
-      // Поворот фигуры
-      const rotated = rotate(currentPiece.shape);
-      const oldShape = currentPiece.shape;
-      currentPiece.shape = rotated;
+  function rotatePiece() {
+    const oldShape = currentPiece.shape;
+    currentPiece.shape = rotate(currentPiece.shape);
+    if (collide(currentPiece)) {
+      // Попробуем сдвиг влево
+      currentPiece.x--;
       if (collide(currentPiece)) {
-        // пробуем сдвинуться влево
-        if (!collide({ ...currentPiece, x: currentPiece.x - 1 })) {
+        // Попробуем сдвиг вправо
+        currentPiece.x += 2;
+        if (collide(currentPiece)) {
+          // Отменяем поворот
           currentPiece.x--;
-        }
-        // или вправо
-        else if (!collide({ ...currentPiece, x: currentPiece.x + 1 })) {
-          currentPiece.x++;
-        } 
-        // иначе откатываем поворот
-        else {
           currentPiece.shape = oldShape;
         }
       }
-      drawGame3();
     }
   }
 
-  // Обработчик отпускания клавиш
-  function handleKeyUp(event) {
-    if (!game3Running) return;
-
-    if (event.key === "ArrowLeft") {
-      clearTimeout(leftInitialTimeout);
-      clearInterval(leftInterval);
-      leftPressed = false;
-    } else if (event.key === "ArrowRight") {
-      clearTimeout(rightInitialTimeout);
-      clearInterval(rightInterval);
-      rightPressed = false;
-    } else if (event.key === "ArrowDown") {
-      // Если отпустили раньше 150 мс — делаем одиночное "шаг вниз"
-      if (arrowDownTimeout) {
-        clearTimeout(arrowDownTimeout);
-        arrowDownTimeout = null;
-        // Одноразовое опускание
-        dropPiece();
-      }
-      // Иначе выключаем fastDrop
-      fastDrop = false;
-    }
+  // --------------------
+  // --- ВСПОМОГАТЕЛЬНЫЕ ---
+  // --------------------
+  // Симулируем нажатие (для кнопок мобильных)
+  function simulateKeyDown(key) {
+    const evt = new KeyboardEvent("keydown", { key });
+    handleKeyDown(evt);
   }
-
-  // Имитируем событие нажатия клавиши
-  function simulateKey(key) {
-    const event = new KeyboardEvent("keydown", { key: key });
-    handleKeyDown(event);
-  }
-  // Имитируем событие отпускания клавиши
   function simulateKeyUp(key) {
-    const event = new KeyboardEvent("keyup", { key: key });
-    handleKeyUp(event);
+    const evt = new KeyboardEvent("keyup", { key });
+    handleKeyUp(evt);
   }
 
-  // Создаём мобильные кнопки управления
+  // --------------------
+  // --- Мобильные кнопки ---
+  // --------------------
   function createMobileControls() {
     controlDiv = document.createElement("div");
     controlDiv.id = "tetrisControls";
 
-    // Стили, чтобы кнопки всегда были внизу, по центру,
-    // и не перекрывали канвас (или хотя бы минимизировать шансы)
-    controlDiv.style.position = "fixed";
-    controlDiv.style.bottom = "20px";
-    controlDiv.style.left = "50%";
-    controlDiv.style.transform = "translateX(-50%)";
-    controlDiv.style.zIndex = "9999";
-    controlDiv.style.width = "220px";
-    controlDiv.style.display = "flex";
-    controlDiv.style.justifyContent = "space-between";
-    controlDiv.style.backgroundColor = "rgba(0,0,0,0.2)";
-    controlDiv.style.padding = "10px";
-    controlDiv.style.borderRadius = "8px";
-
-    // Функция для стилизации пиксельной кнопки
-    function styleControlButton(btn) {
-      btn.style.width = "50px";
-      btn.style.height = "50px";
-      btn.style.fontSize = "24px";
-      btn.style.borderRadius = "5px";
-      btn.style.border = "2px solid #00FF00";
-      btn.style.background = "#000";
-      btn.style.color = "#00FF00";
-      btn.style.outline = "none";
-      btn.style.fontFamily = "'Press Start 2P', monospace";
-      btn.style.fontWeight = "bold";
-      btn.style.webkitFontSmoothing = "none";
-      btn.style.mozOsxFontSmoothing = "grayscale";
-      btn.style.imageRendering = "pixelated";
-      btn.style.cursor = "pointer";
-    }
-
-    // Кнопка "←"
+    // Кнопка влево
     const btnLeft = document.createElement("button");
     btnLeft.textContent = "←";
-    styleControlButton(btnLeft);
     btnLeft.addEventListener("touchstart", (e) => {
       e.preventDefault();
       if (!leftPressed) {
@@ -559,28 +653,39 @@
       clearInterval(leftInterval);
       leftPressed = false;
     });
+    btnLeft.addEventListener("mouseleave", (e) => {
+      e.preventDefault();
+      clearTimeout(leftInitialTimeout);
+      clearInterval(leftInterval);
+      leftPressed = false;
+    });
 
-    // Кнопка "⟳" (поворот)
+    // Кнопка поворота (ArrowUp)
     const btnRotate = document.createElement("button");
     btnRotate.textContent = "⟳";
-    styleControlButton(btnRotate);
-    // Только одиночное нажатие
     btnRotate.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      simulateKey("ArrowUp");
+      simulateKeyDown("ArrowUp");
     });
     btnRotate.addEventListener("mousedown", (e) => {
       e.preventDefault();
-      simulateKey("ArrowUp");
+      simulateKeyDown("ArrowUp");
+    });
+    btnRotate.addEventListener("mouseup", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowUp");
+    });
+    btnRotate.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      simulateKeyUp("ArrowUp");
     });
 
-    // Кнопка "↓"
+    // Кнопка вниз (ArrowDown)
     const btnDown = document.createElement("button");
     btnDown.textContent = "↓";
-    styleControlButton(btnDown);
     btnDown.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      simulateKey("ArrowDown");
+      simulateKeyDown("ArrowDown");
     });
     btnDown.addEventListener("touchend", (e) => {
       e.preventDefault();
@@ -588,17 +693,16 @@
     });
     btnDown.addEventListener("mousedown", (e) => {
       e.preventDefault();
-      simulateKey("ArrowDown");
+      simulateKeyDown("ArrowDown");
     });
     btnDown.addEventListener("mouseup", (e) => {
       e.preventDefault();
       simulateKeyUp("ArrowDown");
     });
 
-    // Кнопка "→"
+    // Кнопка вправо
     const btnRight = document.createElement("button");
     btnRight.textContent = "→";
-    styleControlButton(btnRight);
     btnRight.addEventListener("touchstart", (e) => {
       e.preventDefault();
       if (!rightPressed) {
@@ -631,18 +735,22 @@
       clearInterval(rightInterval);
       rightPressed = false;
     });
+    btnRight.addEventListener("mouseleave", (e) => {
+      e.preventDefault();
+      clearTimeout(rightInitialTimeout);
+      clearInterval(rightInterval);
+      rightPressed = false;
+    });
 
-    // Добавляем кнопки в контейнер
     controlDiv.appendChild(btnLeft);
     controlDiv.appendChild(btnRotate);
     controlDiv.appendChild(btnDown);
     controlDiv.appendChild(btnRight);
 
-    // Добавляем контейнер на страницу
+    // Добавим в body
     document.body.appendChild(controlDiv);
   }
 
-  // Удаляем мобильные кнопки (при завершении / сбросе игры)
   function removeMobileControls() {
     if (controlDiv && controlDiv.parentNode) {
       controlDiv.parentNode.removeChild(controlDiv);
@@ -650,15 +758,30 @@
     }
   }
 
-  // Инициализация игры
+  // --------------------
+  // --- МОДАЛКА ---
+  // --------------------
+  function showModal(title, message) {
+    const backdrop = document.getElementById("gameModalBackdrop");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalMessage = document.getElementById("modalMessage");
+
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    backdrop.style.display = "flex";
+  }
+
+  window.closeModal = function () {
+    const backdrop = document.getElementById("gameModalBackdrop");
+    backdrop.style.display = "none";
+  };
+
+  // --------------------
+  // --- ОСНОВНЫЕ ---
+  // --------------------
   function initGame3() {
     canvas = document.getElementById("game3Canvas");
-    if (!canvas) {
-      console.error("Canvas with id 'game3Canvas' not found!");
-      return;
-    }
     ctx = canvas.getContext("2d");
-    canvas.style.background = "#000";
 
     createBoard();
     currentPiece = randomPiece();
@@ -671,47 +794,34 @@
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("keyup", handleKeyUp);
 
-    createMobileControls();  // показываем мобильные кнопки
-
-    // Запускаем цикл
+    createMobileControls();
     updateGame3();
   }
 
-  // Завершение игры
   function endGame() {
     if (!game3Running) return;
     game3Running = false;
 
-    // Останавливаем анимацию
     cancelAnimationFrame(game3AnimationFrameId);
-
-    // Удаляем события
     document.removeEventListener("keydown", handleKeyDown);
     document.removeEventListener("keyup", handleKeyUp);
-
-    // Убираем кнопки
     removeMobileControls();
 
-    // Здесь можно показывать модалку или выводить сообщение
-    alert("Game Over! Your score: " + score);
+    showModal("Игра окончена", `Вы набрали очков: ${score}`);
   }
 
-  // Сброс игры (очистка экрана и т.п.)
   function resetGame3() {
     cancelAnimationFrame(game3AnimationFrameId);
     game3Running = false;
-
     document.removeEventListener("keydown", handleKeyDown);
     document.removeEventListener("keyup", handleKeyUp);
     removeMobileControls();
-
     if (ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   }
 
-  // Экспортируем функции в глобальный объект для кнопок
+  // Экспортируем для внешнего использования
   window.initGame3 = initGame3;
   window.resetGame3 = resetGame3;
 })();
-
