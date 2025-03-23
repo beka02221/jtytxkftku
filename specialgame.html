@@ -422,13 +422,11 @@
     /* 
     ============================================================
      Special Snake PvP – Основной код игры с доработками:
-       • Добавлена проверка статуса комнаты при входе.
-       • Используются транзакции при изменении монет и яблока.
-       • На стороне onDisconnect после штатного выхода вызывается cancel(), чтобы избежать удаления комнаты.
-       • Игрок с ролью host (player1) отвечает за появление яблока и выставление gameOver.
-       • Логика роста змейки: при съедании яблока хвост не удаляется.
-       • Запрещены развороты на 180°.
-       • При появлении яблока проверяется, чтобы оно не появилось в теле змейки.
+       • Логика ставок изменена: списание монет происходит через транзакции.
+       • Обработка onDisconnect теперь корректная – ссылки сохраняются и отменяются при штатном завершении.
+       • Для яблока используется транзакция, и только host (player1) отвечает за его съедение и спавн нового.
+       • При росте змейки сначала добавляется голова, а хвост не удаляется, если яблоко съедено.
+       • Генерация яблока осуществляется с проверкой, чтобы оно не появилось в теле ни одной змейки.
     ============================================================
     */
 
@@ -485,8 +483,8 @@
     let previousOpponentSnake = [];
     let lastOpponentUpdateTime = performance.now();
 
-    // Позиция яблока (с флагом taken)
-    let applePos = { x: 0, y: 0, taken: false };
+    // Позиция яблока
+    let applePos = { x: 0, y: 0 };
 
     // Флаги игры
     let isGameRunning = false;
@@ -504,12 +502,16 @@
     let waitingListener = null;
     let oppListener = null;
 
-    // Флаг для обработки съедения яблока (чтобы избежать одновременных транзакций)
-    let isProcessingAppleCollision = false;
+    // Флаг для блокировки параллельной обработки транзакции яблока
+    let appleTransactionInProgress = false;
+
+    // Ссылки на onDisconnect для отмены при штатном завершении
+    let roomOnDisconnectRef = null;
+    let playerOnDisconnectRef = null;
 
     // Цвета змейки
     const snakeColors = {
-      player1: '#FFFF00', // желтый (host)
+      player1: '#FFFF00', // желтый
       player2: '#FF0000'  // красный
     };
 
@@ -518,6 +520,9 @@
 
     // Пригласительная ссылка (больше не используется)
     let inviteLink = "";
+
+    // Флаг отключения противника
+    let opponentDisconnected = false;
 
     // Глобальная переменная для текущего баланса монет
     let currentCoins = 0;
@@ -535,13 +540,6 @@
       if (interp < 0) interp += maxVal;
       if (interp >= maxVal) interp -= maxVal;
       return interp;
-    }
-
-    /* ======================================
-       Проверка попадания координаты в тело змейки
-    ====================================== */
-    function isCoordinateInSnake(pos, snakeArray) {
-      return snakeArray.some(seg => seg.x === pos.x && seg.y === pos.y);
     }
 
     /* ======================================
@@ -571,7 +569,7 @@
       opponentSnake = [];
       opponentScore = 0;
       opponentName = "";
-      applePos = { x: 0, y: 0, taken: false };
+      applePos = { x: 0, y: 0 };
       isGameRunning = false;
       isGameOver = false;
       timerTotal = 60;
@@ -598,7 +596,6 @@
           let found = false;
           snapshot.forEach(child => {
             const room = child.val();
-            // Только если статус "waiting" и создатель не совпадает с текущим пользователем
             if (room.status === 'waiting' && room.creator !== window.currentUser.username) {
               joinRoom(child.key);
               found = true;
@@ -623,7 +620,7 @@
             currentData.coins -= amount * 1e6;
             return currentData;
           } else {
-            return; // abort transaction если недостаточно монет
+            return;
           }
         }
         return;
@@ -634,7 +631,7 @@
       document.getElementById('insufficientModal').style.display = 'flex';
     }
 
-    // Создание комнаты – для создателя монеты списываются позже, при подключении оппонента
+    // Создание комнаты – для создателя теперь не происходит списание сразу
     function createRoom(bet) {
       actuallyCreateRoom(bet);
     }
@@ -651,17 +648,18 @@
     function actuallyCreateRoom(bet) {
       const queueRef = firebase.database().ref('snakeQueue');
       roomId = queueRef.push().key;
-      playerId = 'player1'; // host
+      playerId = 'player1';
       opponentId = 'player2';
-      // Создаём комнату с уникальным ключом
       queueRef.child(roomId).set({
         status: 'waiting',
         createdAt: firebase.database.ServerValue.TIMESTAMP,
         creator: window.currentUser.username,
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
-      // Устанавливаем onDisconnect с последующей отменой при штатном выходе
-      queueRef.child(roomId).onDisconnect().remove();
+      // Сохраняем ссылку на onDisconnect для комнаты, чтобы при штатном завершении её можно было отменить
+      roomOnDisconnectRef = queueRef.child(roomId).onDisconnect();
+      roomOnDisconnectRef.remove();
+      // Пригласительная ссылка более не используется
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -679,8 +677,6 @@
             Object.keys(rooms).forEach(roomKey => {
               const room = rooms[roomKey];
               if (room.creator === window.currentUser.username) return;
-              // Проверяем, что комната доступна для подключения
-              if (room.status !== 'waiting') return;
               const tr = document.createElement('tr');
 
               const creatorTd = document.createElement('td');
@@ -728,10 +724,6 @@
     function joinRoom(roomKey) {
       firebase.database().ref('snakeQueue/' + roomKey).once('value').then(snapshot => {
         const room = snapshot.val();
-        if (!room || room.status !== 'waiting') {
-          console.error("Room is not available to join.");
-          return;
-        }
         const bet = room.bet || 0;
         if (bet > 0) {
           deductUserCoins(bet).then(result => {
@@ -768,6 +760,7 @@
     ====================================== */
     function waitForOpponent() {
       drawSearchScreen();
+      // Показываем кнопку Back, чтобы пользователь мог выйти из ожидания
       document.getElementById('searchBackBtn').style.display = 'block';
       const statusRef = firebase.database().ref('snakeQueue/' + roomId + '/status');
       waitingListener = statusRef.on('value', async (snapshot) => {
@@ -775,6 +768,7 @@
         if (currentStatus === 'ready') {
           statusRef.off('value', waitingListener);
           waitingListener = null;
+          // Скрываем кнопку Back, так как противник найден
           document.getElementById('searchBackBtn').style.display = 'none';
           try {
             const oppSnapshot = await firebase.database()
@@ -821,6 +815,7 @@
             lastOpponentUpdateTime = performance.now();
           } else {
             if (isGameRunning) {
+              opponentDisconnected = true;
               setGameOver();
             }
           }
@@ -862,8 +857,9 @@
             score: 0,
             username: (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'Player'
           }).catch(err => console.error('Error initializing player data:', err));
-          // Устанавливаем onDisconnect с последующей отменой
-          playerRef.onDisconnect().remove()
+          // Сохраняем ссылку на onDisconnect для игрока
+          playerOnDisconnectRef = playerRef.onDisconnect();
+          playerOnDisconnectRef.remove()
             .then(() => console.log("onDisconnect set for player:", playerId))
             .catch(err => console.error("Error setting onDisconnect:", err));
         }
@@ -873,7 +869,6 @@
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
           applePos.x = aData.x;
           applePos.y = aData.y;
-          applePos.taken = aData.taken || false;
         }
       });
       gameStateRef.child('gameOver').on('value', (snapshot) => {
@@ -949,7 +944,6 @@
         score = (data && data.score) ? data.score : 0;
         previousSnake = localSnake.map(seg => ({ ...seg }));
         lastLogicUpdateTime = performance.now();
-        // Если яблоко ещё не установлено, host его создаёт
         gameStateRef.child('apple').once('value').then(appleSnap => {
           if (!appleSnap.exists() && playerId === 'player1') {
             spawnApple();
@@ -976,60 +970,59 @@
       }
     }
 
+    // Новая версия gameLogicUpdate – вычисляем новый head и обрабатываем столкновение с яблоком через транзакцию (только для host)
     function gameLogicUpdate() {
       if (!isGameRunning || isGameOver) return;
-      previousSnake = localSnake.map(seg => ({ ...seg }));
-      
-      // Вычисляем следующую позицию головы, не изменяя массив
-      let nextHead = { ...localSnake[0] };
-      switch (localDirection) {
-        case 'left': nextHead.x--; break;
-        case 'right': nextHead.x++; break;
-        case 'up': nextHead.y--; break;
-        case 'down': nextHead.y++; break;
-      }
-      if (nextHead.x < 0) nextHead.x = tileCountX - 1;
-      if (nextHead.x >= tileCountX) nextHead.x = 0;
-      if (nextHead.y < 0) nextHead.y = tileCountY - 1;
-      if (nextHead.y >= tileCountY) nextHead.y = 0;
+      if (appleTransactionInProgress) return; // чтобы не запускать параллельно транзакцию
 
-      // Если голова попадает на яблоко и ещё не идёт обработка столкновения
-      if (nextHead.x === applePos.x && nextHead.y === applePos.y && !isProcessingAppleCollision) {
-        isProcessingAppleCollision = true;
-        // Транзакция на узле яблока, чтобы только один игрок смог съесть его
-        gameStateRef.child('apple').transaction(currentData => {
-          if (currentData && !currentData.taken) {
-            currentData.taken = true;
-            return currentData;
+      // Копируем голову и вычисляем новую позицию с учётом направления и "обёртки"
+      let head = { ...localSnake[0] };
+      switch (localDirection) {
+        case 'left': head.x--; break;
+        case 'right': head.x++; break;
+        case 'up': head.y--; break;
+        case 'down': head.y++; break;
+      }
+      if (head.x < 0) head.x = tileCountX - 1;
+      if (head.x >= tileCountX) head.x = 0;
+      if (head.y < 0) head.y = tileCountY - 1;
+      if (head.y >= tileCountY) head.y = 0;
+
+      // Если это host и голова попала на яблоко – пытаемся съесть его через транзакцию
+      if (playerId === 'player1' && head.x === applePos.x && head.y === applePos.y) {
+        appleTransactionInProgress = true;
+        gameStateRef.child('apple').transaction(function(currentApple) {
+          if (currentApple && currentApple.x === head.x && currentApple.y === head.y) {
+            return null; // яблоко съедено
           }
-          return; // отмена транзакции, если яблоко уже взято
-        }, (error, committed, snapshot) => {
-          if (committed) {
-            // Если транзакция успешна – добавляем голову, не удаляя хвост (змея растёт)
-            localSnake.unshift(nextHead);
+          return currentApple;
+        }, function(error, committed, snapshot) {
+          if (committed && snapshot.val() === null) {
+            // Успешное съедение: добавляем голову и НЕ удаляем хвост – змея растёт
+            localSnake.unshift(head);
             score++;
             updatePlayerState(true);
-            if (playerId === 'player1') { // только host создаёт новое яблоко
-              spawnApple();
-            }
+            spawnApple();
           } else {
-            // Если транзакция не прошла – выполняем обычное движение
-            localSnake.unshift(nextHead);
+            // Если транзакция не прошла, двигаемся стандартно: добавляем голову и удаляем хвост
+            localSnake.unshift(head);
             localSnake.pop();
             updatePlayerState(false);
           }
-          isProcessingAppleCollision = false;
-          lastLogicUpdateTime = performance.now();
+          appleTransactionInProgress = false;
+          if (checkSelfCollision()) {
+            setGameOver();
+          }
         });
       } else {
-        // Обычное движение змейки
-        localSnake.unshift(nextHead);
+        // Для не-host или если яблоко не съедено – двигаем змейку стандартно
+        localSnake.unshift(head);
         localSnake.pop();
         updatePlayerState(false);
-        lastLogicUpdateTime = performance.now();
+        if (checkSelfCollision()) {
+          setGameOver();
+        }
       }
-      // Здесь можно добавить проверку столкновения с самим собой, если требуется
-      // if(checkSelfCollision()){ setGameOver(); return; }
     }
 
     function renderLoop() {
@@ -1040,7 +1033,126 @@
     }
 
     /* ======================================
-       8. РЕНДЕР ИГРЫ (с интерполяцией)
+       8. ПРОВЕРКА СТОЛКНОВЕНИЯ ЗМЕЙКИ С СОБОЙ
+    ====================================== */
+    function checkSelfCollision() {
+      const head = localSnake[0];
+      for (let i = 1; i < localSnake.length; i++) {
+        if (localSnake[i].x === head.x && localSnake[i].y === head.y) return true;
+      }
+      return false;
+    }
+
+    /* ======================================
+       9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
+    ====================================== */
+    function updatePlayerState(ateApple) {
+      gameStateRef.child('players').child(playerId).update({
+        snake: localSnake,
+        direction: localDirection,
+        score: score
+      }).catch(err => console.error('Error updating player state:', err));
+    }
+
+    // Генерация яблока с проверкой, чтобы оно не появлялось в теле ни одной из змей
+    function spawnApple() {
+      let newApple, valid = false;
+      while (!valid) {
+        newApple = {
+          x: Math.floor(Math.random() * tileCountX),
+          y: Math.floor(Math.random() * tileCountY)
+        };
+        valid = true;
+        // Проверяем локальную змею
+        for (let seg of localSnake) {
+          if (seg.x === newApple.x && seg.y === newApple.y) { valid = false; break; }
+        }
+        // Проверяем змею противника
+        if (valid) {
+          for (let seg of opponentSnake) {
+            if (seg.x === newApple.x && seg.y === newApple.y) { valid = false; break; }
+          }
+        }
+      }
+      gameStateRef.child('apple').set(newApple)
+        .catch(err => console.error('Error setting apple:', err));
+    }
+
+    /* ======================================
+       10. КОНЕЦ ИГРЫ
+    ====================================== */
+    function setGameOver() {
+      if (isGameOver) return;
+      isGameOver = true;
+      gameStateRef.update({ gameOver: true })
+        .catch(err => console.error('Error setting gameOver:', err));
+      endGame();
+    }
+
+    // Функция для распределения ставок после игры
+    function settleBets() {
+      firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snapshot => {
+        const betValue = snapshot.val() || 0;
+        if (betValue > 0) {
+          if (score > opponentScore) {
+            const userRef = firebase.database().ref('users/' + window.currentUser.username);
+            userRef.transaction(currentData => {
+              if (currentData) {
+                currentData.coins = (currentData.coins || 0) + betValue * 1e6 * 2;
+                return currentData;
+              }
+              return;
+            });
+          } else if (score === opponentScore) {
+            const userRef = firebase.database().ref('users/' + window.currentUser.username);
+            userRef.transaction(currentData => {
+              if (currentData) {
+                currentData.coins = (currentData.coins || 0) + betValue * 1e6;
+                return currentData;
+              }
+              return;
+            });
+          }
+        }
+      });
+    }
+
+    function endGame() {
+      stopLogicLoop();
+      settleBets();
+      let resultTitle = '';
+      if (score > opponentScore) {
+        resultTitle = languageStrings[currentLanguage].win;
+      } else if (score < opponentScore) {
+        resultTitle = languageStrings[currentLanguage].lose;
+      } else {
+        resultTitle = languageStrings[currentLanguage].draw;
+      }
+      const msg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
+      showEndGameModal(resultTitle, msg);
+      cleanupRoom();
+    }
+
+    /* ======================================
+       11. ТАЙМЕР (1 минута)
+    ====================================== */
+    function startTimer() {
+      timerCurrent = timerTotal;
+      const timerInterval = setInterval(() => {
+        if (!isGameRunning || isGameOver) {
+          clearInterval(timerInterval);
+          return;
+        }
+        timerCurrent--;
+        if (timerCurrent <= 0) {
+          setGameOver();
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    }
+
+    /* ======================================
+       12. РЕНДЕР ИГРЫ (с интерполяцией)
     ====================================== */
     function renderGame() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1124,7 +1236,7 @@
     }
 
     /* ======================================
-       9. ЭКРАНЫ "SEARCHING / WAITING..."
+       13. ЭКРАНЫ "SEARCHING / WAITING..."
     ====================================== */
     function drawSearchScreen() {
       specialCtx.clearRect(0, 0, specialGameCanvas.width, specialGameCanvas.height);
@@ -1155,7 +1267,7 @@
     }
 
     /* ======================================
-       10. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
+       14. ОБРАБОТКА ВВОДА: ДЖОЙСТИК + КЛАВИАТУРА
     ====================================== */
     function addSwipeListeners() {
       function onKeyDown(e) {
@@ -1249,7 +1361,7 @@
     }
 
     /* ======================================
-       11. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
+       16. МОДАЛЬНОЕ ОКНО КОНЦА ИГРЫ
     ====================================== */
     function showEndGameModal(title, message) {
       const modal = document.getElementById('endgameBackdrop');
@@ -1262,14 +1374,13 @@
     }
 
     /* ======================================
-       12. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
+       17. НАСТРОЙКА КНОПОК УПРАВЛЕНИЯ
     ====================================== */
     function setupControlButtons() {
       const buttons = document.querySelectorAll('.control-button');
       buttons.forEach(button => {
         button.addEventListener('click', () => {
           const newDirection = button.getAttribute('data-direction');
-          // Запрещаем разворот на 180° (если длина змейки больше 1)
           if ((localDirection === 'left' && newDirection === 'right') ||
               (localDirection === 'right' && newDirection === 'left') ||
               (localDirection === 'up' && newDirection === 'down') ||
@@ -1282,13 +1393,10 @@
     }
 
     /* ======================================
-       13. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ и отмена onDisconnect
+       18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
     ====================================== */
     function cleanupRoom() {
       if (roomId) {
-        // Отменяем onDisconnect, чтобы не удалить комнату при штатном завершении
-        firebase.database().ref('snakeGames/' + roomId).onDisconnect().cancel();
-        firebase.database().ref('snakeQueue/' + roomId).onDisconnect().cancel();
         firebase.database().ref('snakeGames/' + roomId).remove()
           .then(() => console.log("Game room removed from snakeGames."))
           .catch(err => console.error("Error removing game room:", err));
@@ -1296,20 +1404,36 @@
           .then(() => console.log("Game room removed from snakeQueue."))
           .catch(err => console.error("Error removing room from snakeQueue:", err));
       }
+      // Отменяем запланированные onDisconnect, если они были установлены
+      if (roomOnDisconnectRef) {
+        roomOnDisconnectRef.cancel();
+        roomOnDisconnectRef = null;
+      }
+      if (playerOnDisconnectRef) {
+        playerOnDisconnectRef.cancel();
+        playerOnDisconnectRef = null;
+      }
     }
 
     window.addEventListener('beforeunload', function() {
       if (roomId && gameStateRef) {
-        // Отменяем onDisconnect для игрока при штатном выходе
-        gameStateRef.child('players').child(playerId).onDisconnect().cancel();
         gameStateRef.child('players').child(playerId).remove();
       }
     });
 
     /* ======================================
-       14. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
+       19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
     ====================================== */
     function finishGame() {
+      // Отменяем onDisconnect, чтобы не удалить комнату при штатном завершении
+      if (roomOnDisconnectRef) {
+        roomOnDisconnectRef.cancel();
+        roomOnDisconnectRef = null;
+      }
+      if (playerOnDisconnectRef) {
+        playerOnDisconnectRef.cancel();
+        playerOnDisconnectRef = null;
+      }
       document.getElementById('endgameBackdrop').classList.remove('active');
       document.getElementById('endgameBackdrop').style.display = 'none';
       window.location.href = 'index.html';
@@ -1319,118 +1443,122 @@
     }
 
     /* ======================================
-       15. ФУНКЦИЯ ОБНОВЛЕНИЯ СОСТОЯНИЯ ИГРОКА (без автоматического роста)
+       20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
     ====================================== */
-    function updatePlayerState(ateApple) {
-      // Если яблоко съедено, змейка уже выросла (не удалён хвост)
-      gameStateRef.child('players').child(playerId).update({
-        snake: localSnake,
-        direction: localDirection,
-        score: score
-      }).catch(err => console.error('Error updating player state:', err));
-    }
+    document.getElementById('createRoomBtn').addEventListener('click', function() {
+      document.getElementById('landingScreen').style.display = 'none';
+      document.getElementById('topBar').style.display = 'none';
+      document.getElementById('createRoomModal').style.display = 'flex';
+    });
 
-    /* ======================================
-       16. ФУНКЦИЯ ПОЯВЛЕНИЯ ЯБЛОКА (только host, с проверкой коллизии)
-    ====================================== */
-    function spawnApple() {
-      if (playerId !== 'player1') return; // только host создаёт яблоко
-      let newApple;
-      let attempts = 0;
-      do {
-        newApple = {
-          x: Math.floor(Math.random() * tileCountX),
-          y: Math.floor(Math.random() * tileCountY)
-        };
-        attempts++;
-        if (attempts > 50) break;
-      } while (isCoordinateInSnake(newApple, localSnake) || isCoordinateInSnake(newApple, opponentSnake));
-      // Устанавливаем яблоко с флагом taken=false
-      gameStateRef.child('apple').set({ ...newApple, taken: false })
-        .catch(err => console.error('Error setting apple:', err));
-    }
+    document.getElementById('searchRoomBtn').addEventListener('click', function() {
+      document.getElementById('landingScreen').style.display = 'none';
+      document.getElementById('topBar').style.display = 'none';
+      document.getElementById('searchRoomModal').style.display = 'flex';
+      searchRooms();
+    });
 
-    /* ======================================
-       17. КОНЕЦ ИГРЫ
-    ====================================== */
-    function setGameOver() {
-      if (isGameOver) return;
-      isGameOver = true;
-      // Только host инициирует транзакцию для gameOver
-      if (playerId === 'player1') {
-        gameStateRef.child('gameOver').transaction(currentData => {
-          if (currentData !== true) {
-            return true;
-          }
-        }).catch(err => console.error('Error setting gameOver:', err));
+    document.getElementById('playFreeBtn').addEventListener('click', function() {
+      document.getElementById('landingScreen').style.display = 'none';
+      document.getElementById('topBar').style.display = 'none';
+      autoJoinFreeGame();
+    });
+
+    document.getElementById('cancelCreateRoomBtn').addEventListener('click', function() {
+      document.getElementById('createRoomModal').style.display = 'none';
+      document.getElementById('landingScreen').style.display = 'flex';
+      document.getElementById('topBar').style.display = 'flex';
+    });
+
+    document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
+      const betValue = parseInt(document.getElementById('betSlider').value);
+      // Проверяем, достаточно ли монет для возможного списания (betValue – в миллионах)
+      if (currentCoins < betValue * 1e6) {
+        showBetError();
+        return;
       }
-      endGame();
-    }
+      createRoom(betValue);
+    });
 
-    // Функция для распределения ставок после игры
-    function settleBets() {
-      firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snapshot => {
-        const betValue = snapshot.val() || 0;
-        if (betValue > 0) {
-          if (score > opponentScore) {
-            const userRef = firebase.database().ref('users/' + window.currentUser.username);
-            userRef.transaction(currentData => {
-              if (currentData) {
-                currentData.coins = (currentData.coins || 0) + betValue * 1e6 * 2;
-                return currentData;
-              }
-              return;
-            });
-          } else if (score === opponentScore) {
-            const userRef = firebase.database().ref('users/' + window.currentUser.username);
-            userRef.transaction(currentData => {
-              if (currentData) {
-                currentData.coins = (currentData.coins || 0) + betValue * 1e6;
-                return currentData;
-              }
-              return;
-            });
-          }
-        }
-      });
-    }
+    document.getElementById('betSlider').addEventListener('input', function() {
+      const value = document.getElementById('betSlider').value;
+      document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
+      document.getElementById('createRoomHint').textContent = languageStrings[currentLanguage].createRoomHint;
+    });
 
-    function endGame() {
-      stopLogicLoop();
-      settleBets();
-      let resultTitle = '';
-      if (score > opponentScore) {
-        resultTitle = languageStrings[currentLanguage].win;
-      } else if (score < opponentScore) {
-        resultTitle = languageStrings[currentLanguage].lose;
-      } else {
-        resultTitle = languageStrings[currentLanguage].draw;
-      }
-      const msg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
-      showEndGameModal(resultTitle, msg);
+    document.getElementById('cancelSearchRoomBtn').addEventListener('click', function() {
+      document.getElementById('searchRoomModal').style.display = 'none';
+      document.getElementById('landingScreen').style.display = 'flex';
+      document.getElementById('topBar').style.display = 'flex';
+    });
+
+    document.getElementById('refreshRoomsBtn').addEventListener('click', function() {
+      searchRooms();
+    });
+
+    document.getElementById('searchBackBtn').addEventListener('click', function() {
       cleanupRoom();
-    }
+      document.getElementById('landingScreen').style.display = 'flex';
+      document.getElementById('topBar').style.display = 'flex';
+      document.getElementById('searchBackBtn').style.display = 'none';
+    });
 
     /* ======================================
-       18. ТАЙМЕР (1 минута)
+       21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     ====================================== */
-    function startTimer() {
-      timerCurrent = timerTotal;
-      const timerInterval = setInterval(() => {
-        if (!isGameRunning || isGameOver) {
-          clearInterval(timerInterval);
-          return;
+    window.addEventListener('load', () => {
+      const firebaseConfig = {
+        apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
+        authDomain: "test-with-likes.firebaseapp.com",
+        databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
+        projectId: "test-with-likes",
+        storageBucket: "test-with-likes.appspot.com",
+        messagingSenderId: "764738820142",
+        appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
+        measurementId: "G-WJNF0HSN9P"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      if (!window.currentUser) {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+          const tgUser = Telegram.WebApp.initDataUnsafe.user;
+          window.currentUser = {
+            username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
+            photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+          };
+        } else {
+          window.currentUser = {
+            username: "TestUser",
+            photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
+          };
         }
-        timerCurrent--;
-        if (timerCurrent <= 0) {
-          setGameOver();
-          clearInterval(timerInterval);
-        }
-      }, 1000);
-    }
+      }
+      if (window.currentUser && window.currentUser.username) {
+        const userRef = firebase.database().ref('users/' + window.currentUser.username);
+        userRef.once('value').then(snapshot => {
+          if (!snapshot.exists()) {
+            userRef.set({
+              coins: 0,
+              tickets: 0,
+              points: 0,
+              lastSpinTime: 0
+            });
+          }
+        });
+        userRef.on('value', snapshot => {
+          const data = snapshot.val() || {};
+          const coins = data.coins || 0;
+          currentCoins = coins;
+          updateCoinDisplay(coins);
+        });
+      }
+      initSpecialGame1();
+      updateLanguageTexts();
+    });
 
     /* ======================================
-       19. ЛОКАЛИЗАЦИЯ
+       22. ЛОКАЛИЗАЦИЯ
     ====================================== */
     let currentLanguage = "en";
     const languageStrings = {
@@ -1524,120 +1652,6 @@
       document.getElementById('coinButton').innerHTML =
         formatNumber(coins) + ' <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>';
     }
-
-    /* ======================================
-       20. СЛУШАТЕЛИ КНОПОК НА ОБУЧАЮЩЕЙ СТРАНИЦЕ
-    ====================================== */
-    document.getElementById('createRoomBtn').addEventListener('click', function() {
-      document.getElementById('landingScreen').style.display = 'none';
-      document.getElementById('topBar').style.display = 'none';
-      document.getElementById('createRoomModal').style.display = 'flex';
-    });
-
-    document.getElementById('searchRoomBtn').addEventListener('click', function() {
-      document.getElementById('landingScreen').style.display = 'none';
-      document.getElementById('topBar').style.display = 'none';
-      document.getElementById('searchRoomModal').style.display = 'flex';
-      searchRooms();
-    });
-
-    document.getElementById('playFreeBtn').addEventListener('click', function() {
-      document.getElementById('landingScreen').style.display = 'none';
-      document.getElementById('topBar').style.display = 'none';
-      autoJoinFreeGame();
-    });
-
-    document.getElementById('cancelCreateRoomBtn').addEventListener('click', function() {
-      document.getElementById('createRoomModal').style.display = 'none';
-      document.getElementById('landingScreen').style.display = 'flex';
-      document.getElementById('topBar').style.display = 'flex';
-    });
-
-    document.getElementById('confirmCreateRoomBtn').addEventListener('click', function() {
-      const betValue = parseInt(document.getElementById('betSlider').value);
-      if (currentCoins < betValue * 1e6) {
-        showBetError();
-        return;
-      }
-      createRoom(betValue);
-    });
-
-    document.getElementById('betSlider').addEventListener('input', function() {
-      const value = document.getElementById('betSlider').value;
-      document.getElementById('betValueDisplay').textContent = value + languageStrings[currentLanguage].betUnit;
-      document.getElementById('createRoomHint').textContent = languageStrings[currentLanguage].createRoomHint;
-    });
-
-    document.getElementById('cancelSearchRoomBtn').addEventListener('click', function() {
-      document.getElementById('searchRoomModal').style.display = 'none';
-      document.getElementById('landingScreen').style.display = 'flex';
-      document.getElementById('topBar').style.display = 'flex';
-    });
-
-    document.getElementById('refreshRoomsBtn').addEventListener('click', function() {
-      searchRooms();
-    });
-
-    document.getElementById('searchBackBtn').addEventListener('click', function() {
-      cleanupRoom();
-      document.getElementById('landingScreen').style.display = 'flex';
-      document.getElementById('topBar').style.display = 'flex';
-      document.getElementById('searchBackBtn').style.display = 'none';
-    });
-
-    /* ======================================
-       21. ЗАПУСК ИГРЫ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
-    ====================================== */
-    window.addEventListener('load', () => {
-      const firebaseConfig = {
-        apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-        authDomain: "test-with-likes.firebaseapp.com",
-        databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-        projectId: "test-with-likes",
-        storageBucket: "test-with-likes.appspot.com",
-        messagingSenderId: "764738820142",
-        appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-        measurementId: "G-WJNF0HSN9P"
-      };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      if (!window.currentUser) {
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
-          const tgUser = Telegram.WebApp.initDataUnsafe.user;
-          window.currentUser = {
-            username: tgUser.username ? tgUser.username : (tgUser.first_name ? tgUser.first_name : "Anonymous"),
-            photo_url: tgUser.photo_url || "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-          };
-        } else {
-          window.currentUser = {
-            username: "TestUser",
-            photo_url: "https://img.icons8.com/ios-filled/50/00FF00/user.png"
-          };
-        }
-      }
-      if (window.currentUser && window.currentUser.username) {
-        const userRef = firebase.database().ref('users/' + window.currentUser.username);
-        userRef.once('value').then(snapshot => {
-          if (!snapshot.exists()) {
-            userRef.set({
-              coins: 0,
-              tickets: 0,
-              points: 0,
-              lastSpinTime: 0
-            });
-          }
-        });
-        userRef.on('value', snapshot => {
-          const data = snapshot.val() || {};
-          const coins = data.coins || 0;
-          currentCoins = coins;
-          updateCoinDisplay(coins);
-        });
-      }
-      initSpecialGame1();
-      updateLanguageTexts();
-    });
   </script>
 </body>
 </html>
