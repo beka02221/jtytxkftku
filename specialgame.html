@@ -424,14 +424,13 @@
      Special Snake PvP – Основной код игры с доработками:
        • Удалена кнопка копирования ссылки.
        • Логика ставок изменена:
-         - Создатель комнаты (player1): коины списываются только после подключения оппонента.
-         - Игрок, который подключается позже (player2): списание происходит сразу.
-       • При создании комнаты ставка сохраняется как полное значение (в монетах, умноженное на 1e6).
+           - Создатель комнаты (player1): коины списываются только после подключения оппонента.
+           - Игрок, который подключается позже (player2): списание происходит сразу.
+       • При создании комнаты ставка сохраняется как полное значение (умноженное на 1e6).
        • Распределение выигрыша:
-            - Если один игрок побеждает, он получает сумму обеих ставок (2×ставка),
-            - А проигравший получает 0.
-            - Если ничья – каждому возвращается своя исходная ставка.
-       • Модальное окно итогов показывает результат игры.
+           - Победитель (тот, у кого score больше) забирает весь банк – сумму своей ставки и ставки соперника (2×ставка).
+           - В случае ничьей каждому возвращается их исходная ставка.
+       • В конце игры в модальном окне выводится информация: результат игры, баллы и сумма выигрыша или проигрыша.
     ============================================================
     */
 
@@ -1042,61 +1041,66 @@
     /* ======================================
        10. КОНЕЦ ИГРЫ
     ====================================== */
-    function setGameOver() {
-      isGameOver = true;
-      gameStateRef.update({ gameOver: true })
-        .catch(err => console.error('Error setting gameOver:', err));
-      endGame();
-    }
-
-    // Функция распределения ставок.
-    // Если локальный игрок выигрывает – возвращается сумма обеих ставок (2×ставка),
-    // если ничья – возвращается его исходная ставка,
-    // а при поражении – ничего не возвращается.
+    // Функция распределения ставок, возвращающая Promise с сообщением для модального окна.
+    // Если игрок выигрывает (score > opponentScore), к его балансу прибавляется 2×ставка (то есть он получает весь банк),
+    // если ничья – возвращается его ставка,
+    // а при поражении средства не возвращаются.
     function settleBets() {
-      firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snapshot => {
+      return firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snapshot => {
         const betValue = snapshot.val() || 0;
         if (betValue > 0) {
           if (score > opponentScore) {
-            // Локальный игрок выигрывает: получает 2×ставка
+            // Победа: добавляем 2×ставку (чистая прибыль = betValue)
             const userRef = firebase.database().ref('users/' + window.currentUser.username);
-            userRef.transaction(currentData => {
+            return userRef.transaction(currentData => {
               if (currentData) {
                 currentData.coins = (currentData.coins || 0) + betValue * 2;
                 return currentData;
               }
               return;
+            }).then(() => {
+              return "You won " + formatNumber(betValue) + "!";
             });
           } else if (score === opponentScore) {
             // Ничья: возвращаем исходную ставку
             const userRef = firebase.database().ref('users/' + window.currentUser.username);
-            userRef.transaction(currentData => {
+            return userRef.transaction(currentData => {
               if (currentData) {
                 currentData.coins = (currentData.coins || 0) + betValue;
                 return currentData;
               }
               return;
+            }).then(() => {
+              return "Draw! You got your bet back.";
             });
+          } else {
+            // Проигрыш: ничего не возвращаем
+            return Promise.resolve("You lost " + formatNumber(betValue) + ".");
           }
-          // При поражении средства не возвращаются.
+        } else {
+          return Promise.resolve("");
         }
       });
     }
 
     function endGame() {
       stopLogicLoop();
-      settleBets();
-      let resultTitle = '';
-      if (score > opponentScore) {
-        resultTitle = languageStrings[currentLanguage].win;
-      } else if (score < opponentScore) {
-        resultTitle = languageStrings[currentLanguage].lose;
-      } else {
-        resultTitle = languageStrings[currentLanguage].draw;
-      }
-      const msg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
-      showEndGameModal(resultTitle, msg);
-      cleanupRoom();
+      // После завершения логики ставок обновляем баланс и получаем сообщение,
+      // которое затем выводится в модальном окне вместе с результатами игры.
+      settleBets().then(message => {
+        let resultTitle = '';
+        if (score > opponentScore) {
+          resultTitle = languageStrings[currentLanguage].win;
+        } else if (score < opponentScore) {
+          resultTitle = languageStrings[currentLanguage].lose;
+        } else {
+          resultTitle = languageStrings[currentLanguage].draw;
+        }
+        const scoreMsg = `Your score: ${formatScore(score)} | Opponent: ${formatScore(opponentScore)}`;
+        const finalMsg = scoreMsg + " " + message;
+        showEndGameModal(resultTitle, finalMsg);
+        cleanupRoom();
+      });
     }
 
     /* ======================================
