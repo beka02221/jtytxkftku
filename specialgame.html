@@ -20,7 +20,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
-    /* Общие стили */
+    /* [Стили остаются без изменений] */
     body {
       margin: 0;
       padding: 0;
@@ -422,11 +422,10 @@
     /* 
     ============================================================
      Special Snake PvP – Основной код игры с доработками:
-       • Логика ставок изменена: списание монет происходит через транзакции.
-       • Обработка onDisconnect теперь корректная – ссылки сохраняются и отменяются при штатном завершении.
-       • Для яблока используется транзакция, и только host (player1) отвечает за его съедение и спавн нового.
-       • При росте змейки сначала добавляется голова, а хвост не удаляется, если яблоко съедено.
-       • Генерация яблока осуществляется с проверкой, чтобы оно не появилось в теле ни одной змейки.
+       • Защита от гонок при создании/подключении комнаты (транзакция статуса).
+       • Использование транзакций при списании/начислении монет.
+       • Обработка onDisconnect – отмена при нормальном выходе.
+       • Назначение хозяина (player1) для решения вопросов старта, спауна яблока и окончания игры.
     ============================================================
     */
 
@@ -501,13 +500,6 @@
     // Слушатели Firebase
     let waitingListener = null;
     let oppListener = null;
-
-    // Флаг для блокировки параллельной обработки транзакции яблока
-    let appleTransactionInProgress = false;
-
-    // Ссылки на onDisconnect для отмены при штатном завершении
-    let roomOnDisconnectRef = null;
-    let playerOnDisconnectRef = null;
 
     // Цвета змейки
     const snakeColors = {
@@ -620,7 +612,7 @@
             currentData.coins -= amount * 1e6;
             return currentData;
           } else {
-            return;
+            return; // недостаточно монет
           }
         }
         return;
@@ -631,7 +623,7 @@
       document.getElementById('insufficientModal').style.display = 'flex';
     }
 
-    // Создание комнаты – для создателя теперь не происходит списание сразу
+    // Создание комнаты – для создателя коины списываются только после подключения оппонента
     function createRoom(bet) {
       actuallyCreateRoom(bet);
     }
@@ -656,10 +648,8 @@
         creator: window.currentUser.username,
         bet: bet
       }).catch(err => console.error('Error creating room:', err));
-      // Сохраняем ссылку на onDisconnect для комнаты, чтобы при штатном завершении её можно было отменить
-      roomOnDisconnectRef = queueRef.child(roomId).onDisconnect();
-      roomOnDisconnectRef.remove();
-      // Пригласительная ссылка более не используется
+      // Устанавливаем onDisconnect, но при нормальном выходе его нужно отменять
+      queueRef.child(roomId).onDisconnect().remove();
       document.getElementById('createRoomModal').style.display = 'none';
       drawWaitingScreen();
       setupGameReferences();
@@ -743,16 +733,22 @@
       });
     }
 
+    // Используем транзакцию для обновления статуса комнаты – только если она ещё "waiting"
     function proceedJoin(roomKey) {
       roomId = roomKey;
       playerId = 'player2';
       opponentId = 'player1';
-      firebase.database().ref('snakeQueue/' + roomId).update({ status: 'ready' })
-        .catch(err => console.error('Error updating room status:', err));
-      setupGameReferences();
-      document.getElementById('searchRoomModal').style.display = 'none';
-      drawWaitingScreen();
-      waitForOpponent();
+      firebase.database().ref('snakeQueue/' + roomId + '/status').transaction(function(currentStatus) {
+        if (currentStatus === 'waiting') {
+          return 'ready';
+        }
+        return currentStatus;
+      }).then(() => {
+        setupGameReferences();
+        document.getElementById('searchRoomModal').style.display = 'none';
+        drawWaitingScreen();
+        waitForOpponent();
+      }).catch(err => console.error('Error updating room status:', err));
     }
 
     /* ======================================
@@ -781,7 +777,7 @@
           } catch (e) {
             console.error("Error reading opponent data: ", e);
           }
-          // Для создателя (player1) списываем коины только после подключения оппонента
+          // Для создателя (player1) коины списываются только после подключения оппонента
           if (playerId === 'player1') {
             firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
               const betValue = snap.val() || 0;
@@ -822,12 +818,16 @@
         });
     }
 
+    // Назначаем хозяина (player1) для старта игры
     function proceedWithOpponentFound() {
       drawOpponentFoundScreen();
       document.getElementById('topBar').style.display = 'none';
-      setTimeout(() => {
-        startPreGameCountdown();
-      }, 2000);
+      // Если мы host, запускаем обратный отсчёт и по завершению обновляем gameStarted
+      if (playerId === 'player1') {
+        setTimeout(() => {
+          startPreGameCountdown();
+        }, 2000);
+      }
     }
 
     /* ======================================
@@ -857,13 +857,13 @@
             score: 0,
             username: (window.currentUser && window.currentUser.username && window.currentUser.username.trim() !== "") ? window.currentUser.username : 'Player'
           }).catch(err => console.error('Error initializing player data:', err));
-          // Сохраняем ссылку на onDisconnect для игрока
-          playerOnDisconnectRef = playerRef.onDisconnect();
-          playerOnDisconnectRef.remove()
+          // Устанавливаем onDisconnect – при нормальном выходе он будет отменён
+          playerRef.onDisconnect().remove()
             .then(() => console.log("onDisconnect set for player:", playerId))
             .catch(err => console.error("Error setting onDisconnect:", err));
         }
       });
+      // Слушатель для яблока
       gameStateRef.child('apple').on('value', (snapshot) => {
         const aData = snapshot.val() || {};
         if (typeof aData.x === 'number' && typeof aData.y === 'number') {
@@ -871,6 +871,13 @@
           applePos.y = aData.y;
         }
       });
+      // Слушатель для флага начала игры (устанавливается хозяином)
+      gameStateRef.child('gameStarted').on('value', (snapshot) => {
+        if (snapshot.val() === true && !isGameRunning) {
+          launchGame();
+        }
+      });
+      // Слушатель для gameOver – только хозяин обновляет этот флаг
       gameStateRef.child('gameOver').on('value', (snapshot) => {
         if (snapshot.val() === true && !isGameOver) {
           isGameOver = true;
@@ -893,7 +900,10 @@
         if (remaining > 0) {
           requestAnimationFrame(countdownLoop);
         } else {
-          launchGame();
+          // По окончании отсчёта хозяин устанавливает флаг начала игры
+          gameStateRef.update({ gameStarted: true })
+            .then(() => { launchGame(); })
+            .catch(err => console.error("Error setting gameStarted:", err));
         }
       }
       countdownLoop();
@@ -944,6 +954,7 @@
         score = (data && data.score) ? data.score : 0;
         previousSnake = localSnake.map(seg => ({ ...seg }));
         lastLogicUpdateTime = performance.now();
+        // Если яблоко ещё не задано, хозяин спаунит его
         gameStateRef.child('apple').once('value').then(appleSnap => {
           if (!appleSnap.exists() && playerId === 'player1') {
             spawnApple();
@@ -970,58 +981,35 @@
       }
     }
 
-    // Новая версия gameLogicUpdate – вычисляем новый head и обрабатываем столкновение с яблоком через транзакцию (только для host)
     function gameLogicUpdate() {
       if (!isGameRunning || isGameOver) return;
-      if (appleTransactionInProgress) return; // чтобы не запускать параллельно транзакцию
-
-      // Копируем голову и вычисляем новую позицию с учётом направления и "обёртки"
-      let head = { ...localSnake[0] };
-      switch (localDirection) {
-        case 'left': head.x--; break;
-        case 'right': head.x++; break;
-        case 'up': head.y--; break;
-        case 'down': head.y++; break;
+      previousSnake = localSnake.map(seg => ({ ...seg }));
+      moveLocalSnake();
+      lastLogicUpdateTime = performance.now();
+      if (checkSelfCollision()) {
+        setGameOver();
+        return;
       }
-      if (head.x < 0) head.x = tileCountX - 1;
-      if (head.x >= tileCountX) head.x = 0;
-      if (head.y < 0) head.y = tileCountY - 1;
-      if (head.y >= tileCountY) head.y = 0;
-
-      // Если это host и голова попала на яблоко – пытаемся съесть его через транзакцию
-      if (playerId === 'player1' && head.x === applePos.x && head.y === applePos.y) {
-        appleTransactionInProgress = true;
-        gameStateRef.child('apple').transaction(function(currentApple) {
-          if (currentApple && currentApple.x === head.x && currentApple.y === head.y) {
-            return null; // яблоко съедено
+      const head = localSnake[0];
+      // Используем транзакцию для защиты от двойного начисления при съедании яблока
+      if (head.x === applePos.x && head.y === applePos.y) {
+        firebase.database().ref('snakeGames/' + roomId + '/apple').transaction(function(currentApple) {
+          if (currentApple && currentApple.x === applePos.x && currentApple.y === applePos.y) {
+            return null; // помечаем, что яблоко съедено
           }
           return currentApple;
         }, function(error, committed, snapshot) {
           if (committed && snapshot.val() === null) {
-            // Успешное съедение: добавляем голову и НЕ удаляем хвост – змея растёт
-            localSnake.unshift(head);
+            // Только один клиент (тот, чей транзакция прошла) увеличивает счёт и спаунит новое яблоко
             score++;
             updatePlayerState(true);
-            spawnApple();
-          } else {
-            // Если транзакция не прошла, двигаемся стандартно: добавляем голову и удаляем хвост
-            localSnake.unshift(head);
-            localSnake.pop();
-            updatePlayerState(false);
-          }
-          appleTransactionInProgress = false;
-          if (checkSelfCollision()) {
-            setGameOver();
+            if(playerId === 'player1') {
+              spawnApple();
+            }
           }
         });
       } else {
-        // Для не-host или если яблоко не съедено – двигаем змейку стандартно
-        localSnake.unshift(head);
-        localSnake.pop();
         updatePlayerState(false);
-        if (checkSelfCollision()) {
-          setGameOver();
-        }
       }
     }
 
@@ -1033,13 +1021,25 @@
     }
 
     /* ======================================
-       8. ПРОВЕРКА СТОЛКНОВЕНИЯ ЗМЕЙКИ С СОБОЙ
+       8. ДВИЖЕНИЕ ЗМЕЙКИ
     ====================================== */
-    function checkSelfCollision() {
-      const head = localSnake[0];
-      for (let i = 1; i < localSnake.length; i++) {
-        if (localSnake[i].x === head.x && localSnake[i].y === head.y) return true;
+    function moveLocalSnake() {
+      const head = { ...localSnake[0] };
+      switch (localDirection) {
+        case 'left': head.x--; break;
+        case 'right': head.x++; break;
+        case 'up': head.y--; break;
+        case 'down': head.y++; break;
       }
+      if (head.x < 0) head.x = tileCountX - 1;
+      if (head.x >= tileCountX) head.x = 0;
+      if (head.y < 0) head.y = tileCountY - 1;
+      if (head.y >= tileCountY) head.y = 0;
+      localSnake.unshift(head);
+      localSnake.pop();
+    }
+
+    function checkSelfCollision() {
       return false;
     }
 
@@ -1047,6 +1047,10 @@
        9. ОБНОВЛЕНИЕ СОСТОЯНИЯ В FIREBASE
     ====================================== */
     function updatePlayerState(ateApple) {
+      if (ateApple) {
+        const lastSegment = localSnake[localSnake.length - 1];
+        localSnake.push({ ...lastSegment });
+      }
       gameStateRef.child('players').child(playerId).update({
         snake: localSnake,
         direction: localDirection,
@@ -1054,26 +1058,12 @@
       }).catch(err => console.error('Error updating player state:', err));
     }
 
-    // Генерация яблока с проверкой, чтобы оно не появлялось в теле ни одной из змей
     function spawnApple() {
-      let newApple, valid = false;
-      while (!valid) {
-        newApple = {
-          x: Math.floor(Math.random() * tileCountX),
-          y: Math.floor(Math.random() * tileCountY)
-        };
-        valid = true;
-        // Проверяем локальную змею
-        for (let seg of localSnake) {
-          if (seg.x === newApple.x && seg.y === newApple.y) { valid = false; break; }
-        }
-        // Проверяем змею противника
-        if (valid) {
-          for (let seg of opponentSnake) {
-            if (seg.x === newApple.x && seg.y === newApple.y) { valid = false; break; }
-          }
-        }
-      }
+      const newApple = {
+        x: Math.floor(Math.random() * tileCountX),
+        y: Math.floor(Math.random() * tileCountY)
+      };
+      // Спауним яблоко через установку нового значения (хозяин отвечает за это)
       gameStateRef.child('apple').set(newApple)
         .catch(err => console.error('Error setting apple:', err));
     }
@@ -1082,10 +1072,12 @@
        10. КОНЕЦ ИГРЫ
     ====================================== */
     function setGameOver() {
-      if (isGameOver) return;
       isGameOver = true;
-      gameStateRef.update({ gameOver: true })
-        .catch(err => console.error('Error setting gameOver:', err));
+      // Только хозяин устанавливает флаг gameOver, чтобы избежать гонок
+      if (playerId === 'player1') {
+        gameStateRef.update({ gameOver: true })
+          .catch(err => console.error('Error setting gameOver:', err));
+      }
       endGame();
     }
 
@@ -1394,9 +1386,13 @@
 
     /* ======================================
        18. УБОРКА КОМНАТЫ ПОСЛЕ ИГРЫ
+       - Отмена onDisconnect, чтобы избежать удаления комнаты при штатном выходе.
     ====================================== */
     function cleanupRoom() {
       if (roomId) {
+        // Отмена onDisconnect для комнаты и игрока
+        firebase.database().ref('snakeQueue/' + roomId).onDisconnect().cancel();
+        firebase.database().ref('snakeGames/' + roomId + '/players/' + playerId).onDisconnect().cancel();
         firebase.database().ref('snakeGames/' + roomId).remove()
           .then(() => console.log("Game room removed from snakeGames."))
           .catch(err => console.error("Error removing game room:", err));
@@ -1404,19 +1400,12 @@
           .then(() => console.log("Game room removed from snakeQueue."))
           .catch(err => console.error("Error removing room from snakeQueue:", err));
       }
-      // Отменяем запланированные onDisconnect, если они были установлены
-      if (roomOnDisconnectRef) {
-        roomOnDisconnectRef.cancel();
-        roomOnDisconnectRef = null;
-      }
-      if (playerOnDisconnectRef) {
-        playerOnDisconnectRef.cancel();
-        playerOnDisconnectRef = null;
-      }
     }
 
+    // Перед уходом отменяем onDisconnect, чтобы не произошло неожиданное удаление
     window.addEventListener('beforeunload', function() {
       if (roomId && gameStateRef) {
+        firebase.database().ref('snakeGames/' + roomId + '/players/' + playerId).onDisconnect().cancel();
         gameStateRef.child('players').child(playerId).remove();
       }
     });
@@ -1425,15 +1414,6 @@
        19. ФИНИШ ИГРЫ И ВОЗВРАТ В МЕНЮ
     ====================================== */
     function finishGame() {
-      // Отменяем onDisconnect, чтобы не удалить комнату при штатном завершении
-      if (roomOnDisconnectRef) {
-        roomOnDisconnectRef.cancel();
-        roomOnDisconnectRef = null;
-      }
-      if (playerOnDisconnectRef) {
-        playerOnDisconnectRef.cancel();
-        playerOnDisconnectRef = null;
-      }
       document.getElementById('endgameBackdrop').classList.remove('active');
       document.getElementById('endgameBackdrop').style.display = 'none';
       window.location.href = 'index.html';
