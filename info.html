@@ -60,6 +60,12 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(1.1); }
     }
+    /* Прогресс текста загрузки */
+    #videoProgress {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    /* Кнопка, появляющаяся после загрузки видео */
     .start-button {
       padding: 10px 20px;
       font-size: 14px;
@@ -70,7 +76,7 @@
       opacity: 0;
       transform: translateY(20px);
       animation: fadeInUp 1s forwards;
-      animation-delay: 2s;
+      animation-delay: 0.3s;
     }
     @keyframes fadeInUp {
       to {
@@ -93,8 +99,7 @@
       z-index: 90;
     }
     .video-container video {
-      /* Автозапуск убран — видео будет запускаться только по кнопке */
-      /* autoplay attribute removed */
+      /* Видео будет запускаться по кнопке, а не автоматически */
       playsinline: true;
       width: 720px;
       height: 720px;
@@ -132,7 +137,7 @@
       font-size: 12px;
       z-index: 110;
     }
-    /* Прогресс-бар */
+    /* Прогресс-бар для слайдов */
     .progress-bar-container {
       position: fixed;
       top: 0;
@@ -206,11 +211,12 @@
   </style>
 </head>
 <body>
-  <!-- Загрузочный экран -->
+  <!-- Загрузочный экран с индикатором загрузки -->
   <div id="loadingScreen" class="loading-screen">
     <div class="spinner"></div>
     <div class="loader-text">Loading... [C:\>_]</div>
-    <button id="startButton" class="start-button">Start</button>
+    <div id="videoProgress">0%</div>
+    <button id="playButton" class="start-button" style="display: none;">Play Video</button>
   </div>
 
   <!-- Контейнер для видео -->
@@ -225,7 +231,7 @@
   <div id="appDescription" class="app-description">
     <!-- Кнопка переключения языка -->
     <button id="langToggle">Русский</button>
-    <!-- Прогресс-бар -->
+    <!-- Прогресс-бар для слайдов -->
     <div class="progress-bar-container">
       <div id="progressBar" class="progress-bar"></div>
     </div>
@@ -361,30 +367,60 @@
       // Изначально обновляем язык (английский)
       updateLanguage();
 
+      // Элементы загрузочного экрана и видео
       const loadingScreen = document.getElementById('loadingScreen');
-      const startButton = document.getElementById('startButton');
+      const playButton = document.getElementById('playButton');
       const videoContainer = document.getElementById('videoContainer');
       const introVideo = document.getElementById('introVideo');
+      const videoProgress = document.getElementById('videoProgress');
       const progressBar = document.getElementById('progressBar');
 
-      // По клику на кнопку старт скрываем загрузочный экран и показываем видео
-      startButton.addEventListener('click', function() {
+      // После загрузки метаданных получаем продолжительность видео
+      introVideo.addEventListener('loadedmetadata', function() {
+        // Начинаем отслеживать прогресс загрузки
+        updateVideoProgress();
+      });
+
+      // Обновление прогресс-барa загрузки видео
+      function updateVideoProgress() {
+        if (introVideo.buffered.length > 0 && introVideo.duration) {
+          const bufferedEnd = introVideo.buffered.end(0);
+          const percent = Math.floor((bufferedEnd / introVideo.duration) * 100);
+          videoProgress.innerText = percent + '%';
+          if (percent >= 100) {
+            // Видео полностью загружено
+            videoProgress.innerText = 'Loaded';
+            // Скрываем спиннер и прогресс и показываем кнопку Play
+            setTimeout(function(){
+              loadingScreen.querySelector('.spinner').style.display = 'none';
+              videoProgress.style.display = 'none';
+              playButton.style.display = 'inline-block';
+              // Применяем анимацию появления кнопки (она уже анимирована через CSS)
+            }, 300);
+          }
+        }
+      }
+
+      // Отслеживаем событие progress для обновления индикатора
+      introVideo.addEventListener('progress', updateVideoProgress);
+
+      // По клику на кнопку Play скрываем загрузочный экран и показываем видео
+      playButton.addEventListener('click', function() {
         loadingScreen.style.display = 'none';
         videoContainer.style.display = 'flex';
-        // Запускаем видео вручную (без autoplay)
         introVideo.play().catch(function(error) {
           console.log("Video play error:", error);
         });
       });
 
-      // По окончании видео показываем экран описания
+      // По окончании видео показываем экран описания и слайдов
       introVideo.addEventListener('ended', function() {
         videoContainer.style.display = 'none';
         document.getElementById('appDescription').style.display = 'flex';
         updateProgress(1);
       });
 
-      // Функция обновления прогресс-бара (каждый слайд повышает прогресс на 20%)
+      // Функция обновления прогресс-бара для слайдов (каждый слайд = 20%)
       function updateProgress(slideNumber) {
         const percent = (slideNumber / totalSlides) * 100;
         progressBar.style.width = percent + '%';
@@ -434,3 +470,4 @@
   </script>
 </body>
 </html>
+
