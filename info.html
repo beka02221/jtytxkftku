@@ -26,7 +26,8 @@
     /* Загрузочный экран */
     .loading-screen {
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       background: #000;
@@ -81,7 +82,8 @@
     .video-container {
       display: none;
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100vh;
       background: #000;
@@ -91,6 +93,9 @@
       z-index: 90;
     }
     .video-container video {
+      /* Автозапуск убран — видео будет запускаться только по кнопке */
+      /* autoplay attribute removed */
+      playsinline: true;
       width: 720px;
       height: 720px;
       max-width: 90%;
@@ -101,7 +106,8 @@
     .app-description {
       display: none;
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       min-height: 100vh;
       background: #000;
@@ -209,7 +215,7 @@
 
   <!-- Контейнер для видео -->
   <div id="videoContainer" class="video-container">
-    <video id="introVideo" autoplay playsinline preload="auto">
+    <video id="introVideo" playsinline preload="auto">
       <source src="https://raw.githubusercontent.com/qnexst/404token/main/intro.mp4" type="video/mp4" />
       Your browser does not support the video tag.
     </video>
@@ -292,7 +298,7 @@
         slide2Title: "PvP Duels",
         slide2Text: "Engage in 1-on-1 battles and stake your tokens. <br><br>Win the entire pot – with a smart commission that burns a fraction to boost token value.",
         slide3Title: "Mini-Games & Leaderboard",
-        slide3Text: "Quick games to earn points. <br><br>Every week, the top 10 players win exclusive cases packed with rewards.",
+        slide3Text: "Quick games to earn tickets and points. <br><br>Every week, the top 10 players win exclusive cases packed with rewards.",
         slide4Title: "Partner Games & Tickets",
         slide4Text: "Explore partner games with exclusive challenges. <br><br>Use tickets – earned daily or purchased – to join the action and unlock bonus rewards.",
         slide5Title: "Join the Revolution",
@@ -309,7 +315,7 @@
         slide2Title: "PvP Дуэли",
         slide2Text: "Сражайтесь 1 на 1 и делайте ставку в токенах. <br><br>Победитель получает весь банк – с умной комиссией, сжигающей часть для роста стоимости токена.",
         slide3Title: "Мини-игры и лидерборд",
-        slide3Text: "Быстрые игры для заработка очков для лидерборда. <br><br>Каждую неделю топ-10 игроков получает эксклюзивные кейсы с наградами.",
+        slide3Text: "Быстрые игры для заработка очков. <br><br>Каждую неделю топ-10 игроков получает эксклюзивные кейсы с наградами.",
         slide4Title: "Партнерские игры и билеты",
         slide4Text: "Исследуйте партнерские игры с уникальными вызовами. <br><br>Используйте билеты – получаемые ежедневно или купленные – чтобы участвовать в мини-играх и получать бонусы.",
         slide5Title: "Присоединяйтесь к революции",
@@ -365,6 +371,7 @@
       startButton.addEventListener('click', function() {
         loadingScreen.style.display = 'none';
         videoContainer.style.display = 'flex';
+        // Запускаем видео вручную (без autoplay)
         introVideo.play().catch(function(error) {
           console.log("Video play error:", error);
         });
