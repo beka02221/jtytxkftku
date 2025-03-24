@@ -206,17 +206,19 @@
           <button id="partnerInfoBtn" class="info-button" onclick="openPartnerInfoModal()">Info</button>
         </h3>
         <div class="games-gallery">
-          <div class="game-card">
-            <img src="https://img.icons8.com/ios-filled/50/00000/handshake.png" alt="Partner Game">
-            <p id="gameCard5Title">Partner Game</p>
-            <button id="gameCard5Button" onclick="openGameInfoModal({
+         <div class="game-card">
+  <img src="https://img.icons8.com/ios-filled/50/00000/handshake.png" alt="Partner Game">
+  <p id="gameCard5Title">Partner Game</p>
+  <!-- Скрываем кнопку Play до момента, когда она станет доступной -->
+  <button id="gameCard5Button" style="display: none;" onclick="openGameInfoModal({ 
               gameId: 'partnergame1',
               title: 'soon',
               img: 'https://img.icons8.com/ios-filled/50/00000/handshake.png',
               desc: 'Game from our partner.',
               cost: 1
             })">Play</button>
-          </div>
+</div>
+
         </div>
       </div>
     </section>
