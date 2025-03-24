@@ -441,7 +441,7 @@
   <!-- Modal for Deposit -->
   <div class="modal-backdrop" id="depositModal">
     <div class="modal">
-      <h2 id="depositModalTitle">Not enough coins</h2>
+      <h2 id="depositModalTitle">Not enough Tokens</h2>
       <p id="depositModalDesc">You do not have enough coins to play. Please top up your balance.</p>
       <button class="close-modal" onclick="closeDepositModal()">Close</button>
     </div>
@@ -980,7 +980,7 @@
       if (!currentUser) return;
       if (isSpinning) return;
       if (localUserData.cyberCase <= 0) {
-        showGlobalModal('Error', 'You have no Cyber Case to open!');
+        showGlobalModal('Error', 'You have no Bug Packs to open!');
         return;
       }
       isSpinning = true;
@@ -1030,14 +1030,7 @@
       document.getElementById('depositModal').classList.remove('active');
     }
   </script>
-  <script>
-  // Скрытая комбинация клавиш для доступа к админ-панели: Ctrl+Shift+A
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-      window.location.href = 'admin.html';
-    }
-  });
-  </script>
+
 </body>
 </html>
 
