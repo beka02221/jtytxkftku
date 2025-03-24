@@ -425,12 +425,11 @@
        • Если игрок выходит (обновляет страницу или закрывает окно) во время игры – его счёт устанавливается в -1, что означает автоматический проигрыш.
        • Кнопка "Join" в списке комнат отключается после первого нажатия.
        • Логика ставок:
-            - Создатель комнаты не теряет монеты до подключения противника.
-            - При входе второго игрока списываются монеты у обоих игроков (ставка в миллионах, умноженная на 1e6).
+            - Создатель комнаты (player1) не теряет монеты до подключения противника.
+            - При заходе второго игрока (player2) списывается ставка сразу.
+            - После изменения статуса комнаты на "ready" списание для player1 происходит один раз.
             - Если списание не удалось у одного из игроков – игра не запускается.
-            - Если игрок выигрывает – его баланс увеличивается на 2×ставку.
-            - Если ничья – возвращается его исходная ставка.
-            - Проигравший не получает ничего.
+            - При победе выигравший получает банк (2×ставка), при ничьей ставка возвращается, проигравший не получает ничего.
        • Итоговое модальное окно отображает, сколько коинов выиграл или проиграл игрок.
     ============================================================
     */
@@ -438,11 +437,14 @@
     // Глобальная переменная для хранения текущей ставки (в монетах)
     let currentBet = 0;
 
-    // Флаг, показывающий, у кого уже списана ставка
+    // Флаги списания ставки
     let betDeducted = {
       player1: false,
       player2: false
     };
+
+    // Флаг, чтобы начисление выигрыша выполнилось один раз
+    let betsSettled = false;
 
     // Функция форматирования чисел для монет (в меню)
     function formatNumber(num) {
@@ -583,6 +585,7 @@
       timerCurrent = 60;
       inviteLink = "";
       betDeducted = { player1: false, player2: false };
+      betsSettled = false;
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -633,6 +636,23 @@
           }
         }
         return;
+      });
+    }
+
+    // Универсальная функция для списания ставки у игрока
+    function deductBetForPlayer(player) {
+      const userRef = firebase.database().ref('users/' + window.currentUser.username);
+      return userRef.transaction(function(currentData) {
+        if (currentData && currentData.coins >= currentBet) {
+          currentData.coins -= currentBet;
+          return currentData;
+        }
+        return;
+      }).then(result => {
+        if (result.committed) {
+          betDeducted[player] = true;
+        }
+        return result;
       });
     }
 
@@ -794,17 +814,16 @@
           } catch (e) {
             console.error("Error reading opponent data: ", e);
           }
-          // Если текущий игрок – создатель, списываем его ставку только сейчас
-          if (playerId === 'player1') {
+          // Если текущий игрок – создатель, списываем его ставку, если ещё не выполнено
+          if (playerId === 'player1' && !betDeducted.player1) {
             firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
               const betValue = snap.val() || 0;
               if (betValue > 0) {
-                deductUserCoins(betValue).then(result => {
+                deductBetForPlayer('player1').then(result => {
                   if (!result.committed) {
                     showInsufficientModal();
                     cleanupRoom();
                   } else {
-                    betDeducted.player1 = true;
                     proceedWithOpponentFound();
                   }
                 });
@@ -1065,11 +1084,10 @@
       endGame();
     }
 
-    // Функция распределения ставок:
-    // Если игрок выигрывает – его баланс увеличивается на 2×currentBet,
-    // если ничья – возвращается currentBet,
-    // проигравший не получает ничего.
+    // Функция распределения ставок – выполняется только один раз
     function settleBets() {
+      if (betsSettled) return;
+      betsSettled = true;
       if (currentBet > 0) {
         const userRef = firebase.database().ref('users/' + window.currentUser.username);
         if (score > opponentScore) {
