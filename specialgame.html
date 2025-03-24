@@ -425,7 +425,10 @@
        • Если игрок выходит (обновляет страницу или закрывает окно) во время игры – его счёт устанавливается в -1, что означает автоматический проигрыш.
        • Кнопка "Join" в списке комнат отключается после первого нажатия.
        • Логика ставок:
-            - Если игрок выигрывает (score больше), он получает весь банк (2×ставка).
+            - Создатель комнаты не теряет монеты до подключения противника.
+            - При входе второго игрока списываются монеты у обоих игроков (ставка в миллионах, умноженная на 1e6).
+            - Если списание не удалось у одного из игроков – игра не запускается.
+            - Если игрок выигрывает – его баланс увеличивается на 2×ставку.
             - Если ничья – возвращается его исходная ставка.
             - Проигравший не получает ничего.
        • Итоговое модальное окно отображает, сколько коинов выиграл или проиграл игрок.
@@ -435,9 +438,11 @@
     // Глобальная переменная для хранения текущей ставки (в монетах)
     let currentBet = 0;
 
-    // Флаги для корректного списания/начисления коинов
-    let creatorDeducted = false;  // чтобы списание для создателя происходило один раз
-    let coinsSettled = false;     // чтобы итоговое начисление происходило один раз
+    // Флаг, показывающий, у кого уже списана ставка
+    let betDeducted = {
+      player1: false,
+      player2: false
+    };
 
     // Функция форматирования чисел для монет (в меню)
     function formatNumber(num) {
@@ -523,6 +528,9 @@
     // Пригласительная ссылка (больше не используется)
     let inviteLink = "";
 
+    // Флаг отключения противника
+    let opponentDisconnected = false;
+
     // Глобальная переменная для текущего баланса монет
     let currentCoins = 0;
 
@@ -574,8 +582,7 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
-      creatorDeducted = false;
-      coinsSettled = false;
+      betDeducted = { player1: false, player2: false };
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -725,17 +732,20 @@
         .catch(err => console.error('Error searching rooms:', err));
     }
 
+    // Функция подключения к комнате (для player2)
     function joinRoom(roomKey) {
       firebase.database().ref('snakeQueue/' + roomKey).once('value').then(snapshot => {
         const room = snapshot.val();
         const bet = room.bet || 0;
         currentBet = bet;
         if (bet > 0) {
+          // Списываем монеты для player2
           deductUserCoins(bet).then(result => {
             if (!result.committed) {
               showInsufficientModal();
               return;
             } else {
+              betDeducted.player2 = true;
               proceedJoin(roomKey);
             }
           }).catch(err => {
@@ -784,28 +794,24 @@
           } catch (e) {
             console.error("Error reading opponent data: ", e);
           }
+          // Если текущий игрок – создатель, списываем его ставку только сейчас
           if (playerId === 'player1') {
-            // Списываем коины для создателя только один раз
-            if (!creatorDeducted) {
-              firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
-                const betValue = snap.val() || 0;
-                if (betValue > 0) {
-                  deductUserCoins(betValue).then(result => {
-                    if (!result.committed) {
-                      showInsufficientModal();
-                      cleanupRoom();
-                    } else {
-                      creatorDeducted = true;
-                      proceedWithOpponentFound();
-                    }
-                  });
-                } else {
-                  proceedWithOpponentFound();
-                }
-              });
-            } else {
-              proceedWithOpponentFound();
-            }
+            firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
+              const betValue = snap.val() || 0;
+              if (betValue > 0) {
+                deductUserCoins(betValue).then(result => {
+                  if (!result.committed) {
+                    showInsufficientModal();
+                    cleanupRoom();
+                  } else {
+                    betDeducted.player1 = true;
+                    proceedWithOpponentFound();
+                  }
+                });
+              } else {
+                proceedWithOpponentFound();
+              }
+            });
           } else {
             proceedWithOpponentFound();
           }
@@ -1052,16 +1058,22 @@
     /* ======================================
        10. КОНЕЦ ИГРЫ
     ====================================== */
+    function setGameOver() {
+      isGameOver = true;
+      gameStateRef.update({ gameOver: true })
+        .catch(err => console.error('Error setting gameOver:', err));
+      endGame();
+    }
+
     // Функция распределения ставок:
     // Если игрок выигрывает – его баланс увеличивается на 2×currentBet,
     // если ничья – возвращается currentBet,
     // проигравший не получает ничего.
     function settleBets() {
-      if (coinsSettled) return;
-      coinsSettled = true;
       if (currentBet > 0) {
+        const userRef = firebase.database().ref('users/' + window.currentUser.username);
         if (score > opponentScore) {
-          const userRef = firebase.database().ref('users/' + window.currentUser.username);
+          // Победитель получает банк (2×ставка)
           userRef.transaction(currentData => {
             if (currentData) {
               currentData.coins = (currentData.coins || 0) + currentBet * 2;
@@ -1070,7 +1082,7 @@
             return;
           });
         } else if (score === opponentScore) {
-          const userRef = firebase.database().ref('users/' + window.currentUser.username);
+          // Ничья – возвращается ставка
           userRef.transaction(currentData => {
             if (currentData) {
               currentData.coins = (currentData.coins || 0) + currentBet;
@@ -1082,7 +1094,7 @@
       }
     }
 
-    // В endGame() формируется итоговое сообщение: если игрок выиграл, пишется, что он выиграл 2×ставку, если проиграл – что проиграл свою ставку.
+    // В endGame() формируется итоговое сообщение
     function endGame() {
       stopLogicLoop();
       settleBets();
