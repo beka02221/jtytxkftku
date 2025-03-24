@@ -60,7 +60,7 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.5; transform: scale(1.1); }
     }
-    /* Прогресс текста загрузки */
+    /* Элемент для отображения процента загрузки видео */
     #videoProgress {
       font-size: 16px;
       margin-bottom: 20px;
@@ -99,7 +99,6 @@
       z-index: 90;
     }
     .video-container video {
-      /* Видео будет запускаться по кнопке, а не автоматически */
       playsinline: true;
       width: 720px;
       height: 720px;
@@ -375,34 +374,44 @@
       const videoProgress = document.getElementById('videoProgress');
       const progressBar = document.getElementById('progressBar');
 
-      // После загрузки метаданных получаем продолжительность видео
+      // После загрузки метаданных начинаем отслеживать прогресс буферизации
       introVideo.addEventListener('loadedmetadata', function() {
-        // Начинаем отслеживать прогресс загрузки
         updateVideoProgress();
       });
 
-      // Обновление прогресс-барa загрузки видео
+      // Функция обновления индикатора загрузки видео
       function updateVideoProgress() {
         if (introVideo.buffered.length > 0 && introVideo.duration) {
           const bufferedEnd = introVideo.buffered.end(0);
-          const percent = Math.floor((bufferedEnd / introVideo.duration) * 100);
+          let percent = Math.floor((bufferedEnd / introVideo.duration) * 100);
+          // Если процент меньше 0 или NaN, принудительно выставляем 0
+          if (isNaN(percent) || percent < 0) { percent = 0; }
           videoProgress.innerText = percent + '%';
-          if (percent >= 100) {
-            // Видео полностью загружено
+          // Если достигли 90% или событие canplaythrough сработало, считаем видео загруженным
+          if (percent >= 90) {
             videoProgress.innerText = 'Loaded';
-            // Скрываем спиннер и прогресс и показываем кнопку Play
             setTimeout(function(){
+              // Скрываем индикаторы загрузки и показываем кнопку воспроизведения
               loadingScreen.querySelector('.spinner').style.display = 'none';
               videoProgress.style.display = 'none';
               playButton.style.display = 'inline-block';
-              // Применяем анимацию появления кнопки (она уже анимирована через CSS)
             }, 300);
+          } else {
+            // Продолжаем обновлять прогресс через 200 мс
+            setTimeout(updateVideoProgress, 200);
           }
         }
       }
 
-      // Отслеживаем событие progress для обновления индикатора
-      introVideo.addEventListener('progress', updateVideoProgress);
+      // Событие canplaythrough в качестве запасного варианта
+      introVideo.addEventListener('canplaythrough', function() {
+        videoProgress.innerText = 'Loaded';
+        setTimeout(function(){
+          loadingScreen.querySelector('.spinner').style.display = 'none';
+          videoProgress.style.display = 'none';
+          playButton.style.display = 'inline-block';
+        }, 300);
+      });
 
       // По клику на кнопку Play скрываем загрузочный экран и показываем видео
       playButton.addEventListener('click', function() {
@@ -470,4 +479,3 @@
   </script>
 </body>
 </html>
-
