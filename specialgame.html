@@ -435,6 +435,10 @@
     // Глобальная переменная для хранения текущей ставки (в монетах)
     let currentBet = 0;
 
+    // Флаги для корректного списания/начисления коинов
+    let creatorDeducted = false;  // чтобы списание для создателя происходило один раз
+    let coinsSettled = false;     // чтобы итоговое начисление происходило один раз
+
     // Функция форматирования чисел для монет (в меню)
     function formatNumber(num) {
       if(num >= 1e9) {
@@ -519,9 +523,6 @@
     // Пригласительная ссылка (больше не используется)
     let inviteLink = "";
 
-    // Флаг отключения противника
-    let opponentDisconnected = false;
-
     // Глобальная переменная для текущего баланса монет
     let currentCoins = 0;
 
@@ -573,6 +574,8 @@
       timerTotal = 60;
       timerCurrent = 60;
       inviteLink = "";
+      creatorDeducted = false;
+      coinsSettled = false;
       if (waitingListener && roomId) {
         firebase.database().ref('snakeQueue/' + roomId + '/status').off('value', waitingListener);
         waitingListener = null;
@@ -630,7 +633,7 @@
       document.getElementById('insufficientModal').style.display = 'flex';
     }
 
-    // Создание комнаты – списание для создателя происходит позже
+    // Создание комнаты – списание для создателя происходит позже (после подключения второго игрока)
     function createRoom(bet) {
       actuallyCreateRoom(bet);
     }
@@ -782,21 +785,27 @@
             console.error("Error reading opponent data: ", e);
           }
           if (playerId === 'player1') {
-            firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
-              const betValue = snap.val() || 0;
-              if (betValue > 0) {
-                deductUserCoins(betValue).then(result => {
-                  if (!result.committed) {
-                    showInsufficientModal();
-                    cleanupRoom();
-                  } else {
-                    proceedWithOpponentFound();
-                  }
-                });
-              } else {
-                proceedWithOpponentFound();
-              }
-            });
+            // Списываем коины для создателя только один раз
+            if (!creatorDeducted) {
+              firebase.database().ref('snakeQueue/' + roomId + '/bet').once('value').then(snap => {
+                const betValue = snap.val() || 0;
+                if (betValue > 0) {
+                  deductUserCoins(betValue).then(result => {
+                    if (!result.committed) {
+                      showInsufficientModal();
+                      cleanupRoom();
+                    } else {
+                      creatorDeducted = true;
+                      proceedWithOpponentFound();
+                    }
+                  });
+                } else {
+                  proceedWithOpponentFound();
+                }
+              });
+            } else {
+              proceedWithOpponentFound();
+            }
           } else {
             proceedWithOpponentFound();
           }
@@ -1043,18 +1052,13 @@
     /* ======================================
        10. КОНЕЦ ИГРЫ
     ====================================== */
-    function setGameOver() {
-      isGameOver = true;
-      gameStateRef.update({ gameOver: true })
-        .catch(err => console.error('Error setting gameOver:', err));
-      endGame();
-    }
-
     // Функция распределения ставок:
     // Если игрок выигрывает – его баланс увеличивается на 2×currentBet,
     // если ничья – возвращается currentBet,
     // проигравший не получает ничего.
     function settleBets() {
+      if (coinsSettled) return;
+      coinsSettled = true;
       if (currentBet > 0) {
         if (score > opponentScore) {
           const userRef = firebase.database().ref('users/' + window.currentUser.username);
@@ -1603,4 +1607,3 @@
   </script>
 </body>
 </html>
-
