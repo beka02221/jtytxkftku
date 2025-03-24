@@ -1029,6 +1029,28 @@
     function closeDepositModal() {
       document.getElementById('depositModal').classList.remove('active');
     }
+
+
+
+    // Добавьте эту функцию в ваш скрипт (например, сразу перед updateTopBar)
+function formatCoins(coins) {
+  if (coins >= 1000000000) {
+    return (coins / 1000000000).toFixed(1).replace(/\.0$/, '') + 'b';
+  } else if (coins >= 1000000) {
+    return (coins / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+  } else if (coins >= 1000) {
+    return (coins / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return coins;
+}
+
+// Измените функцию updateTopBar так, чтобы для coins использовалась функция форматирования:
+function updateTopBar() {
+  document.getElementById('ticketCount').textContent = localUserData.tickets || 0;
+  document.getElementById('coinCount').textContent   = formatCoins(localUserData.coins || 0);
+  document.getElementById('pointCount').textContent  = localUserData.points || 0;
+}
+
   </script>
 
 </body>
