@@ -9,7 +9,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect UI -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <!-- Fonts -->
+  <!-- Шрифт -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
@@ -25,8 +25,9 @@
     #topBar {
       position: fixed; top: 0; left: 0; width: 100%; height: 50px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 15px; background: rgba(14,22,46,0.85);
-      backdrop-filter: blur(8px); z-index: 1000;
+      padding: 0 15px;
+      background: rgba(14,22,46,0.85); backdrop-filter: blur(8px);
+      z-index: 1000;
     }
     #topBar button.action-btn {
       background: linear-gradient(135deg, #bb86fc, #29b6f6);
@@ -39,7 +40,7 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
-    /* Переопределяем стиль кнопки "Connect Wallet" */
+    /* Переопределяем стиль кнопки TonConnect */
     #connect button {
       background: linear-gradient(135deg, #bb86fc, #29b6f6) !important;
       border: none !important; border-radius: 8px !important;
@@ -55,8 +56,8 @@
     /* ======= Main Container ======= */
     .container {
       margin-top: 60px; padding: 20px;
-      display: flex; flex-direction: column;
-      align-items: center; animation: appear 0.5s ease forwards;
+      display: flex; flex-direction: column; align-items: center;
+      animation: appear 0.5s ease forwards;
       min-height: calc(100vh - 60px);
     }
     @keyframes appear {
@@ -69,8 +70,8 @@
       align-items: center; margin-bottom: 40px;
     }
     .username {
-      font-family: 'Press Start 2P', monospace;
-      color: #bb86fc; font-size: 16px; margin-bottom: 5px;
+      font-family: 'Press Start 2P', monospace; color: #bb86fc;
+      font-size: 16px; margin-bottom: 5px;
     }
     .tickets-count {
       font-size: 28px; font-weight: bold;
@@ -80,7 +81,7 @@
     /* ======= Slider and Input Block ======= */
     .slider-block {
       width: 100%; max-width: 400px;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255,255,255,0.05);
       padding: 20px; border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       display: flex; flex-direction: column;
@@ -95,17 +96,15 @@
       align-items: center; justify-content: space-around;
     }
     input[type="range"] {
-      -webkit-appearance: none;
-      width: 60%; height: 8px;
+      -webkit-appearance: none; width: 60%; height: 8px;
       background: linear-gradient(90deg, #bb86fc, #29b6f6);
       border-radius: 5px; outline: none;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 20px; height: 20px;
-      background: #ffffff;
-      border-radius: 50%; border: 2px solid #29b6f6;
-      cursor: pointer;
+      background: #ffffff; border-radius: 50%;
+      border: 2px solid #29b6f6; cursor: pointer;
     }
     #ticketInput {
       width: 70px; text-align: center;
@@ -140,29 +139,31 @@
       position: fixed; top: 0; left: 0;
       width: 100vw; height: 100vh;
       display: none; align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.5); z-index: 2000;
+      justify-content: center; background: rgba(0,0,0,0.5);
+      z-index: 2000;
     }
     .modal-content {
       background: rgba(14,22,46,0.95);
       padding: 20px; border-radius: 10px;
-      text-align: center;
-      width: 80%; max-width: 360px;
+      text-align: center; width: 80%; max-width: 360px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     }
-    .modal-content p { font-size: 14px; color: #e0e0e0; margin-bottom: 16px; }
+    .modal-content p {
+      font-size: 14px; color: #e0e0e0;
+      margin-bottom: 16px;
+    }
     /* ======= Responsive Styles for Mobile ======= */
-    @media (max-width: 480px) {
-      .slider-block { padding: 15px; }
-      .slider-title { font-size: 14px; }
-      .tickets-count { font-size: 24px; }
-      button.action-btn { padding: 8px 16px; font-size: 12px; }
-      #ticketInput { width: 60px; font-size: 14px; }
+    @media (max-width:480px){
+      .slider-block { padding:15px; }
+      .slider-title { font-size:14px; }
+      .tickets-count{ font-size:24px; }
+      button.action-btn { padding:8px 16px; font-size:12px; }
+      #ticketInput { width:60px; font-size:14px; }
     }
   </style>
 </head>
 <body>
-  <!-- Top Navigation Bar: Back, Language Switch и TonConnect -->
+  <!-- Top Navigation Bar: "Back", "Language Switch" and TonConnect -->
   <div id="topBar">
     <button id="backButton" class="action-btn" onclick="goBack()" aria-label="Back">&#8592;</button>
     <button id="langSwitchBtn" class="action-btn" onclick="toggleLanguage()" aria-label="Switch Language">RU</button>
@@ -199,9 +200,7 @@
   </div>
 
   <script>
-    /* --------------------------------------------------
-       1. Language Switching (Initial language: English)
-    -------------------------------------------------- */
+    /* 1. Language Switching */
     let currentLanguage = 'en';
     const translations = {
       ru: {
@@ -238,26 +237,25 @@
     }
     updateTexts();
 
-    /* --------------------------------------------------
-       2. Telegram WebApp
-    -------------------------------------------------- */
+    /* 2. Telegram WebApp */
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    /* 3. Переменные */
     let currentUsername = null;
     let localTickets = 0;
-    // Адрес вашего Python-бэкенда с Firebase. При локальном тестировании оставьте http://localhost:3000, а в продакшене замените на реальный URL.
+
+    // Замените на реальный адрес, где запущен ваш Python-сервер:
     const BACKEND_URL = 'http://localhost:3000';
 
-    /* --------------------------------------------------
-       3. Функции для общения с бэкендом (GET и POST)
-    -------------------------------------------------- */
+    /* 4. Получение и обновление данных через сервер */
     async function getUserData(username) {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/user/${username}`);
-        if (res.ok) {
-          return await res.json();
+        const resp = await fetch(`${BACKEND_URL}/api/user/${username}`);
+        if (resp.ok) {
+          return await resp.json();
         } else {
+          // Может быть 404: user not found
           return null;
         }
       } catch (err) {
@@ -268,29 +266,31 @@
 
     async function updateUserData(username, data) {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/user/${username}`, {
+        const resp = await fetch(`${BACKEND_URL}/api/user/${username}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-        return await res.json();
+        return await resp.json();
       } catch (err) {
         console.error(err);
         return null;
       }
     }
 
-    /* --------------------------------------------------
-       4. Проверка Telegram-пользователя и загрузка/инициализация данных
-    -------------------------------------------------- */
+    /* 5. Проверка Telegram пользователя и загрузка данных */
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      currentUsername = tg.initDataUnsafe.user.username || '';
+      let rawUsername = tg.initDataUnsafe.user.username || '';
+      // Убираем @, если есть
+      currentUsername = rawUsername.replace(/^@/, '');
+
+      // Отобразим с собачкой, но в базе храним без
       document.getElementById('username').textContent = '@' + currentUsername;
+
       if (currentUsername) {
-        // Загружаем данные пользователя через API (Firebase через сервер)
-        getUserData(currentUsername).then(data => {
-          if (!data) {
-            // Если данных нет, создаём нового пользователя с начальными значениями
+        getUserData(currentUsername).then(userData => {
+          if (!userData) {
+            // Если не найден, создаём пользователя (tickets=0)
             updateUserData(currentUsername, {
               tickets: 0,
               points: 0,
@@ -300,7 +300,7 @@
               updateTicketsDisplay(localTickets);
             });
           } else {
-            localTickets = data.tickets || 0;
+            localTickets = userData.tickets || 0;
             updateTicketsDisplay(localTickets);
           }
         });
@@ -309,31 +309,24 @@
       document.getElementById('username').textContent = translations[currentLanguage].userNotAuthorized;
     }
 
-    /* --------------------------------------------------
-       5. Обновление отображения количества билетов
-    -------------------------------------------------- */
+    /* 6. Функция отображения билетов */
     function updateTicketsDisplay(tickets) {
       document.getElementById('balance').innerHTML = `<b>${tickets}</b>`;
     }
 
-    /* --------------------------------------------------
-       6. Back Button
-    -------------------------------------------------- */
+    /* 7. Back Button */
     function goBack() {
+      // Вернуться на другую страницу или закрыть WebApp
       window.location.href = 'index.html';
     }
 
-    /* --------------------------------------------------
-       7. TonConnect UI
-    -------------------------------------------------- */
+    /* 8. TonConnect UI */
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://beka02221.github.io/tonmonifestjson/tonconnect-manifest.json',
       buttonRootId: 'connect'
     });
 
-    /* --------------------------------------------------
-       8. Синхронизация ползунка и поля ввода
-    -------------------------------------------------- */
+    /* 9. Синхронизация ползунка и поля */
     function updatePriceDisplay(ticketCount) {
       const price = (ticketCount * 0.1).toFixed(1);
       document.getElementById('priceDisplay').textContent = `Price: ${price} TON`;
@@ -348,15 +341,14 @@
       if (isNaN(val)) val = 5;
       if (val < 5) val = 5;
       if (val > 30) val = 30;
+      // шаг 5
       val = Math.round(val / 5) * 5;
       document.getElementById('ticketInput').value = val;
       document.getElementById('ticketRange').value = val;
       updatePriceDisplay(val);
     }
 
-    /* --------------------------------------------------
-       9. Modal Window для уведомлений
-    -------------------------------------------------- */
+    /* 10. Модальное окно (уведомления) */
     function showModal(message) {
       document.getElementById('modalMessage').textContent = message;
       document.getElementById('notificationModal').style.display = 'flex';
@@ -365,9 +357,7 @@
       document.getElementById('notificationModal').style.display = 'none';
     }
 
-    /* --------------------------------------------------
-       10. Отправка транзакции (makeDeposit)
-    -------------------------------------------------- */
+    /* 11. Функция покупки билетов (отправка транзакции) */
     async function makeDeposit() {
       if (!currentUsername) {
         showModal(translations[currentLanguage].userError);
@@ -375,7 +365,9 @@
       }
       const val = parseInt(document.getElementById('ticketInput').value, 10);
       const ticketCount = isNaN(val) ? 5 : val;
+      // Переводим TON -> nanoTON
       const nanoAmount = (ticketCount * 0.1 * 1e9).toString();
+
       const transaction = {
         validUntil: Math.round(Date.now() / 1000) + 60,
         messages: [
@@ -385,19 +377,26 @@
           }
         ]
       };
+
       try {
         // Отправляем транзакцию через TonConnect
         await tonConnectUI.sendTransaction(transaction);
+
+        // При успехе увеличим локально и обновим на сервере
         localTickets += ticketCount;
         updateTicketsDisplay(localTickets);
-        // Обновляем данные пользователя через API (Firebase через сервер)
+
+        // Запишем в Firebase через наш сервер
         await updateUserData(currentUsername, { tickets: localTickets });
+
         const price = (ticketCount * 0.1).toFixed(1);
         showModal(translations[currentLanguage].depositSuccess(ticketCount, price));
       } catch (err) {
+        console.error(err);
         showModal(translations[currentLanguage].depositError);
       }
     }
   </script>
 </body>
 </html>
+
