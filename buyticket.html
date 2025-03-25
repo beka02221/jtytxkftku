@@ -9,196 +9,122 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect UI -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
     /* ======= Basic resets and styles ======= */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      width: 100%;
-      height: 100%;
-      background-color: #0e162e;
-      color: #e0e0e0;
-      font-family: sans-serif;
-      overflow-x: hidden;
+      width: 100%; height: 100%;
+      background-color: #0e162e; color: #e0e0e0;
+      font-family: sans-serif; overflow-x: hidden;
     }
-    body {
-      display: flex;
-      flex-direction: column;
-    }
-
+    body { display: flex; flex-direction: column; }
     /* ======= Top Navigation Bar ======= */
     #topBar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 15px;
-      background: rgba(14,22,46,0.85);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
+      position: fixed; top: 0; left: 0; width: 100%; height: 50px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 15px; background: rgba(14,22,46,0.85);
+      backdrop-filter: blur(8px); z-index: 1000;
     }
-    /* Кнопки Back и Language как action-btn */
     #topBar button.action-btn {
       background: linear-gradient(135deg, #bb86fc, #29b6f6);
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      color: #ffffff;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 14px;
-      cursor: pointer;
+      border: none; border-radius: 8px; padding: 8px 16px;
+      color: #ffffff; font-family: 'Press Start 2P', monospace;
+      font-size: 14px; cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
     }
     #topBar button.action-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
-    /* Переопределяем стиль кнопки "Connect Wallet", создаваемой TonConnect UI */
+    /* Переопределяем стиль кнопки "Connect Wallet" */
     #connect button {
       background: linear-gradient(135deg, #bb86fc, #29b6f6) !important;
-      border: none !important;
-      border-radius: 8px !important;
-      padding: 8px 16px !important;
-      color: #ffffff !important;
+      border: none !important; border-radius: 8px !important;
+      padding: 8px 16px !important; color: #ffffff !important;
       font-family: 'Press Start 2P', monospace !important;
-      font-size: 14px !important;
-      cursor: pointer !important;
+      font-size: 14px !important; cursor: pointer !important;
       transition: transform 0.2s, box-shadow 0.2s !important;
     }
     #connect button:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
-
     /* ======= Main Container ======= */
     .container {
-      margin-top: 60px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      animation: appear 0.5s ease forwards;
+      margin-top: 60px; padding: 20px;
+      display: flex; flex-direction: column;
+      align-items: center; animation: appear 0.5s ease forwards;
       min-height: calc(100vh - 60px);
     }
     @keyframes appear {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     /* ======= Balance Block ======= */
     .balance-block {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 40px;
+      display: flex; flex-direction: column;
+      align-items: center; margin-bottom: 40px;
     }
     .username {
       font-family: 'Press Start 2P', monospace;
-      color: #bb86fc;
-      font-size: 16px;
-      margin-bottom: 5px;
+      color: #bb86fc; font-size: 16px; margin-bottom: 5px;
     }
     .tickets-count {
-      font-size: 28px;
-      font-weight: bold;
-      color: #ffffff;
-      margin-bottom: 10px;
+      font-size: 28px; font-weight: bold;
+      color: #ffffff; margin-bottom: 10px;
     }
-    .balance-block img {
-      width: 24px;
-      height: 24px;
-    }
-
+    .balance-block img { width: 24px; height: 24px; }
     /* ======= Slider and Input Block ======= */
     .slider-block {
-      width: 100%;
-      max-width: 400px;
+      width: 100%; max-width: 400px;
       background: rgba(255, 255, 255, 0.05);
-      padding: 20px;
-      border-radius: 10px;
+      padding: 20px; border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 20px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 15px; margin-bottom: 20px;
     }
     .slider-title {
       font-family: 'Press Start 2P', monospace;
-      font-size: 16px;
-      color: #bb86fc;
-      text-align: center;
+      font-size: 16px; color: #bb86fc; text-align: center;
     }
     .slider-row {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
+      width: 100%; display: flex;
+      align-items: center; justify-content: space-around;
     }
     input[type="range"] {
       -webkit-appearance: none;
-      width: 60%;
-      height: 8px;
+      width: 60%; height: 8px;
       background: linear-gradient(90deg, #bb86fc, #29b6f6);
-      border-radius: 5px;
-      outline: none;
+      border-radius: 5px; outline: none;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
+      width: 20px; height: 20px;
       background: #ffffff;
-      border-radius: 50%;
-      border: 2px solid #29b6f6;
+      border-radius: 50%; border: 2px solid #29b6f6;
       cursor: pointer;
     }
     #ticketInput {
-      width: 70px;
-      text-align: center;
-      font-size: 16px;
-      border: 1px solid #29b6f6;
-      border-radius: 8px;
-      padding: 6px;
-      color: #ffffff;
-      background-color: transparent;
+      width: 70px; text-align: center;
+      font-size: 16px; border: 1px solid #29b6f6;
+      border-radius: 8px; padding: 6px;
+      color: #ffffff; background-color: transparent;
     }
-    #ticketInput:focus {
-      outline: none;
-      box-shadow: 0 0 5px #bb86fc;
-    }
-    #priceDisplay {
-      font-size: 14px;
-      color: #ffffff;
-    }
-
-    /* ======= Action Button (для остальных кнопок на странице) ======= */
+    #ticketInput:focus { outline: none; box-shadow: 0 0 5px #bb86fc; }
+    #priceDisplay { font-size: 14px; color: #ffffff; }
+    /* ======= Action Button ======= */
     button.action-btn {
       font-family: 'Press Start 2P', monospace;
-      font-size: 14px;
-      text-transform: uppercase;
+      font-size: 14px; text-transform: uppercase;
       letter-spacing: 1px;
       background: linear-gradient(135deg, #bb86fc, #29b6f6);
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      color: #ffffff;
+      border: none; border-radius: 8px;
+      padding: 10px 20px; color: #ffffff;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
       margin-top: 10px;
     }
     button.action-btn:hover {
@@ -209,66 +135,37 @@
       transform: translateY(0);
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
-
     /* ======= Modal Window ======= */
     #notificationModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      display: none;
-      align-items: center;
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: none; align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.5);
-      z-index: 2000;
+      background: rgba(0,0,0,0.5); z-index: 2000;
     }
     .modal-content {
       background: rgba(14,22,46,0.95);
-      padding: 20px;
-      border-radius: 10px;
+      padding: 20px; border-radius: 10px;
       text-align: center;
-      width: 80%;
-      max-width: 360px;
+      width: 80%; max-width: 360px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.4);
     }
-    .modal-content p {
-      font-size: 14px;
-      color: #e0e0e0;
-      margin-bottom: 16px;
-    }
-
+    .modal-content p { font-size: 14px; color: #e0e0e0; margin-bottom: 16px; }
     /* ======= Responsive Styles for Mobile ======= */
     @media (max-width: 480px) {
-      .slider-block {
-        padding: 15px;
-      }
-      .slider-title {
-        font-size: 14px;
-      }
-      .tickets-count {
-        font-size: 24px;
-      }
-      button.action-btn {
-        padding: 8px 16px;
-        font-size: 12px;
-      }
-      #ticketInput {
-        width: 60px;
-        font-size: 14px;
-      }
+      .slider-block { padding: 15px; }
+      .slider-title { font-size: 14px; }
+      .tickets-count { font-size: 24px; }
+      button.action-btn { padding: 8px 16px; font-size: 12px; }
+      #ticketInput { width: 60px; font-size: 14px; }
     }
   </style>
 </head>
 <body>
-  <!-- Top Navigation Bar: "Back", "Language Switch" and TonConnect -->
+  <!-- Top Navigation Bar: Back, Language Switch и TonConnect -->
   <div id="topBar">
-    <button id="backButton" class="action-btn" onclick="goBack()" aria-label="Back">
-      &#8592;
-    </button>
-    <button id="langSwitchBtn" class="action-btn" onclick="toggleLanguage()" aria-label="Switch Language">
-      RU
-    </button>
+    <button id="backButton" class="action-btn" onclick="goBack()" aria-label="Back">&#8592;</button>
+    <button id="langSwitchBtn" class="action-btn" onclick="toggleLanguage()" aria-label="Switch Language">RU</button>
     <div id="connect"></div>
   </div>
 
@@ -289,9 +186,7 @@
         <input type="number" id="ticketInput" min="5" max="30" step="5" value="5" oninput="onTicketInputChange()" aria-label="Number of tickets" />
       </div>
       <div id="priceDisplay">Price: 0.5 TON</div>
-      <button class="action-btn" id="depositBtn" onclick="makeDeposit()" aria-label="Buy Tickets">
-        Buy Tickets
-      </button>
+      <button class="action-btn" id="depositBtn" onclick="makeDeposit()" aria-label="Buy Tickets">Buy Tickets</button>
     </div>
   </div>
 
@@ -350,46 +245,64 @@
     tg.expand();
 
     let currentUsername = null;
-    let userRef = null;
     let localTickets = 0;
+    // Адрес вашего Python-бэкенда с Firebase. При локальном тестировании оставьте http://localhost:3000, а в продакшене замените на реальный URL.
+    const BACKEND_URL = 'http://localhost:3000';
 
     /* --------------------------------------------------
-       3. Firebase Initialization
+       3. Функции для общения с бэкендом (GET и POST)
     -------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB90ev3fJRDKmn64hLTJaWjVjpHQtMjhLg",
-      authDomain: "test-with-likes.firebaseapp.com",
-      databaseURL: "https://test-with-likes-default-rtdb.firebaseio.com",
-      projectId: "test-with-likes",
-      storageBucket: "test-with-likes",
-      messagingSenderId: "764738820142",
-      appId: "1:764738820142:web:b22c6608a30e46cdcea7bf",
-      measurementId: "G-WJNF0HSN9P"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    async function getUserData(username) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/user/${username}`);
+        if (res.ok) {
+          return await res.json();
+        } else {
+          return null;
+        }
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    }
+
+    async function updateUserData(username, data) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/user/${username}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    }
 
     /* --------------------------------------------------
-       4. Check Telegram User
+       4. Проверка Telegram-пользователя и загрузка/инициализация данных
     -------------------------------------------------- */
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUsername = tg.initDataUnsafe.user.username || '';
       document.getElementById('username').textContent = '@' + currentUsername;
       if (currentUsername) {
-        userRef = db.ref('users/' + currentUsername);
-        userRef.once('value', snapshot => {
-          if (!snapshot.exists()) {
-            userRef.set({
+        // Загружаем данные пользователя через API (Firebase через сервер)
+        getUserData(currentUsername).then(data => {
+          if (!data) {
+            // Если данных нет, создаём нового пользователя с начальными значениями
+            updateUserData(currentUsername, {
               tickets: 0,
               points: 0,
               lastSpinTime: 0
+            }).then(() => {
+              localTickets = 0;
+              updateTicketsDisplay(localTickets);
             });
+          } else {
+            localTickets = data.tickets || 0;
+            updateTicketsDisplay(localTickets);
           }
-        });
-        userRef.on('value', snapshot => {
-          const data = snapshot.val() || {};
-          localTickets = data.tickets || 0;
-          updateTicketsDisplay(localTickets);
         });
       }
     } else {
@@ -397,7 +310,7 @@
     }
 
     /* --------------------------------------------------
-       5. Update Ticket Display
+       5. Обновление отображения количества билетов
     -------------------------------------------------- */
     function updateTicketsDisplay(tickets) {
       document.getElementById('balance').innerHTML = `<b>${tickets}</b>`;
@@ -419,7 +332,7 @@
     });
 
     /* --------------------------------------------------
-       8. Synchronize Slider and Input
+       8. Синхронизация ползунка и поля ввода
     -------------------------------------------------- */
     function updatePriceDisplay(ticketCount) {
       const price = (ticketCount * 0.1).toFixed(1);
@@ -442,7 +355,7 @@
     }
 
     /* --------------------------------------------------
-       9. Modal Window for Notifications
+       9. Modal Window для уведомлений
     -------------------------------------------------- */
     function showModal(message) {
       document.getElementById('modalMessage').textContent = message;
@@ -453,10 +366,10 @@
     }
 
     /* --------------------------------------------------
-       10. Send Transaction (makeDeposit)
+       10. Отправка транзакции (makeDeposit)
     -------------------------------------------------- */
     async function makeDeposit() {
-      if (!currentUsername || !userRef) {
+      if (!currentUsername) {
         showModal(translations[currentLanguage].userError);
         return;
       }
@@ -473,10 +386,12 @@
         ]
       };
       try {
+        // Отправляем транзакцию через TonConnect
         await tonConnectUI.sendTransaction(transaction);
         localTickets += ticketCount;
         updateTicketsDisplay(localTickets);
-        userRef.update({ tickets: localTickets });
+        // Обновляем данные пользователя через API (Firebase через сервер)
+        await updateUserData(currentUsername, { tickets: localTickets });
         const price = (ticketCount * 0.1).toFixed(1);
         showModal(translations[currentLanguage].depositSuccess(ticketCount, price));
       } catch (err) {
