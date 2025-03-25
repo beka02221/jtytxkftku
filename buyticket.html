@@ -314,7 +314,7 @@
         langBtn: "EN",
         sliderTitle: "Сколько билетов?",
         depositBtn: "Купить билеты",
-        depositSuccess: (tickets, price) => Успешная покупка: ${tickets} билетов за ${price} TON!,
+        depositSuccess: (tickets, price) => `Успешная покупка: ${tickets} билетов за ${price} TON!`,
         depositError: "Транзакция отклонена или произошла ошибка.",
         userError: "Ошибка: пользователь Telegram не определён!",
         userNotAuthorized: "Не авторизован в Telegram"
@@ -324,7 +324,7 @@
         langBtn: "RU",
         sliderTitle: "How many tickets?",
         depositBtn: "Buy Tickets",
-        depositSuccess: (tickets, price) => Successfully purchased ${tickets} tickets for ${price} TON!,
+        depositSuccess: (tickets, price) => `Successfully purchased ${tickets} tickets for ${price} TON!`,
         depositError: "Transaction was declined or an error occurred.",
         userError: "Error: Telegram user is not defined!",
         userNotAuthorized: "Not authorized in Telegram"
@@ -353,6 +353,8 @@
     let userRef = null;
     let localTickets = 0;
 
+
+
     /* --------------------------------------------------
        3. Firebase Initialization
     -------------------------------------------------- */
@@ -369,6 +371,21 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /* --------------------------------------------------
        4. Check Telegram User
     -------------------------------------------------- */
@@ -380,10 +397,17 @@
         userRef.once('value', snapshot => {
           if (!snapshot.exists()) {
             userRef.set({
+
               tickets: 0,
               points: 0,
               lastSpinTime: 0
+
+
+
             });
+
+
+
           }
         });
         userRef.on('value', snapshot => {
@@ -400,7 +424,7 @@
        5. Update Ticket Display
     -------------------------------------------------- */
     function updateTicketsDisplay(tickets) {
-      document.getElementById('balance').innerHTML = <b>${tickets}</b>;
+      document.getElementById('balance').innerHTML = `<b>${tickets}</b>`;
     }
 
     /* --------------------------------------------------
@@ -423,7 +447,7 @@
     -------------------------------------------------- */
     function updatePriceDisplay(ticketCount) {
       const price = (ticketCount * 0.1).toFixed(1);
-      document.getElementById('priceDisplay').textContent = Price: ${price} TON;
+      document.getElementById('priceDisplay').textContent = `Price: ${price} TON`;
     }
     function onTicketRangeInput() {
       const val = document.getElementById('ticketRange').value;
@@ -473,10 +497,12 @@
         ]
       };
       try {
+
         await tonConnectUI.sendTransaction(transaction);
         localTickets += ticketCount;
         updateTicketsDisplay(localTickets);
         userRef.update({ tickets: localTickets });
+
         const price = (ticketCount * 0.1).toFixed(1);
         showModal(translations[currentLanguage].depositSuccess(ticketCount, price));
       } catch (err) {
