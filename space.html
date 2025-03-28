@@ -236,7 +236,7 @@
     <div id="gameContainer" style="display: none;">
       <!-- Игровой canvas и элементы управления -->
       <canvas class="game"></canvas>
-      <!-- Добавляем кнопки управления с SVG (блок controlls) -->
+      <!-- Кнопки управления с SVG -->
       <div id="controlls">
         <div>
           <button id="forward">
@@ -377,6 +377,11 @@
   <!-- Игровой код на Three.js (ES-модуль) -->
   <script type="module">
     import * as THREE from "https://esm.sh/three";
+
+    // Глобальные переменные для игры и таймера
+    let gameStartTime = null;
+    let gameEnded = false;
+    const gameDuration = 300000; // 5 минут в мс
 
     const minTileIndex = -8;
     const maxTileIndex = 8;
@@ -907,22 +912,18 @@
       }
     });
 
+    // При столкновении с машиной/грузовиком завершаем игру
     function hitTest() {
+      if (gameEnded) return;
       const row = metadata[position.currentRow - 1];
       if (!row) return;
       if (row.type === "car" || row.type === "truck") {
-        const playerBoundingBox = new THREE.Box3();
-        playerBoundingBox.setFromObject(player);
+        const playerBoundingBox = new THREE.Box3().setFromObject(player);
         row.vehicles.forEach(({ ref }) => {
           if (!ref) throw Error("Vehicle reference is missing");
-          const vehicleBoundingBox = new THREE.Box3();
-          vehicleBoundingBox.setFromObject(ref);
+          const vehicleBoundingBox = new THREE.Box3().setFromObject(ref);
           if (playerBoundingBox.intersectsBox(vehicleBoundingBox)) {
-            const resultDOM = document.getElementById("result-container");
-            const finalScoreDOM = document.getElementById("final-score");
-            if (!resultDOM || !finalScoreDOM) return;
-            resultDOM.style.visibility = "visible";
-            finalScoreDOM.innerText = position.currentRow.toString();
+            endGame();
           }
         });
       }
@@ -959,19 +960,54 @@
     renderer.setAnimationLoop(animate);
 
     function animate() {
+      // Обновление таймера
+      if (gameStartTime) {
+        let elapsed = performance.now() - gameStartTime;
+        let remaining = gameDuration - elapsed;
+        const timeBar = document.getElementById('timeBar');
+        if (remaining <= 0) {
+          timeBar.style.width = "0%";
+          if (!gameEnded) {
+            endGame();
+          }
+        } else {
+          timeBar.style.width = (remaining / gameDuration * 100) + "%";
+        }
+      }
       animateVehicles();
       animatePlayer();
-      hitTest();
+      if (!gameEnded) hitTest();
       renderer.render(scene, camera);
     }
 
-    // Функция старта игры, вызываемая из внешнего (не модульного) скрипта
-    function startThreeGame() {
-      initializeGame();
-      // Анимация запускается через renderer.setAnimationLoop(animate)
+    // Функция завершения игры (вызывается при столкновении или истечении времени)
+    function endGame() {
+      if (gameEnded) return;
+      gameEnded = true;
+      document.getElementById("deathSound").play().catch(e => console.log(e));
+      modalType = "gameOver";
+      // Обновляем контент модального окна
+      const endTitle = document.getElementById("endTitle");
+      const endMessage = document.getElementById("endMessage");
+      if (endTitle && endMessage) {
+        endTitle.textContent = "Game Over!";
+        endMessage.textContent = "Your score: " + position.currentRow;
+      }
+      document.getElementById("end").style.visibility = "visible";
+      // Сохраняем очки в БД
+      localUserData.points += position.currentRow;
+      if (userRef) {
+        userRef.update({ points: localUserData.points });
+      }
     }
 
-    // Экспортируем функцию в глобальную область
+    // Функция старта игры, вызываемая из внешнего скрипта
+    function startThreeGame() {
+      gameEnded = false;
+      gameStartTime = performance.now();
+      initializeGame();
+    }
+
     window.startThreeGame = startThreeGame;
   </script>
 
@@ -993,7 +1029,7 @@
       document.getElementById('startBtn').style.display = 'none';
       // Показываем контейнер с игрой
       document.getElementById('gameContainer').style.display = 'block';
-      // Показываем контролы (блок controlls)
+      // Показываем контролы
       document.getElementById('controlls').style.display = 'flex';
       // Показываем time bar
       document.getElementById('timeBarContainer').style.display = 'block';
