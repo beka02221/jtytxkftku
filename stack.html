@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
@@ -113,6 +113,24 @@
       left: 50%;
       transform: translate(-50%, -50%);
     }
+    /* Таймер-бар */
+    #timerBar {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      width: 100%;
+      height: 20px;
+      background: #444;
+      display: none;
+      border: 4px solid #0ff;
+      box-sizing: border-box;
+      z-index: 1000;
+    }
+    #timerFill {
+      height: 100%;
+      width: 100%;
+      background: #0ff;
+    }
     /* Стили для канваса Floppy Bird и счетчика */
     #gameCanvas {
       display: none;
@@ -201,6 +219,11 @@
     <button id="startBtn" class="pixel-button" onclick="startFlappyBird()">
       START (1 Ticket)
     </button>
+    
+    <!-- Таймер-бар -->
+    <div id="timerBar">
+      <div id="timerFill"></div>
+    </div>
     
     <!-- Канвас для Floppy Bird -->
     <canvas id="gameCanvas" width="431" height="768"></canvas>
@@ -305,7 +328,7 @@
     }
 
     /* ------------------------------------------------
-       2. Игра Floppy Bird (с обновлёнными параметрами и логикой)
+       2. Игра Floppy Bird с таймером, счетчиком и сохранением очков
     ------------------------------------------------ */
     function startFlappyBird() {
       // Проверка наличия билетов
@@ -325,7 +348,7 @@
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
 
-      // Показываем канвас и счёт
+      // Показываем канвас, счёт и подготовленный таймер-бар
       const canvas = document.getElementById('gameCanvas');
       canvas.style.display = 'block';
       document.getElementById('score').style.display = 'block';
@@ -335,6 +358,9 @@
       img.src = "https://i.ibb.co/Q9yv5Jk/flappy-bird-set.png";
 
       let gamePlaying = false;
+      let gameStarted = false;
+      let gameEnded = false;
+      let timerInterval = null;
       // Новые параметры:
       const gravity = 0.3;    // уменьшенная гравитация
       const speed = 2.5;      // сниженная скорость перемещения
@@ -361,7 +387,44 @@
         pipes = Array(3).fill().map((_, i) => [canvas.width + (i * (pipeGap + pipeWidth)), pipeLoc()]);
       };
 
-      const render = () => {
+      setup();
+
+      // Функция для запуска таймера на 2 минуты
+      function startTimer() {
+        const totalTime = 120; // 2 минуты = 120 секунд
+        let timeLeft = totalTime;
+        document.getElementById('timerBar').style.display = 'block';
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          document.getElementById('timerFill').style.width = (timeLeft / totalTime * 100) + '%';
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            endGameDueToTime();
+          }
+        }, 1000);
+      }
+
+      function endGameDueToTime() {
+        if (!gameEnded) {
+          gameEnded = true;
+          gamePlaying = false;
+          document.getElementById('endModal').classList.add('active');
+          document.getElementById('endMessage').textContent = "Time's up! Your score: " + currentScore;
+          savePoints(currentScore);
+        }
+      }
+
+      function savePoints(score) {
+        localUserData.points += score;
+        if (userRef) {
+          userRef.update({ points: localUserData.points });
+        }
+        updateHeader();
+      }
+
+      // Основной цикл игры
+      function render() {
+        if (gameEnded) return;
         index++;
 
         // Фон с эффектом бесконечной прокрутки
@@ -409,9 +472,14 @@
         }
 
         if (collisionDetected) {
-          gamePlaying = false;
-          document.getElementById('endModal').classList.add('active');
-          document.getElementById('endMessage').textContent = "Your score: " + currentScore;
+          if (!gameEnded) {
+            gameEnded = true;
+            clearInterval(timerInterval);
+            gamePlaying = false;
+            document.getElementById('endModal').classList.add('active');
+            document.getElementById('endMessage').textContent = "Your score: " + currentScore;
+            savePoints(currentScore);
+          }
           return;
         }
 
@@ -425,19 +493,38 @@
           // Если игра не идёт, отображаем птицу в центральном положении
           ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], ...size,
                         (canvas.width / 2) - (size[0] / 2), flyHeight, ...size);
+          // Отображаем текст "Tap to Start" до начала игры
+          if (!gameStarted) {
+            ctx.font = "20px 'Press Start 2P'";
+            ctx.fillStyle = "#fff";
+            ctx.textAlign = "center";
+            ctx.fillText("Tap to Start", canvas.width / 2, canvas.height / 2);
+          }
+          // Сброс позиции птицы для демонстрации
           flyHeight = (canvas.height / 2) - (size[1] / 2);
         }
 
         document.getElementById('score').innerHTML = currentScore;
-        window.requestAnimationFrame(render);
-      };
+        if (!gameEnded) {
+          window.requestAnimationFrame(render);
+        }
+      }
 
-      setup();
       img.onload = render;
 
-      document.addEventListener('click', () => gamePlaying = true);
-      window.onclick = () => flight = jump;
+      // Обработчик кликов для запуска игры и прыжка
+      document.addEventListener('click', function onGameClick() {
+        if (!gameStarted) {
+          gameStarted = true;
+          gamePlaying = true;
+          startTimer();
+          flight = jump;
+        } else {
+          flight = jump;
+        }
+      });
     }
   </script>
 </body>
 </html>
+
