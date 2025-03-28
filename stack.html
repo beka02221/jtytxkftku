@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- For mobile devices -->
+  <!-- Для мобильных устройств -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pac-Man with Menu</title>
   
-  <!-- Font: Press Start 2P -->
+  <!-- Шрифт: Press Start 2P -->
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   
@@ -18,7 +18,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
   <style>
-    /* ------------------ Global & Menu Styles (из первого кода) ------------------ */
+    /* ------------------ Глобальные и стили меню ------------------ */
     html, body {
       margin: 0;
       padding: 0;
@@ -31,7 +31,7 @@
       -webkit-user-select: none;
       user-select: none;
     }
-    /* Header with user info */
+    /* Хедер с информацией о пользователе */
     #header {
       position: absolute;
       top: 0;
@@ -57,9 +57,15 @@
       align-items: center;
       gap: 4px;
     }
-    .balance img { width: 16px; height: 16px; }
-    
-    /* Back button */
+    .balance img {
+      width: 16px;
+      height: 16px;
+      /* Добавляем вендорные префиксы для пиксельного рендеринга */
+      -webkit-image-rendering: pixelated;
+      image-rendering: pixelated;
+      -ms-interpolation-mode: nearest-neighbor;
+    }
+    /* Кнопка "Back" */
     #backContainer {
       position: absolute;
       top: 50px;
@@ -76,8 +82,41 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
+    /* Обертка для игры (меню + игра) */
+    /* Перед началом игры – меню с темно-синим фоном */
+    #gameWrapper.menu {
+      background: #00103c;
+    }
+    /* Во время игры – фон становится черным */
+    #gameWrapper.game {
+      background: black;
+    }
+    #gameWrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    /* Кнопка старта в меню */
+    #startBtn {
+      position: absolute;
+      z-index: 10;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      padding: 10px 20px;
+      background: #06B6D1;
+      color: #262626;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px #6b6b6b;
+    }
     
-    /* Modal Windows */
+    /* ------------------ Стили модальных окон ------------------ */
     .modal-backdrop {
       position: fixed;
       top: 0;
@@ -114,7 +153,7 @@
       box-shadow: 0 3px #6b6b6b;
     }
     
-    /* ------------------ Стили игры (из второго кода) ------------------ */
+    /* ------------------ Стили игры Pac-Man ------------------ */
     :root {
       --yellow-sprite-x: ;
       --yellow-sprite-y: ;
@@ -132,96 +171,69 @@
       --blue-animation-length: 200ms;
       --orange-animation-length: 200ms;
     }
-    
-    html {
-      font-size: 0.625em;
-    }
+    html { font-size: 0.625em; }
     @media (max-width: 600px), (max-height: 700px) {
       html { font-size: 0.3125em; }
     }
     
-    /* Контейнер для игры */
-    #game-container {
+    /* Контейнер игры – скрыт до старта; увеличен масштабом */
+    #game { 
+      flex-direction: column; 
       display: none;
-      flex-direction: column;
-      align-items: center;
+      transform: scale(1.3);
+      transform-origin: center center;
     }
     
-    /* Инфо и счет */
-    #game-container #info {
+    /* Внутренняя информация игры */
+    #game #info {
       box-sizing: border-box;
       width: 100%;
       justify-content: space-between;
       align-items: center;
       padding: 1em 2em;
-      color: white;
-      display: flex;
     }
     #score {
+      color: white;
       margin: 0;
       font-size: 2rem;
     }
-    #lives {
-      display: flex;
-    }
+    /* Отображаются только 2 жизни */
     .live {
       width: 3.2rem;
       height: 2.6rem;
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites.png");
       background-position: -26rem -3.2rem;
     }
-    @media (max-width: 600px), (max-height: 700px) {
-      .live {
-        background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites_small.png");
-      }
-    }
+    /* Удалите один индикатор жизни в HTML-разметке ниже */
     
-    /* Игровое поле */
+    /* Игровое поле – по центру с черным фоном */
     #game-board {
       position: relative;
       overflow: hidden;
       box-sizing: border-box;
       width: 56rem;
       height: 62rem;
+      margin: auto;
+      background-color: black;
       display: grid;
       grid-template-columns: repeat(28, 2rem);
-      margin: 0 auto;
-    }
-    @media screen and (max-width: 600px) {
-      #game-board {
-        width: 90vw;
-        height: calc(90vw * (62 / 56));
-        grid-template-columns: repeat(28, calc(90vw / 28));
-      }
     }
     #game-board > * {
-      box-sizing: border-box;
       position: relative;
+      box-sizing: border-box;
       width: 2rem;
       height: 2rem;
     }
     
-    /* Текст старта игры */
-    #game-start {
-      margin: auto;
-      width: 100%;
-      text-align: center;
-      color: yellow;
-      font-size: 2.4rem;
-      z-index: 1;
-      user-select: none;
-      cursor: pointer;
-    }
+    /* Удалите любой лишний текст ("Click Anywhere to play") */
     
-    /* Стили стен, точек и элементов поля */
+    /* Игровые объекты */
     .wall {
       background-image: url("https://dominikgorczyca.github.io/Pac-Man/map.png");
       z-index: 1;
     }
     @media (max-width: 600px), (max-height: 700px) {
-      .wall {
-        background-image: url("https://dominikgorczyca.github.io/Pac-Man/small_map.png");
-      }
+      .wall { background-image: url("https://dominikgorczyca.github.io/Pac-Man/small_map.png"); }
     }
     .blank { background-color: black; }
     .wall > * {
@@ -255,24 +267,23 @@
       border-top: .7rem solid black;
       border-bottom: .7rem solid black;
     }
-    
-    /* Стили персонажей */
+    /* Добавляем вендорные префиксы для пиксельного рендеринга игровых спрайтов */
     .yellow,
     .red,
     .pink,
     .blue,
     .orange,
     .points::after {
+      -webkit-image-rendering: pixelated;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
       image-rendering: pixelated;
+      -ms-interpolation-mode: nearest-neighbor;
       position: absolute;
       top: -0.4rem;
       left: -0.55rem;
       width: 3rem;
       height: 2.8rem;
-    }
-    .points::after {
-      background-image: url("https://dominikgorczyca.github.io/Pac-Man/sprites.png");
-      background-position: var(--yellow-sprite-x) var(--yellow-sprite-y);
     }
     .yellow-visible,
     .red-visible,
@@ -318,49 +329,20 @@
       transition: transform var(--orange-animation-length) linear;
     }
     
-    /* Анимации движения (из второго кода) */
+    /* Анимация рта Pac-Man */
     .yellow-animation-move {
       animation: var(--yellow-animation-length) forwards steps(1, end) yellow;
     }
-    .red-animation-move {
-      animation: var(--red-animation-length) forwards steps(1, end) red;
-    }
-    .pink-animation-move {
-      animation: var(--pink-animation-length) forwards steps(1, end) pink;
-      z-index: 10000;
-    }
-    .blue-animation-move {
-      animation: var(--blue-animation-length) forwards steps(1, end) blue;
-    }
-    .orange-animation-move {
-      animation: var(--orange-animation-length) forwards steps(1, end) orange;
-    }
-    
     @keyframes yellow {
       0%, 70%, 100% { background-position: -3.2rem var(--yellow-sprite-y); }
       30% { background-position: 0rem var(--yellow-sprite-y); }
       80% { background-position: -6.4rem 0rem; }
     }
-    @keyframes red {
-      0%, 100% { background-position: var(--red-sprite-x) var(--red-sprite-y); }
-      50% { background-position: calc(var(--red-sprite-x) - 3.2rem) var(--red-sprite-y); }
-    }
-    @keyframes pink {
-      0%, 100% { background-position: var(--pink-sprite-x) var(--pink-sprite-y); }
-      50% { background-position: calc(var(--pink-sprite-x) - 3.2rem) var(--pink-sprite-y); }
-    }
-    @keyframes blue {
-      0%, 100% { background-position: var(--blue-sprite-x) var(--blue-sprite-y); }
-      50% { background-position: calc(var(--blue-sprite-x) - 3.2rem) var(--blue-sprite-y); }
-    }
-    @keyframes orange {
-      0%, 100% { background-position: var(--orange-sprite-x) var(--orange-sprite-y); }
-      50% { background-position: calc(var(--orange-sprite-x) - 3.2rem) var(--orange-sprite-y); }
-    }
+    /* Дополнительные keyframes можно добавить по необходимости */
   </style>
 </head>
 <body>
-  <!-- Modal for Game Over -->
+  <!-- Модальное окно "Game Over" -->
   <div id="endModal" class="modal-backdrop">
     <div class="modal">
       <h2 id="endTitle">Game Over!</h2>
@@ -369,7 +351,7 @@
     </div>
   </div>
   
-  <!-- Modal for Error (not enough tickets) -->
+  <!-- Модальное окно "Ошибка (недостаточно билетов)" -->
   <div id="errorModal" class="modal-backdrop">
     <div class="modal">
       <h2 id="errorTitle">Error</h2>
@@ -378,7 +360,7 @@
     </div>
   </div>
   
-  <!-- Header with user info -->
+  <!-- Хедер с информацией о пользователе -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
@@ -393,19 +375,23 @@
     </div>
   </div>
   
-  <!-- Back button -->
+  <!-- Кнопка Back -->
   <div id="backContainer">
     <button id="backBtn" onclick="goBack()">Back</button>
   </div>
   
-  <!-- Контейнер игры (замена gameWrapper из первого кода) -->
-  <div id="game-container">
-    <h3 id="game-start">Click Anywhere to Play</h3>
+  <!-- Обертка для игры (меню + игра) -->
+  <!-- Изначально с классом "menu" (темно-синий фон) -->
+  <div id="gameWrapper" class="menu">
+    <!-- Кнопка старта в меню -->
+    <button id="startBtn" onclick="startPacmanGame()">Start (1 Ticket)</button>
+    
+    <!-- Разметка игры Pac-Man -->
     <div id="game">
       <div id="info">
         <h3 id="score">Score 0</h3>
+        <!-- Отображаются только 2 жизни -->
         <div id="lives">
-          <div class="live"></div>
           <div class="live"></div>
           <div class="live"></div>
         </div>
@@ -417,12 +403,12 @@
   </div>
   
   <script>
-    // Блокировка touchmove для предотвращения нежелательных жестов
+    // Блокируем стандартное поведение touchmove, чтобы предотвратить нативные свайпы
     document.addEventListener("touchmove", function(e) {
       e.preventDefault();
     }, { passive: false });
     
-    /* ------------------ Firebase & Telegram Initialization ------------------ */
+    /* ------------------ Инициализация Firebase и Telegram ------------------ */
     const firebaseConfig = {
       apiKey: "AIzaSyApxp0dHh0TK4nZVfOqloJ92dekjvjey3I",
       authDomain: "meta-glitch.firebaseapp.com",
@@ -434,17 +420,17 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
+  
     let tg = null;
     if(window.Telegram && window.Telegram.WebApp) {
       tg = window.Telegram.WebApp;
       tg.expand();
     }
-    
+  
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
-    
+  
     if(tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
       document.getElementById('username').textContent = '@' + currentUser.username;
@@ -476,17 +462,17 @@
         updateHeader();
       });
     }
-    
+  
     function updateHeader() {
       document.getElementById('ticketCount').textContent = localUserData.tickets;
       document.getElementById('pointCount').textContent = localUserData.points;
     }
-    
+  
     function goBack() {
       window.location.href = 'index.html';
     }
-    
-    /* ------------------ Modal Functions ------------------ */
+  
+    /* ------------------ Функции для модальных окон ------------------ */
     function showErrorModal(message) {
       document.getElementById('errorMessage').textContent = message;
       document.getElementById('errorModal').classList.add('active');
@@ -494,7 +480,7 @@
     function closeErrorModal() {
       document.getElementById('errorModal').classList.remove('active');
     }
-    
+  
     function showEndModal() {
       document.getElementById('endMessage').textContent = "Your final score is: " + score;
       document.getElementById('endModal').classList.add('active');
@@ -502,22 +488,21 @@
     function redirectToIndex() {
       window.location.href = "index.html";
     }
-    
-    /* ------------------ Код игры (из второго кода) ------------------ */
+  
+    /* ------------------ Код игры Pac-Man ------------------ */
     const game = document.getElementById("game");
     const gameBoard = document.getElementById("game-board");
-    const gameStart = document.getElementById("game-start");
     const start = document.getElementById("start");
     const scoreElement = document.getElementById("score");
     const lives = document.getElementById("lives");
     const root = document.documentElement.style;
-    
+  
     let soundtrack = document.createElement("audio");
     soundtrack.loop = true;
     soundtrack.volume = 0.7;
     let sound = document.createElement("audio");
     sound.volume = 0.5;
-    
+  
     const startingPositions = [658, 322, 406, 404, 408];
     const positionChange = {
       "ArrowRight": 1,
@@ -607,7 +592,7 @@
       name: "orange",
       direction: "ArrowUp",
       directionOld: undefined,
-      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
+      directionList: ["ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowLeft", "ArrowUp", "ArrowUp", "ArrowUp"],
       position: 408,
       nextPosition: undefined,
       scatterTarget: 840,
@@ -628,19 +613,28 @@
     let ghostsEaten = 0;
     let newLevel = true;
     let score = 0;
-    let livesLost = 0;
+    let livesLost = 0; // При 2 жизнях игра заканчивается, когда livesLost == 2
     let gameStartLength = 4200;
-    
-    document.addEventListener("click", startGame);
-    
-    function startGame() {
-      gameStart.style.display = "none";
-      document.getElementById("game-container").style.display = "flex";
+    let whichMunch = 1;
+  
+    /* ------------------ Функция старта игры ------------------ */
+    function startPacmanGame() {
+      if(localUserData.tickets < 1){
+        showErrorModal("Not enough tickets!");
+        return;
+      }
+      localUserData.tickets--;
+      if(userRef) userRef.update({ tickets: localUserData.tickets });
+      updateHeader();
+      // Меняем класс обертки, чтобы во время игры фон был черным
+      document.getElementById("gameWrapper").className = "game";
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("header").style.display = "none";
+      document.getElementById("backContainer").style.display = "none";
       game.style.display = "block";
       startLevel();
-      document.removeEventListener("click", startGame);
     }
-    
+  
     soundtrack.addEventListener('timeupdate', () => {
       let buffer = 0.3;
       if(soundtrack.currentTime > soundtrack.duration - buffer){
@@ -648,7 +642,7 @@
         soundtrack.play();
       }
     });
-    
+  
     function startLevel() {
       if (newLevel === true) {
         gameStartLength = 4200;
@@ -660,7 +654,6 @@
       setTimeout(() => {
         soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/siren1.wav";
         soundtrack.play();
-        sound.pause();
         lives.children[livesLost].style.visibility = "hidden";
         livesLost++;
         characterMove(0);
@@ -668,12 +661,12 @@
         ghostRevive(2, 0);
         ghostRevive(3, 0);
         ghostRevive(4, 0);
-    
+  
         collisionInterval = setInterval(checkCollisions, 10);
         ghostModeInterval = setTimeout(changeModes, 5000);
       }, gameStartLength);
     }
-    
+  
     function makeLevel() {
       const gameClass = {
         0: "blank",
@@ -690,7 +683,7 @@
         11: "gate wall",
         12: "wall-empty" 
       };
-    
+  
       const gameArray = [0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 18, 19, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1,
         9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 11, 13, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
         9, 126, 4, 10, 10, 5, 126, 4, 10, 10, 10, 5, 126, 11, 13, 126, 4, 10, 10, 10, 5, 126, 4, 10, 10, 5, 126, 9,
@@ -723,9 +716,10 @@
         9, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 126, 9,
         2, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 3
       ];
-    
+  
       for (let i = 0; i < gameArray.length; i++) {
         const element = document.createElement("DIV");
+  
         if (gameArray[i] > 25) {
           element.className = "blank";
           for (let j = 0; j < characters.length; j++) {
@@ -742,26 +736,28 @@
           element.className = "wall";
           element.style.backgroundPosition = `-${gameArray[i] * 2}rem 0`;
         }
+  
         gameBoard.append(element);
       }
+  
       points = 0;
       elements = Array.from(gameBoard.children).splice(1);
       transformStartingElements();
     }
-    
+  
     function setStartingProperties() {
       newLevel = undefined;
       window.removeEventListener("keydown", getDirection);
       document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchmove", handleTouchMove);
-    
+  
       clearTimeout(ghostModeInterval);
       game.style.visibility = "visible";
       start.style.display = "block";
       ghostMode = "scatter";
       ghostsEaten = 0;
       scoreElement.innerHTML = "Score " + score;
-    
+  
       for (let i = 0; i < characters.length; i++) {
         characters[i].position = startingPositions[i];
         characters[i].direction = i < 2 ? "ArrowLeft" : characters[i].directionList[0];
@@ -769,7 +765,7 @@
         characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
         characters[i].mode = "normal";
         characters[i].status = "normal";
-    
+  
         if (i == 0) {
           root.setProperty(`--${characters[i].name}-sprite-x`, "-6.4rem");
           root.setProperty(`--${characters[i].name}-sprite-y`, "0rem");
@@ -778,22 +774,22 @@
           getSprite(i);
         }
       }
-    
+  
       setTimeout(() => {
         window.addEventListener("keydown", getDirection);
         document.addEventListener('touchstart', handleTouchStart);        
         document.addEventListener('touchmove', handleTouchMove);
-    
+  
         for (let i = 2; i < 5; i++) {
           characters[i].animationLength = 200;
           characters[i].characterNode.classList.add(`${characters[i].name}-revive`);
         }
         start.style.display = "none";
-    
+  
         getSprite(0);
       }, gameStartLength);
     }
-    
+  
     function transformStartingElements() {
       for (let i = 0; i < 5; i++) {
         if (i == 1) {
@@ -805,7 +801,7 @@
         }
       }
     }
-    
+  
     function changeModes() {
       if (ghostMode === "scatter") {
         ghostMode = "chase";
@@ -816,28 +812,28 @@
       }
       changeGhostDirections();
     }
-    
+  
     function checkCollisions() {
       const yellowTransform = new WebKitCSSMatrix(getComputedStyle(characters[0].characterNode).transform);
       let yellowTranslateX = yellowTransform.e;
       let yellowTranslateY = yellowTransform.f;
-    
+  
       for (let i = 1; i < 5; i++) {
         if (characters[0].status == "freeze") {
           clearInterval(collisionInterval);
           return;
         }
-    
+  
         const distance = calculateDistance(characters[0].position, characters[i].position);
-    
+  
         const ghostTransform = new WebKitCSSMatrix(getComputedStyle(characters[i].characterNode).transform);
         let ghostTranslateX = ghostTransform.e;
         let ghostTranslateY = ghostTransform.f;
-    
+  
         let requirement;
         let yellowNewPosition;
         let ghostNewPosition;
-    
+  
         if(distance == 0) {
            requirement = -30;
            yellowNewPosition = characters[0].position + positionChange[characters[0].direction] + positionChange[oppositeDirection[characters[i].direction]];
@@ -861,7 +857,7 @@
         if(window.innerWidth < 600 || window.innerHeight < 700) {
           requirement /= 2;
         }
-    
+  
         if (yellowNewPosition == characters[i].position) {
           yellowTranslateX = Math.abs(yellowTranslateX);
           yellowTranslateY = Math.abs(yellowTranslateY);
@@ -876,9 +872,9 @@
           ghostTranslateY = -Math.abs(ghostTranslateY);
           ghostTranslateX = -Math.abs(ghostTranslateX);
         }
-    
+  
         const transformDistance = yellowTranslateY + ghostTranslateY + yellowTranslateX + ghostTranslateX;
-    
+  
         if (transformDistance > requirement) {
           if (characters[i].mode == "frightened") {
             gameFreeze(i);
@@ -888,26 +884,29 @@
         }
       }
     }
-    
+  
     function characterMove(i) {
       if (characters[i].status == "freeze") return;
-    
+  
       characters[i].nextPosition = getNewPosition(i);
-    
+  
       if (elements[characters[i].nextPosition].classList.contains("wall")) {
         if(sound.src.includes("https://dominikgorczyca.github.io/Pac-Man/munch")) {
           sound.pause();
         }
-        setTimeout(() => { characterMove(i); }, 20);
+        // Уменьшаем задержку с 50мс до 20мс
+        setTimeout(() => {
+          characterMove(i);
+        }, 20);
         return;
       }
-    
+  
       getAnimationLength(i);
       getSprite(i);
       getTransition(i);
       changePosition(i);
     }
-    
+  
     function getNewPosition(i) {
       if (i == 0) {
         getYellowDirection(i);
@@ -921,16 +920,16 @@
         characters[i].directionOld = characters[i].direction;
       }
       let nextPosition = characters[i].position + positionChange[characters[i].direction];
-    
+  
       if (characters[i].position == 392 && nextPosition == 391) {
         nextPosition = 419;
       } else if (characters[i].position == 419 && nextPosition == 420) {
         nextPosition = 392;
       }
-    
+  
       return nextPosition;
     }
-    
+  
     function getYellowDirection(i) {
       if (characters[i].directionNew != undefined) {
         const newPosition = characters[i].position + positionChange[characters[i].directionNew];
@@ -940,12 +939,12 @@
         }
       }
     }
-    
+  
     function getGhostDirection(i) {
       let newDirection = characters[i].directionOld = characters[i].direction;
       let biggestDistance = 100000;
       let target;
-    
+  
       if (characters[i].mode == "eaten") {
         target = 322;
       } else if (ghostMode == "scatter") {
@@ -953,11 +952,11 @@
       } else {
         target = getChaseTarget(i);
       }
-    
+  
       for (let [direction, value] of Object.entries(positionChange)) {
         const newPosition = characters[i].position + value;
         const newDistance = calculateDistance(target, newPosition);
-    
+  
         if (newDistance < biggestDistance) {
           if (!elements[newPosition].classList.contains("wall") &&
               oppositeDirection[direction] != characters[i].direction) {
@@ -968,15 +967,15 @@
       }
       characters[i].direction = newDirection;
     }
-    
+  
     function getRandomDirection(i) {
       let nextPosition = characters[i].position + positionChange[characters[i].direction];
-    
+  
       if ((characters[i].position == 392 && nextPosition == 391) ||
           (characters[i].position == 419 && nextPosition == 420)) {
         return;
       }
-    
+  
       let newDirection;
       do {
         const random = Math.floor(Math.random() * 4);
@@ -984,10 +983,10 @@
         nextPosition = characters[i].position + positionChange[newDirection];
       } while (elements[nextPosition].classList.contains("wall") ||
                oppositeDirection[newDirection] == characters[i].direction);
-    
+  
       characters[i].direction = newDirection;
     }
-    
+  
     function getChaseTarget(i) {
       switch (i) {
         case 1:
@@ -1008,33 +1007,36 @@
           }
       }
     }
-    
+  
     function getBlueTarget() {
       const yellowPosition = characters[0].position + positionChange[characters[0].direction];
       const yellowRedDistanceX = yellowPosition % 28 - characters[1].position % 28;
       const yellowRedDistanceY = Math.floor(yellowPosition / 28) - Math.floor(characters[1].position / 28);
-    
+  
       let bluePositionX = yellowPosition % 28 + yellowRedDistanceX;
+  
       if (bluePositionX < 0) { bluePositionX = 0; }
       else if (bluePositionX > 27) { bluePositionX = 27; }
-    
+  
       const bluePositionY = Math.floor(yellowPosition / 28) + yellowRedDistanceY;
+  
       return bluePositionX + bluePositionY * 28;
     }
-    
+  
     function calculateDistance(target, newGhostPosition) {
       const distanceX = Math.floor(target / 28) - Math.floor(newGhostPosition / 28);
       const distanceY = target % 28 - newGhostPosition % 28;
       return distanceX ** 2 + distanceY ** 2;
     }
-    
+  
+    // Уменьшаем все длительности анимаций на 20%
     function getAnimationLength(i) {
       let animationLength;
       if (i == 0) {
-        animationLength = characters[i].mode == "hasEaten" ? 210 : 190;
+        // Pac-Man: обычная 190ms => 152ms; hasEaten: 210ms => 168ms
+        animationLength = characters[i].mode == "hasEaten" ? 168 : 152;
       } else {
         const tunnel = [392, 393, 394, 395, 396, 419, 418, 417, 416, 415];
-    
         if (characters[i].mode == "eaten") {
           if (characters[i].nextPosition === 322) {
             animationLength = characters[i].direction == "ArrowLeft" ? 25 : 75;
@@ -1042,27 +1044,25 @@
             animationLength = 50;
           }
         } else if (tunnel.includes(characters[i].position) || tunnel.includes(characters[i].nextPosition)) {
-          animationLength = 350;
+          animationLength = 350 * 0.8; // 280ms
         } else if (characters[i].mode == "frightened") {
-          animationLength = 300;
+          animationLength = 300 * 0.8; // 240ms
         } else if (
           characters[i].direction == characters[i].directionOld ||
           characters[i].direction == oppositeDirection[characters[i].directionOld]
         ) {
-          animationLength = 200;
+          animationLength = 200 * 0.8; // 160ms
         } else {
-          animationLength = 220;
+          animationLength = 220 * 0.8; // ~176ms (округлим до 170)
         }
       }
-    
       if (characters[i].characterNode.style.transform == 'translateX(-1rem)') {
         animationLength /= 1.5;
       }
-    
       root.setProperty(`--${characters[i].name}-animation-length`, animationLength + "ms");
       characters[i].animationLength = animationLength;
     }
-    
+  
     function getSprite(i) {
       let spriteX;
       let spriteY;
@@ -1084,7 +1084,7 @@
       root.setProperty(`--${characters[i].name}-sprite-x`, `-${spriteX}rem`);
       root.setProperty(`--${characters[i].name}-sprite-y`, `-${spriteY}rem`);
     }
-    
+  
     function getTransition(i) {
       const isGoingToRespawn = characters[i].mode == "eaten" && characters[i].nextPosition == 322;
       const transitionMove = {
@@ -1095,7 +1095,7 @@
       };
       characters[i].characterNode.style.transform = `translate${transitionMove[characters[i].direction]}`;
     }
-    
+  
     async function changePosition(i) {
       await new Promise(resolve => {
         if (characters[i].mode != "eaten") {
@@ -1109,19 +1109,17 @@
           characters[i].position = characters[i].nextPosition;
           characters[i].characterNode = elements[characters[i].position].children[i];
           characters[i].characterNode.classList.add(`${characters[i].name}-visible`);
-    
           if (i == 0) {
             eatPoint(i);
           } else if (characters[i].mode == "eaten" && characters[i].position === 322) {
             ghostRetreat(i);
           }
-    
           resolve();
         }, characters[i].animationLength);
       });
       characterMove(i);
     }
-    
+  
     function eatPoint(i) {
       const point = elements[characters[i].position].children[5];
       if (point != undefined) {
@@ -1129,9 +1127,11 @@
         characters[i].mode = "hasEaten";
         if (point.classList.contains("big-point")) {
           makeGhostsScared();
-          score += 50;
-        } else {
+          // Большая точка даёт 10 очков
           score += 10;
+        } else {
+          // Обычная точка даёт 1 очко
+          score += 1;
           if(!sound.src.includes("munch") || sound.paused) {
             sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/munch.wav";
             sound.play();
@@ -1139,8 +1139,9 @@
         }
         scoreElement.innerHTML = "Score " + score;
         point.remove();
-        if (points == 244) {
-          gameWin();
+        // Если все точки собраны, выигрываем уровень
+        if (points >= 244) {
+          winLevel();
           freezeCharacters();
         }
       } else {
@@ -1150,7 +1151,7 @@
         }
       }
     }
-    
+  
     function makeGhostsScared() {
       soundtrack.src = "https://dominikgorczyca.github.io/Pac-Man/audio/power_pellet.wav";
       soundtrack.play();
@@ -1188,7 +1189,7 @@
         }, 300);
       }, 800);
     }
-    
+  
     function changeGhostDirections() {
       for (let i = 1; i < 5; i++) {
         if (characters[i].mode == "normal" &&
@@ -1198,7 +1199,7 @@
         }
       }
     }
-    
+  
     function gameFreeze(i) {
       sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/eat_ghost.wav";
       sound.play();
@@ -1241,10 +1242,10 @@
         ghostModeInterval = setTimeout(changeModes, 5000);
       }, 1000);
       ghostsEaten++;
-      score += 2 ** ghostsEaten * 100;
+      score += 10;
       scoreElement.innerHTML = "Score " + score;
     }
-    
+  
     function ghostRetreat(i) {
       characters[i].status = "freeze";
       characters[i].characterNode.classList.add(`${characters[i].name}-retreat`);
@@ -1266,7 +1267,7 @@
         ghostRevive(i, 0);
       }, i > 2 ? 250 : 150);
     }
-    
+  
     function ghostRevive(i, progress) {
       if (characters[i].direction != characters[i].directionList[progress] &&
           characters[i].directionList[progress] != undefined &&
@@ -1278,16 +1279,11 @@
         if (characters[0].status == "freeze") {
           characters[i].characterNode.style.animationPlayState = "paused";
         } else {
-          characters[i].characterNode.style.animationPlayState = "running";
-        }
-        setTimeout(() => {
           characters[i].animationStart = performance.now();
-          if (characters[0].status != "freeze") {
-            progress++;
-            characters[i].animationLength = 200;
-          }
-          ghostRevive(i, progress);
-        }, characters[i].animationLength);
+          progress++;
+          characters[i].animationLength = 200;
+        }
+        ghostRevive(i, progress);
       } else if (newLevel == undefined) {
         characters[i].characterNode.classList.remove(`${characters[i].name}-visible`, `${characters[i].name}-revive`);
         characters[i].position = 322;
@@ -1299,7 +1295,7 @@
         characterMove(i);
       }
     }
-    
+  
     function gameOver() {
       stopAnimations();
       setTimeout(() => {
@@ -1313,21 +1309,13 @@
           sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/death_2.wav";
           sound.play();
         }, 1400);
-        if (livesLost == 3) {
+        // При 2 жизнях показываем модальное окно "Game Over"
+        if (livesLost == 2) {
           newLevel = true;
+          // Обновляем очки в базе: прибавляем заработанные очки к уже имеющимся
+          userRef.update({ points: localUserData.points + score });
           setTimeout(() => {
-            start.innerHTML = "Game&nbsp; Over";
-            start.style.display = "block";
-            start.style.color = "red";
-            setTimeout(() => {
-              start.style.display = "none";
-              start.style.color = "yellow";
-              start.innerHTML = "READY!";
-              hardReset();
-              deleteGameBoard();
-              game.style.visibility = "hidden";
-              setTimeout(startLevel, 500);
-            }, 1500);
+            showEndModal();
           }, 1500);
         } else {
           newLevel = false;
@@ -1340,29 +1328,19 @@
         }
       }, 1000);
     }
-    
-    function gameWin() {
+  
+    // Когда все точки собраны, выигрываем уровень и переходим к следующему (очки и жизни сохраняются)
+    function winLevel() {
       stopAnimations();
       newLevel = true;
       sound.src = "https://dominikgorczyca.github.io/Pac-Man/audio/extend.wav";
       sound.play();
       setTimeout(() => {
-        for (let element of elements) {
-          if (element.classList.contains("wall")) {
-            element.classList.add("blinking-animation");
-            element.style.backgroundColor = "black";
-          } else if (element.classList.contains("wall-empty")) {
-            element.classList.add("blinking-animation-corner");
-          }
-        }
-        setTimeout(() => {
-          game.style.visibility = "hidden";
-          deleteGameBoard();
-          setTimeout(startLevel, 500);
-        }, 1500);
+        deleteGameBoard();
+        setTimeout(startLevel, 500);
       }, 2000);
     }
-    
+  
     function stopAnimations(stop) {
       freezeCharacters(stop);
       for (let i = 0; i < 5; i++) {
@@ -1382,13 +1360,13 @@
         }
       }
     }
-    
+  
     function deleteGameBoard() {
       for (let element of elements) {
         element.remove();
       }
     }
-    
+  
     function deleteClasses() {
       for (let i = 0; i < 5; i++) {
         if (characters[i].characterNode != undefined) {
@@ -1398,24 +1376,24 @@
         transformStartingElements();
       }
     }
-    
+  
     function hardReset() {
       livesLost = 0;
       score = 0;
       setTimeout(() => {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {  // 2 жизни
           lives.children[i].removeAttribute("style");
         }
       }, 500);
     }
-    
+  
     function freezeCharacters(stop) {
       for (let i = 0; i < 5; i++) {
         if (stop == "stop" && characters[i].mode == "eaten") continue;
         characters[i].status = "freeze";
       }
     }
-    
+  
     function getDirection(e) {
       switch (e.key) {
         case "ArrowUp":
@@ -1425,7 +1403,7 @@
           characters[0].directionNew = e.key;
       }
     }
-    
+  
     let xDown = null, yDown = null;
     function handleTouchStart(e) {
       const firstTouch = e.touches[0];
