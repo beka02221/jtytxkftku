@@ -115,12 +115,23 @@
       height: 100%;
       background: #ff66cc;
     }
-    /* Игровой счётчик */
-    #counter {
+    /* Игровой счётчик, который отображается поверх игры */
+    #score {
       position: absolute;
       top: 40px;
-      right: 20px;
-      z-index: 1000;
+      left: 20px;
+      z-index: 1100;
+      color: white;
+      font-size: 16px;
+    }
+    /* Новый счетчик поинтов (показывает сумму сохраненных и набранных очков) */
+    #pointsCounter {
+      position: absolute;
+      top: 60px;
+      left: 20px;
+      z-index: 1100;
+      color: white;
+      font-size: 16px;
     }
     /* Стили для игрового canvas */
     canvas.game {
@@ -269,8 +280,9 @@
           </button>
         </div>
       </div>
-      <!-- Счёт и окно Game Over -->
+      <!-- Счёт и новый счетчик поинтов -->
       <div id="score">0</div>
+      <div id="pointsCounter">Points: 0</div>
       <div id="result-container">
         <div id="result">
           <h1>Game Over</h1>
@@ -291,7 +303,8 @@
   </div>
 
   <!-- Звуки -->
-  <audio id="bgSound" src="background.mp3" loop></audio>
+  <!-- Фоновая музыка изменена на предоставленный loop-трек -->
+  <audio id="bgSound" src="https://raw.githubusercontent.com/qnexst/404token/main/loopcross.wav" loop></audio>
   <audio id="moveSound" src="move.mp3"></audio>
   <audio id="deathSound" src="death.mp3"></audio>
 
@@ -597,6 +610,8 @@
       position.currentRow = 0;
       position.currentTile = 0;
       movesQueue.length = 0;
+      // Обновляем счётчик поинтов (на старте игры это только сохранённые очки)
+      updatePointsCounter();
     }
 
     function queueMove(direction) {
@@ -617,6 +632,15 @@
       if (position.currentRow > metadata.length - 10) addRows();
       const scoreDOM = document.getElementById("score");
       if (scoreDOM) scoreDOM.innerText = position.currentRow.toString();
+      updatePointsCounter();
+    }
+
+    function updatePointsCounter() {
+      // Показываем сумму ранее сохранённых поинтов и очков текущей игры
+      const pointsCounter = document.getElementById("pointsCounter");
+      if (pointsCounter) {
+        pointsCounter.innerText = "Points: " + (localUserData.points + position.currentRow);
+      }
     }
 
     function Renderer() {
@@ -952,6 +976,7 @@
       initializeMap();
       if (scoreDOM) scoreDOM.innerText = "0";
       if (resultDOM) resultDOM.style.visibility = "hidden";
+      updatePointsCounter();
     }
 
     document.querySelector("#retry")?.addEventListener("click", initializeGame);
@@ -1001,7 +1026,7 @@
       }
     }
 
-    // Функция старта игры, вызываемая из внешнего скрипта
+    // Функция старта игры, вызываемая из внешнего (не модульного) скрипта
     function startThreeGame() {
       gameEnded = false;
       gameStartTime = performance.now();
