@@ -117,7 +117,6 @@
     #gameCanvas {
       display: none;
       margin: 0 auto;
-      /* размеры задаются через атрибуты элемента */
     }
     #score {
       display: none;
@@ -230,7 +229,7 @@
 
   <script>
     /* ------------------------------------------------
-       1. Firebase и Telegram инициализация
+       1. Инициализация Firebase и Telegram
     ------------------------------------------------ */
     const firebaseConfig = {
       apiKey: "AIzaSyApxp0dHh0TK4nZVfOqloJ92dekjvjey3I",
@@ -306,10 +305,10 @@
     }
 
     /* ------------------------------------------------
-       2. Игра Floppy Bird (с изменёнными настройками скорости и модальным окном)
+       2. Игра Floppy Bird (с обновлёнными параметрами и логикой)
     ------------------------------------------------ */
     function startFlappyBird() {
-      // Проверяем наличие билетов
+      // Проверка наличия билетов
       if (localUserData.tickets < 1) {
         showErrorModal(402, "Недостаточно билетов!");
         return;
@@ -336,11 +335,11 @@
       img.src = "https://i.ibb.co/Q9yv5Jk/flappy-bird-set.png";
 
       let gamePlaying = false;
-      // Изменённые параметры для замедления игры:
-      const gravity = 0.5;
-      const speed = 3.5;
+      // Новые параметры:
+      const gravity = 0.3;    // уменьшенная гравитация
+      const speed = 2.5;      // сниженная скорость перемещения
       const size = [51, 36];
-      const jump = -8;
+      const jump = -12;       // более сильный прыжок
       const cTenth = canvas.width / 10;
 
       let index = 0,
@@ -358,6 +357,7 @@
         currentScore = 0;
         flight = jump;
         flyHeight = (canvas.height / 2) - (size[1] / 2);
+        // Изначально создаём 3 трубы
         pipes = Array(3).fill().map((_, i) => [canvas.width + (i * (pipeGap + pipeWidth)), pipeLoc()]);
       };
 
@@ -373,7 +373,6 @@
                       canvas.width, canvas.height);
 
         let collisionDetected = false;
-        // Используем классический цикл для возможности прерывания при столкновении
         for (let i = 0; i < pipes.length; i++) {
           pipes[i][0] -= speed;
           // Рисуем верхнюю трубу
@@ -383,15 +382,17 @@
           ctx.drawImage(img, 432 + pipeWidth, 108, pipeWidth, canvas.height - pipes[i][1] + pipeGap,
                         pipes[i][0], pipes[i][1] + pipeGap, pipeWidth, canvas.height - pipes[i][1] + pipeGap);
 
-          // Если труба ушла за экран, обновляем массив труб и увеличиваем счёт
+          // Если труба ушла за экран, удаляем её и добавляем новую
           if (pipes[i][0] <= -pipeWidth) {
             currentScore++;
             bestScore = Math.max(bestScore, currentScore);
             pipes.shift();
+            let lastPipeX = pipes.length ? pipes[pipes.length - 1][0] : canvas.width;
+            pipes.push([lastPipeX + pipeGap + pipeWidth, pipeLoc()]);
             i--;
             continue;
           }
-          // Проверка столкновения
+          // Проверка столкновения с трубами
           if (
             pipes[i][0] <= cTenth + size[0] &&
             pipes[i][0] + pipeWidth >= cTenth &&
@@ -402,21 +403,26 @@
           }
         }
 
+        // Если птица коснулась земли, завершаем игру
+        if (flyHeight >= canvas.height - size[1]) {
+          collisionDetected = true;
+        }
+
         if (collisionDetected) {
           gamePlaying = false;
-          // Показываем модальное окно с итоговым счётом
           document.getElementById('endModal').classList.add('active');
           document.getElementById('endMessage').textContent = "Your score: " + currentScore;
           return;
         }
 
-        // Рисуем птицу
+        // Рисуем птицу и обновляем её положение
         if (gamePlaying) {
           ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], ...size,
                         cTenth, flyHeight, ...size);
           flight += gravity;
           flyHeight = Math.min(flyHeight + flight, canvas.height - size[1]);
         } else {
+          // Если игра не идёт, отображаем птицу в центральном положении
           ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], ...size,
                         (canvas.width / 2) - (size[0] / 2), flyHeight, ...size);
           flyHeight = (canvas.height / 2) - (size[1] / 2);
