@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Для мобильных устройств -->
+  <!-- For mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crossy Road 3D Vertical с меню и таймером</title>
+  <title>Crossy Road 3D Vertical with Menu and Timer</title>
 
-  <!-- Font: Press Start 2P -->
+  <!-- 8-bit style font: Press Start 2P -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <!-- Firebase SDK -->
@@ -20,7 +20,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <style>
-    /* Общие стили */
+    /* Overall reset */
     html, body {
       margin: 0;
       padding: 0;
@@ -30,7 +30,8 @@
       background: #00103c;
       font-family: 'Press Start 2P', monospace;
     }
-    /* Header с информацией о пользователе */
+
+    /* Header (user info) */
     #header {
       position: absolute;
       top: 0;
@@ -62,7 +63,8 @@
       width: 16px;
       height: 16px;
     }
-    /* Кнопка Back */
+
+    /* "BACK" button */
     #backContainer {
       position: absolute;
       top: 50px;
@@ -79,21 +81,23 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Меню игры – изначально видимо */
+
+    /* Main game wrapper */
     #gameWrapper {
       position: relative;
       width: 100%;
       height: 100%;
     }
-    /* Кнопка Start – по центру меню */
+
+    /* START button in the center */
     #startBtn {
       position: absolute;
       z-index: 1100;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 12px;
-      padding: 10px 20px;
+      font-size: 14px; /* bigger font */
+      padding: 15px 30px; /* bigger button */
       background: #06B6D1;
       color: #262626;
       border: none;
@@ -101,31 +105,36 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Временной индикатор - изначально скрыт, появляется после старта игры */
+
+    /* Time bar - hidden by default, shown after start */
     #timeBarContainer {
       position: absolute;
-      top: 20px; /* поднят выше */
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
       width: 80%;
       height: 5px;
       background: #555;
       z-index: 1100;
-      display: none;
+      display: none; /* hidden initially */
     }
     #timeBar {
       width: 100%;
       height: 100%;
       background: #ff66cc;
     }
-    /* Игровой счётчик */
+
+    /* Score counter (lanes crossed) */
     #counter {
       position: absolute;
-      top: 40px; /* сдвинут ниже time bar */
+      top: 40px;
       right: 20px;
       z-index: 1000;
+      color: #ffffff;
+      font-size: 12px;
     }
-    /* Контролы игры – изначально скрыты */
+
+    /* Game controls - hidden by default */
     #controlls {
       position: absolute;
       top: 0;
@@ -161,7 +170,8 @@
     #controlls button svg path {
       fill: white;
     }
-    /* Модальное окно для окончания игры/уведомлений */
+
+    /* End modal (Game Over / No Tickets) */
     #end {
       position: absolute;
       top: 0;
@@ -197,7 +207,8 @@
       cursor: pointer;
       box-shadow: 0 3px #6b6b6b;
     }
-    /* Canvas занимает весь экран, ниже контролов */
+
+    /* Three.js canvas - behind the UI */
     canvas {
       position: absolute;
       z-index: 1;
@@ -205,12 +216,12 @@
   </style>
 </head>
 <body>
-  <!-- Меню с информацией о пользователе -->
+  <!-- Header with user info -->
   <div id="header">
     <div id="info">
       <span id="username">@User</span>
       <div class="balance">
-        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Ticket">
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Tickets">
         <span id="ticketCount">0</span>
       </div>
       <div class="balance">
@@ -220,24 +231,25 @@
     </div>
   </div>
 
-  <!-- Временной индикатор (появится после старта игры) -->
+  <!-- Time bar (hidden initially) -->
   <div id="timeBarContainer">
     <div id="timeBar"></div>
   </div>
 
-  <!-- Кнопка Back -->
+  <!-- BACK button -->
   <div id="backContainer">
-    <button id="backBtn" onclick="goBack()">Back</button>
+    <button id="backBtn" onclick="goBack()">BACK</button>
   </div>
 
-  <!-- Меню игры -->
+  <!-- Game wrapper (menu + Three.js) -->
   <div id="gameWrapper">
-    <button id="startBtn" onclick="startGame()">Start (1 Ticket)</button>
-    <!-- Здесь будет добавлен canvas Three.js после старта игры -->
+    <button id="startBtn" onclick="startGame()">START (1 Ticket)</button>
   </div>
 
-  <!-- Игровой счётчик и контролы (контролы изначально скрыты) -->
+  <!-- Score counter -->
   <div id="counter">0</div>
+
+  <!-- Controls (hidden initially) -->
   <div id="controlls">
     <div>
       <button id="forward">
@@ -271,7 +283,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно для окончания игры/уведомлений -->
+  <!-- End modal (Game Over / No Tickets) -->
   <div id="end">
     <div class="modal">
       <h2 id="endTitle"></h2>
@@ -280,15 +292,15 @@
     </div>
   </div>
 
-  <!-- Звуки -->
+  <!-- Sounds -->
   <audio id="bgSound" src="background.mp3" loop></audio>
   <audio id="moveSound" src="move.mp3"></audio>
   <audio id="deathSound" src="death.mp3"></audio>
 
   <script>
-    /* ----------------------------------------
-       1. Firebase и Telegram инициализация
-    ---------------------------------------- */
+    /* --------------------------------------------------------
+       1. Firebase & Telegram initialization
+    -------------------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB90ev-ex",
       authDomain: "test-with-likes.firebaseapp.com",
@@ -311,9 +323,8 @@
     let currentUser = null;
     let userRef = null;
     let localUserData = { tickets: 0, points: 0 };
-    // Флаг, что данные загружены
+    // Data loaded flag
     let dataLoaded = false;
-    // Если данные не загрузились в течение 3 секунд, dataLoaded станет true
     setTimeout(() => { dataLoaded = true; }, 3000);
 
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -333,6 +344,7 @@
         dataLoaded = true;
       });
     } else {
+      // Fallback if Telegram not available
       currentUser = { username: 'TestUser' };
       document.getElementById('username').textContent = '@TestUser';
       userRef = db.ref('users/TestUser');
@@ -358,7 +370,8 @@
     function goBack() {
       window.location.href = 'index.html';
     }
-    // Для случая Game Over, OK отправляет на index.html; для noTickets просто скрывает модал
+
+    // End modal button
     let modalType = "gameOver";
     document.getElementById('endBtn').addEventListener('click', function() {
       if (modalType === "gameOver") {
@@ -371,9 +384,9 @@
       window.location.href = 'index.html';
     }
 
-    /* ----------------------------------------
-       2. Игровой код (3D Crossy Road)
-    ---------------------------------------- */
+    /* --------------------------------------------------------
+       2. Game code (3D Crossy Road style)
+    -------------------------------------------------------- */
     let scene, camera, renderer;
     let cameraOffset = { x: 0, y: -400, z: 600 };
     let zoom = 2;
@@ -386,54 +399,52 @@
     const boardWidth = positionWidth * columns;
     const laneTypes = ['car', 'truck', 'forest'];
     const laneSpeeds = [2, 2.5, 3];
-    // Яркие «мультяшные» цвета для транспорта
-    const vechicleColors = [0xff5722, 0xffc107, 0x03a9f4, 0x9c27b0, 0x8bc34a, 0xf44336];
-    const threeHeights = [20, 45, 60];
+    // Bright colors for vehicles
+    const vehicleColors = [0xff5722, 0xffc107, 0x03a9f4, 0x9c27b0, 0x8bc34a, 0xf44336];
+    // For random tree heights
+    const treeHeights = [20, 45, 60];
     let gameEnded = false;
 
-    // Таймер игры (5 минут = 300000 мс)
+    // 5-minute timer
     let gameStartTime = null;
-    const gameDuration = 300000; // 5 минут
+    const gameDuration = 300000; // 5 minutes
 
+    // Initialize game
     function initGame() {
       gameEnded = false;
       scene = new THREE.Scene();
+
+      // Perspective camera
       camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
       camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
       camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-      // Уменьшаем освещение от неба, чтобы тени были контрастнее
+      // Lights
+      // Hemisphere (sky) light - very soft
       const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.25);
       hemiLight.position.set(0, 0, 1000);
       scene.add(hemiLight);
 
-      // Основной направленный свет для чётких, сильных теней
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-      dirLight.position.set(
-        cameraOffset.x,
-        cameraOffset.y,
-        cameraOffset.z + 200
-      );
+      // Main directional light for shadows
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+      dirLight.position.set(cameraOffset.x, cameraOffset.y + 200, cameraOffset.z + 200);
       dirLight.castShadow = true;
-      // Увеличиваем размер карты теней
-      dirLight.shadow.mapSize.width = 4096;
-      dirLight.shadow.mapSize.height = 4096;
-      // Немного подбираем bias, чтобы избежать артефактов
-      dirLight.shadow.bias = -0.0003;
-      // Сужаем камеру для теней, чтобы получить ещё более детальные тени
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
       dirLight.shadow.camera.left = -300;
       dirLight.shadow.camera.right = 300;
       dirLight.shadow.camera.top = 300;
       dirLight.shadow.camera.bottom = -300;
+      dirLight.shadow.bias = -0.0003;
       scene.add(dirLight);
 
-      // Можно слегка ослабить или убрать этот свет, чтобы не «засвечивать» тени
+      // Additional mild backlight
       const backLight = new THREE.DirectionalLight(0xffffff, 0.15);
       backLight.position.set(200, 200, 300);
       backLight.castShadow = false;
       scene.add(backLight);
 
-      lanes = generateLanes();
+      lanes = generateInitialLanes();
       currentLane = 0;
       currentColumn = Math.floor(columns / 2);
       previousTimestamp = null;
@@ -441,14 +452,15 @@
       moves = [];
       stepStartTimestamp = null;
 
-      chicken = new Chicken();
+      // Create the chicken
+      chicken = createChicken();
       chicken.position.set(0, 0, 0);
       scene.add(chicken);
     }
 
+    // Initialize renderer with shadows
     function initRenderer() {
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      // Включаем тени
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.setClearColor(0x000000, 1);
@@ -456,36 +468,168 @@
       document.getElementById('gameWrapper').appendChild(renderer.domElement);
     }
 
-    function Texture(width, height, rects) {
-      // Генерация «окон» для текстур
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, width, height);
-      context.fillStyle = "rgba(0,0,0,0.6)";
-      rects.forEach(rect => {
-        context.fillRect(rect.x, rect.y, rect.w, rect.h);
-      });
-      return new THREE.CanvasTexture(canvas);
-    }
-    const carFrontTexture = new Texture(40, 80, [{ x: 0, y: 10, w: 30, h: 60 }]);
-    const carBackTexture = new Texture(40, 80, [{ x: 10, y: 10, w: 30, h: 60 }]);
-    const carRightSideTexture = new Texture(110, 40, [{ x: 10, y: 0, w: 50, h: 30 }, { x: 70, y: 0, w: 30, h: 30 }]);
-    const carLeftSideTexture = new Texture(110, 40, [{ x: 10, y: 10, w: 50, h: 30 }, { x: 70, y: 10, w: 30, h: 30 }]);
-    const truckFrontTexture = new Texture(30, 30, [{ x: 15, y: 0, w: 10, h: 30 }]);
-    const truckRightSideTexture = new Texture(25, 30, [{ x: 0, y: 15, w: 10, h: 10 }]);
-    const truckLeftSideTexture = new Texture(25, 30, [{ x: 0, y: 5, w: 10, h: 10 }]);
+    /* ------------------------------
+       2.1. Blocky geometry
+    ------------------------------ */
 
-    function generateLanes() {
-      return [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(index => {
-        const lane = new Lane(index);
-        lane.mesh.position.y = index * positionWidth * zoom;
-        scene.add(lane.mesh);
-        return lane;
-      }).filter(lane => lane.index >= 0);
+    // Blocky Car
+    function createBlockyCar(color = 0xff0000) {
+      const group = new THREE.Group();
+      // Body
+      const bodyGeom = new THREE.BoxGeometry(60 * zoom, 30 * zoom, 15 * zoom);
+      const bodyMat = new THREE.MeshLambertMaterial({ color, flatShading: true });
+      const body = new THREE.Mesh(bodyGeom, bodyMat);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      body.position.z = 10 * zoom; // raise a bit
+      group.add(body);
+
+      // Cabin
+      const cabinGeom = new THREE.BoxGeometry(30 * zoom, 25 * zoom, 15 * zoom);
+      const cabinMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+      const cabin = new THREE.Mesh(cabinGeom, cabinMat);
+      cabin.castShadow = true;
+      cabin.receiveShadow = true;
+      cabin.position.z = 25 * zoom;
+      group.add(cabin);
+
+      // Wheels (as cubes)
+      const wheelGeom = new THREE.BoxGeometry(10 * zoom, 10 * zoom, 10 * zoom);
+      const wheelMat = new THREE.MeshLambertMaterial({ color: 0x333333, flatShading: true });
+      // 4 wheels
+      const positions = [
+        [-20, 15, 5],  // front-left
+        [ 20, 15, 5],  // front-right
+        [-20,-15, 5],  // back-left
+        [ 20,-15, 5]   // back-right
+      ];
+      positions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeom, wheelMat);
+        wheel.position.set(pos[0] * zoom, pos[1] * zoom, pos[2] * zoom);
+        wheel.castShadow = true;
+        group.add(wheel);
+      });
+
+      return group;
     }
+
+    // Blocky Truck
+    function createBlockyTruck(color = 0xff5722) {
+      const group = new THREE.Group();
+
+      // Base
+      const baseGeom = new THREE.BoxGeometry(100 * zoom, 30 * zoom, 15 * zoom);
+      const baseMat = new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: true });
+      const base = new THREE.Mesh(baseGeom, baseMat);
+      base.castShadow = true;
+      base.receiveShadow = true;
+      base.position.z = 10 * zoom;
+      group.add(base);
+
+      // Cargo
+      const cargoGeom = new THREE.BoxGeometry(75 * zoom, 40 * zoom, 40 * zoom);
+      const cargoMat = new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: true });
+      const cargo = new THREE.Mesh(cargoGeom, cargoMat);
+      cargo.castShadow = true;
+      cargo.receiveShadow = true;
+      cargo.position.x = 10 * zoom;
+      cargo.position.z = 35 * zoom;
+      group.add(cargo);
+
+      // Cabin
+      const cabinGeom = new THREE.BoxGeometry(25 * zoom, 30 * zoom, 30 * zoom);
+      const cabinMat = new THREE.MeshLambertMaterial({ color, flatShading: true });
+      const cabin = new THREE.Mesh(cabinGeom, cabinMat);
+      cabin.castShadow = true;
+      cabin.receiveShadow = true;
+      cabin.position.x = -35 * zoom;
+      cabin.position.z = 25 * zoom;
+      group.add(cabin);
+
+      // Wheels (cubes)
+      const wheelGeom = new THREE.BoxGeometry(10 * zoom, 10 * zoom, 10 * zoom);
+      const wheelMat = new THREE.MeshLambertMaterial({ color: 0x333333, flatShading: true });
+      const positions = [
+        [-30, 15, 5],
+        [-30,-15, 5],
+        [  0, 15, 5],
+        [  0,-15, 5],
+        [ 30, 15, 5],
+        [ 30,-15, 5],
+      ];
+      positions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeom, wheelMat);
+        wheel.position.set(pos[0] * zoom, pos[1] * zoom, pos[2] * zoom);
+        wheel.castShadow = true;
+        group.add(wheel);
+      });
+
+      return group;
+    }
+
+    // Blocky Tree
+    function createBlockyTree() {
+      const group = new THREE.Group();
+      // Trunk
+      const trunkGeom = new THREE.BoxGeometry(15 * zoom, 15 * zoom, 20 * zoom);
+      const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4d2926, flatShading: true });
+      const trunk = new THREE.Mesh(trunkGeom, trunkMat);
+      trunk.position.z = 10 * zoom;
+      trunk.castShadow = true;
+      trunk.receiveShadow = true;
+      group.add(trunk);
+
+      // Crown (1-2 cubes)
+      const height = treeHeights[Math.floor(Math.random() * treeHeights.length)];
+      const crownGeom = new THREE.BoxGeometry(30 * zoom, 30 * zoom, height * zoom);
+      const crownMat = new THREE.MeshLambertMaterial({ color: 0x7aa21d, flatShading: true });
+      const crown = new THREE.Mesh(crownGeom, crownMat);
+      crown.position.z = (height / 2 + 20) * zoom;
+      crown.castShadow = true;
+      group.add(crown);
+
+      return group;
+    }
+
+    // Blocky Chicken
+    function createChicken() {
+      const group = new THREE.Group();
+
+      // Body
+      const bodyGeom = new THREE.BoxGeometry(chickenSize * zoom, chickenSize * zoom, 20 * zoom);
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+      const body = new THREE.Mesh(bodyGeom, bodyMat);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      body.position.z = 10 * zoom;
+      group.add(body);
+
+      // Comb (small red cube)
+      const combGeom = new THREE.BoxGeometry(5 * zoom, 5 * zoom, 5 * zoom);
+      const combMat = new THREE.MeshLambertMaterial({ color: 0xf0619a, flatShading: true });
+      const comb = new THREE.Mesh(combGeom, combMat);
+      comb.castShadow = true;
+      comb.position.z = 20 * zoom;
+      group.add(comb);
+
+      return group;
+    }
+
+    /* ------------------------------
+       2.2. Lane generation
+    ------------------------------ */
+    function generateInitialLanes() {
+      // from -9..9, but only keep >=0 in array
+      return [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        .map(i => {
+          const lane = new Lane(i);
+          lane.mesh.position.y = i * positionWidth * zoom;
+          scene.add(lane.mesh);
+          return lane;
+        })
+        .filter(lane => lane.index >= 0);
+    }
+
     function addLane() {
       const index = lanes.length;
       const lane = new Lane(index);
@@ -493,322 +637,151 @@
       scene.add(lane.mesh);
       lanes.push(lane);
     }
-    function Wheel() {
-      const wheel = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(12 * zoom, 33 * zoom, 12 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0x333333, flatShading: true })
-      );
-      wheel.position.z = 6 * zoom;
-      wheel.castShadow = true;
-      return wheel;
-    }
-    function Car() {
-      const car = new THREE.Group();
-      const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
 
-      // Основная часть машины
-      const main = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(60 * zoom, 30 * zoom, 15 * zoom),
-        new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 30 })
-      );
-      main.position.z = 12 * zoom;
-      main.castShadow = true;
-      main.receiveShadow = true;
-      car.add(main);
-
-      // Кабина
-      const cabin = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(33 * zoom, 24 * zoom, 12 * zoom),
-        [
-          new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, shininess: 10, map: carBackTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, shininess: 10, map: carFrontTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, shininess: 10, map: carRightSideTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, shininess: 10, map: carLeftSideTexture }),
-          new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, shininess: 10 }),
-          new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: true, shininess: 10 })
-        ]
-      );
-      cabin.position.x = 6 * zoom;
-      cabin.position.z = 25.5 * zoom;
-      cabin.castShadow = true;
-      cabin.receiveShadow = true;
-      car.add(cabin);
-
-      // Колёса
-      const frontWheel = new Wheel();
-      frontWheel.position.x = -18 * zoom;
-      car.add(frontWheel);
-      const backWheel = new Wheel();
-      backWheel.position.x = 18 * zoom;
-      car.add(backWheel);
-
-      car.castShadow = true;
-      return car;
-    }
-    function Truck() {
-      const truck = new THREE.Group();
-      const color = vechicleColors[Math.floor(Math.random() * vechicleColors.length)];
-
-      // Низ (платформа)
-      const base = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(100 * zoom, 25 * zoom, 5 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: true })
-      );
-      base.position.z = 10 * zoom;
-      base.castShadow = true;
-      truck.add(base);
-
-      // Грузовая часть
-      const cargo = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(75 * zoom, 35 * zoom, 40 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0xb4c6fc, flatShading: true })
-      );
-      cargo.position.x = 15 * zoom;
-      cargo.position.z = 30 * zoom;
-      cargo.castShadow = true;
-      cargo.receiveShadow = true;
-      truck.add(cargo);
-
-      // Кабина
-      const cabin = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(25 * zoom, 30 * zoom, 30 * zoom),
-        [
-          new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 10 }),
-          new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 10, map: truckFrontTexture }),
-          new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 10, map: truckRightSideTexture }),
-          new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 10, map: truckLeftSideTexture }),
-          new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 10 }),
-          new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 10 })
-        ]
-      );
-      cabin.position.x = -40 * zoom;
-      cabin.position.z = 20 * zoom;
-      cabin.castShadow = true;
-      cabin.receiveShadow = true;
-      truck.add(cabin);
-
-      // Колёса
-      const frontWheel = new Wheel();
-      frontWheel.position.x = -38 * zoom;
-      truck.add(frontWheel);
-      const middleWheel = new Wheel();
-      middleWheel.position.x = -10 * zoom;
-      truck.add(middleWheel);
-      const backWheel = new Wheel();
-      backWheel.position.x = 30 * zoom;
-      truck.add(backWheel);
-
-      return truck;
-    }
-    function ThreeTree() {
-      const tree = new THREE.Group();
-      // Ствол
-      const trunk = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(15 * zoom, 15 * zoom, 20 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0x4d2926, flatShading: true })
-      );
-      trunk.position.z = 10 * zoom;
-      trunk.castShadow = true;
-      trunk.receiveShadow = true;
-      tree.add(trunk);
-      // «Крона»
-      const height = threeHeights[Math.floor(Math.random() * threeHeights.length)];
-      const crown = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(30 * zoom, 30 * zoom, height * zoom),
-        new THREE.MeshLambertMaterial({ color: 0x7aa21d, flatShading: true })
-      );
-      crown.position.z = (height / 2 + 20) * zoom;
-      crown.castShadow = true;
-      tree.add(crown);
-      return tree;
-    }
-    function Chicken() {
-      const chicken = new THREE.Group();
-      // Тело
-      const body = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(chickenSize * zoom, chickenSize * zoom, 20 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true })
-      );
-      body.position.z = 10 * zoom;
-      body.castShadow = true;
-      body.receiveShadow = true;
-      chicken.add(body);
-      // Гребешок
-      const rowel = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(2 * zoom, 4 * zoom, 2 * zoom),
-        new THREE.MeshLambertMaterial({ color: 0xF0619A, flatShading: true })
-      );
-      rowel.position.z = 21 * zoom;
-      rowel.castShadow = true;
-      chicken.add(rowel);
-      return chicken;
-    }
-    function Road() {
-      const road = new THREE.Group();
-      const createSection = color => new THREE.Mesh(
-        new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom),
-        new THREE.MeshLambertMaterial({ color, flatShading: true })
-      );
-      // Тёмно-серая середина дороги
-      const middle = createSection(0x454A59);
-      middle.receiveShadow = true;
-      road.add(middle);
-      // Левый край
-      const left = createSection(0x3A3F4B);
-      left.position.x = -boardWidth * zoom;
-      road.add(left);
-      // Правый край
-      const right = createSection(0x3A3F4B);
-      right.position.x = boardWidth * zoom;
-      road.add(right);
-      return road;
-    }
-    function Grass() {
-      const grass = new THREE.Group();
-      const createSection = color => new THREE.Mesh(
-        new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom),
-        new THREE.MeshLambertMaterial({ color, flatShading: true })
-      );
-      // Ярко-зелёная трава
-      const middle = createSection(0x8bc34a);
-      middle.receiveShadow = true;
-      grass.add(middle);
-      const left = createSection(0x7fbf3c);
-      left.position.x = -boardWidth * zoom;
-      grass.add(left);
-      const right = createSection(0x7fbf3c);
-      right.position.x = boardWidth * zoom;
-      grass.add(right);
-      grass.position.z = 1.5 * zoom;
-      return grass;
-    }
+    // Lane object
     function Lane(index) {
       this.index = index;
       this.type = index <= 0 ? 'field' : laneTypes[Math.floor(Math.random() * laneTypes.length)];
+
       switch (this.type) {
-        case 'field': {
+        case 'field':
           this.type = 'field';
-          this.mesh = new Grass();
+          this.mesh = createGrass();
           break;
-        }
-        case 'forest': {
-          this.mesh = new Grass();
+
+        case 'forest':
+          this.mesh = createGrass();
           this.occupiedPositions = new Set();
-          this.trees = [1, 2, 3, 4].map(() => {
-            const tree = ThreeTree();
+          // place some trees
+          for (let i = 0; i < 4; i++) {
             let position;
             do {
               position = Math.floor(Math.random() * columns);
             } while (this.occupiedPositions.has(position));
             this.occupiedPositions.add(position);
+            const tree = createBlockyTree();
             tree.position.x = (position * positionWidth + positionWidth / 2) * zoom - boardWidth * zoom / 2;
             this.mesh.add(tree);
-            return tree;
-          });
+          }
           break;
-        }
-        case 'car': {
-          this.mesh = new Road();
+
+        case 'car':
+        case 'truck':
+          this.mesh = createRoad();
           this.direction = Math.random() >= 0.5;
           const occupiedPositions = new Set();
-          this.vechicles = [1, 2, 3].map(() => {
-            const vechicle = new Car();
-            let position;
+          const count = (this.type === 'car') ? 3 : 2;
+          this.vehicles = [];
+          for (let i = 0; i < count; i++) {
+            let pos;
             do {
-              position = Math.floor(Math.random() * (columns / 2));
-            } while (occupiedPositions.has(position));
-            occupiedPositions.add(position);
-            vechicle.position.x = (position * positionWidth * 2 + positionWidth / 2) * zoom - boardWidth * zoom / 2;
-            if (!this.direction) vechicle.rotation.z = Math.PI;
-            this.mesh.add(vechicle);
-            return vechicle;
-          });
+              // to avoid overlapping, pick from a portion of columns
+              pos = Math.floor(Math.random() * (columns / (this.type === 'car' ? 2 : 3)));
+            } while (occupiedPositions.has(pos));
+            occupiedPositions.add(pos);
+
+            let vehicle;
+            if (this.type === 'car') {
+              vehicle = createBlockyCar(vehicleColors[Math.floor(Math.random() * vehicleColors.length)]);
+            } else {
+              vehicle = createBlockyTruck(vehicleColors[Math.floor(Math.random() * vehicleColors.length)]);
+            }
+            vehicle.position.x = (pos * positionWidth * (this.type === 'car' ? 2 : 3) + positionWidth / 2) * zoom - boardWidth * zoom / 2;
+            if (!this.direction) vehicle.rotation.z = Math.PI;
+            this.mesh.add(vehicle);
+            this.vehicles.push(vehicle);
+          }
           this.speed = laneSpeeds[Math.floor(Math.random() * laneSpeeds.length)];
           break;
-        }
-        case 'truck': {
-          this.mesh = new Road();
-          this.direction = Math.random() >= 0.5;
-          const occupiedPositions = new Set();
-          this.vechicles = [1, 2].map(() => {
-            const vechicle = new Truck();
-            let position;
-            do {
-              position = Math.floor(Math.random() * (columns / 3));
-            } while (occupiedPositions.has(position));
-            occupiedPositions.add(position);
-            vechicle.position.x = (position * positionWidth * 3 + positionWidth / 2) * zoom - boardWidth * zoom / 2;
-            if (!this.direction) vechicle.rotation.z = Math.PI;
-            this.mesh.add(vechicle);
-            return vechicle;
-          });
-          this.speed = laneSpeeds[Math.floor(Math.random() * laneSpeeds.length)];
-          break;
-        }
       }
     }
 
-    // Звук движения
-    const moveSound = new Audio("move.mp3");
+    // Road (dark gray)
+    function createRoad() {
+      const group = new THREE.Group();
+      const geometry = new THREE.PlaneBufferGeometry(boardWidth * zoom, positionWidth * zoom);
+      const material = new THREE.MeshLambertMaterial({ color: 0x454A59, flatShading: true });
+      const plane = new THREE.Mesh(geometry, material);
+      plane.rotation.x = -Math.PI / 2;
+      plane.receiveShadow = true;
+      group.add(plane);
+      return group;
+    }
 
-    // Обработчики кнопок управления
-    document.getElementById('forward').addEventListener("click", () => move('forward'));
-    document.getElementById('backward').addEventListener("click", () => move('backward'));
-    document.getElementById('left').addEventListener("click", () => move('left'));
-    document.getElementById('right').addEventListener("click", () => move('right'));
+    // Grass (green)
+    function createGrass() {
+      const group = new THREE.Group();
+      const geometry = new THREE.BoxBufferGeometry(boardWidth * zoom, positionWidth * zoom, 3 * zoom);
+      const material = new THREE.MeshLambertMaterial({ color: 0x8bc34a, flatShading: true });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.receiveShadow = true;
+      mesh.position.z = 1.5 * zoom;
+      group.add(mesh);
+      return group;
+    }
 
-    function move(direction) {
+    /* ------------------------------
+       2.3. Movement & collisions
+    ------------------------------ */
+    const moveSound = document.getElementById('moveSound');
+    document.getElementById('forward').addEventListener("click", () => moveChicken('forward'));
+    document.getElementById('backward').addEventListener("click", () => moveChicken('backward'));
+    document.getElementById('left').addEventListener("click", () => moveChicken('left'));
+    document.getElementById('right').addEventListener("click", () => moveChicken('right'));
+
+    function moveChicken(direction) {
       moveSound.currentTime = 0;
       moveSound.play().catch(err => console.log(err));
-      const finalPositions = moves.reduce((position, move) => {
-        if (move === 'forward') return { lane: position.lane + 1, column: position.column };
-        if (move === 'backward') return { lane: position.lane - 1, column: position.column };
-        if (move === 'left') return { lane: position.lane, column: position.column - 1 };
-        if (move === 'right') return { lane: position.lane, column: position.column + 1 };
+
+      const finalPos = moves.reduce((pos, move) => {
+        if (move === 'forward') return { lane: pos.lane + 1, column: pos.column };
+        if (move === 'backward') return { lane: pos.lane - 1, column: pos.column };
+        if (move === 'left') return { lane: pos.lane, column: pos.column - 1 };
+        if (move === 'right') return { lane: pos.lane, column: pos.column + 1 };
       }, { lane: currentLane, column: currentColumn });
 
       if (direction === 'forward') {
-        if (lanes[finalPositions.lane + 1].type === 'forest' &&
-            lanes[finalPositions.lane + 1].occupiedPositions.has(finalPositions.column)) return;
+        if (lanes[finalPos.lane + 1] && lanes[finalPos.lane + 1].type === 'forest'
+            && lanes[finalPos.lane + 1].occupiedPositions
+            && lanes[finalPos.lane + 1].occupiedPositions.has(finalPos.column)) return;
         if (!stepStartTimestamp) startMoving = true;
         addLane();
       } else if (direction === 'backward') {
-        if (finalPositions.lane === 0) return;
-        if (lanes[finalPositions.lane - 1].type === 'forest' &&
-            lanes[finalPositions.lane - 1].occupiedPositions.has(finalPositions.column)) return;
+        if (finalPos.lane === 0) return;
+        if (lanes[finalPos.lane - 1] && lanes[finalPos.lane - 1].type === 'forest'
+            && lanes[finalPos.lane - 1].occupiedPositions.has(finalPos.column)) return;
         if (!stepStartTimestamp) startMoving = true;
       } else if (direction === 'left') {
-        if (finalPositions.column === 0) return;
-        if (lanes[finalPositions.lane].type === 'forest' &&
-            lanes[finalPositions.lane].occupiedPositions.has(finalPositions.column - 1)) return;
+        if (finalPos.column === 0) return;
+        if (lanes[finalPos.lane].type === 'forest'
+            && lanes[finalPos.lane].occupiedPositions.has(finalPos.column - 1)) return;
         if (!stepStartTimestamp) startMoving = true;
       } else if (direction === 'right') {
-        if (finalPositions.column === columns - 1) return;
-        if (lanes[finalPositions.lane].type === 'forest' &&
-            lanes[finalPositions.lane].occupiedPositions.has(finalPositions.column + 1)) return;
+        if (finalPos.column === columns - 1) return;
+        if (lanes[finalPos.lane].type === 'forest'
+            && lanes[finalPos.lane].occupiedPositions.has(finalPos.column + 1)) return;
         if (!stepStartTimestamp) startMoving = true;
       }
+
       moves.push(direction);
     }
 
-    // Эффект тряски камеры (при столкновении)
     function cameraShake(duration = 500, intensity = 5) {
       const startTime = performance.now();
-      const originalPosition = camera.position.clone();
+      const originalPos = camera.position.clone();
       function shake() {
         const elapsed = performance.now() - startTime;
         if (elapsed < duration) {
-          camera.position.x = originalPosition.x + (Math.random() - 0.5) * intensity;
-          camera.position.y = originalPosition.y + (Math.random() - 0.5) * intensity;
+          camera.position.x = originalPos.x + (Math.random() - 0.5) * intensity;
+          camera.position.y = originalPos.y + (Math.random() - 0.5) * intensity;
           requestAnimationFrame(shake);
         } else {
-          camera.position.copy(originalPosition);
+          camera.position.copy(originalPos);
         }
       }
       shake();
     }
 
-    // Эффект частиц при столкновении
     function spawnCollisionParticles() {
       const particleCount = 50;
       const geometry = new THREE.BufferGeometry();
@@ -820,15 +793,16 @@
       const material = new THREE.PointsMaterial({ color: 0xff66cc, size: 2, transparent: true });
       const particles = new THREE.Points(geometry, material);
       scene.add(particles);
+
       const startTime = performance.now();
       function animateParticles() {
         const elapsed = performance.now() - startTime;
         if (elapsed < 1000) {
-          const positions = particles.geometry.attributes.position.array;
+          const arr = particles.geometry.attributes.position.array;
           for (let i = 0; i < particleCount; i++) {
-            positions[i * 3] += (Math.random() - 0.5) * 2;
-            positions[i * 3 + 1] += (Math.random() - 0.5) * 2;
-            positions[i * 3 + 2] += (Math.random() - 0.5) * 2;
+            arr[i * 3] += (Math.random() - 0.5) * 2;
+            arr[i * 3 + 1] += (Math.random() - 0.5) * 2;
+            arr[i * 3 + 2] += (Math.random() - 0.5) * 2;
           }
           particles.geometry.attributes.position.needsUpdate = true;
           requestAnimationFrame(animateParticles);
@@ -841,43 +815,41 @@
       animateParticles();
     }
 
-    // Завершение игры
     function endGame() {
       if (gameEnded) return;
       gameEnded = true;
       document.getElementById('deathSound').play().catch(err => console.log(err));
-      // Тряска камеры и частицы
       cameraShake();
       spawnCollisionParticles();
+
       setTimeout(() => {
         localUserData.points += currentLane;
         if (userRef) userRef.update({ points: localUserData.points });
         document.getElementById('controlls').style.display = 'none';
         modalType = "gameOver";
-        document.getElementById('endTitle').textContent = 'Game Over!';
-        document.getElementById('endMessage').textContent = 'Your score: ' + currentLane;
+        document.getElementById('endTitle').textContent = 'GAME OVER!';
+        document.getElementById('endMessage').textContent = 'Your Score: ' + currentLane;
         document.getElementById('end').style.visibility = 'visible';
       }, 600);
     }
 
-    // Если билетов нет или данные не загружены – показываем модальное окно
     function showNoTicketsModal() {
       modalType = "noTickets";
-      document.getElementById('endTitle').textContent = 'Not enough tickets!';
+      document.getElementById('endTitle').textContent = 'NOT ENOUGH TICKETS!';
       document.getElementById('endMessage').textContent = 'Please come back later.';
       document.getElementById('end').style.visibility = 'visible';
     }
 
-    /* ----------------------------------------
-       3. Главный игровой цикл и таймер
-    ---------------------------------------- */
+    /* --------------------------------------------------------
+       3. Main animation loop & timer
+    -------------------------------------------------------- */
     function animate(timestamp) {
       requestAnimationFrame(animate);
       if (!previousTimestamp) previousTimestamp = timestamp;
       const delta = timestamp - previousTimestamp;
       previousTimestamp = timestamp;
 
-      // Обновление таймера (если игра запущена)
+      // Timer update
       if (gameStartTime) {
         let elapsed = timestamp - gameStartTime;
         let remaining = gameDuration - elapsed;
@@ -892,32 +864,36 @@
         }
       }
 
-      // Движение машин/грузовиков
+      // Move vehicles
       lanes.forEach(lane => {
         if (lane.type === 'car' || lane.type === 'truck') {
           const aBitBefore = -boardWidth * zoom / 2 - positionWidth * 2 * zoom;
           const aBitAfter  = boardWidth * zoom / 2 + positionWidth * 2 * zoom;
-          lane.vechicles.forEach(vehicle => {
+          lane.vehicles.forEach(vehicle => {
             if (lane.direction) {
-              vehicle.position.x = vehicle.position.x < aBitBefore ? aBitAfter : vehicle.position.x - lane.speed / 16 * delta;
+              vehicle.position.x = (vehicle.position.x < aBitBefore)
+                ? aBitAfter
+                : vehicle.position.x - lane.speed / 16 * delta;
             } else {
-              vehicle.position.x = vehicle.position.x > aBitAfter ? aBitBefore : vehicle.position.x + lane.speed / 16 * delta;
+              vehicle.position.x = (vehicle.position.x > aBitAfter)
+                ? aBitBefore
+                : vehicle.position.x + lane.speed / 16 * delta;
             }
           });
         }
       });
 
-      // Анимация прыжка курицы
+      // Chicken step animation
       if (startMoving) {
         stepStartTimestamp = timestamp;
         startMoving = false;
       }
-
       if (stepStartTimestamp) {
         const moveDeltaTime = timestamp - stepStartTimestamp;
         const progress = Math.min(moveDeltaTime / stepTime, 1);
         const moveDeltaDistance = progress * positionWidth * zoom;
         const jumpDeltaDistance = Math.sin(progress * Math.PI) * 8 * zoom;
+
         switch (moves[0]) {
           case 'forward': {
             const targetY = currentLane * positionWidth * zoom + moveDeltaDistance;
@@ -952,6 +928,7 @@
             break;
           }
         }
+
         if (moveDeltaTime > stepTime) {
           switch (moves[0]) {
             case 'forward': {
@@ -978,15 +955,14 @@
         }
       }
 
-      // Проверка столкновений с транспортом
-      if (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck') {
-        const chickenMinX = chicken.position.x - chickenSize * zoom / 2;
-        const chickenMaxX = chicken.position.x + chickenSize * zoom / 2;
-        // Примерная длина автомобиля/грузовика
-        const vehicleLength = { car: 60, truck: 105 }[lanes[currentLane].type];
-        lanes[currentLane].vechicles.forEach(vehicle => {
-          const vehicleMinX = vehicle.position.x - vehicleLength * zoom / 2;
-          const vehicleMaxX = vehicle.position.x + vehicleLength * zoom / 2;
+      // Collision check
+      if (lanes[currentLane] && (lanes[currentLane].type === 'car' || lanes[currentLane].type === 'truck')) {
+        const chickenMinX = chicken.position.x - (chickenSize * zoom / 2);
+        const chickenMaxX = chicken.position.x + (chickenSize * zoom / 2);
+        const vehicleLength = (lanes[currentLane].type === 'car') ? 60 : 105;
+        lanes[currentLane].vehicles.forEach(vehicle => {
+          const vehicleMinX = vehicle.position.x - (vehicleLength * zoom / 2);
+          const vehicleMaxX = vehicle.position.x + (vehicleLength * zoom / 2);
           if (chickenMaxX > vehicleMinX && chickenMinX < vehicleMaxX) {
             endGame();
           }
@@ -998,9 +974,9 @@
     }
     requestAnimationFrame(animate);
 
-    /* ----------------------------------------
-       4. Функция старта игры
-    ---------------------------------------- */
+    /* --------------------------------------------------------
+       4. Start game function
+    -------------------------------------------------------- */
     document.body.addEventListener('click', () => {
       const bgSound = document.getElementById('bgSound');
       if (bgSound.paused) {
@@ -1009,7 +985,7 @@
     }, { once: true });
 
     function startGame() {
-      // Если данные не загружены или билетов недостаточно, показываем модальное окно
+      // If data not loaded or not enough tickets
       if (!dataLoaded || localUserData.tickets < 1) {
         showNoTicketsModal();
         return;
@@ -1017,16 +993,20 @@
       localUserData.tickets--;
       if (userRef) userRef.update({ tickets: localUserData.tickets });
       updateHeader();
-      // Скрываем меню: header, back и кнопку Start
+
+      // Hide menu elements
       document.getElementById('header').style.display = 'none';
       document.getElementById('backContainer').style.display = 'none';
       document.getElementById('startBtn').style.display = 'none';
-      // Показываем область игры и контролы
+
+      // Show game area and controls
       document.getElementById('gameWrapper').style.display = 'block';
       document.getElementById('controlls').style.display = 'flex';
-      // Показываем time bar
+
+      // Show time bar
       document.getElementById('timeBarContainer').style.display = 'block';
-      // Устанавливаем время старта игры для таймера
+
+      // Set game start time
       gameStartTime = performance.now();
 
       initGame();
@@ -1037,3 +1017,4 @@
   </script>
 </body>
 </html>
+
