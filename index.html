@@ -3,43 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Полноэкранный режим</title>
+  <title>Установка цвета заголовка</title>
   <!-- Подключаем Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <h1>Привет, народ!</h1>
-  <p>Нажмите где-нибудь на странице, чтобы включить полноэкранный режим.</p>
+  <h1>Пример мини-приложения</h1>
+  <p>Привет, народ!</p>
   <script>
     const tg = window.Telegram.WebApp;
-    console.log("Telegram WebApp API:", tg);
 
-    async function goFullScreen() {
-      try {
-        // Если доступен метод tg.requestFullScreen, пробуем его
-        if (tg.requestFullScreen) {
-          await tg.requestFullScreen();
-          console.log("tg.requestFullScreen() сработал");
-        } else if (document.documentElement.requestFullscreen) {
-          // Фолбэк на стандартный Fullscreen API
-          await document.documentElement.requestFullscreen();
-          console.log("document.documentElement.requestFullscreen() сработал");
-        } else {
-          console.error("Полноэкранный режим не поддерживается");
-        }
-      } catch (err) {
-        console.error("Ошибка при переходе в полноэкранный режим:", err);
-      }
-    }
+    // Вариант 1: Использование color_key (доступно с v6.1)
+    // color_key может принимать значение "bg_color" или "secondary_bg_color"
+    tg.setHeaderColor({ color_key: 'bg_color' });
 
-    // Обработчик первого клика пользователя
-    function handleFirstClick() {
-      console.log("Клик зафиксирован, пытаемся перейти в полноэкранный режим");
-      goFullScreen();
-      document.removeEventListener("click", handleFirstClick);
-    }
-
-    document.addEventListener("click", handleFirstClick, { once: true });
+    // Вариант 2: Передача конкретного цвета (доступно с v6.9)
+    // tg.setHeaderColor({ color: '#00FF00' });
   </script>
 </body>
 </html>
