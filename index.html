@@ -130,15 +130,6 @@
     </div>
   </header>
 
-<button id="fullscreenBtn">На весь экран</button>
-<script>
-  const tg = window.Telegram.WebApp;
-  document.getElementById('fullscreenBtn').addEventListener('click', () => {
-    tg.requestFullScreen()  // убедитесь, что буква "S" заглавная!
-      .catch(err => console.error("Ошибка перехода в полноэкранный режим:", err));
-  });
-</script>
-
 
   
   <!-- Main Content (обернут в контейнер с классом scrollable для разрешённой прокрутки) -->
@@ -214,7 +205,14 @@
           </div>
         </div>
       </div>
-
+<button id="fullscreenBtn">На весь экран</button>
+<script>
+  const tg = window.Telegram.WebApp;
+  document.getElementById('fullscreenBtn').addEventListener('click', () => {
+    tg.requestFullScreen()  // убедитесь, что буква "S" заглавная!
+      .catch(err => console.error("Ошибка перехода в полноэкранный режим:", err));
+  });
+</script>
       <div class="games-section">
         <h3>
           <span id="partnerGamesHeaderText">Partner Games</span>
