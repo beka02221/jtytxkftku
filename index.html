@@ -11,36 +11,35 @@
   <h1>Привет, народ!</h1>
   <p>Добро пожаловать в наше мини-приложение!</p>
   <script>
-    // Инициализация Telegram Web App API
     const tg = window.Telegram.WebApp;
+    console.log("Telegram WebApp API:", tg);
 
-    // Автоматическая регистрация: проверяем, доступны ли данные пользователя
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      console.log("Пользователь:", tg.initDataUnsafe.user);
-      // Здесь можно добавить код для сохранения данных пользователя или перехода на другой экран
-    } else {
-      console.error("Нет данных пользователя");
-    }
-
-    // Функция для перехода в полноэкранный режим
-    async function initFullScreen() {
+    // Функция для запроса полноэкранного режима через Telegram API,
+    // с fallback на стандартный Fullscreen API.
+    async function goFullScreen() {
       try {
-        // Пытаемся перевести документ в полноэкранный режим
-        await tg.requestFullScreen();
-        console.log("Полный экран активирован");
+        if (tg.requestFullScreen) {
+          await tg.requestFullScreen();
+          console.log("Полный экран активирован через tg.requestFullScreen()");
+        } else if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+          console.log("Полный экран активирован через document.documentElement.requestFullscreen()");
+        } else {
+          console.error("Полноэкранный режим не поддерживается");
+        }
       } catch (err) {
-        console.error("Ошибка перехода в полный экран:", err);
+        console.error("Ошибка при переходе в полный экран:", err);
       }
     }
 
-    // Обработчик первого клика пользователя для активации полного экрана
-    const handleFirstClick = () => {
-      initFullScreen();
-      // Убираем обработчик после первого вызова
+    // Обработчик первого клика по документу
+    function handleFirstClick() {
+      goFullScreen();
+      // Удаляем обработчик, чтобы не вызывать повторно
       document.removeEventListener("click", handleFirstClick);
-    };
+    }
 
-    // Добавляем обработчик клика по документу
+    // Добавляем обработчик клика по документу – без него большинство браузеров не разрешат
     document.addEventListener("click", handleFirstClick);
   </script>
 </body>
