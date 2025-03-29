@@ -3,44 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Привет, народ!</title>
-  <!-- Подключаем Telegram Web App API -->
+  <title>Полноэкранный режим</title>
+  <!-- Подключение Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <h1>Привет, народ!</h1>
-  <p>Добро пожаловать в наше мини-приложение!</p>
+  <p>Нажмите где-нибудь на странице, чтобы включить полноэкранный режим.</p>
   <script>
+    // Получаем объект Telegram Web App
     const tg = window.Telegram.WebApp;
     console.log("Telegram WebApp API:", tg);
 
-    // Функция для запроса полноэкранного режима через Telegram API,
-    // с fallback на стандартный Fullscreen API.
+    // Функция для перехода в полноэкранный режим
     async function goFullScreen() {
       try {
+        // Если доступен метод из Telegram API, пробуем его
         if (tg.requestFullScreen) {
           await tg.requestFullScreen();
           console.log("Полный экран активирован через tg.requestFullScreen()");
-        } else if (document.documentElement.requestFullscreen) {
+        } 
+        // Фолбэк: стандартный HTML5 Fullscreen API
+        else if (document.documentElement.requestFullscreen) {
           await document.documentElement.requestFullscreen();
           console.log("Полный экран активирован через document.documentElement.requestFullscreen()");
         } else {
-          console.error("Полноэкранный режим не поддерживается");
+          console.error("Полноэкранный режим не поддерживается в этом браузере");
         }
       } catch (err) {
-        console.error("Ошибка при переходе в полный экран:", err);
+        console.error("Ошибка при переходе в полноэкранный режим:", err);
       }
     }
 
     // Обработчик первого клика по документу
-    function handleFirstClick() {
+    document.addEventListener("click", function handleClick() {
       goFullScreen();
-      // Удаляем обработчик, чтобы не вызывать повторно
-      document.removeEventListener("click", handleFirstClick);
-    }
-
-    // Добавляем обработчик клика по документу – без него большинство браузеров не разрешат
-    document.addEventListener("click", handleFirstClick);
+      // Убираем обработчик после первого клика
+      document.removeEventListener("click", handleClick);
+    }, { once: true });
   </script>
 </body>
 </html>
