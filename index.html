@@ -19,10 +19,7 @@
 
   <!-- Additional CSS for Loot Box block -->
   <style>
-   Telegram.WebApp.setHeaderColor({
-  color: "#00000000",  // полностью прозрачный фон
-  textColor: "#FFFFFF" // белый цвет текста (можно изменить по необходимости)
-});
+ 
 
     .case-container {
       flex-direction: column;
@@ -994,5 +991,14 @@
       }
     }, { passive: false });
   </script>
+  <script>
+  const tg = window.Telegram.WebApp;
+  tg.expand();
+  tg.setHeaderColor({
+    color: "#00000000",
+    textColor: "#FFFFFF"
+  });
+</script>
+
 </body>
 </html>
