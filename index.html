@@ -995,10 +995,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     const tg = window.Telegram.WebApp;
     tg.expand();
-    // Используем 8-значный hex-код для прозрачности
+    tg.ready();
     tg.setHeaderColor({ color: '#00000000' });
   });
 </script>
+
 
 
 
