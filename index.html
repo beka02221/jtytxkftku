@@ -992,13 +992,16 @@
     }, { passive: false });
   </script>
  <script>
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener("DOMContentLoaded", function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
     tg.ready();
-    tg.setHeaderColor({ color: '#00000000' });
+    tg.requestTheme({
+      header_color: "#00000000" // прозрачный (черный с нулевым альфа-каналом)
+    });
   });
 </script>
+
 
 
 
