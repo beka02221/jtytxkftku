@@ -1,31 +1,29 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Telegram Mini App – Красный заголовок</title>
+  <title>Mini App – Заголовок по ключу</title>
   <!-- Подключаем Telegram Web App API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <h1>Привет, народ!</h1>
-  <p>Это мини‑приложение с красным заголовком.</p>
-  
+  <p>Демонстрация изменения цвета заголовка через color_key</p>
+
   <script>
+    // Инициализация API
     const tg = window.Telegram.WebApp;
-    
+
     // Уведомляем Telegram, что приложение готово
     tg.ready();
-    
-    // Устанавливаем красный цвет для заголовка.
-    // Свойство "color" доступно с версии 6.9, формат цвета – RGB/HEX.
-    tg.setHeaderColor({ color: '#FF0000' });
-    
-    // Если вы используете версию с 6.1, можно задать цвет через color_key,
-    // например:
-    // tg.setHeaderColor({ color_key: 'bg_color' });
-    // но тогда цвет выбирается из предопределённого набора.
+
+    // Установка цвета заголовка по ключу (доступно с v6.1)
+    // Возможные варианты: "bg_color" или "secondary_bg_color"
+    tg.setHeaderColor({ color_key: 'bg_color' });
+
+    // Для отладки можно вывести в консоль версию API
+    console.log('Telegram WebApp version:', tg.version);
   </script>
 </body>
 </html>
-
