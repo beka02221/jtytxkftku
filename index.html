@@ -1,111 +1,131 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <!-- Viewport settings for responsive design and fullscreen support -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
-  <title>Telegram Mini App</title>
-  <!-- Подключение к Telegram WebApp API (SDK) -->
+  <meta charset="UTF-8" />
+  <!-- Важные мета-теги для Telegram Mini App -->
+  <meta name="viewport" 
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <!-- Настройки для iOS и Android, чтобы разрешить Web App Capable -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <title>Telegram WebApp Fullscreen Demo</title>
+
+  <!-- Подключение Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
-    /* Стили адаптации под мобильные устройства и темы Telegram */
+    /* Сброс внешних отступов */
     html, body {
       margin: 0;
       padding: 0;
-      /* Используем параметры темы Telegram или запасные значения */
+      box-sizing: border-box;
+
+      /* Фоновый цвет и цвет текста зависят от темы Telegram */
       background-color: var(--tg-theme-bg-color, #ffffff);
       color: var(--tg-theme-text-color, #000000);
-      /* Устанавливаем схему цветов для встроенных элементов (светлая/тёмная) */
-      color-scheme: var(--tg-color-scheme, light);
-      /* Масштабируемость и учет вырезов экрана (безопасная зона) */
-      min-height: 100vh;
-      /* Отступы с учётом безопасных зон на мобильных устройствах (например, вырез под камеру) */
+
+      /* Учитываем различные вырезы на экранах (notch) */
       padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-      box-sizing: border-box;
+
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       font-family: sans-serif;
     }
+
     .container {
       max-width: 600px;
-      margin: auto;
-      padding: 16px;
+      width: 90%;
       text-align: center;
     }
-    h1 {
-      font-size: 1.5em;
-      margin-bottom: 0.5em;
+
+    .buttons {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
     }
-    p {
-      margin-bottom: 1.5em;
-    }
+
     button {
-      /* Адаптация цвета кнопки под тему Telegram или использование стандартных цветов */
-      background-color: var(--tg-theme-button-color, #50a8eb);
+      background-color: var(--tg-theme-button-color, #2196f3);
       color: var(--tg-theme-button-text-color, #ffffff);
       border: none;
       border-radius: 5px;
-      padding: 12px 20px;
+      padding: 12px 16px;
       font-size: 16px;
       cursor: pointer;
-      /* Кнопка занимает всю ширину на узких экранах */
-      width: 100%;
+      /* На узких экранах кнопки тянутся по ширине */
+      flex: 1 1 120px;
       max-width: 200px;
     }
     button:active {
-      /* Небольшое затемнение кнопки при нажатии */
-      opacity: 0.9;
+      opacity: 0.8;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Простой интерфейс: приветственное сообщение и кнопка -->
-    <h1>Добро пожаловать в мини-приложение!</h1>
-    <p>Этот пример демонстрирует интеграцию с Telegram WebApp.</p>
-    <button id="actionBtn">Нажми меня</button>
+    <h1>Телеграм WebApp + Fullscreen API</h1>
+    <p id="statusInfo">Статус: <b>Обычный режим</b></p>
+    <div class="buttons">
+      <button id="btnEnterFullscreen">Войти в полноэкран</button>
+      <button id="btnExitFullscreen">Выйти из полноэкрана</button>
+    </div>
+    <div style="margin-top: 1rem;">
+      <button id="btnTestAction">Произвольное действие</button>
+    </div>
   </div>
+
   <script>
-    // Инициализация объекта Telegram WebApp
+    // Инициализируем WebApp
     const tg = window.Telegram.WebApp;
-    tg.ready(); // Сообщаем Telegram, что приложение готово
-    // Если доступен метод expand(), переведём веб-приложение в полноэкранный режим
-    if (typeof tg.expand === 'function') {
-      tg.expand();
-    }
-    // Настраиваем начальную тему оформления в соответствии с темой Telegram
-    if (tg.themeParams.bg_color) {
-      document.body.style.backgroundColor = tg.themeParams.bg_color;
-    }
-    if (tg.themeParams.text_color) {
-      document.body.style.color = tg.themeParams.text_color;
-    }
-    const button = document.getElementById('actionBtn');
-    if (tg.themeParams.button_color) {
-      button.style.backgroundColor = tg.themeParams.button_color;
-    }
-    if (tg.themeParams.button_text_color) {
-      button.style.color = tg.themeParams.button_text_color;
-    }
-    // Отслеживаем изменение темы в Telegram и обновляем стили
-    tg.onEvent('themeChanged', function() {
-      if (tg.themeParams.bg_color) {
-        document.body.style.backgroundColor = tg.themeParams.bg_color;
-      }
-      if (tg.themeParams.text_color) {
-        document.body.style.color = tg.themeParams.text_color;
-      }
-      if (tg.themeParams.button_color) {
-        button.style.backgroundColor = tg.themeParams.button_color;
-      }
-      if (tg.themeParams.button_text_color) {
-        button.style.color = tg.themeParams.button_text_color;
-      }
+    tg.ready(); // Говорим Telegram, что приложение готово
+
+    const statusInfo = document.getElementById('statusInfo');
+    const enterBtn = document.getElementById('btnEnterFullscreen');
+    const exitBtn = document.getElementById('btnExitFullscreen');
+    const testActionBtn = document.getElementById('btnTestAction');
+
+    // Обновим статус на старте (вдруг уже в полноэкранном)
+    updateStatus(tg.isExpanded);
+
+    // Подпишемся на событие изменения полноэкранного режима
+    // Обратите внимание, что для новых методов API используется событие 'web_app_fullscreen_changed'
+    tg.onEvent('web_app_fullscreen_changed', (isFullScreen) => {
+      updateStatus(isFullScreen);
     });
-    // Пример обработки нажатия на кнопку
-    button.addEventListener('click', function() {
-      alert('Кнопка нажата!');
-      // При необходимости, можно использовать tg.showAlert('сообщение') для нативного окна Telegram
+
+    // Также при смене темы Telegram обновляем стили
+    tg.onEvent('themeChanged', () => {
+      document.body.style.backgroundColor = tg.themeParams.bg_color || '#ffffff';
+      document.body.style.color = tg.themeParams.text_color || '#000000';
     });
+
+    // Нажатие кнопки "Войти в полноэкранный режим"
+    enterBtn.addEventListener('click', () => {
+      // Новый метод для Bot API 6.7+
+      tg.requestFullscreen();
+    });
+
+    // Нажатие кнопки "Выйти из полноэкранного режима"
+    exitBtn.addEventListener('click', () => {
+      tg.exitFullscreen();
+    });
+
+    // Нажатие любой другой кнопки
+    testActionBtn.addEventListener('click', () => {
+      alert('Произвольное действие!');
+    });
+
+    // Функция для обновления текста статуса
+    function updateStatus(isFullscreen) {
+      statusInfo.innerHTML = `Статус: <b>${isFullscreen ? 'Полноэкранный режим' : 'Обычный режим'}</b>`;
+    }
   </script>
 </body>
 </html>
-
