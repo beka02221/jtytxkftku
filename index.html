@@ -107,9 +107,8 @@
       opacity: 0;
       pointer-events: none;
     }
-    /* При наличии класса blurred задний фон (header и main) будет заблюрен */
-    body.blurred header,
-    body.blurred main {
+    /* Новое правило для блюра: при наличии класса "blur-bg" у body, все дети, кроме навигации и модального окна freeSpin, будут заблюрены */
+    body.blur-bg > *:not(nav):not(#freeSpinModalBackdrop) {
       filter: blur(5px);
     }
   </style>
@@ -357,6 +356,15 @@
     </div>
   </div>
 
+  <!-- Free Spin Modal -->
+  <div class="modal-backdrop" id="freeSpinModalBackdrop">
+    <div class="modal">
+      <h2>Free Spin Available!</h2>
+      <p>Claim your free spin now and win tickets on the Wheel of Fortune.</p>
+      <button id="freeSpinButton" onclick="handleFreeSpinClick()">Spin Now</button>
+    </div>
+  </div>
+
   <!-- Season Info Modal -->
   <div class="modal-backdrop" id="seasonModalBackdrop">
     <div class="modal modal-season">
@@ -426,15 +434,6 @@
       <h2 id="endgameTitle">Result</h2>
       <p id="endgameMessage"></p>
       <button class="close-modal" onclick="finishGame()">Close</button>
-    </div>
-  </div>
-
-  <!-- Free Spin Available Modal (отображается, если есть доступный бесплатный спин) -->
-  <div class="modal-backdrop" id="freeSpinModal">
-    <div class="modal">
-      <h2>Free Spin Available!</h2>
-      <p>You have a free spin available on the Wheel of Fortune. Claim it now to win tickets!</p>
-      <button class="close-modal" onclick="claimFreeSpin()">Spin Now</button>
     </div>
   </div>
 
@@ -530,6 +529,7 @@
     };
     let gameInProgress = false;
     let isSpinning = false;
+    let freeSpinModalShown = false;
 
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -570,8 +570,11 @@
         updateTopBar();
         updateSpinButton();
         updateCaseCount();
-        // Проверяем доступность бесплатного спина и показываем модал, если он есть
-        checkFreeSpinAvailability();
+        // Если бесплатный спин доступен и модальное окно ещё не показывалось, показываем его
+        if (!freeSpinModalShown && (Date.now() - (localUserData.lastSpinTime || 0) >= 24 * 60 * 60 * 1000)) {
+           showFreeSpinModal();
+           freeSpinModalShown = true;
+        }
       });
     }
 
@@ -621,7 +624,21 @@
     }
 
     /* ----------------------------------------------
-       7. Game Info Modal
+       7. Free Spin Modal functions
+    ---------------------------------------------- */
+    function showFreeSpinModal() {
+      document.body.classList.add('blur-bg');
+      document.getElementById('freeSpinModalBackdrop').classList.add('active');
+    }
+    function handleFreeSpinClick() {
+      document.body.classList.remove('blur-bg');
+      document.getElementById('freeSpinModalBackdrop').classList.remove('active');
+      // Переход в секцию Tickets
+      showSection('ticketsSection');
+    }
+
+    /* ----------------------------------------------
+       8. Game Info Modal
     ---------------------------------------------- */
     function openGameInfoModal(gameData) {
       document.getElementById('gameInfoImg').src = gameData.img;
@@ -640,7 +657,7 @@
     }
 
     /* ----------------------------------------------
-       8. Start Game
+       9. Start Game
     ---------------------------------------------- */
     let currentGame = null;
     function handleStartGame(gameName, ticketCost) {
@@ -685,7 +702,7 @@
     }
 
     /* ----------------------------------------------
-       9. End Game Modal
+       10. End Game Modal
     ---------------------------------------------- */
     function showEndGameModal(title, message) {
       document.getElementById('endgameTitle').textContent = "Result";
@@ -711,7 +728,7 @@
     }
 
     /* ----------------------------------------------
-       10. Wheel of Fortune / Tickets
+       11. Wheel of Fortune / Tickets
     ---------------------------------------------- */
     let spinDuration = 4000;
     function spinWheel() {
@@ -777,7 +794,7 @@
     setInterval(updateSpinButton, 1000);
 
     /* ----------------------------------------------
-       11. Leaderboard
+       12. Leaderboard
     ---------------------------------------------- */
     let leaderboardRef = db.ref('users');
     leaderboardRef.on('value', snapshot => {
@@ -834,14 +851,14 @@
     }
 
     /* ----------------------------------------------
-       12. Buy Tickets
+       13. Buy Tickets
     ---------------------------------------------- */
     function buyTickets() {
       window.location.href = 'buyticket.html';
     }
 
     /* ----------------------------------------------
-       13. Lootbox in Cyber Case Section
+       14. Lootbox in Cyber Case Section
     ---------------------------------------------- */
     const lootboxPrizes = [
       { name: '3 tickets', image: 'https://raw.githubusercontent.com/qnexst/404token/main/ticket.png', chance: 10 },
@@ -1046,25 +1063,6 @@
     }
 
     /* ----------------------------------------------
-       14. Free Spin Modal functions and background blur
-         – Проверка доступности бесплатного спина, добавление класса blurred к body для блюра header и main
-         – claimFreeSpin() скрывает модальное окно, убирает блюр и запускает spinWheel()
-    ---------------------------------------------- */
-    function checkFreeSpinAvailability() {
-      const now = Date.now();
-      if(now - (localUserData.lastSpinTime || 0) >= 24 * 60 * 60 * 1000) {
-        // Если бесплатный спин доступен, показываем модальное окно и блюрим фон
-        document.getElementById('freeSpinModal').classList.add('active');
-        document.body.classList.add('blurred');
-      }
-    }
-    function claimFreeSpin() {
-      document.getElementById('freeSpinModal').classList.remove('active');
-      document.body.classList.remove('blurred');
-      spinWheel();
-    }
-
-    /* ----------------------------------------------
        15. Предотвращение нежелательного скроллинга на iOS
        Для мини-приложения Telegram мы запрещаем стандартное поведение touchmove 
        вне области с классом "scrollable", чтобы избежать эффекта "отскока" и случайного закрытия приложения.
@@ -1077,4 +1075,3 @@
   </script>
 </body>
 </html>
-
