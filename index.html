@@ -22,12 +22,9 @@
   <style>
     html, body {
       overscroll-behavior: none;
-      margin: 0;
-      padding: 0;
     }
     body {
       padding-top: env(safe-area-inset-top);
-      font-family: 'Press Start 2P', cursive;
     }
     header {
       padding-top: env(safe-area-inset-top);
@@ -36,14 +33,6 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
-    }
-    /* Обёртка для основного контента, который будет размываться */
-    #contentWrapper {
-      transition: filter 0.3s ease;
-    }
-    /* Класс для размытия */
-    .blurred {
-      filter: blur(5px);
     }
     .case-container {
       flex-direction: column;
@@ -118,45 +107,10 @@
       opacity: 0;
       pointer-events: none;
     }
-    /* Стилизация модальных окон */
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .modal-backdrop.active {
-      display: flex;
-    }
-    .modal {
-      background: white;
-      padding: 20px;
-      border-radius: 5px;
-      text-align: center;
-      max-width: 90%;
-    }
-    .close-modal {
-      margin-top: 10px;
-      padding: 5px 10px;
-    }
-    /* Модальное окно для уведомления о free spin */
-    .modal-free-spin {
-      background: gray;
-      color: #39FF14;
-      padding: 20px;
-      border-radius: 5px;
-      text-align: center;
-      max-width: 90%;
-    }
-    .modal-free-spin button {
-      margin-top: 10px;
-      padding: 5px 10px;
+    /* При наличии класса blurred задний фон (header и main) будет заблюрен */
+    body.blurred header,
+    body.blurred main {
+      filter: blur(5px);
     }
   </style>
 
@@ -169,219 +123,216 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-  <!-- Обёртка для основного контента, который будет размываться при показе модалки -->
-  <div id="contentWrapper">
-    <!-- Header -->
-    <header>
-      <div class="balances">
-        <span>
-          <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Tickets" width="20"/>
-          <span id="ticketCount">0</span>
-        </span>
-        <span>
-          <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>
-          <span id="coinCount">0</span>
-        </span>
-        <span>
-          <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png" alt="Points" width="20"/>
-          <span id="pointCount">0</span>
-        </span>
+  <!-- Header -->
+  <header>
+    <div class="balances">
+      <span>
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="Tickets" width="20"/>
+        <span id="ticketCount">0</span>
+      </span>
+      <span>
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/token.png" alt="Coins" width="20"/>
+        <span id="coinCount">0</span>
+      </span>
+      <span>
+        <img src="https://raw.githubusercontent.com/qnexst/404token/main/star.png" alt="Points" width="20"/>
+        <span id="pointCount">0</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- Main Content (обернут в контейнер с классом scrollable для разрешённой прокрутки) -->
+  <main class="scrollable">
+    <!-- PLAY SECTION -->
+    <section id="playSection" class="section active">
+       <div class="user-info">
+      <img id="userPhoto" src="" alt="Avatar"/>
+      <span id="username">@User</span>
+    </div>
+       <a href="soon.html" id="walletLink" class="walletLink" style="position: absolute; top: 45px; left: 320px;">
+      <img src="https://raw.githubusercontent.com/qnexst/404token/main/wallet.png" alt="Wallet" width="45" height="45"/>
+    </a>
+      <div class="games-section">
+        <h3>
+          <span id="mainOnlineHeaderText">Online Games</span>
+          <button id="mainOnlineInfoBtn" class="info-button" onclick="openMainOnlineInfoModal()">Info</button>
+        </h3>
+        <div class="games-gallery">
+          <div class="game-card">
+            <img src="https://raw.githubusercontent.com/qnexst/404token/main/1.jpg" alt="Special Game">
+            <p id="gameCard1Title">Snake Online</p>
+            <button id="gameCard1Button" onclick="window.location.href='specialgame.html'">Play</button>
+          </div>
+        </div>
       </div>
-    </header>
 
-    <!-- Main Content (обернут в контейнер с классом scrollable для разрешённой прокрутки) -->
-    <main class="scrollable">
-      <!-- PLAY SECTION -->
-      <section id="playSection" class="section active">
-         <div class="user-info">
-          <img id="userPhoto" src="" alt="Avatar"/>
-          <span id="username">@User</span>
-        </div>
-         <a href="soon.html" id="walletLink" class="walletLink" style="position: absolute; top: 45px; left: 320px;">
-          <img src="https://raw.githubusercontent.com/qnexst/404token/main/wallet.png" alt="Wallet" width="45" height="45"/>
-        </a>
-        <div class="games-section">
-          <h3>
-            <span id="mainOnlineHeaderText">Online Games</span>
-            <button id="mainOnlineInfoBtn" class="info-button" onclick="openMainOnlineInfoModal()">Info</button>
-          </h3>
-          <div class="games-gallery">
-            <div class="game-card">
-              <img src="https://raw.githubusercontent.com/qnexst/404token/main/1.jpg" alt="Special Game">
-              <p id="gameCard1Title">Snake Online</p>
-              <button id="gameCard1Button" onclick="window.location.href='specialgame.html'">Play</button>
-            </div>
+      <div class="games-section">
+        <h3>
+          <span id="miniGamesHeaderText">Mini-Games</span>
+          <button id="miniGamesInfoBtn" class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
+        </h3>
+        <div class="games-gallery">
+          <!-- Игра STACK (game2) – без списания билетов -->
+          <div class="game-card">
+            <img src="https://raw.githubusercontent.com/qnexst/404token/main/pacman.jpg" alt="Match-3">
+            <p id="gameCard2Title">Flappy Bird</p>
+            <button id="gameCard2Button" onclick="openGameInfoModal({
+              gameId: 'game2',
+              title: 'Flappy Bird',
+              img: 'https://raw.githubusercontent.com/qnexst/404token/main/pacman.jpg',
+              desc: 'Flappy Bird is a minimalist mobile arcade game where every tap helps your bird fly through pipes and score points.',
+              cost: 1
+            })">Play</button>
+          </div>
+          <!-- Игра TETRIS (game3) – списываются билеты и запускается игра -->
+          <div class="game-card">
+            <img src="https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg" alt="Game 3">
+            <p id="gameCard3Title">TETRIS</p>
+            <button id="gameCard3Button" onclick="openGameInfoModal({
+              gameId: 'game3',
+              title: 'TETRIS',
+              img: 'https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg',
+              desc: 'Tetris is a classic tile-matching puzzle game. Each cleared row awards you 30 stars.',
+              cost: 1
+            })">Play</button>
+          </div>
+          <div class="game-card">
+            <img src="https://i.pinimg.com/736x/ea/b7/75/eab775a90814f5df05466cc7ea4c590c.jpg" alt="Space Explorer">
+            <p id="gameCard4Title">Crossy Road</p>
+            <button id="gameCard4Button" onclick="openGameInfoModal({
+              gameId: 'game4',
+              title: 'Crossy Road',
+              img: 'https://i.pinimg.com/736x/ea/b7/75/eab775a90814f5df05466cc7ea4c590c.jpg',
+              desc: 'Crossy Road is a fast-paced arcade game where every step earns you 1 star.',
+              cost: 1
+            })">Play</button>
+          </div>
+          <!-- Новая карточка для Breakout -->
+          <div class="game-card">
+            <img src="https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg" alt="Breakout">
+            <p id="gameCard7Title">Breakout</p>
+            <button id="gameCard7Button" onclick="openGameInfoModal({
+              gameId: 'breakout',
+              title: 'Breakout',
+              img: 'https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg',
+              desc: 'Breakout is a classic arcade game where each broken brick awards you 5 stars.',
+              cost: 1
+            })">Play</button>
           </div>
         </div>
+      </div>
 
-        <div class="games-section">
-          <h3>
-            <span id="miniGamesHeaderText">Mini-Games</span>
-            <button id="miniGamesInfoBtn" class="info-button" onclick="openMiniGamesInfoModal()">Info</button>
-          </h3>
-          <div class="games-gallery">
-            <!-- Игра STACK (game2) – без списания билетов -->
-            <div class="game-card">
-              <img src="https://raw.githubusercontent.com/qnexst/404token/main/pacman.jpg" alt="Match-3">
-              <p id="gameCard2Title">Flappy Bird</p>
-              <button id="gameCard2Button" onclick="openGameInfoModal({
-                gameId: 'game2',
-                title: 'Flappy Bird',
-                img: 'https://raw.githubusercontent.com/qnexst/404token/main/pacman.jpg',
-                desc: 'Flappy Bird is a minimalist mobile arcade game where every tap helps your bird fly through pipes and score points.',
-                cost: 1
-              })">Play</button>
-            </div>
-            <!-- Игра TETRIS (game3) – списываются билеты и запускается игра -->
-            <div class="game-card">
-              <img src="https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg" alt="Game 3">
-              <p id="gameCard3Title">TETRIS</p>
-              <button id="gameCard3Button" onclick="openGameInfoModal({
-                gameId: 'game3',
-                title: 'TETRIS',
-                img: 'https://raw.githubusercontent.com/qnexst/404token/main/tetris.jpg',
-                desc: 'Tetris is a classic tile-matching puzzle game. Each cleared row awards you 30 stars.',
-                cost: 1
-              })">Play</button>
-            </div>
-            <div class="game-card">
-              <img src="https://i.pinimg.com/736x/ea/b7/75/eab775a90814f5df05466cc7ea4c590c.jpg" alt="Space Explorer">
-              <p id="gameCard4Title">Crossy Road</p>
-              <button id="gameCard4Button" onclick="openGameInfoModal({
-                gameId: 'game4',
-                title: 'Crossy Road',
-                img: 'https://i.pinimg.com/736x/ea/b7/75/eab775a90814f5df05466cc7ea4c590c.jpg',
-                desc: 'Crossy Road is a fast-paced arcade game where every step earns you 1 star.',
-                cost: 1
-              })">Play</button>
-            </div>
-            <!-- Новая карточка для Breakout -->
-            <div class="game-card">
-              <img src="https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg" alt="Breakout">
-              <p id="gameCard7Title">Breakout</p>
-              <button id="gameCard7Button" onclick="openGameInfoModal({
-                gameId: 'breakout',
-                title: 'Breakout',
-                img: 'https://raw.githubusercontent.com/qnexst/404token/main/breakout.jpg',
-                desc: 'Breakout is a classic arcade game where each broken brick awards you 5 stars.',
-                cost: 1
-              })">Play</button>
-            </div>
+      <div class="games-section">
+        <h3>
+          <span id="partnerGamesHeaderText">Partner Games</span>
+          <button id="partnerInfoBtn" class="info-button" onclick="openPartnerInfoModal()">Info</button>
+        </h3>
+        <div class="games-gallery">
+          <div class="game-card">
+            <img src="https://img.icons8.com/ios-filled/50/00000/handshake.png" alt="Partner Game">
+            <p id="gameCard5Title">Partner Game</p>
+            <!-- Скрываем кнопку Play до момента, когда она станет доступной -->
+            <button id="gameCard5Button" style="display: none;" onclick="openGameInfoModal({ 
+              gameId: 'partnergame1',
+              title: 'soon',
+              img: 'https://img.icons8.com/ios-filled/50/00000/handshake.png',
+              desc: 'Game from our partner.',
+              cost: 1
+            })">Play</button>
           </div>
         </div>
+      </div>
+    </section>
 
-        <div class="games-section">
-          <h3>
-            <span id="partnerGamesHeaderText">Partner Games</span>
-            <button id="partnerInfoBtn" class="info-button" onclick="openPartnerInfoModal()">Info</button>
-          </h3>
-          <div class="games-gallery">
-            <div class="game-card">
-              <img src="https://img.icons8.com/ios-filled/50/00000/handshake.png" alt="Partner Game">
-              <p id="gameCard5Title">Partner Game</p>
-              <!-- Скрываем кнопку Play до момента, когда она станет доступной -->
-              <button id="gameCard5Button" style="display: none;" onclick="openGameInfoModal({ 
-                gameId: 'partnergame1',
-                title: 'soon',
-                img: 'https://img.icons8.com/ios-filled/50/00000/handshake.png',
-                desc: 'Game from our partner.',
-                cost: 1
-              })">Play</button>
-            </div>
+    <!-- TICKETS SECTION -->
+    <section id="ticketsSection" class="section">
+      <h2 id="ticketsHeader">Tickets</h2>
+      <div class="wheel-container">
+        <div class="wheel" id="wheel">
+          <div class="slice slice1">
+            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
+            <span>2</span>
+          </div>
+          <div class="slice slice2">
+            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
+            <span>5</span>
+          </div>
+          <div class="slice slice3">
+            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
+            <span>8</span>
+          </div>
+          <div class="slice slice4">
+            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
+            <span>10</span>
+          </div>
+          <div class="slice slice5">
+            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
+            <span>13</span>
+          </div>
+          <div class="slice slice6">
+            <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
+            <span>15</span>
           </div>
         </div>
-      </section>
+        <div class="wheel-pointer"></div>
+        <div class="tickets-actions">
+          <button id="spinButton" onclick="spinWheel()">Free Spin</button>
+          <button id="buyTicketsBtn" onclick="buyTickets()">Buy Tickets</button>
+        </div>
+        <div class="spin-result" id="spinResult"></div>
+      </div>
+    </section>
 
-      <!-- TICKETS SECTION -->
-      <section id="ticketsSection" class="section">
-        <h2 id="ticketsHeader">Tickets</h2>
-        <div class="wheel-container">
-          <div class="wheel" id="wheel">
-            <div class="slice slice1">
-              <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-              <span>2</span>
-            </div>
-            <div class="slice slice2">
-              <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-              <span>5</span>
-            </div>
-            <div class="slice slice3">
-              <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-              <span>8</span>
-            </div>
-            <div class="slice slice4">
-              <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-              <span>10</span>
-            </div>
-            <div class="slice slice5">
-              <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-              <span>13</span>
-            </div>
-            <div class="slice slice6">
-              <img width="24" height="32" src="https://raw.githubusercontent.com/qnexst/404token/main/ticket.png" alt="ticket"/>
-              <span>15</span>
-            </div>
-          </div>
-          <div class="wheel-pointer"></div>
-          <div class="tickets-actions">
-            <button id="spinButton" onclick="spinWheel()">Free Spin</button>
-            <button id="buyTicketsBtn" onclick="buyTickets()">Buy Tickets</button>
-          </div>
-          <div class="spin-result" id="spinResult"></div>
-        </div>
-      </section>
+    <!-- LEADERBOARD SECTION -->
+    <section id="leaderboardSection" class="section">
+      <h2 id="leaderboardHeader">Leaderboard</h2>
+      <h2 id="leaderboardHeader">Season 1</h2>
+      <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
+      <div class="leaderboard-container">
+        <table id="leaderboardTable">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Username</th>
+              <th>Points</th>
+              <th>Prize</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardTop10">
+            <!-- Top-10 players with prizes -->
+          </tbody>
+          <tbody id="leaderboardRest">
+            <!-- Other players -->
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-      <!-- LEADERBOARD SECTION -->
-      <section id="leaderboardSection" class="section">
-        <h2 id="leaderboardHeader">Leaderboard</h2>
-        <h2 id="leaderboardHeader">Season 1</h2>
-        <button class="info-button" onclick="openSeasonInfoModal()">Info</button>
-        <div class="leaderboard-container">
-          <table id="leaderboardTable">
-            <thead>
-              <tr>
-                <th>№</th>
-                <th>Username</th>
-                <th>Points</th>
-                <th>Prize</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboardTop10">
-              <!-- Top-10 players with prizes -->
-            </tbody>
-            <tbody id="leaderboardRest">
-              <!-- Other players -->
-            </tbody>
-          </table>
+    <!-- LOOT BOX SECTION -->
+    <section id="referralSection" class="section">
+      <h2 id="referralHeader">ㅤㅤ</h2>
+      <h2 id="referralHeader">Bug Packs</h2>
+      <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
+      <div class="case-container">
+        <img id="caseImage" src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Cyber Case">
+      </div>
+      <div class="lootbox-container" id="lootboxContainer" style="display: none;">
+        <div class="lootbox-indicator"></div>
+        <div class="lootbox-roulette" id="lootboxRoulette">
+          <!-- Prizes will be added dynamically -->
         </div>
-      </section>
+      </div>
+      <div class="lootbox-buttons">
+        <button id="openBtn" onclick="openLootBox()">open (0)</button>
+        <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
+          <span>Open for 5m tokens</span><br>
+          <span></span>
+        </button>
+      </div>
+    </section>
+  </main>
 
-      <!-- LOOT BOX SECTION -->
-      <section id="referralSection" class="section">
-        <h2 id="referralHeader">ㅤㅤ</h2>
-        <h2 id="referralHeader">Bug Packs</h2>
-        <button class="info-button" onclick="openLootBoxInfoModal()">Info</button>
-        <div class="case-container">
-          <img id="caseImage" src="https://raw.githubusercontent.com/qnexst/404token/main/case.png" alt="Cyber Case">
-        </div>
-        <div class="lootbox-container" id="lootboxContainer" style="display: none;">
-          <div class="lootbox-indicator"></div>
-          <div class="lootbox-roulette" id="lootboxRoulette">
-            <!-- Prizes will be added dynamically -->
-          </div>
-        </div>
-        <div class="lootbox-buttons">
-          <button id="openBtn" onclick="openLootBox()">open (0)</button>
-          <button id="openForTokenBtn" onclick="spinLootBoxForTokens()">
-            <span>Open for 5m tokens</span><br>
-            <span></span>
-          </button>
-        </div>
-      </section>
-    </main>
-  </div>
-  
-  <!-- Bottom Navigation (навигация вне размытой области, поэтому кнопка Tickets остаётся чёткой) -->
+  <!-- Bottom Navigation -->
   <nav id="mainNav">
     <button onclick="showSection('playSection')">
       <img src="https://img.icons8.com/ios-filled/50/ffffff/playing.png" alt="Play" id="navPlayAlt"/>
@@ -478,6 +429,15 @@
     </div>
   </div>
 
+  <!-- Free Spin Available Modal (отображается, если есть доступный бесплатный спин) -->
+  <div class="modal-backdrop" id="freeSpinModal">
+    <div class="modal">
+      <h2>Free Spin Available!</h2>
+      <p>You have a free spin available on the Wheel of Fortune. Claim it now to win tickets!</p>
+      <button class="close-modal" onclick="claimFreeSpin()">Spin Now</button>
+    </div>
+  </div>
+
   <!-- Modal for Main Online Games Info -->
   <div class="modal-backdrop" id="mainOnlineInfoModal">
     <div class="modal">
@@ -514,14 +474,6 @@
     </div>
   </div>
 
-  <!-- Новое модальное окно для уведомления о free spin -->
-  <div class="modal-backdrop" id="freeSpinModalBackdrop">
-    <div class="modal-free-spin">
-      <p>Доступны бесплатные тикеты!</p>
-      <button onclick="closeFreeSpinModal()">Закрыть</button>
-    </div>
-  </div>
-
   <!-- Подключение игровых скриптов -->
   <script src="game1.js"></script>
   <script src="game2.js"></script>
@@ -553,9 +505,11 @@
        2. Telegram Web App
     ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
+    // Если поддерживается новый метод, сразу запрашиваем полноэкранный режим
     if (typeof tg.requestFullscreen === 'function') {
       tg.requestFullscreen();
     } else {
+      // Альтернативно, вызываем старый метод expand() если requestFullscreen недоступен
       tg.expand();
     }
 
@@ -576,7 +530,6 @@
     };
     let gameInProgress = false;
     let isSpinning = false;
-    let freeSpinModalShown = false; // Флаг, чтобы модалка не показывалась повторно
 
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -597,6 +550,7 @@
             cyberCase: 0,
             nfts: []
           }).then(() => {
+            // Перенаправляем новых пользователей на info.html
             window.location.href = 'info.html';
           });
         }
@@ -616,11 +570,8 @@
         updateTopBar();
         updateSpinButton();
         updateCaseCount();
-        // Если доступен free spin (прошло 24 часа) и модалка ещё не показывалась – показать её
-        if (!freeSpinModalShown && (Date.now() - (localUserData.lastSpinTime || 0)) >= 24 * 60 * 60 * 1000) {
-          freeSpinModalShown = true;
-          showFreeSpinModal();
-        }
+        // Проверяем доступность бесплатного спина и показываем модал, если он есть
+        checkFreeSpinAvailability();
       });
     }
 
@@ -1064,20 +1015,7 @@
     }
 
     /* ----------------------------------------------
-       Модальные окна: открытие/закрытие уведомления о free spin
-    ---------------------------------------------- */
-    function showFreeSpinModal() {
-      // Добавляем размытие для основного контента
-      document.getElementById('contentWrapper').classList.add('blurred');
-      document.getElementById('freeSpinModalBackdrop').classList.add('active');
-    }
-    function closeFreeSpinModal() {
-      document.getElementById('contentWrapper').classList.remove('blurred');
-      document.getElementById('freeSpinModalBackdrop').classList.remove('active');
-    }
-
-    /* ----------------------------------------------
-       Modal windows functions (прочие)
+       Modal windows functions
     ---------------------------------------------- */
     function openLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.add('active');
@@ -1108,7 +1046,28 @@
     }
 
     /* ----------------------------------------------
-       14. Предотвращение нежелательного скроллинга на iOS
+       14. Free Spin Modal functions and background blur
+         – Проверка доступности бесплатного спина, добавление класса blurred к body для блюра header и main
+         – claimFreeSpin() скрывает модальное окно, убирает блюр и запускает spinWheel()
+    ---------------------------------------------- */
+    function checkFreeSpinAvailability() {
+      const now = Date.now();
+      if(now - (localUserData.lastSpinTime || 0) >= 24 * 60 * 60 * 1000) {
+        // Если бесплатный спин доступен, показываем модальное окно и блюрим фон
+        document.getElementById('freeSpinModal').classList.add('active');
+        document.body.classList.add('blurred');
+      }
+    }
+    function claimFreeSpin() {
+      document.getElementById('freeSpinModal').classList.remove('active');
+      document.body.classList.remove('blurred');
+      spinWheel();
+    }
+
+    /* ----------------------------------------------
+       15. Предотвращение нежелательного скроллинга на iOS
+       Для мини-приложения Telegram мы запрещаем стандартное поведение touchmove 
+       вне области с классом "scrollable", чтобы избежать эффекта "отскока" и случайного закрытия приложения.
     ---------------------------------------------- */
     document.addEventListener('touchmove', function(event) {
       if (!event.target.closest('.scrollable')) {
@@ -1118,3 +1077,4 @@
   </script>
 </body>
 </html>
+
