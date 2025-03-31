@@ -8,14 +8,16 @@
 
 /* ========= Настройки корневых переменных ========= */
 :root {
-  --bg-color: #000;
+  --bg-color: #005d9c;
   --primary-color: #0c0;        /* матричный зелёный, чуть темнее */
   --accent-color: #cc00cc;       /* неоновый розовый/пурпурный, темнее */
-  --secondary-accent: #00cccc;   /* неоновый голубой, темнее */
-  --container-bg: rgba(0, 0, 0, 0.85);
-  --border-color: #cc00cc;
+  --secondary-accent: #ccc200;   /* неоновый голубой, темнее */
+  --container-bg: rgb(0, 12, 26);
+  --lootbox-color: #31005c;
+  --border-color: #ccb100;
   --font-body: 'Courier New', monospace;
   --font-title: 'Press Start 2P', monospace;
+  
 }
 
 /* ========= Общие стили для html и body ========= */
@@ -24,7 +26,7 @@ html, body {
   height: 100%;
   /* Разрешаем прокрутку */
   overflow: auto;
-  background: linear-gradient(135deg, #000, #000000);
+  background: linear-gradient(135deg, #100164, #5f0250);
   font-family: var(--font-body);
   color: var(--primary-color);
 }
@@ -34,7 +36,7 @@ h1, h2, h3, h4 {
   font-family: var(--font-title);
   text-transform: uppercase;
   color: var(--accent-color);
-  text-shadow: 0 0 5px var(--accent-color);
+ 
   /* Убрана анимация глитча */
 }
 
@@ -171,6 +173,7 @@ header {
   top: 0;
   left: 0;
   width: 100%;
+  height: 100px;
   padding: 12px;
   background: var(--container-bg);
   border-bottom: 2px solid var(--border-color);
@@ -186,6 +189,7 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 30px;
 }
 
 .user-info img {
@@ -201,7 +205,7 @@ header {
   display: flex;
   gap: 16px;
   align-items: center;
-  margin-top: 6px;
+  margin-top: 50px;
 }
 
 .balances span {
@@ -234,7 +238,6 @@ main {
   margin: 60px 0 20px;
   padding: 20px;
   background-color: var(--container-bg);
-  
   border-radius: 4px;
 }
 
@@ -294,7 +297,6 @@ main {
   width: 100%;
   height: auto;
   margin-bottom: 6px;
-  /* Убраны эффекты для изображений */
 }
 
 .game-card p,
@@ -375,7 +377,7 @@ nav button img {
 .modal h2 {
   margin-bottom: 10px;
   font-size: 14px;
-  text-shadow: 0 0 5px var(--border-color);
+ 
 }
 
 .modal p {
@@ -507,13 +509,13 @@ table tr.current-user {
 .wheel {
   width: 250px;
   height: 250px;
-  /* Сделали фон чуть темнее */
   background: #111;
   position: relative;
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 0 10px var(--border-color);
   margin: 20px auto;
+  transition: all 3s;
 }
 
 .slice {
@@ -535,37 +537,37 @@ table tr.current-user {
 
 .slice1 {
   background: var(--accent-color);
-  color: #000000
+  color: #000;
 }
 
 .slice2 {
   background: var(--secondary-accent);
   transform: translateX(-50%) rotate(60deg);
-  color: #000000
+  color: #000;
 }
 
 .slice3 {
   background: var(--accent-color);
   transform: translateX(-50%) rotate(120deg);
-  color: #000000
+  color: #000;
 }
 
 .slice4 {
   background: var(--secondary-accent);
   transform: translateX(-50%) rotate(180deg);
-  color: #000000
+  color: #000;
 }
 
 .slice5 {
   background: var(--accent-color);
   transform: translateX(-50%) rotate(240deg);
-  color: #000000
+  color: #000;
 }
 
 .slice6 {
   background: var(--secondary-accent);
   transform: translateX(-50%) rotate(300deg);
-  color: #000000
+  color: #000;
 }
 
 .mid {
@@ -602,14 +604,16 @@ table tr.current-user {
   margin: 60px auto;
   border: 3px solid var(--secondary-accent);
   border-radius: 8px;
-  background: var(--bg-color);
+  background: rgba(0,0,0,0.2);
   box-shadow: 0 0 12px var(--secondary-accent);
 }
 
+/* Важно: здесь возвращаем поведение как в старом коде */
 .lootbox-roulette {
   display: flex;
   height: 100%;
   align-items: center;
+  animation: none;
 }
 
 .lootbox-prize {
@@ -617,7 +621,7 @@ table tr.current-user {
   width: 120px;
   height: 120px;
   margin: 0 8px;
-  background: var(--secondary-accent);
+  background: var(--lootbox-color);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -695,9 +699,7 @@ table tr.current-user {
   header {
     padding: 8px;
   }
-  main {
-    padding: 15px 10px 50px;
-  }
+ 
   .games-gallery {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -713,13 +715,7 @@ table tr.current-user {
     width: 16px;
     height: 16px;
   }
-  .lootbox-container {
-    height: 120px;
-  }
-  .lootbox-prize {
-    width: 100px;
-    height: 100px;
-  }
+ 
   .modal,
   .endgame-modal {
     width: 90%;
@@ -729,10 +725,7 @@ table tr.current-user {
 
 /* Для очень маленьких экранов */
 @media (max-width: 480px) {
-  header {
-    flex-direction: column;
-    padding: 5px;
-  }
+ 
   h1, h2, h3, h4 {
     font-size: 14px;
   }
