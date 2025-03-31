@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <!-- Единый meta-тег viewport -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>404</title>
 
   <!-- Font: Press Start 2P -->
@@ -21,9 +22,12 @@
   <style>
     html, body {
       overscroll-behavior: none;
+      margin: 0;
+      padding: 0;
     }
     body {
       padding-top: env(safe-area-inset-top);
+      font-family: 'Press Start 2P', cursive;
     }
     header {
       padding-top: env(safe-area-inset-top);
@@ -32,6 +36,14 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+    }
+    /* Обёртка для основного контента, который будет размываться */
+    #contentWrapper {
+      transition: filter 0.3s ease;
+    }
+    /* Класс для размытия */
+    .blurred {
+      filter: blur(5px);
     }
     .case-container {
       flex-direction: column;
@@ -106,20 +118,7 @@
       opacity: 0;
       pointer-events: none;
     }
-    /* Эффект размытия для основного контента */
-    .blurred {
-      filter: blur(5px);
-    }
-    /* Стили для модального окна бесплатного спина */
-    .free-spin-modal {
-      background-color: gray;
-      color: #39FF14; /* ядовито-зеленый */
-      border: 2px solid #39FF14;
-      text-align: center;
-      padding: 20px;
-      border-radius: 10px;
-    }
-    /* Стили для стандартных модальных окон (уже были в коде) */
+    /* Стилизация модальных окон */
     .modal-backdrop {
       position: fixed;
       top: 0;
@@ -130,19 +129,32 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 1000;
     }
     .modal-backdrop.active {
       display: flex;
     }
     .modal {
-      background: #fff;
+      background: white;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 5px;
       text-align: center;
       max-width: 90%;
     }
     .close-modal {
+      margin-top: 10px;
+      padding: 5px 10px;
+    }
+    /* Модальное окно для уведомления о free spin */
+    .modal-free-spin {
+      background: gray;
+      color: #39FF14;
+      padding: 20px;
+      border-radius: 5px;
+      text-align: center;
+      max-width: 90%;
+    }
+    .modal-free-spin button {
       margin-top: 10px;
       padding: 5px 10px;
     }
@@ -157,8 +169,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-  <!-- Основной контент, который будет размываться -->
-  <div id="content">
+  <!-- Обёртка для основного контента, который будет размываться при показе модалки -->
+  <div id="contentWrapper">
     <!-- Header -->
     <header>
       <div class="balances">
@@ -181,11 +193,11 @@
     <main class="scrollable">
       <!-- PLAY SECTION -->
       <section id="playSection" class="section active">
-        <div class="user-info">
+         <div class="user-info">
           <img id="userPhoto" src="" alt="Avatar"/>
           <span id="username">@User</span>
         </div>
-        <a href="soon.html" id="walletLink" class="walletLink" style="position: absolute; top: 45px; left: 320px;">
+         <a href="soon.html" id="walletLink" class="walletLink" style="position: absolute; top: 45px; left: 320px;">
           <img src="https://raw.githubusercontent.com/qnexst/404token/main/wallet.png" alt="Wallet" width="45" height="45"/>
         </a>
         <div class="games-section">
@@ -367,126 +379,9 @@
         </div>
       </section>
     </main>
-
-    <!-- Global Modal -->
-    <div class="modal-backdrop" id="globalModalBackdrop">
-      <div class="modal">
-        <h2 id="globalModalTitle">Message</h2>
-        <p id="globalModalMessage"></p>
-        <button class="close-modal" onclick="closeGlobalModal()">OK</button>
-      </div>
-    </div>
-
-    <!-- Season Info Modal -->
-    <div class="modal-backdrop" id="seasonModalBackdrop">
-      <div class="modal modal-season">
-        <h2 id="seasonModalTitle">Season Information</h2>
-        <p id="seasonModalDesc">Season 1: The season lasts for 1 week, and at the end of it, each of the top 10 players will automatically receive BUG PACKs.</p>
-        <button class="close-modal" onclick="closeSeasonModal()">Close</button>
-      </div>
-    </div>
-
-    <!-- Modal for Loot Box Info -->
-    <div class="modal-backdrop" id="lootBoxInfoModal">
-      <div class="modal">
-        <h2 id="lootBoxInfoTitle">Bug Pack Info</h2>
-        <p id="lootBoxInfoDesc">
-          Prizes and Chances:<br>
-          - 3 tickets (10%)<br>
-          - 5 tickets (5%)<br>
-          - 10 tickets (8%)<br>
-          - 8 tickets (4%)<br>
-          - One case (5%)<br>
-          - 100 points (10%)<br>
-          - 500 points (5%)<br>
-          - 1M tokens (3%)<br>
-          - 3M tokens (2%)<br>
-          - 5M tokens (1%)<br>
-          - NFT Red (1%) – Special<br>
-          - NFT Yellow (2%) – Legendary<br>
-          - NFT Green (3%) – Rare<br>
-          - 1000 points (2%)
-        </p>
-        <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
-      </div>
-    </div>
-
-    <!-- Modal for Game Info -->
-    <div class="modal-backdrop" id="gameInfoModal">
-      <div class="modal">
-        <img id="gameInfoImg" src="" alt="Game Image" style="max-width:100px; display:block; margin:0 auto 10px;" />
-        <h2 id="gameInfoTitle" style="text-align:center;"></h2>
-        <p id="gameInfoDesc"></p>
-        <button id="gameInfoPlayBtn">Play</button>
-        <button class="close-modal" onclick="closeGameInfoModal()">Close</button>
-      </div>
-    </div>
-
-    <!-- Spin Result Modal -->
-    <div class="modal-backdrop" id="spinModalBackdrop">
-      <div class="modal">
-        <h2 id="spinModalTitle">You won <span id="wheelTicketCount"></span> tickets!</h2>
-        <button class="close-modal" onclick="closeSpinModal()">OK</button>
-      </div>
-    </div>
-
-    <!-- Fullscreen Game Modal -->
-    <div class="game-modal-backdrop" id="gameModalBackdrop">
-      <div class="game-modal-content">
-        <div class="game-canvas">
-          <!-- Оставлен только canvas для TETRIS (game3) -->
-          <canvas id="game3Canvas" width="400" height="740" style="display: none; position: relative; top: -0px;"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Endgame Modal -->
-    <div class="endgame-backdrop" id="endgameBackdrop">
-      <div class="endgame-modal">
-        <h2 id="endgameTitle">Result</h2>
-        <p id="endgameMessage"></p>
-        <button class="close-modal" onclick="finishGame()">Close</button>
-      </div>
-    </div>
-
-    <!-- Modal for Main Online Games Info -->
-    <div class="modal-backdrop" id="mainOnlineInfoModal">
-      <div class="modal">
-        <h2 id="mainOnlineInfoTitle">Online Games</h2>
-        <p id="mainOnlineInfoDesc">The online games section features a collection of arcade challenges where players can place token bets for bigger rewards or play for free without tickets and tokens, offering flexible mechanics that cater to both competitive and casual gamers in a fast-paced, engaging environment.</p>
-        <button class="close-modal" onclick="closeMainOnlineInfoModal()">Close</button>
-      </div>
-    </div>
-
-    <!-- Modal for Mini Games Info -->
-    <div class="modal-backdrop" id="miniGamesInfoModal">
-      <div class="modal">
-        <h2 id="miniGamesInfoTitle">Mini Games Info</h2>
-        <p id="miniGamesInfoDesc">Players participate in mini games for tickets, earning points for their activity. Every 7 days, top 10 players receive BUG PACKs.</p>
-        <button class="close-modal" onclick="closeMiniGamesInfoModal()">Close</button>
-      </div>
-    </div>
-
-    <!-- Modal for Partner Games Info -->
-    <div class="modal-backdrop" id="partnerInfoModal">
-      <div class="modal">
-        <h2 id="partnerInfoTitle">Partner Games</h2>
-        <p id="partnerInfoDesc">Game from our partner.</p>
-        <button class="close-modal" onclick="closePartnerInfoModal()">Close</button>
-      </div>
-    </div>
-
-    <!-- Modal for Deposit -->
-    <div class="modal-backdrop" id="depositModal">
-      <div class="modal">
-        <h2 id="depositModalTitle">Not enough Tokens</h2>
-        <p id="depositModalDesc">You do not have enough coins to play. Please top up your balance.</p>
-        <button class="close-modal" onclick="closeDepositModal()">Close</button>
-      </div>
-    </div>
-  </div> <!-- End of #content -->
-
-  <!-- Навигация (не размывается) -->
+  </div>
+  
+  <!-- Bottom Navigation (навигация вне размытой области, поэтому кнопка Tickets остаётся чёткой) -->
   <nav id="mainNav">
     <button onclick="showSection('playSection')">
       <img src="https://img.icons8.com/ios-filled/50/ffffff/playing.png" alt="Play" id="navPlayAlt"/>
@@ -502,12 +397,128 @@
     </button>
   </nav>
 
-  <!-- Новый модальный блок для бесплатного спина -->
-  <div class="modal-backdrop" id="freeSpinModal">
-    <div class="modal free-spin-modal">
-      <h2>Бесплатные билеты доступны!</h2>
-      <p>Нажмите кнопку "Tickets" в навигации, чтобы получить бесплатное вращение!</p>
-      <button class="close-modal" onclick="closeFreeSpinModal()">OK</button>
+  <!-- Global Modal -->
+  <div class="modal-backdrop" id="globalModalBackdrop">
+    <div class="modal">
+      <h2 id="globalModalTitle">Message</h2>
+      <p id="globalModalMessage"></p>
+      <button class="close-modal" onclick="closeGlobalModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Season Info Modal -->
+  <div class="modal-backdrop" id="seasonModalBackdrop">
+    <div class="modal modal-season">
+      <h2 id="seasonModalTitle">Season Information</h2>
+      <p id="seasonModalDesc">Season 1: The season lasts for 1 week, and at the end of it, each of the top 10 players will automatically receive BUG PACKs.</p>
+      <button class="close-modal" onclick="closeSeasonModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Loot Box Info -->
+  <div class="modal-backdrop" id="lootBoxInfoModal">
+    <div class="modal">
+      <h2 id="lootBoxInfoTitle">Bug Pack Info</h2>
+      <p id="lootBoxInfoDesc">
+        Prizes and Chances:<br>
+        - 3 tickets (10%)<br>
+        - 5 tickets (5%)<br>
+        - 10 tickets (8%)<br>
+        - 8 tickets (4%)<br>
+        - One case (5%)<br>
+        - 100 points (10%)<br>
+        - 500 points (5%)<br>
+        - 1M tokens (3%)<br>
+        - 3M tokens (2%)<br>
+        - 5M tokens (1%)<br>
+        - NFT Red (1%) – Special<br>
+        - NFT Yellow (2%) – Legendary<br>
+        - NFT Green (3%) – Rare<br>
+        - 1000 points (2%)
+      </p>
+      <button class="close-modal" onclick="closeLootBoxInfoModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Game Info -->
+  <div class="modal-backdrop" id="gameInfoModal">
+    <div class="modal">
+      <img id="gameInfoImg" src="" alt="Game Image" style="max-width:100px; display:block; margin:0 auto 10px;" />
+      <h2 id="gameInfoTitle" style="text-align:center;"></h2>
+      <p id="gameInfoDesc"></p>
+      <button id="gameInfoPlayBtn">Play</button>
+      <button class="close-modal" onclick="closeGameInfoModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Spin Result Modal -->
+  <div class="modal-backdrop" id="spinModalBackdrop">
+    <div class="modal">
+      <h2 id="spinModalTitle">You won <span id="wheelTicketCount"></span> tickets!</h2>
+      <button class="close-modal" onclick="closeSpinModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Fullscreen Game Modal -->
+  <div class="game-modal-backdrop" id="gameModalBackdrop">
+    <div class="game-modal-content">
+      <div class="game-canvas">
+        <!-- Оставлен только canvas для TETRIS (game3) -->
+        <canvas id="game3Canvas" width="400" height="740" style="display: none; position: relative; top: -0px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Endgame Modal -->
+  <div class="endgame-backdrop" id="endgameBackdrop">
+    <div class="endgame-modal">
+      <h2 id="endgameTitle">Result</h2>
+      <p id="endgameMessage"></p>
+      <button class="close-modal" onclick="finishGame()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Main Online Games Info -->
+  <div class="modal-backdrop" id="mainOnlineInfoModal">
+    <div class="modal">
+      <h2 id="mainOnlineInfoTitle">Online Games</h2>
+      <p id="mainOnlineInfoDesc">The online games section features a collection of arcade challenges where players can place token bets for bigger rewards or play for free without tickets and tokens, offering flexible mechanics that cater to both competitive and casual gamers in a fast-paced, engaging environment.</p>
+      <button class="close-modal" onclick="closeMainOnlineInfoModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Mini Games Info -->
+  <div class="modal-backdrop" id="miniGamesInfoModal">
+    <div class="modal">
+      <h2 id="miniGamesInfoTitle">Mini Games Info</h2>
+      <p id="miniGamesInfoDesc">Players participate in mini games for tickets, earning points for their activity. Every 7 days, top 10 players receive BUG PACKs.</p>
+      <button class="close-modal" onclick="closeMiniGamesInfoModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Partner Games Info -->
+  <div class="modal-backdrop" id="partnerInfoModal">
+    <div class="modal">
+      <h2 id="partnerInfoTitle">Partner Games</h2>
+      <p id="partnerInfoDesc">Game from our partner.</p>
+      <button class="close-modal" onclick="closePartnerInfoModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal for Deposit -->
+  <div class="modal-backdrop" id="depositModal">
+    <div class="modal">
+      <h2 id="depositModalTitle">Not enough Tokens</h2>
+      <p id="depositModalDesc">You do not have enough coins to play. Please top up your balance.</p>
+      <button class="close-modal" onclick="closeDepositModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Новое модальное окно для уведомления о free spin -->
+  <div class="modal-backdrop" id="freeSpinModalBackdrop">
+    <div class="modal-free-spin">
+      <p>Доступны бесплатные тикеты!</p>
+      <button onclick="closeFreeSpinModal()">Закрыть</button>
     </div>
   </div>
 
@@ -542,11 +553,9 @@
        2. Telegram Web App
     ---------------------------------------------- */
     const tg = window.Telegram.WebApp;
-    // Если поддерживается новый метод, сразу запрашиваем полноэкранный режим
     if (typeof tg.requestFullscreen === 'function') {
       tg.requestFullscreen();
     } else {
-      // Альтернативно, вызываем старый метод expand() если requestFullscreen недоступен
       tg.expand();
     }
 
@@ -567,6 +576,7 @@
     };
     let gameInProgress = false;
     let isSpinning = false;
+    let freeSpinModalShown = false; // Флаг, чтобы модалка не показывалась повторно
 
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
       currentUser = tg.initDataUnsafe.user;
@@ -587,7 +597,6 @@
             cyberCase: 0,
             nfts: []
           }).then(() => {
-            // Перенаправляем новых пользователей на info.html
             window.location.href = 'info.html';
           });
         }
@@ -607,8 +616,11 @@
         updateTopBar();
         updateSpinButton();
         updateCaseCount();
-        // После обновления данных проверяем доступность бесплатного спина
-        checkFreeSpinAvailability();
+        // Если доступен free spin (прошло 24 часа) и модалка ещё не показывалась – показать её
+        if (!freeSpinModalShown && (Date.now() - (localUserData.lastSpinTime || 0)) >= 24 * 60 * 60 * 1000) {
+          freeSpinModalShown = true;
+          showFreeSpinModal();
+        }
       });
     }
 
@@ -1052,7 +1064,20 @@
     }
 
     /* ----------------------------------------------
-       Modal windows functions
+       Модальные окна: открытие/закрытие уведомления о free spin
+    ---------------------------------------------- */
+    function showFreeSpinModal() {
+      // Добавляем размытие для основного контента
+      document.getElementById('contentWrapper').classList.add('blurred');
+      document.getElementById('freeSpinModalBackdrop').classList.add('active');
+    }
+    function closeFreeSpinModal() {
+      document.getElementById('contentWrapper').classList.remove('blurred');
+      document.getElementById('freeSpinModalBackdrop').classList.remove('active');
+    }
+
+    /* ----------------------------------------------
+       Modal windows functions (прочие)
     ---------------------------------------------- */
     function openLootBoxInfoModal() {
       document.getElementById('lootBoxInfoModal').classList.add('active');
@@ -1084,38 +1109,12 @@
 
     /* ----------------------------------------------
        14. Предотвращение нежелательного скроллинга на iOS
-       Для мини-приложения Telegram мы запрещаем стандартное поведение touchmove 
-       вне области с классом "scrollable", чтобы избежать эффекта "отскока" и случайного закрытия приложения.
     ---------------------------------------------- */
     document.addEventListener('touchmove', function(event) {
       if (!event.target.closest('.scrollable')) {
         event.preventDefault();
       }
     }, { passive: false });
-
-    /* ----------------------------------------------
-       15. Модальное окно бесплатного спина
-    ---------------------------------------------- */
-    // Функция для проверки доступности бесплатного спина
-    function checkFreeSpinAvailability() {
-      const now = Date.now();
-      // Если прошло 24 часа с последнего спина или lastSpinTime не задан (новый пользователь)
-      if (now - (localUserData.lastSpinTime || 0) >= 24 * 60 * 60 * 1000) {
-        // Добавляем эффект размытия к основному контенту
-        document.getElementById('content').classList.add('blurred');
-        // Показываем модальное окно бесплатного спина
-        document.getElementById('freeSpinModal').classList.add('active');
-      }
-    }
-    // Функция закрытия модального окна бесплатного спина и снятия эффекта размытия
-    function closeFreeSpinModal() {
-      document.getElementById('freeSpinModal').classList.remove('active');
-      document.getElementById('content').classList.remove('blurred');
-    }
-    // Можно также запускать проверку при загрузке страницы
-    window.addEventListener('load', function() {
-      checkFreeSpinAvailability();
-    });
   </script>
 </body>
 </html>
