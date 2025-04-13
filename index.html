@@ -13,15 +13,19 @@
       background: #111;
       color: #fff;
       overflow-x: hidden;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
-    /* Верхний бар – виден только в лобби */
+    /* Верхний бар – виден в лобби, скрывается в игре */
     #topBar {
       background: #222;
       padding: 10px;
       text-align: center;
     }
     #topBar span { margin: 0 10px; font-size: 16px; }
-    /* Страницы лобби, списка комнат и ожидания */
+    /* Секции лобби/список комнат */
     main {
       text-align: center;
       margin-top: 20px;
@@ -31,6 +35,10 @@
       margin: 10px;
       font-size: 16px;
       cursor: pointer;
+      border: none;
+      background: #444;
+      color: #fff;
+      border-radius: 5px;
     }
     .game-card {
       display: inline-block;
@@ -58,7 +66,7 @@
     }
     #waitingRoomSection { display: none; }
     #waitingRoomSection p { font-size: 24px; margin-top: 20px; }
-    /* Игровой экран: канвас в центре */
+    /* Игровой экран: центрирование игрового поля */
     #gameSection {
       display: none;
       height: 100vh;
@@ -71,14 +79,14 @@
     canvas {
       background: #000;
       border: 2px solid #444;
-      width: 360px;
+      width: 360px;  /* Фиксированный размер канваса */
       height: 240px;
     }
-    /* Модальное окно для ориентации */
+    /* Модальное окно для проверки ориентации */
     #orientationModal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0,0,0,0.85);
       display: none;
       align-items: center;
       justify-content: center;
@@ -91,7 +99,7 @@
       text-align: center;
       font-size: 16px;
     }
-    /* Кастомное модальное окно для уведомлений и обратного отсчёта */
+    /* Кастомное модальное окно (уведомления, обратный отсчёт) */
     #customModalBackdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -118,11 +126,11 @@
       color: #fff;
       border-radius: 5px;
     }
-    /* Mobile Controls */
-    /* Левый блок – только кнопка Jump, так как движение влево/вправо отключено */
+    /* Mobile Controls: двигающие элементы */
+    /* Убираем кнопки влево/вправо – остаётся только кнопка прыжка */
     #leftControls {
       position: fixed;
-      bottom: 40px;
+      bottom: 140px;  /* кнопки подняты выше */
       left: 10px;
       display: flex;
       flex-direction: column;
@@ -130,12 +138,15 @@
       gap: 10px;
       z-index: 2000;
     }
-    /* Правый блок – кнопка Shoot */
+    /* Правый блок – кнопки Shoot и Pause */
     #rightControls {
       position: fixed;
-      bottom: 40px;
+      bottom: 140px;  /* кнопки подняты выше */
       right: 10px;
       z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
     #leftControls button, #rightControls button {
       padding: 12px 18px;
@@ -155,22 +166,22 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <!-- Верхний бар (виден только в лобби) -->
+  <!-- Верхний бар (виден в лобби, скрывается в игре) -->
   <header id="topBar">
     <span id="usernameDisplay">User</span>
     <span id="coinDisplay">Coins: 100</span>
     <span id="pointDisplay">Points: 0</span>
   </header>
   
-  <!-- Модальное окно для ориентации -->
+  <!-- Модальное окно для ориентации устройства -->
   <div id="orientationModal">
     <div>
-      <p>Для лучшего опыта рекомендуется горизонтальное расположение, но вы можете играть в вертикальном режиме. Нажмите OK для продолжения.</p>
+      <p>Для лучшего опыта рекомендуется горизонтальное расположение, но можно играть и в вертикальном режиме. Нажмите OK для продолжения.</p>
       <button id="orientationOkBtn">OK</button>
     </div>
   </div>
   
-  <!-- Кастомное модальное окно -->
+  <!-- Кастомное модальное окно для уведомлений и обратного отсчёта -->
   <div id="customModalBackdrop">
     <div id="customModal">
       <h2 id="customModalTitle"></h2>
@@ -190,8 +201,8 @@
     </div>
   </main>
   
-  <!-- Секция списка комнат -->
-  <main id="roomListSection">
+  <!-- Список комнат -->
+  <main id="roomListSection" style="display:none;">
     <h1>Доступные комнаты</h1>
     <table id="roomsTable">
       <tr>
@@ -204,28 +215,28 @@
   </main>
   
   <!-- Окно ожидания для хоста -->
-  <main id="waitingRoomSection">
+  <main id="waitingRoomSection" style="display:none;">
     <h1>Ожидание соперника...</h1>
     <p>Пожалуйста, подождите, пока второй игрок подключится.</p>
   </main>
   
-  <!-- Игровой экран -->
+  <!-- Игровой экран: канвас в центре -->
   <section id="gameSection">
     <canvas id="gameCanvas" width="360" height="240"></canvas>
   </section>
   
-  <!-- Mobile Controls: в левом блоке только кнопка Jump, в правом – кнопка Shoot -->
+  <!-- Mobile Controls: Осталась только кнопка прыжка -->
   <div id="leftControls">
     <button id="btnJump">Jump</button>
   </div>
   <div id="rightControls">
+    <!-- Кнопка для паузы/возобновления игры -->
+    <button id="btnPause">Pause</button>
     <button id="btnShoot">Shoot</button>
   </div>
   
   <script>
-    /********************************************************************
-     * 1. Инициализация Firebase, Telegram и определение пользователя
-     ********************************************************************/
+    /***************** 1. Инициализация Firebase, Telegram и пользовательских данных *****************/
     const firebaseConfig = {
       apiKey: "AIzaSyApxp0dHh0TK4nZVfOqloJ92dekjvjey3I",
       authDomain: "meta-glitch.firebaseapp.com",
@@ -238,7 +249,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     
-    // Если запускается через Telegram – используем его данные и полноэкранный режим, иначе создаём тестового пользователя
+    // Если через Telegram – используем его данные и запрашиваем полноэкранный режим; иначе тестовый пользователь.
     let currentUser = {};
     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
       currentUser = Telegram.WebApp.initDataUnsafe.user;
@@ -253,10 +264,9 @@
       localStorage.setItem('testUserCount', testCount);
       currentUser = { username: "TestUser" + testCount };
     }
-    // Отображаем имя без символа '@'
+    // Отображаем имя (без символа "@")
     document.getElementById('usernameDisplay').textContent = currentUser.username;
     
-    // Локальные данные пользователя
     let localUserData = { coins: 100, points: 0 };
     function updateTopBar() {
       document.getElementById('coinDisplay').textContent = "Coins: " + localUserData.coins;
@@ -264,14 +274,11 @@
     }
     updateTopBar();
     
-    /********************************************************************
-     * 2. Логика комнат: создание, список и присоединение
-     ********************************************************************/
+    /***************** 2. Комнаты: создание, список, присоединение *****************/
     let roomID = null;
     let isHost = false;
     let remoteUsername = null;
     
-    // Устанавливаем onDisconnect – удаление данных игрока при разрыве соединения
     function setOnDisconnect() {
       db.ref("rooms/" + roomID + "/players/" + currentUser.username)
         .onDisconnect()
@@ -287,7 +294,7 @@
         status: "waiting",
         players: {}
       };
-      // Хост (local player) управляет fighter1 (левая сторона) – имя выводится как currentUser.username
+      // Хост (локальный игрок) – fighter1 (фиксированная позиция слева)
       roomData.players[currentUser.username] = {
         x: 50,
         y: 320,
@@ -352,7 +359,7 @@
         const room = snapshot.val();
         if(room && room.status === "waiting") {
           roomRef.child("players").child(currentUser.username).set({
-            x: 700,  // присоединяющийся игрок управляет fighter2 (правая сторона)
+            x: 700, // присоединяющийся игрок – fighter2 (фиксированная позиция справа)
             y: 320,
             hp: 100,
             bullets: 3,
@@ -369,14 +376,12 @@
             });
           });
         } else {
-          showCustomModal("Ошибка", "Комната недоступна", () => {});
+          showCustomModal("Ошибка", "Комната недоступна", ()=>{});
         }
       });
     }
     
-    /********************************************************************
-     * 3. Проверка ориентации устройства
-     ********************************************************************/
+    /***************** 3. Проверка ориентации *****************/
     function checkOrientation(callback) {
       if(window.innerWidth < window.innerHeight) {
         document.getElementById('orientationModal').style.display = 'flex';
@@ -389,22 +394,27 @@
       }
     }
     
-    /********************************************************************
-     * 4. Механика игры "Simple Shooter" с онлайн-синхронизацией
-     ********************************************************************/
+    /***************** 4. Механика игры "Simple Shooter" *****************/
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    // Используем фиксированное положение по Y для бойцов (горизонтальное поле)
     const groundLevel = canvas.height - 100;
     const gravity = 0.5;
     
-    // Загружаем изображения бойцов (левый и правый)
+    // Загружаем изображения – левый и правый бойцы
     const leftFighterImg = new Image();
     leftFighterImg.src = "https://pixelartmaker-data-78746291193.nyc3.digitaloceanspaces.com/image/6683c11ff148f10.png";
     const rightFighterImg = new Image();
     rightFighterImg.src = "https://i.pinimg.com/originals/b9/f5/3d/b9f53d6343a55a761968c4f3fb477a17.png";
     
-    // Структуры бойцов – игроки не могут двигаться влево/вправо; только прыжок и стрельба
+    // Функции для получения локального и удалённого бойца
+    function getLocalFighter() {
+      return isHost ? fighter1 : fighter2;
+    }
+    function getRemoteFighter() {
+      return isHost ? fighter2 : fighter1;
+    }
+    
+    // Структуры бойцов – фиксированные позиции
     const fighter1 = {
       x: 50,
       y: groundLevel,
@@ -432,47 +442,152 @@
       onGround: true
     };
     
-    // Пули: объект, где ключ – id пули, а значение – данные пули
+    // Пули – синхронизируются через Firebase
     let bullets = {};
     
-    // Обработчики клавиатуры (при необходимости для ПК)
+    // Частицы для эффекта попадания
+    let particles = [];
+    
+    // Пауэр-ап: объект с бонусом (null если не активен)
+    let powerUp = null;
+    
+    // Пауза
+    let paused = false;
+    
+    // Если используются клавиатура (ПК), то отслеживаем (только прыжок и стрельба)
     let keys = {};
     document.addEventListener('keydown', e => { keys[e.key] = true; });
     document.addEventListener('keyup', e => { keys[e.key] = false; });
     
-    // Mobile controls: Отслеживаем состояние кнопок – теперь только Jump и Shoot
+    // Mobile controls: объект для отслеживания нажатых кнопок (осталась лишь прыжок и стрельба)
     let mobileKeys = { jump: false, shoot: false };
-    // Удаляем слушатели для left/right
+    
     document.getElementById("btnJump").addEventListener("touchstart", e => { mobileKeys.jump = true; e.preventDefault(); });
     document.getElementById("btnJump").addEventListener("touchend", e => { mobileKeys.jump = false; e.preventDefault(); });
     document.getElementById("btnJump").addEventListener("mousedown", () => { mobileKeys.jump = true; });
     document.getElementById("btnJump").addEventListener("mouseup", () => { mobileKeys.jump = false; });
-    
+  
     document.getElementById("btnShoot").addEventListener("touchstart", e => { mobileKeys.shoot = true; e.preventDefault(); });
     document.getElementById("btnShoot").addEventListener("touchend", e => { mobileKeys.shoot = false; e.preventDefault(); });
     document.getElementById("btnShoot").addEventListener("mousedown", () => { mobileKeys.shoot = true; });
     document.getElementById("btnShoot").addEventListener("mouseup", () => { mobileKeys.shoot = false; });
     
-    // Функции для определения локального и удалённого бойца
-    function getLocalFighter() {
-      return isHost ? fighter1 : fighter2;
+    // Кнопка для паузы/возобновления игры
+    document.getElementById("btnPause").addEventListener("click", () => {
+      if (!paused) {
+        paused = true;
+        cancelAnimationFrame(gameLoopId);
+        document.getElementById('customModalTitle').innerText = "Игра на паузе";
+        document.getElementById('customModalMessage').innerText = "Нажмите \"Resume\", чтобы продолжить.";
+        document.getElementById('customModalBtn').innerText = "Resume";
+        document.getElementById('customModalBackdrop').style.display = 'flex';
+      } else {
+        paused = false;
+        document.getElementById('customModalBackdrop').style.display = 'none';
+        gameLoop();
+      }
+    });
+    
+    // Звуковые эффекты
+    const shotSound = new Audio("https://actions.google.com/sounds/v1/weapons/gunshot.ogg");
+    const hitSound = new Audio("https://actions.google.com/sounds/v1/impacts/metal_hit.ogg");
+    const gameOverSound = new Audio("https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg");
+    // Добавляем звук прыжка
+    const jumpSound = new Audio("https://actions.google.com/sounds/v1/cartoon/boing.ogg");
+    // Фоновая музыка – запускается в начале игры
+    const backgroundMusic = new Audio("https://actions.google.com/sounds/v1/ambiences/office_busy.ogg");
+    backgroundMusic.loop = true;
+    
+    function playShotSound() {
+      shotSound.currentTime = 0;
+      shotSound.play();
     }
-    function getRemoteFighter() {
-      return isHost ? fighter2 : fighter1;
+    function playHitSound() {
+      hitSound.currentTime = 0;
+      hitSound.play();
+    }
+    function playGameOverSound() {
+      gameOverSound.currentTime = 0;
+      gameOverSound.play();
     }
     
-    // Добавляем базовую интерполяцию для удалённого бойца
-    let remoteTargetX = null, remoteTargetY = null;
+    /******** Функция для создания эффекта частиц при попадании ********/
+    function spawnParticles(x, y) {
+      const count = 10;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          life: 30
+        });
+      }
+    }
     
-    // Обновление локального бойца: горизонтальное положение фиксировано, только прыжок и стрельба
+    /******** Отрисовка частиц ********/
+    function updateAndDrawParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        ctx.fillStyle = "rgba(255, 255, 0," + (p.life / 30) + ")";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+    }
+    
+    /******** Функция для создания/обновления бонуса (power-up) ********/
+    function spawnPowerUp() {
+      // Простая реализация: бонус представляет собой круг, дающий +20 к HP
+      powerUp = {
+        x: Math.random() * (canvas.width - 30) + 15,
+        y: groundLevel - 50, // выше земли
+        radius: 10,
+        active: true
+      };
+    }
+    
+    function drawPowerUp() {
+      if (powerUp && powerUp.active) {
+        ctx.fillStyle = "#0f0";
+        ctx.beginPath();
+        ctx.arc(powerUp.x, powerUp.y, powerUp.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    
+    /******** Проверка столкновения с бонусом ********/
+    function checkPowerUpCollision(fighter) {
+      if (powerUp && powerUp.active) {
+        const dx = (fighter.x + fighter.width/2) - powerUp.x;
+        const dy = (fighter.y + fighter.height/2) - powerUp.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < powerUp.radius + 15) { // 15 – условный радиус игрока
+          // Например, добавить 20 HP и вернуть 1 пулю
+          fighter.hp = Math.min(100, fighter.hp + 20);
+          fighter.bullets++;
+          powerUp.active = false;
+        }
+      }
+    }
+    
+    // Фиксируем, что движение по X отключено – игроки могут только прыгать
     function updateLocalFighter() {
       const localFighter = getLocalFighter();
-      // Игрок не может менять x – он фиксирован (50 для host, canvas.width - 100 для не-хоста)
-      // Прыжок
+      // Прыжок (обработка только для прыжка)
       if ((keys['ArrowUp'] || mobileKeys.jump) && localFighter.onGround) {
         localFighter.vy = -12;
         localFighter.onGround = false;
+        jumpSound.currentTime = 0;
         jumpSound.play();
+        mobileKeys.jump = false;
+        keys['ArrowUp'] = false;
       }
       if (!localFighter.onGround) {
         localFighter.vy += gravity;
@@ -483,7 +598,7 @@
           localFighter.onGround = true;
         }
       }
-      // Стрельба: пробел или кнопка Shoot
+      // Стрельба: пробел или мобильная кнопка Shoot
       if ((keys[' '] || mobileKeys.shoot) && localFighter.bullets > 0) {
         const bulletData = {
           owner: currentUser.username,
@@ -497,33 +612,40 @@
         db.ref("rooms/" + roomID + "/bullets").push(bulletData);
         localFighter.bullets--;
         playShotSound();
-        if(localFighter.bullets === 0) {
+        if (localFighter.bullets === 0) {
           localFighter.reloadStart = Date.now();
         }
         mobileKeys.shoot = false;
         keys[' '] = false;
       }
-      if(localFighter.bullets === 0 && localFighter.reloadStart) {
-        if(Date.now() - localFighter.reloadStart >= localFighter.reloadTime) {
+      if (localFighter.bullets === 0 && localFighter.reloadStart) {
+        if (Date.now() - localFighter.reloadStart >= localFighter.reloadTime) {
           localFighter.bullets = 3;
           localFighter.reloadStart = null;
         }
       }
+      // Проверка бонуса
+      checkPowerUpCollision(localFighter);
     }
     
-    // Обновление пуль: пуля двигается до самого края, удаляется при выходе, и если попала – исчезает
     function updateBullets() {
       for (let id in bullets) {
         const b = bullets[id];
         b.x += b.vx;
-        if(b.x + b.width < 0 || b.x > canvas.width) {
+        if (b.x + b.width < 0 || b.x > canvas.width) {
           deleteBullet(id);
           continue;
         }
+        // Если пуля принадлежит противнику и попадает в локального бойца
         if(b.owner !== currentUser.username && isColliding(b, getLocalFighter())) {
-          getLocalFighter().hp = Math.max(0, getLocalFighter().hp - 10);
+          const localFighter = getLocalFighter();
+          localFighter.hp = Math.max(0, localFighter.hp - 10);
           playHitSound();
+          spawnParticles(b.x, b.y);
           deleteBullet(id);
+          if(navigator.vibrate) {
+            navigator.vibrate(100);
+          }
         }
       }
     }
@@ -540,7 +662,6 @@
       delete bullets[id];
     }
     
-    // Слушаем пули из Firebase
     function listenToBullets() {
       const bulletsRef = db.ref("rooms/" + roomID + "/bullets");
       bulletsRef.on("child_added", snapshot => {
@@ -554,7 +675,6 @@
       });
     }
     
-    // Синхронизация локального состояния бойца в Firebase
     function syncLocalState() {
       const localFighter = getLocalFighter();
       db.ref("rooms/" + roomID + "/players/" + currentUser.username).update({
@@ -567,7 +687,6 @@
       });
     }
     
-    // Слушаем состояние игроков в комнате, и обновляем удалённое положение с интерполяцией
     function listenToPlayers() {
       db.ref("rooms/" + roomID + "/players").on("value", snapshot => {
         const players = snapshot.val();
@@ -576,64 +695,66 @@
             remoteUsername = uname;
             const remoteData = players[uname];
             if(isHost) {
+              fighter2.x = remoteData.x;
+              fighter2.y = remoteData.y;
               fighter2.hp = remoteData.hp;
               fighter2.bullets = remoteData.bullets;
               fighter2.onGround = remoteData.onGround;
-              // Интерполяция: сохраняем целевые координаты
-              remoteTargetX = remoteData.x;
-              remoteTargetY = remoteData.y;
             } else {
+              fighter1.x = remoteData.x;
+              fighter1.y = remoteData.y;
               fighter1.hp = remoteData.hp;
               fighter1.bullets = remoteData.bullets;
               fighter1.onGround = remoteData.onGround;
-              remoteTargetX = remoteData.x;
-              remoteTargetY = remoteData.y;
             }
           }
         }
       });
     }
     
-    // Обновляем удалённого игрока (например, при попадании)
-    function updateRemotePlayer(username, fighterState) {
-      if(username) {
-        db.ref("rooms/" + roomID + "/players/" + username).update({
-          hp: fighterState.hp
-        });
-      }
-    }
-    
-    // Рендер игрового поля: отрисовка бойцов, пуль, отображение юзернеймов, XP и пуль
+    // Рендер игрового поля
     function renderGame() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Рисуем левого бойца (fighter1) с изображением
+      // Если игра окончена, выставляем здоровье противника равным 0
+      if (gameEnded) {
+        if (isHost) {
+          fighter2.hp = 0;
+        } else {
+          fighter1.hp = 0;
+        }
+      }
+      // Левый боец (fighter1)
       if(leftFighterImg.complete) {
         ctx.drawImage(leftFighterImg, fighter1.x, fighter1.y, fighter1.width, fighter1.height);
       } else {
         ctx.fillStyle = fighter1.color;
         ctx.fillRect(fighter1.x, fighter1.y, fighter1.width, fighter1.height);
       }
-      // Рисуем правого бойца (fighter2)
+      // Правый боец (fighter2)
       if(rightFighterImg.complete) {
         ctx.drawImage(rightFighterImg, fighter2.x, fighter2.y, fighter2.width, fighter2.height);
       } else {
         ctx.fillStyle = fighter2.color;
         ctx.fillRect(fighter2.x, fighter2.y, fighter2.width, fighter2.height);
       }
-      // Рисуем пули
+      // Пули
       ctx.fillStyle = "#fff";
       for (let id in bullets) {
         const b = bullets[id];
         ctx.fillRect(b.x, b.y, b.width, b.height);
       }
-      // Отрисовка юзернеймов и XP над бойцами и количества пуль под ними
+      // Рисуем эффект частиц
+      updateAndDrawParticles();
+      // Рисуем бонус, если он активен
+      drawPowerUp();
+      
+      // Отрисовка юзернеймов и XP над бойцами, а также информации о пулях
       ctx.fillStyle = "#fff";
       ctx.font = "14px Arial";
       if(isHost) {
         ctx.fillText(currentUser.username, fighter1.x, fighter1.y - 20);
         ctx.fillText("XP: " + fighter1.hp, fighter1.x, fighter1.y - 5);
         ctx.fillText("Пули: " + fighter1.bullets, fighter1.x, fighter1.y + fighter1.height + 15);
-        
         ctx.fillText(remoteUsername ? remoteUsername : "Waiting", fighter2.x, fighter2.y - 20);
         ctx.fillText("XP: " + fighter2.hp, fighter2.x, fighter2.y - 5);
         ctx.fillText("Пули: " + fighter2.bullets, fighter2.x, fighter2.y + fighter2.height + 15);
@@ -641,51 +762,52 @@
         ctx.fillText(remoteUsername ? remoteUsername : "Waiting", fighter1.x, fighter1.y - 20);
         ctx.fillText("XP: " + fighter1.hp, fighter1.x, fighter1.y - 5);
         ctx.fillText("Пули: " + fighter1.bullets, fighter1.x, fighter1.y + fighter1.height + 15);
-        
         ctx.fillText(currentUser.username, fighter2.x, fighter2.y - 20);
         ctx.fillText("XP: " + fighter2.hp, fighter2.x, fighter2.y - 5);
         ctx.fillText("Пули: " + fighter2.bullets, fighter2.x, fighter2.y + fighter2.height + 15);
       }
-      // Если местный игрок перезаряжается, показываем текст "Reloading..."
+      // Если пуль закончились, показываем сообщение "Reloading..." над локальным бойцом
       const localFighter = getLocalFighter();
       if(localFighter.bullets === 0) {
         ctx.fillStyle = "#ff0";
-        ctx.fillText("Reloading...", localFighter.x, localFighter.y - 40);
+        ctx.font = "12px Arial";
+        ctx.fillText("Reloading...", localFighter.x, localFighter.y - 35);
       }
     }
     
-    // Перемещение удалённого бойца с базовой интерполяцией
-    function interpolateRemote() {
-      if(remoteTargetX !== null) {
-        let remoteFighter = getRemoteFighter();
-        remoteFighter.x += (remoteTargetX - remoteFighter.x) * 0.1;
-        remoteFighter.y += (remoteTargetY - remoteFighter.y) * 0.1;
-      }
-    }
-    
-    // Игровой цикл
     let gameLoopId;
+    let gameEnded = false;
     function gameLoop() {
+      // Если игра на паузе, не обновляем состояние
+      if (paused) return;
+      
       updateLocalFighter();
       syncLocalState();
       updateBullets();
-      interpolateRemote();
+      // Если бонус не активен, с небольшим шансом появляется новый (примерно раз в 10 сек)
+      if (!powerUp || !powerUp.active) {
+        if (Math.random() < 0.003) {
+          spawnPowerUp();
+        }
+      }
       renderGame();
       
-      // Завершаем игру, если у любого игрока XP (hp) ≤ 0
+      // Получаем текущие значения HP
       const localHP = getLocalFighter().hp;
       const remoteHP = getRemoteFighter().hp;
-      if(localHP <= 0 || remoteHP <= 0) {
-        let result = (localHP > 0) ? "Вы выиграли!" : "Вы проиграли!";
-        // Если у удалённого игрока осталось >0, но на нашем клиенте его уже 0, принудительно устанавливаем 0
-        if(remoteHP <= 0) {
-          getRemoteFighter().hp = 0;
-        }
-        updateStats(result);
+      
+      if((localHP <= 0 || remoteHP <= 0) && !gameEnded) {
+        gameEnded = true;
         playGameOverSound();
+        let result = (localHP > 0) ? "Вы выиграли!" : "Вы проиграли!";
+        updateStats(result);
+        // Если хост – устанавливаем флаг gameOver, чтобы оба клиента завершили игру
+        db.ref("rooms/" + roomID).update({ gameOver: true });
         showGameOverCountdown(result);
         if(isHost) {
-          db.ref("rooms/" + roomID).remove();
+          setTimeout(() => {
+            db.ref("rooms/" + roomID).remove();
+          }, 5000);
         }
         cancelAnimationFrame(gameLoopId);
         return;
@@ -693,7 +815,7 @@
       gameLoopId = requestAnimationFrame(gameLoop);
     }
     
-    // Запуск игры: скрываем лобби, список, ожидание; отображаем игровое поле и блокируем прокрутку
+    // Запуск игры: скрываем лобби, показываем игровой экран, останавливаем скроллинг и верхний бар
     function startShooterGame() {
       document.getElementById('waitingRoomSection').style.display = 'none';
       document.getElementById('roomListSection').style.display = 'none';
@@ -705,6 +827,9 @@
       listenToBullets();
       checkOrientation(initShooterGame);
       document.getElementById('gameSection').addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
+      // Запускаем фоновую музыку
+      backgroundMusic.currentTime = 0;
+      backgroundMusic.play();
     }
     
     function initShooterGame() {
@@ -717,15 +842,19 @@
         fighter2.bullets = 3; fighter2.vy = 0; fighter2.onGround = true;
       }
       bullets = {};
+      particles = [];
+      powerUp = null;
+      gameEnded = false;
+      paused = false;
+      document.getElementById('customModalBackdrop').style.display = 'none';
       gameLoop();
     }
     
-    /********************************************************************
-     * 5. Кастомное глобальное модальное окно для уведомлений
-     ********************************************************************/
+    /***************** 5. Кастомное модальное окно (уведомления, обратный отсчёт) *****************/
     function showCustomModal(title, message, callback) {
       document.getElementById('customModalTitle').innerText = title;
       document.getElementById('customModalMessage').innerText = message;
+      document.getElementById('customModalBtn').innerText = "OK";
       document.getElementById('customModalBackdrop').style.display = 'flex';
       document.getElementById('customModalBtn').onclick = function() {
         document.getElementById('customModalBackdrop').style.display = 'none';
@@ -739,19 +868,18 @@
       const intervalId = setInterval(() => {
         countdown--;
         document.getElementById('customModalMessage').innerText = "Результат: " + result + "\nВозвращение в лобби через " + countdown + " секунд";
-        if (countdown <= 0) {
+        if(countdown <= 0) {
           clearInterval(intervalId);
           document.getElementById('gameSection').style.display = 'none';
           document.getElementById('lobbySection').style.display = 'block';
           document.getElementById('topBar').style.display = 'block';
           document.body.style.overflow = 'auto';
+          backgroundMusic.pause();
         }
       }, 1000);
     }
     
-    /********************************************************************
-     * 6. Статистика игр: сохранение результатов дуэлей в Firebase
-     ********************************************************************/
+    /***************** 6. Статистика игр: сохранение результатов дуэлей в Firebase *****************/
     function updateStats(result) {
       const statsRef = db.ref("stats/" + currentUser.username);
       statsRef.once("value").then(snapshot => {
@@ -766,45 +894,14 @@
       });
     }
     
-    /********************************************************************
-     * 7. Дополнительные улучшения:
-     *    1. Звуковые эффекты: добавлены звуки прыжка, выстрела, попадания и окончания игры.
-     *    2. Визуальное сообщение о перезарядке: "Reloading..." отображается над игроком, если пуль нет.
-     *    3. Hit flash: при попадании на игрока накладывается красный полупрозрачный слой (можно расширить, здесь базовая реализация через звук).
-     *    4. Интерполяция удалённого состояния: удалённый игрок плавно перемещается к целевым координатам.
-     *    5. Полноэкранный режим: запрашивается автоматически при запуске через Telegram.
-     ********************************************************************/
-    // Звуковые эффекты
-    const jumpSound = new Audio("https://actions.google.com/sounds/v1/cartoon/boing.ogg");
-    const shotSound = new Audio("https://actions.google.com/sounds/v1/weapons/laser_short.ogg");
-    const hitSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-    const gameOverSound = new Audio("https://actions.google.com/sounds/v1/alarms/medium_bell_ringing.ogg");
-    
-    function playShotSound() {
-      shotSound.currentTime = 0;
-      shotSound.play();
-    }
-    function playJumpSound() {
-      jumpSound.currentTime = 0;
-      jumpSound.play();
-    }
-    function playHitSound() {
-      hitSound.currentTime = 0;
-      hitSound.play();
-    }
-    function playGameOverSound() {
-      gameOverSound.currentTime = 0;
-      gameOverSound.play();
-    }
-    
-    /********************************************************************
-     * 8. Блокировка жестов: запрещаем touchmove, чтобы исключить масштабирование
-     ********************************************************************/
+    /***************** 7. Блокировка жестов на iOS *****************/
     document.addEventListener('touchmove', function(event) {
       if(document.getElementById('gameSection').style.display === 'flex') {
         event.preventDefault();
       }
     }, { passive: false });
+    
   </script>
 </body>
 </html>
+
